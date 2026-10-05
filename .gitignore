@@ -1,0 +1,15 @@
+# made by builds and test runs
+tests/shots/
+tests/data/
+art/out/
+art/canon/out/
+__pycache__/
+*.pyc
+*.zip
+# pixel-identical copies of the shipped art, kept by art/slim_gifs.py, which remakes them when missing
+art/unslimmed/
+# art for the projects in the city, not for the tool: kept on this machine, out of git
+art/projects/
+# Claude Code settings for this machine only
+.claude/settings.local.json
+CLAUDE.local.md

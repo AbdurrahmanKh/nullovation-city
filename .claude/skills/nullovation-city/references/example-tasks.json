@@ -1,0 +1,16 @@
+{
+  "app": "nullovation-city",
+  "kind": "tasks",
+  "version": 1,
+  "milestone": "Rules and screens agreed",
+  "tasks": [
+    {
+      "text": "Add a no-show rule to the Clan Cup rules page",
+      "description": "Add what happens when a clan misses its match window to the Clan Cup rules page.\nWhy: the test cup showed no rule covers it.\nDone when: the rules page says which clan advances after a missed window.\nNotes: the agreed answer is that the clan that showed up advances."
+    },
+    {
+      "text": "Ask community to announce the sign-up deadline",
+      "description": "Ask the community team to announce that Clan Cup sign-ups close on Thursday.\nDone when: the announcement is scheduled."
+    }
+  ]
+}

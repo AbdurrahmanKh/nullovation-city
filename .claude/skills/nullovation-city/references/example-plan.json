@@ -1,0 +1,66 @@
+{
+  "app": "nullovation-city",
+  "kind": "plan",
+  "version": 1,
+  "project": {
+    "name": "Clan Cup",
+    "description": "Clan Cup is a weekly tournament for clans in a card game. Clans sign up during the week, play a single-elimination bracket of 8 or 16 clans over the weekend, and the winner's crest shows on the clan list until the next cup.",
+    "milestones": [
+      {
+        "name": "Rules and screens agreed",
+        "tasks": [
+          {
+            "text": "Write the Clan Cup rules page",
+            "description": "Write the one-page rules for Clan Cup: sign-up, bracket size, match windows, no-shows, and ties.\nWhy: the server team cannot size scheduling, and community cannot announce, until the rules are fixed.\nDone when: the rules page exists in the design docs space and answers what happens when a clan misses its window.\nWhere: the design docs space, under Clan Cup.\nNotes: brackets are 8 or 16 clans, single elimination, 12-hour windows; do not add a loser bracket."
+          },
+          {
+            "text": "Sketch the sign-up and bracket screens",
+            "description": "Sketch the two screens players see: the sign-up card on the clan page and the bracket view.\nWhy: these are the only new screens, and the server team needs them to know which data to return.\nDone when: both sketches are in the design file, each state covered: open, full, closed, playing, finished.\nWhere: the Clan Cup page in the design file.\nNotes: reuse the existing clan page card style; no new components."
+          },
+          {
+            "text": "Review the rules and sketches with the server team",
+            "description": "Walk the server team through the rules page and the two sketches, and settle what their side returns.\nWhy: scheduling and results are the risky part, and changing rules after they start costs a week.\nDone when: the team agrees in writing on the data each screen needs, and open questions are listed on the rules page.\nWhere: the rules page and the design file."
+          }
+        ]
+      },
+      {
+        "name": "First cup runs on the test server",
+        "tasks": [
+          {
+            "text": "Hand the finished screens to development",
+            "description": "Finish the sign-up and bracket screens from the agreed sketches and hand them off.\nWhy: development starts from these.\nDone when: final screens and their states are marked ready in the design file, with text in both languages.\nWhere: the Clan Cup page in the design file.\nNotes: keep the text short enough for the Arabic version to fit the same cards."
+          },
+          {
+            "text": "Run a test cup with 8 internal clans",
+            "description": "Run one full Clan Cup on the test server with 8 internal clans, from sign-up to the crest showing.\nWhy: the first real run finds the scheduling holes before players do.\nDone when: a full bracket finishes, the winner's crest shows for a week, and every problem is logged as a task.\nWhere: the test server; the internal clans list is with the community team.\nNotes: include one forced no-show to check that rule."
+          }
+        ]
+      },
+      {
+        "name": "Clan Cup is live",
+        "tasks": [
+          {
+            "text": "Write the launch announcement",
+            "description": "Write the announcement for the first public Clan Cup: what it is, how to sign up, and the dates.\nWhy: sign-ups close Thursday, so players need to know early in the week.\nDone when: the text is approved and scheduled with community.\nWhere: community's announcement queue.\nNotes: link the rules page; keep it to three short paragraphs."
+          },
+          {
+            "text": "Watch the first live cup and log what breaks",
+            "description": "Follow the first live cup from sign-up to crest, and log every problem players hit.\nWhy: the first weekend decides whether clans come back.\nDone when: the cup finishes and a list of fixes, each as a task, is added to this project.\nWhere: the live clan list and the community channels.",
+            "due": "2026-11-15"
+          }
+        ]
+      }
+    ],
+    "ideas": [
+      {
+        "title": "Idea: a season of cups",
+        "text": "Points from each week's placement add up to a monthly season champion. Worth it only if weekly sign-ups stay above 16 clans."
+      },
+      {
+        "title": "Idea: spectator view",
+        "text": "Let clan members watch their clan's match live. Needs the replay work first, so not before the second quarter."
+      }
+    ],
+    "links": []
+  }
+}

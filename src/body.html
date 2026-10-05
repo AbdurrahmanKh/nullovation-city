@@ -1,0 +1,116 @@
+<div id="app">
+  <aside id="menu" aria-label="Projects menu">
+    <header class="brand">
+      <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v{{VERSION}}</span></div>
+      <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
+    </header>
+
+    <div class="new-row">
+      <button id="btnNew" class="btn btn-accent" type="button"><span id="plusIcon" aria-hidden="true"></span>New project</button>
+      <div id="newWrap" hidden>
+        <label class="sr-only" for="newName">New project name</label>
+        <div class="new-name">
+          <input id="newName" class="field" type="text" dir="auto" maxlength="80" placeholder="Project name" autocomplete="off">
+          <button id="newNext" class="btn btn-accent btn-small" type="button">Next</button>
+        </div>
+        <p class="hint" style="margin-top:6px">Name it, pick its building, then plant it on the map.</p>
+      </div>
+    </div>
+
+    <div class="find">
+      <label class="sr-only" for="search">Search projects</label>
+      <input id="search" class="field" type="search" dir="auto" placeholder="Search projects" autocomplete="off">
+      <p id="count" class="count" aria-live="polite"></p>
+    </div>
+
+    <section class="sb-sec" aria-label="This week">
+      <button id="btnRecap" class="week-card" type="button" title="Open this week's snapshot, and every week before it"></button>
+    </section>
+    <section id="sbUrgent" class="sb-sec" aria-label="Urgent projects" hidden>
+      <h2 class="sb-h">Urgent</h2>
+      <div id="urgentList" class="urgent-list"></div>
+    </section>
+    <section id="sbDue" class="sb-sec" aria-label="Due this week" hidden>
+      <h2 class="sb-h">Due this week</h2>
+      <ul id="dueList" class="due-list"></ul>
+    </section>
+    <div class="grow"></div>
+    <div class="mapsize">
+      <span>Map: <b id="mapSize">5 by 5 plots</b></span>
+      <span class="mapsize-btns">
+        <button id="btnGrow" class="btn btn-small" type="button" title="Add a ring of plots around the city">Grow</button>
+        <button id="btnShrink" class="btn btn-small" type="button" title="Remove the outer ring when it is empty">Shrink</button>
+      </span>
+    </div>
+    <div id="alerts" class="sb-alerts" aria-live="polite">
+      <p id="saveAlert" class="save-alert" hidden></p>
+      <div id="fileAlert" class="save-alert" hidden></div>
+    </div>
+    <details id="foldTools" class="sb-fold">
+      <summary>Tools</summary>
+      <div class="tools">
+        <button id="btnBrief" class="btn" type="button" title="Copies a text summary of every project for a Claude chat">Copy status brief</button>
+        <button id="btnPalette" class="btn" type="button" title="The city's 32 colors as a PNG, for image tools that take a forced palette">Download palette</button>
+        <div class="tool-crowds">
+          <label class="lbl" for="optCrowds">Crowds round busy buildings</label>
+          <select id="optCrowds" class="field"><option value="none">None</option><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select>
+        </div>
+        <div class="tool-folders">
+          <label class="check"><input id="optExplorer" type="checkbox" class="cb"> Folder links open in File Explorer</label>
+          <p class="note">Windows only, after a one-time setup on this PC. <button id="btnFolderSetup" class="linkish" type="button">Get the setup</button></p>
+        </div>
+      </div>
+    </details>
+    <details id="foldData" class="sb-fold">
+      <summary>Backup and data file</summary>
+      <div class="data">
+        <div class="data-btns">
+          <button id="btnExport" class="btn" type="button">Export backup</button>
+          <button id="btnImport" class="btn" type="button">Import backup</button>
+        </div>
+        <input id="fileImport" type="file" accept="application/json,.json" hidden>
+        <div id="fileBox" class="file-box"></div>
+        <p id="saveStatus" class="save-status">Saved in this browser.</p>
+      </div>
+    </details>
+
+    <section class="help" aria-label="Controls">
+      <h2>Controls</h2>
+      <dl>
+        <dt>Move</dt><dd>Arrow keys, WASD, or drag the ground</dd>
+        <dt>Zoom</dt><dd>Scroll or pinch</dd>
+        <dt>Status</dt><dd>Click a building</dd>
+        <dt>Hop</dt><dd>Q and E: previous or next building</dd>
+        <dt>Rearrange</dt><dd>Hold a building, then drag it to another plot</dd>
+      </dl>
+    </section>
+  </aside>
+
+  <main id="mapWrap">
+    <canvas id="map" aria-label="City map. Each building is a project." role="img"></canvas>
+    <div id="overlay">
+      <div id="bubble" class="bubble" role="dialog" aria-label="Project status" hidden></div>
+      <button id="enterBtn" class="btn btn-accent enter" type="button" hidden><span id="doorIcon" aria-hidden="true"></span>Enter</button>
+      <div id="tip" class="tip" hidden></div>
+    </div>
+    <div id="banner" class="banner" role="status" hidden>
+      <span>Plant <b id="bannerName" dir="auto"></b>: aim at a free plot, then click.</span>
+      <button id="bannerCancel" class="btn btn-quiet" type="button">Cancel</button>
+    </div>
+    <div class="keyhint" aria-hidden="true"><kbd>Q</kbd><kbd>E</kbd><span>previous or next building</span></div>
+    <div class="map-tools">
+      <button id="btnTraffic" class="btn" type="button" title="Traffic"><span id="trafficIcon" aria-hidden="true"></span><span id="trafficLabel">Traffic</span></button>
+      <button id="btnBubbles" class="btn" type="button" title="Urgency bubbles"><span id="bubblesIcon" aria-hidden="true"></span><span id="bubblesLabel">Bubbles</span></button>
+      <button id="btnLight" class="btn" type="button" title="Day and night: Auto follows this computer's clock"><span id="lightIcon" aria-hidden="true"></span><span id="lightLabel">Auto</span></button>
+      <button id="btnPostcard" class="btn" type="button" title="Save this view as a PNG"><span id="camIcon" aria-hidden="true"></span>Postcard</button>
+      <div class="zoom" role="group" aria-label="Zoom">
+        <button id="zoomOut" class="icon-btn" type="button" aria-label="Zoom out"></button>
+        <output id="zoomLevel" aria-live="polite">2x</output>
+        <button id="zoomIn" class="icon-btn" type="button" aria-label="Zoom in"></button>
+      </div>
+    </div>
+    <button id="menuToggle" class="btn menu-toggle" type="button" aria-controls="menu" aria-expanded="false">Menu</button>
+  </main>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>

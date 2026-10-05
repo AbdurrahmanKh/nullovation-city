@@ -1,0 +1,9 @@
+# Python packages for the tests and the art scripts. The build itself needs only Python.
+#   pip install -r requirements.txt
+# The tests drive Google Chrome through Playwright. Without Chrome installed: python -m playwright install chrome
+pillow
+numpy
+playwright
+# Only for some art scripts; install them when you run those:
+#   scipy              art/buildings/city_hall.py
+#   global-land-mask   art/projects/projection_court.py and projection_court2.py

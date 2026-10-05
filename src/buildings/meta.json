@@ -1,0 +1,98 @@
+[
+ {
+  "id": "city-hall",
+  "title": "City hall",
+  "footprint": "Medium",
+  "w": 256,
+  "h": 192,
+  "frames": 40
+ },
+ {
+  "id": "worksite",
+  "title": "Worksite",
+  "footprint": "Medium",
+  "w": 256,
+  "h": 239,
+  "frames": 48
+ },
+ {
+  "id": "habitat-pod",
+  "title": "Habitat pod",
+  "footprint": "Small",
+  "w": 256,
+  "h": 136,
+  "frames": 40
+ },
+ {
+  "id": "research-lab",
+  "title": "Research lab",
+  "footprint": "Medium",
+  "w": 256,
+  "h": 164,
+  "frames": 40
+ },
+ {
+  "id": "data-tower",
+  "title": "Data tower",
+  "footprint": "Small, tall",
+  "w": 256,
+  "h": 314,
+  "frames": 32
+ },
+ {
+  "id": "hangar",
+  "title": "Hangar",
+  "footprint": "Medium",
+  "w": 256,
+  "h": 146,
+  "frames": 40
+ },
+ {
+  "id": "greenhouse-dome",
+  "title": "Greenhouse dome",
+  "footprint": "Medium",
+  "w": 256,
+  "h": 137,
+  "frames": 40
+ },
+ {
+  "id": "power-station",
+  "title": "Power station",
+  "footprint": "Medium",
+  "w": 256,
+  "h": 164,
+  "frames": 40
+ },
+ {
+  "id": "comms-spire",
+  "title": "Comms spire",
+  "footprint": "Small, the tallest",
+  "w": 256,
+  "h": 329,
+  "frames": 23
+ },
+ {
+  "id": "workshop",
+  "title": "Workshop",
+  "footprint": "Medium",
+  "w": 256,
+  "h": 164,
+  "frames": 40
+ },
+ {
+  "id": "kiosk",
+  "title": "Kiosk",
+  "footprint": "Small",
+  "w": 256,
+  "h": 133,
+  "frames": 40
+ },
+ {
+  "id": "home",
+  "title": "Home",
+  "footprint": "Small",
+  "w": 256,
+  "h": 142,
+  "frames": 5
+ }
+]
