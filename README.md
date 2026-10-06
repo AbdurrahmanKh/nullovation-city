@@ -2,11 +2,11 @@
 
 A personal project tracker drawn as an isometric pixel-art city. Every project is one building: click it for a quick status bubble, or step inside for everything else. It is one self-contained HTML file that runs offline in the browser.
 
-Your city stays in the browser you use it in. Export saves a backup file, Import restores one, and the data file keeps a copy on disk.
+Open it online at https://abdurrahmankh.github.io/nullovation-city/, or build it and open `index.html`. Your city stays in the browser you use it in. Export saves a backup file, Import restores one, and the data file keeps a copy on disk.
 
 ## Versions
 
-Tool: 0.1.18. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
+Tool: 0.1.19. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
 
 ## Build and test
 

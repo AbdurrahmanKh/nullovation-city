@@ -24,7 +24,7 @@ with sync_playwright() as p:
     a = js(f"() => MapView.anchors('{wz}')")
     pg.mouse.click(left + a['topX'], (a['topY'] + a['baseY']) / 2); pg.wait_for_timeout(450)
     pg.click('#enterBtn'); pg.wait_for_timeout(700)
-    clip = lambda: js("() => navigator.clipboard.readText()")
+    clip = lambda: js("() => navigator.clipboard.readText()").replace('\r\n', '\n')     # Windows reads line ends back as \r\n
     # notes
     cells = pg.locator('.pv-note-cell')
     ok('every note card has its own copy button', cells.count() >= 1 and pg.locator('.pv-note-cell .pv-note-copy').count() == cells.count())

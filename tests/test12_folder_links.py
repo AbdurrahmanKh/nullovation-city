@@ -19,7 +19,7 @@ with sync_playwright() as p:
     wz = js("() => DB.projects.find(p => p.name.startsWith('Garden')).id")
     js(f"""() => {{ const p = DB.projects.find(p => p.id === '{wz}');
       p.links = [{{ id: uid('l'), label: 'Design folder', url: 'C:\\\\Users\\\\Abdurrahman\\\\My Designs', icon: 'folder' }},
-                 {{ id: uid('l'), label: 'Old style', url: 'file:///D:/Work/Kammelna%20Assets', icon: 'folder' }},
+                 {{ id: uid('l'), label: 'Old style', url: 'file:///D:/Work/Game%20Assets', icon: 'folder' }},
                  {{ id: uid('l'), label: 'Share', url: '\\\\\\\\nas\\\\team\\\\specs', icon: 'folder' }},
                  {{ id: uid('l'), label: 'Web', url: 'https://example.com', icon: 'web' }}]; changed(p); }}""")
     js("() => MapView.setCam({ x: 0, y: 230, z: 2 })"); pg.wait_for_timeout(250)
@@ -29,13 +29,13 @@ with sync_playwright() as p:
     links = lambda: js("() => [...document.querySelectorAll('[data-sec=\"links\"] .link-btn')].map(a => [a.getAttribute('href'), a.getAttribute('target')])")
     L = links()
     ok('with the setting off, a Windows path opens in the browser as a file address', L[0] == ['file:///C:/Users/Abdurrahman/My%20Designs', '_blank'])
-    ok('a file:// address and a network share do too', L[1][0] == 'file:///D:/Work/Kammelna%20Assets' and L[2][0] == 'file://nas/team/specs')
+    ok('a file:// address and a network share do too', L[1][0] == 'file:///D:/Work/Game%20Assets' and L[2][0] == 'file://nas/team/specs')
     ok('web links are untouched', L[3] == ['https://example.com', '_blank'])
     ok('every local link has a copy-path button, web links do not', pg.locator('[data-sec="links"] .link-copy').count() == 3)
     pg.click('[data-sec="links"] .link-local >> nth=0 >> .link-copy'); pg.wait_for_timeout(150)
     ok('copy path copies the Windows path', js("() => navigator.clipboard.readText()") == 'C:\\Users\\Abdurrahman\\My Designs')
     pg.click('[data-sec="links"] .link-local >> nth=1 >> .link-copy'); pg.wait_for_timeout(150)
-    ok('a file:// address copies as a Windows path', js("() => navigator.clipboard.readText()") == 'D:\\Work\\Kammelna Assets')
+    ok('a file:// address copies as a Windows path', js("() => navigator.clipboard.readText()") == 'D:\\Work\\Game Assets')
     # the setting, in Tools
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     pg.click('#foldTools summary'); pg.wait_for_timeout(100)

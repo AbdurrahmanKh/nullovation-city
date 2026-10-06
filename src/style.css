@@ -570,6 +570,16 @@ kbd { background: var(--paper); border-color: var(--edge); box-shadow: 0 2px 0 0
 .pv-menu-item { display: block; width: 100%; padding: 10px 16px; text-align: left; background: none; border: 0; color: var(--ink); font: inherit; cursor: pointer; }
 .pv-menu-item:hover, .pv-menu-item:focus-visible { background: var(--hover); outline: none; }
 .pv-menu-item.danger { color: var(--late); }
+/* Open in Claude: a small menu beside each Copy for Claude, fixed to the screen so it works in any panel */
+.oc-menu { position: fixed; z-index: 70; min-width: 280px; }
+.oc-item { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.oc-item .ic { display: inline-flex; }
+.oc-item .oc-note { margin-left: auto; padding-left: 12px; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .85em; }
+.oc-item .oc-note.oc-split { display: flex; min-width: 0; }
+.oc-split .oc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.oc-split .oc-more { flex: none; white-space: pre; }
+.oc-item.off { color: var(--muted); cursor: default; }
+.oc-item.off:hover { background: none; }
 .pv-own { display: grid; gap: 10px; margin-bottom: 18px; }
 .pv-side .pick-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
 .pv-side .pick-art { min-height: 70px; }
@@ -625,6 +635,8 @@ kbd { background: var(--paper); border-color: var(--edge); box-shadow: 0 2px 0 0
 .pv-note-title { font: 400 20px/1.25 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
 .pv-note-body { min-height: 360px; resize: vertical; line-height: 1.5; }
 .pv-note-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pv-note-foot > .btn-danger { margin-left: auto; }
+.pv-claude-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
 @container (max-width: 780px) {
   .pv-hero, .pv-cols { grid-template-columns: 1fr; }
   .pv-hero-pic .pv-scene, .pv-under { width: 440px; max-width: 100%; }

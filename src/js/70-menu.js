@@ -47,6 +47,7 @@ const Menu = (() => {
       toast('Palette saved: 32 colors as 8 px swatches.');
     }, 'image/png'));
     $('#btnBrief').addEventListener('click', copyBrief);
+    $('#btnBrief').after(OpenInClaude.button({ id: 'btnBriefClaude', text: () => statusBrief(), small: false }));
     const cr = $('#optCrowds');
     cr.value = Traffic.crowd();
     cr.addEventListener('change', () => { Traffic.setCrowd(cr.value); toast({ none: 'No crowds round busy buildings.', small: 'Small crowds round busy buildings.', medium: 'Medium crowds round busy buildings.', large: 'Large crowds round busy buildings.' }[cr.value]); });

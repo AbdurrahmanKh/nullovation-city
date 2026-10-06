@@ -22,9 +22,9 @@ The file imported above is the knowledge file: features, code, data, art, skills
 
 ## Build and test
 
-- Build: `python3 build.py` writes the page to `index.html` at the root. The repo keeps it and GitHub Pages serves it, so commit it with every change; test17 fails when it is older than the source.
+- Build: `python3 build.py` writes the page to `index.html` at the root. The repo keeps it and GitHub Pages serves it, so rebuild it with every change; test17 fails when it is older than the source.
 - Test: `python3 tests/run_tests.py` builds, then runs every pass in order and prints one line per pass. `python3 tests/run_tests.py 9 16` runs only those. Logs go to `tests/data/logs/`, screenshots to `tests/shots/`.
-- The passes are named by number and topic, from `tests/test02_map.py` to `tests/test17_source.py`. `tests/testkit.py` holds their shared paths, draws the files they upload, and sets up the test city every browser pass starts from, so the passes do not depend on what a new city starts with.
+- The passes are named by number and topic, from `tests/test02_map.py` to `tests/test18_open_in_claude.py`. `tests/testkit.py` holds their shared paths, draws the files they upload, and sets up the test city every browser pass starts from, so the passes do not depend on what a new city starts with.
 
 ## Every change to the tool
 
@@ -32,15 +32,15 @@ The file imported above is the knowledge file: features, code, data, art, skills
 - Back every change with tests: run all passes, add checks for new behavior, and fix or explain every failure before calling the work done.
 - Look before presenting: open the screenshots of what changed, and for art, show side-by-side comparisons.
 - Keep `docs/nullovation-city-knowledge.md` true: the version line, features, code, decisions and open items.
-- Commit with git when this folder is a repository, with a message saying what changed and the new version. Never push, and never add or change a remote: Abdurrahman pushes.
+- Never branch, commit or push, and never add or change a remote: Abdurrahman does all of git himself. Work in the folder and leave the changes for him to commit; end with a short summary he can use as the commit message.
 - Report briefly: what changed, the new version, and the test count.
 
 ## Moving between Claude Code and claude.ai chats
 
 The source travels as `nullovation-city-source-v<version>.zip`, with one `nc/` folder inside. Chats in the Nullovation City project on claude.ai unzip it into `/home/claude`, which makes `/home/claude/nc`, and work there.
 
-- To continue in a chat: commit, then `python3 tools/pack.py` writes the archive one folder up, beside this folder. Abdurrahman attaches it to the chat, and replaces the project's knowledge file with `docs/nullovation-city-knowledge.md` when it changed.
-- When a chat delivers a new archive: commit first, run `python3 tools/pack.py --apply <path to the zip> --dry-run` to see what changes, then the same without `--dry-run`. It refuses an archive older than this folder. Then build, run the tests, and commit with the chat's report as the message.
+- To continue in a chat: `python3 tools/pack.py` writes the archive one folder up, beside this folder. Abdurrahman attaches it to the chat, and replaces the project's knowledge file with `docs/nullovation-city-knowledge.md` when it changed.
+- When a chat delivers a new archive: once Abdurrahman has committed his work, run `python3 tools/pack.py --apply <path to the zip> --dry-run` to see what changes, then the same without `--dry-run`. It refuses an archive older than this folder. Then build, run the tests, and hand him the chat's report as the commit message.
 
 ## Decisions
 

@@ -95,7 +95,7 @@ const FullView = (() => {
     if (!root) return;
     finishEdit();
     persistSoon.flush();
-    closePopover(); closeMenu(); closeSide();
+    closePopover(); closeMenu(); closeSide(); OpenInClaude.close();
     root.remove(); root = null; openId = null; editing = null;
     Bubble.refresh(); Bubble.position();
     MapView.invalidate();
@@ -271,7 +271,8 @@ const FullView = (() => {
     box.append(p.description.trim() ? h('div', { class: 'fv-desc' }, paragraphs(p.description)) : h('p', { class: 'fv-empty' }, 'No description yet. The pencil adds one.'));
     box.append(h('div', { class: 'pv-about-btns' },
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => openSide('activity') }, iconEl('clock', 14), 'Activity'),
-      h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this project\u2019s full status as text for a Claude chat', onclick: () => copyProjectStatus(p) }, iconEl('copy', 14), 'Copy status')));
+      h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this project\u2019s full status as text for a Claude chat', onclick: () => copyProjectStatus(p) }, iconEl('copy', 14), 'Copy status'),
+      OpenInClaude.button({ id: 'pvStatusClaude', text: () => projectStatus(p), project: p, quiet: true })));
     return box;
   }
   /* The current milestone and its next open task. Overdue shows in red with a !. */
@@ -290,7 +291,8 @@ const FullView = (() => {
       late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
     box.append(h('div', { class: 'pv-next-row' },
       d ? h('span', { class: 'due ' + (d.tone || '') }, d.text) : h('span', { class: 'note' }, 'No due date'),
-      h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy for Claude')));
+      h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy for Claude'),
+      OpenInClaude.button({ id: 'pvNextClaude', text: () => taskForClaude(p, t), project: p, quiet: true })));
     const others = p.todos.filter(x => !x.done && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;
     if (others) box.append(h('p', { class: 'pv-late-note' }, '! ' + plural(others, 'other task is', 'other tasks are') + ' overdue'));
     return box;
@@ -551,8 +553,10 @@ const FullView = (() => {
         h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
       h('span', { class: 'lbl' }, 'Description'), desc,
-      h('div', { class: 'pv-note-foot' },
+      h('div', { class: 'pv-claude-row' },
         h('button', { class: 'btn btn-small', type: 'button', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy for Claude'),
+        OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
+      h('div', { class: 'pv-note-foot' },
         h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
           p.todos.splice(p.todos.indexOf(t), 1);
           logActivity(p, 'Removed todo: ' + t.text);
@@ -613,8 +617,10 @@ const FullView = (() => {
     return h('div', { class: 'pv-note-ed' }, name,
       h('p', { class: 'note' }, g.todos.filter(t => t.done).length + ' of ' + plural(g.todos.length, 'task', 'tasks') + ' done. To change them, use the list; drag the milestone by its flag to move it.'),
       tasks,
-      h('div', { class: 'pv-note-foot' },
+      h('div', { class: 'pv-claude-row' },
         h('button', { id: 'pvMsCopy', class: 'btn btn-small', type: 'button', title: 'Copies this milestone, its open tasks with their descriptions, and the project\u2019s About, for a Claude chat', onclick: () => copyMilestone(p, m) }, iconEl('copy', 14), 'Copy for Claude'),
+        OpenInClaude.button({ id: 'pvMsClaude', text: () => milestoneForClaude(p, m), project: p })),
+      h('div', { class: 'pv-note-foot' },
         h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: async () => {
           if (g.todos.length) {
             const ok = await Confirm.ask({ title: ['Delete ', h('bdi', null, m.name), '?'], body: 'Its ' + plural(g.todos.length, 'task goes', 'tasks go') + ' with it.', confirm: 'Delete milestone', danger: true });
@@ -757,10 +763,12 @@ const FullView = (() => {
     const body = h('textarea', { id: 'pvNoteBody', class: 'field pv-note-body', dir: 'auto', rows: '16', placeholder: 'Write the note', 'aria-label': 'Note text',
       oninput: e => { n.text = e.target.value.slice(0, 8000); changed(p, { touch: false }); refreshCard(n); } }, n.text);
     return h('div', { class: 'pv-note-ed' }, title, body,
+      h('div', { class: 'pv-claude-row' },
+        h('button', { id: 'pvNoteCopy', class: 'btn btn-small', type: 'button', title: 'Copies this note, with the project\u2019s About, for a Claude chat', onclick: () => copyNote(p, n) }, iconEl('copy', 14), 'Copy for Claude'),
+        OpenInClaude.button({ id: 'pvNoteClaude', text: () => noteForClaude(p, n), project: p })),
       h('div', { class: 'pv-note-foot' },
         h('span', { class: 'note' }, 'Written ' + fmtStamp(n.at) + '. Saves as you type; Esc undoes.'),
         h('span', { class: 'inline pv-foot-actions' },
-        h('button', { id: 'pvNoteCopy', class: 'btn btn-small', type: 'button', title: 'Copies this note, with the project\u2019s About, for a Claude chat', onclick: () => copyNote(p, n) }, iconEl('copy', 14), 'Copy for Claude'),
         h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
           p.notes.splice(p.notes.indexOf(n), 1);
           if (noteSnap) logActivity(p, 'Deleted a note');
@@ -790,6 +798,7 @@ const FullView = (() => {
     const item = (label, fn, danger) => h('button', { class: 'pv-menu-item' + (danger ? ' danger' : ''), type: 'button', role: 'menuitem', onclick: () => { closeMenu(); fn(); } }, label);
     menu = h('div', { class: 'pv-menu', role: 'menu', 'aria-label': 'More' },
       item('Copy for builder', () => copyBuilderCard(p)),
+      item('Builder card in a Claude chat', () => OpenInClaude.go('chat', builderCard(p))),
       item('Load plan or tasks', () => openLoadPlan(p)),
       item('Export this project', () => exportProject(p)),
       item('Delete project', () => askDelete(p), true));

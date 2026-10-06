@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.19 (2026-10-05)
+
+- Open in Claude: beside every Copy for Claude, a menu opens the Claude desktop app with the same text filled in and ready to send: a new chat, a Cowork task with the project's local folders and files attached, or Claude Code in the project's first folder. The text goes on the clipboard too; one too long to fill in opens Claude empty and stays on the clipboard. The more menu also sends the builder card to a new chat.
+- The README links the live page.
+- Tests: neutral names instead of a work project and folder in test06 and test12, and a new pass, test18_open_in_claude. test15 and test18 read the clipboard with `\n` line ends on Windows too, where Chrome hands them back as `\r\n`.
+- Art: `art/pixellab.py` sends PixelLab's Pro a prompt with a local reference image, the recipe for building stills and park lots, and downloads the result. The token comes from `PIXELLAB_SECRET`.
+
 ## 0.1.18 (2026-10-05)
 
 - The page is `index.html` at the root: `build.py` writes it there, the repo keeps it, and GitHub Pages serves it straight from the branch, with `.nojekyll`. test17 fails if it is older than the source.

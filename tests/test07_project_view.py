@@ -114,10 +114,10 @@ with sync_playwright() as p:
     st = pg.evaluate("() => navigator.clipboard.readText()")
     ok('Copy status copies this project only', st.startswith('## Garden app') and 'Nullovation City' not in st)
 
-    # the more menu: builder, export, delete; Esc peels layers one at a time
+    # the more menu: builder, the builder card in a chat, export, delete; Esc peels layers one at a time
     pg.click('#pvMore'); pg.wait_for_timeout(100)
     items = pg.eval_on_selector_all('.pv-menu-item', 'els => els.map(e => e.textContent)')
-    ok(f'the more menu holds exactly {items}', items == ['Copy for builder', 'Load plan or tasks', 'Export this project', 'Delete project'])
+    ok(f'the more menu holds exactly {items}', items == ['Copy for builder', 'Builder card in a Claude chat', 'Load plan or tasks', 'Export this project', 'Delete project'])
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
     ok('Esc closes the menu first', pg.locator('.pv-menu').count() == 0 and pg.is_visible('#pvSide'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
