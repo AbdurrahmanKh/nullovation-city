@@ -6,7 +6,7 @@ Open it online at https://abdurrahmankh.github.io/nullovation-city/, or build it
 
 ## Versions
 
-Tool: 0.1.19. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
+Tool: 0.1.20. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
 
 ## Build and test
 

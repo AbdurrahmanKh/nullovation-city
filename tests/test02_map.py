@@ -1,4 +1,4 @@
-import json, pathlib
+import datetime, json, pathlib
 from playwright.sync_api import sync_playwright
 from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY
 
@@ -50,7 +50,8 @@ with sync_playwright() as p:
     ok('the project view opens with About ready to plan', page.is_visible('#pv') and page.is_visible('[data-sec="about"] .pv-done'))
 
     page.fill('#pvDesc', 'تحسين تجربة لعبة البلوت [بلوت] للاعبين الجدد.\n\nEnglish paragraph with an Arabic term: الصكة inside it.')
-    page.fill('[data-sec="about"] input[type="date"]', '2026-10-08')
+    soon = (datetime.date.today() + datetime.timedelta(days=20)).isoformat()                 # far enough to show as a date
+    page.fill('[data-sec="about"] input[type="date"]', soon)
     page.click('[data-sec="about"] .pv-done'); page.wait_for_timeout(200)
     ok('a new project starts with no milestones, so What is next says to add one', 'No milestones yet' in page.text_content('.pv-next'))
     page.click('#pvAddMsBtn'); page.keyboard.type('الجولة الأولى'); page.keyboard.press('Enter'); page.wait_for_timeout(150)
@@ -69,7 +70,8 @@ with sync_playwright() as p:
     page.keyboard.press('Escape'); page.wait_for_timeout(500)
     ok('Esc closes the view', not page.is_visible('#pv'))
     page.screenshot(path=str(SHOTS / '14-bubble-arabic.png'))
-    ok('bubble shows deadline', 'Due 8 Oct' in (page.text_content('#bubble .meta') or ''))
+    want = page.evaluate(f"() => 'Due ' + fmtDate(parseYmd('{soon}'))")
+    ok(f'bubble shows deadline ({want})', want in (page.text_content('#bubble .meta') or ''))
 
     # manual progress override, then back to automatic
     page.click('#enterBtn'); page.wait_for_timeout(300)

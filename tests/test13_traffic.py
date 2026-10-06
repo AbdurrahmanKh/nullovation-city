@@ -1,4 +1,4 @@
-import io, pathlib
+import json, io, pathlib
 from playwright.sync_api import sync_playwright
 from PIL import Image, ImageChops
 from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY
@@ -25,7 +25,7 @@ with sync_playwright() as p:
     pg.goto(FILE); pg.wait_for_timeout(2500)
     js = lambda code: pg.evaluate(code)
     st = js("() => Traffic.stats()")
-    ok(f'a lively city: 12 cars, 2 buses, 2 drones, 20 people roaming, and a medium crowd of 14 round each busy building ({st})', st == {'cars': 12, 'buses': 2, 'drones': 2, 'people': 48, 'extras': 28})
+    ok(f'a lively city: 12 cars, 2 buses, 2 drones, 20 people roaming, a medium crowd of 14 round each busy building, and 2 cyclists ({st})', st == {'cars': 12, 'buses': 2, 'drones': 2, 'people': 48, 'extras': 28, 'bikes': 2})
     ok('traffic is on by default, with its button beside Bubbles', js("() => Traffic.isOn()") and pg.text_content('#btnTraffic').strip() == 'Traffic')
     pos0 = js("() => Traffic._state().cars.map(c => [c.ri, c.rj, c.h, c.t])")
     ppl0 = js("() => Traffic._state().people.map(q => q.walked)")
@@ -134,10 +134,50 @@ with sync_playwright() as p:
     ok('the choice is remembered', js("() => Traffic.isOn()") is False and 'No traffic' in pg.text_content('#btnTraffic'))
     pg.click('#btnTraffic'); pg.wait_for_timeout(300)
     ok('and the traffic comes back', js("() => Traffic.isOn()") is True)
+    # people, still 5 px wide: facing, looks, runners, kids and dogs, cyclists, and a glow by night
+    look = lambda **kw: json.dumps(dict({'hair': 0, 'skin': 0, 'shirt': 0, 'pants': 0, 'long': False, 'dress': False, 'item': None, 'cap': 0}, **kw))
+    rows = lambda lk, frame, back: js(f"() => Traffic._rows({lk}, {json.dumps(frame)}, {str(back).lower()})")
+    front, away = rows(look(), 0, False), rows(look(), 0, True)
+    ok(f'walking toward you the face shows under the hair; walking away the head is all hair ({front[1]} / {away[1]})', front[1] == '..k..' and away[1] == '..H..' and front[0] == away[0] == '..H..')
+    f2, a2 = rows(look(long=True, dress=True), 1, False), rows(look(long=True, dress=True), 1, True)
+    ok(f'long hair frames the face, and from behind it fills the back ({f2[1]}; {a2[1]} {a2[2]})', f2[1] == '.HkH.' and a2[1] == '.HHH.' and a2[2] == '.HHH.')
+    ok(f'a dress flares over bare legs ({f2[4]} {f2[5]})', f2[4] == 'sssss' and f2[5] == '.k.k.')
+    kid, run = rows(look(), 'kid1', False), rows(look(), 'run0', False)
+    ok(f'a kid is a pixel shorter ({len(kid)} rows against {len(front)})', len(kid) == 5 and len(front) == 6)
+    ok('runners spread their arms and legs', 'k' in run[2] + run[3] and run[4] != front[4])
+    sides = js(f"""() => {{ const px = c => {{ const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; return x => d[(4 * c.width + x) * 4 + 3]; }};
+      const r = px(Traffic._sprite({look(item='tote')}, 0, false, false)), l = px(Traffic._sprite({look(item='tote')}, 0, false, true)); return [r(4), r(0), l(0), l(4)]; }}""")
+    ok(f'walking left mirrors the sprite: the tote swaps sides ({sides})', sides == [255, 0, 255, 0])
+    share = js("""() => { const n = 4000, c = { long: 0, dress: 0, dressShort: 0, pack: 0, tote: 0, cap: 0, phone: 0, none: 0 };
+      for (let k = 0; k < n; k++) { const l = Traffic._look(); if (l.long) c.long++; if (l.dress) c.dress++; if (l.dress && !l.long) c.dressShort++; c[l.item || 'none']++; }
+      for (const k in c) c[k] /= n; return c; }""")
+    ok(f"about half have long hair, and half of those a dress ({share['long']:.2f}, {share['dress']:.2f})", 0.45 < share['long'] < 0.55 and 0.2 < share['dress'] < 0.3 and share['dressShort'] == 0)
+    ok(f"one item at most: a pack 6%, a tote 12%, a cap 15%, a phone 10% ({share['pack']:.3f}, {share['tote']:.3f}, {share['cap']:.3f}, {share['phone']:.3f})",
+       0.04 < share['pack'] < 0.08 and 0.10 < share['tote'] < 0.14 and 0.13 < share['cap'] < 0.17 and 0.08 < share['phone'] < 0.12)
+    mix = js("""() => { const c = { people: 0, run: 0, kid: 0, dog: 0, runFast: true, runPlain: true };
+      for (let k = 0; k < 10; k++) { Traffic.reset(); for (const q of Traffic._state().people) { c.people++;
+        if (q.run) { c.run++; if (q.sp < 0.4) c.runFast = false; if (q.buddy || q.look.dress || q.look.item) c.runPlain = false; }
+        if (q.buddy) c[q.buddy.kind]++; } }
+      return c; }""")
+    ok(f"a few run, twice as fast, alone and plain ({mix['run']} of {mix['people']})", 0 < mix['run'] < mix['people'] * 0.08 and mix['runFast'] and mix['runPlain'])
+    ok(f"some walk with a kid ({mix['kid']}) or a dog ({mix['dog']})", mix['kid'] > 0 and mix['dog'] > 0 and mix['kid'] + mix['dog'] < mix['people'] * 0.2)
+    pg.wait_for_timeout(300)
+    drawn = js("() => { const st = Traffic._state(); return [Traffic.items().length, st.cars.length + st.people.length + st.people.filter(q => q.buddy && q.mode !== 'sit').length + st.riders.length]; }")
+    ok(f'every car, walker, kid, dog and cyclist is drawn ({drawn[0]} of {drawn[1]})', drawn[0] == drawn[1])
+    r0 = js("() => Traffic._state().riders.map(q => q.walked)"); pg.wait_for_timeout(1500); r1 = js("() => Traffic._state().riders.map(q => q.walked)")
+    sp = js("() => { const st = Traffic._state(), w = st.people.filter(q => !q.run).map(q => q.sp), r = st.riders.map(q => q.sp); return [Math.min(...r), Math.max(...r), Math.min(...w), Math.max(...w)]; }")
+    ok(f'the two cyclists ride the sidewalks at about three times walking speed ({sp[0]:.2f} to {sp[1]:.2f} against {sp[2]:.2f} to {sp[3]:.2f} tiles a second)',
+       len(r0) == 2 and all(b_ > a for a, b_ in zip(r0, r1)) and 0.6 <= sp[0] and sp[1] <= 0.9 and 0.2 <= sp[2] and sp[3] <= 0.34)
+    glow = js(f"""() => {{ const was = Light.mode; Light.setMode('night');
+      const c = Traffic._sprite({look(item='phone')}, 0, false, false), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      const at = (x, y) => Array.from(d.slice((y * c.width + x) * 4, (y * c.width + x) * 4 + 3)); const out = {{ glow: at(4, 4), shirt: at(2, 3) }};
+      Light.setMode(was); return out; }}""")
+    ok(f"by night a phone keeps its glow while the shirt darkens ({glow})", glow['glow'] == [63, 224, 240] and glow['shirt'] != [244, 163, 195])
+    pg.screenshot(path=str(SH / 'people-variety.png'))
     # a bigger city gets more of everything
     js("() => MapView.resizeWorld(1)"); pg.wait_for_timeout(800)
     st = js("() => Traffic.stats()"); n = js("() => WORLD.N")
     base = round(20 * n * n / 25)
-    ok(f'growing the map to {n} by {n} scales the traffic, the crowds staying under the ceiling of 150 ({st})', n == 7 and st['cars'] + st['buses'] + st['drones'] == round(16 * n * n / 25) and st['people'] - st['extras'] == base and st['people'] <= 150)
+    ok(f'growing the map to {n} by {n} scales the traffic, the crowds staying under the ceiling of 150 ({st})', n == 7 and st['cars'] + st['buses'] + st['drones'] == round(16 * n * n / 25) and st['people'] - st['extras'] == base and st['people'] <= 150 and st['bikes'] == round(2 * n * n / 25))
     b.close()
 print(errors or 'no console errors')

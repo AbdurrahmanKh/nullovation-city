@@ -1,6 +1,6 @@
 # Nullovation City: everything to know
 
-State as of version 0.1.19 (October 2026). The tool file is about 1.4 MB.
+State as of version 0.1.20 (October 2026). The tool file is about 1.4 MB.
 
 ## 1. What it is
 
@@ -40,7 +40,15 @@ What Abdurrahman keeps:
 
 ### Traffic
 
-The city has 12 cars, 2 small buses, and 2 delivery drones on a 5 by 5 map, scaled with the map's area. 20 people roam the whole city.
+The city has 12 cars, 2 small buses, and 2 delivery drones on a 5 by 5 map, scaled with the map's area. 20 people roam the whole city, and 2 cyclists ride its sidewalks.
+
+- **People (0.1.20):** 5 px wide and 6 tall, drawn in code from row strings in `src/js/45-traffic.js` (`BODY`, `personRows`).
+  - They face the way they move: toward you the face shows under the hair, walking away the head is all hair, and walking left mirrors the sprite.
+  - Looks: about half have long hair (framing the face, and filling the back from behind), and half of those wear a dress over bare legs.
+  - At most one item each: a courier's coral pack (6%), a tote bag (12%), a cap whose brim points the way they walk (15%), or a phone (10%). The phone and the pack's screen glow cyan and keep that color by night, so the crowd twinkles after dark.
+  - Runners (3%): arms and legs spread, twice as fast, never stopping, with no item or companion.
+  - Companions: some walk with a kid, 5 px tall (6%), or a 4 by 3 dog (5%), a step to their right; they skip the benches.
+  - Cyclists: 2 on a 5 by 5 map, scaled with the map's area, kept apart from the people count. They ride the sidewalk loops at three times walking speed, cross at zebras (cars wait for them too), and never stop.
 
 - Cars keep to the right, turn at crossings, stop at stop lines, wait at zebras, and keep a gap. They do not yet yield inside crossings, so turning paths can briefly overlap.
 - At night, cars and buses driving toward you show two warm headlights and a soft cone of light on the road ahead. Cars driving away show red tail lights.
@@ -231,7 +239,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 
 ### Tests
 
-There are 16 passes and 406 checks, all passing at 0.1.19. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
+There are 16 passes and 419 checks, all passing at 0.1.20. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
 - **test02_map:** zoom and the map.
 - **test04_seed_data:** the data version, and the real start: a browser with nothing saved gets one project, Nullovation City.
 - **test05_bubble_art and test08_bubble_tasks:** the status bubble.
@@ -241,7 +249,7 @@ There are 16 passes and 406 checks, all passing at 0.1.19. `python3 tests/run_te
 - **test10_sidebar:** the side bar.
 - **test11_load_plan:** loading plans and tasks.
 - **test12_folder_links:** folder links.
-- **test13_traffic:** traffic and crowds.
+- **test13_traffic:** traffic and crowds; the people's facing, looks and their shares, runners, kids and dogs, the cyclists, and the glow by night.
 - **test14_data_file:** the data file.
 - **test15_notes_milestones:** copy for notes and the milestone view.
 - **test16_dropups:** the drop-ups, the Tasks view, and dusk.

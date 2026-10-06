@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.20 (2026-10-07)
+
+- People, still 5 px wide and drawn in code, gain variety:
+  - They face the way they walk: walking toward you the face shows under the hair, walking away the head is all hair, and walking left mirrors them.
+  - About half have long hair, and half of those wear a dress.
+  - Some carry one thing: a courier's coral pack, a tote bag, a cap whose brim points the way they walk, or a phone.
+  - The phone and the pack's screen glow cyan and keep their color by night, so the crowd twinkles after dark.
+  - A few run, twice as fast, and never stop.
+  - Some walk with a kid, 5 px tall, or a dog beside them.
+  - 2 cyclists ride the sidewalks on a 5 by 5 map, at about three times walking speed, crossing at zebras; more as the map grows.
+- Tests: test13 checks the facing, the looks and their shares, runners, kids and dogs, the cyclists, and the glow by night. test02 sets its project deadline 20 days from today instead of on 8 October 2026, which had turned into "tomorrow".
+
 ## 0.1.19 (2026-10-05)
 
 - Open in Claude: beside every Copy for Claude, a menu opens the Claude desktop app with the same text filled in and ready to send: a new chat, a Cowork task with the project's local folders and files attached, or Claude Code in the project's first folder. The text goes on the clipboard too; one too long to fill in opens Claude empty and stays on the clipboard. The more menu also sends the builder card to a new chat.
