@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.21 (2026-10-07)
+
+- Three new park kinds for empty plots, made with PixelLab and animated in code:
+  - a playground, whose carousel orbs light in turn, with a swaying swing and a butterfly;
+  - a sculpture garden of floating stones that lift off their plinths over breathing cyan glows;
+  - a mini golf lagoon course with a glowing lighthouse, glints on the pond and fluttering flags.
+- The glows keep shining at night. With seven kinds instead of four, every park in the city was reshuffled once.
+- `art/slim_gifs.py` also slims without gifsicle, by a delta in Python, keeping the smallest exact result.
+- Tests: test06 checks the seven park kinds decode at full size, the new ones animate, and no park repeats its neighbor.
+
 ## 0.1.20 (2026-10-07)
 
 - People, still 5 px wide and drawn in code, gain variety:

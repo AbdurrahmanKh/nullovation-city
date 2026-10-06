@@ -1,6 +1,6 @@
 # Nullovation City: everything to know
 
-State as of version 0.1.20 (October 2026). The tool file is about 1.4 MB.
+State as of version 0.1.21 (October 2026). The tool file is about 1.6 MB.
 
 ## 1. What it is
 
@@ -20,7 +20,7 @@ What Abdurrahman keeps:
 ### The city map
 
 - The map is an N by N grid of plots, from 5 by 5 up to 11 by 11, grown or shrunk one ring at a time from the side bar. Each plot is 4 by 4 tiles, with streets between plots.
-- Empty plots become parks, in four kinds: garden, park, plaza, and pond.
+- Empty plots become parks, in seven kinds: garden, park, plaza, pond, and since 0.1.21 playground, sculpture garden, and mini golf. A plot's kind comes from a hash of its position, never the same as the plot above or to its left, so adding a kind reshuffles every park once.
 - Streets vary by segment, fixed so they look the same every visit: repair patches, cracks, manholes, drains, center lines (dashed, double, none, turn arrows), sidewalk paving, crossings (zebra, stop line, none), and crossing centers (plain, manhole, yellow box, small roundabout).
 - Zoom steps are 1x, 2x, 3x, 4x, 6x, and 8x. At even steps every building pixel lands on whole screen pixels. At 3x a building is first enlarged crisply to 2x, then scaled down smoothly, so it stays sharp.
 - Drag to pan. Q and E jump to the previous or next building, and Esc backs out one layer at a time.
@@ -239,11 +239,11 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 
 ### Tests
 
-There are 16 passes and 419 checks, all passing at 0.1.20. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
+There are 16 passes and 424 checks, all passing at 0.1.21. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
 - **test02_map:** zoom and the map.
 - **test04_seed_data:** the data version, and the real start: a browser with nothing saved gets one project, Nullovation City.
 - **test05_bubble_art and test08_bubble_tasks:** the status bubble.
-- **test06_generics:** the generic buildings decoding.
+- **test06_generics:** the generic buildings decoding, and the seven park kinds: all decoded at 256 by 128, the new ones animated in 40 frames, and no park repeating its neighbor.
 - **test07_project_view:** activity and the project view.
 - **test09_urgency:** urgency, the bubbles, the bubbles menu, and postcards.
 - **test10_sidebar:** the side bar.
@@ -266,7 +266,7 @@ Every pass builds its paths from the source folder through `tests/testkit.py`, w
 
 ### Standards
 
-- **Size and plot:** building art is 256 px wide; the map shows it at half size. The plot is drawn into the art: its surface is a flat 2:1 diamond spanning the full width, with its front corner at the bottom edge, centered. There are no empty margins.
+- **Size and plot:** building art is 256 px wide; the map shows it at half size. The plot is drawn into the art: a flat 2:1 diamond with its front corner at the bottom edge, centered. On a building the plot, outline included, spans x 5 to 250 of the 256 px (the kit's `TW = 245 / 4`), the same in every shipped building; a park lot fills the full 256 by 128 with no slab. There are no empty margins above or below. (Checked 7 October 2026 against every shipped GIF; until then this file said the building plot spans the full width, which was wrong.)
 - **Style:** true pixel art with hard edges, 2:1 isometric, lit from the top left (left faces lit, right faces in shade), a 1 px dark outline round every shape, and a transparent background. The palette is the city's own, with about 18 to 46 colors per building.
 - **Character:** pastel sci-fi in SNES-era style. Colorful with one lead color, never white on white, with soft sci-fi shapes and a little strangeness. The city hall is the standard to reach.
 - **Lots:** each lot has its own design: paving, lawns, paths, pools, shrubs. Not every lot needs a ring of grey tiles.
@@ -279,10 +279,10 @@ Every pass builds its paths from the source folder through `tests/testkit.py`, w
 1. Draw with a building script in `art/buildings/` (the kit is in `art/kit/`: `kit.py` with Canvas, Layer, prism, rounded_rect, circle, composite, ramp, save, tree; plus `shapes.py` for domes and vaults, `lot.py` for lots, `parks.py` for benches and lamps). It renders to `art/out/`, made when missing.
 2. Show it for approval with side-by-side comparisons: the original, the current version, the new one.
 3. Install: copy the GIF and PNG into `src/buildings/` under the building's id, and the GIF into `art/unslimmed/` too. Update its width, height, and frames in `src/buildings/meta.json`.
-4. Optimize: `python3 art/slim_gifs.py` (needs gifsicle and Node) runs gifsicle -O3 and keeps a file only if the tool's decoder reproduces every frame exactly and it is smaller.
+4. Optimize: `python3 art/slim_gifs.py` (needs Node; uses gifsicle when it is on the PATH) tries gifsicle -O3 and a delta written in Python (each frame after the first keeps only its changed pixels, the rest see-through), and keeps the smallest result the tool's decoder reproduces exactly, only if it is smaller than the file already there. Name files to slim only those. Since 0.1.21 it works without gifsicle, which is not installed on Abdurrahman's PC.
 5. Build, bump the version, and run the tests.
 
-The original 128 px designs, the canon, live in `art/canon/generics.py` with `art/canon/kit.py`. `python3 art/canon/render.py` draws all eleven into `art/canon/out/` with a contact sheet, for the side-by-side comparisons. The park lots come from `art/lots/lots.py`, which still uses the first 256 px kit, `art/lots/lots_kit.py`. At 0.1.17 every code-drawn building and lot re-renders pixel-identical to the shipped art. The city hall animates Abdurrahman's PixelLab still: `art/buildings/city_hall.py` needs scipy and that still in `art/sources/city-hall.png`.
+The original 128 px designs, the canon, live in `art/canon/generics.py` with `art/canon/kit.py`. `python3 art/canon/render.py` draws all eleven into `art/canon/out/` with a contact sheet, for the side-by-side comparisons. The park lots come from `art/lots/lots.py`, which still uses the first 256 px kit, `art/lots/lots_kit.py`. At 0.1.17 every code-drawn building and lot re-renders pixel-identical to the shipped art. The city hall animates Abdurrahman's PixelLab still: `art/buildings/city_hall.py` needs scipy and that still in `art/sources/city-hall.png`. Art that starts from a PixelLab still keeps the still in `art/sources/` and its script beside the code-drawn ones: `art/buildings/drone_port.py` (with the lot check in `art/kit/fixlot.py`), `art/lots/playground.py` (with the edge fill in `art/kit/filllot.py`), `art/lots/sculpture_garden.py` and `art/lots/mini_golf.py` (laid on the park lawn from `art/lots/lots.py`, since Pro drew them no ground), and `art/props/props.py` for the street props. Each re-renders byte-identical from its still.
 
 ### The generic buildings
 
@@ -301,7 +301,7 @@ The original 128 px designs, the canon, live in `art/canon/generics.py` with `ar
 | Kiosk | A striped awning, a neon sign whose glyphs flicker and half fail, a steaming cup |
 | Home | A pink gabled house at the original's size, chimney, lit windows, fence, mailbox, tree, on the original lawns and path |
 
-The four park lots are `lot-garden`, `lot-park`, `lot-plaza`, and `lot-pond`.
+The seven park lots are `lot-garden`, `lot-park`, `lot-plaza` and `lot-pond`, drawn in code by `art/lots/lots.py`, and since 0.1.21 `lot-playground`, `lot-sculpture-garden` (the floating stones) and `lot-mini-golf` (the lagoon course), made with PixelLab Pro and animated by `art/lots/playground.py`, `sculpture_garden.py` and `mini_golf.py`. The new three weigh 40 to 41 KB each after slimming, against 3 to 7 KB for the code-drawn ones.
 
 ### Art made for projects (delivered as files, not generics)
 
@@ -311,7 +311,31 @@ The four park lots are `lot-garden`, `lot-park`, `lot-plaza`, and `lot-pond`.
   - The theme is modern and a little futuristic, not old-world.
 - **Handheld building:** Abdurrahman's PixelLab art, a giant game console, animated. The hut charges the console along its cable, the hero hops on the screen, the side lights fill. The still has 12,284 colors and a lot skewed 7 px off center.
 - **Ring tower:** his art, animated. Three glyph rings turn at their own speeds behind a fixed plaque column, the lockers' keyholes blink, and a cloud beacon pulses.
-- **Where their scripts are:** `art/projects/`, which git leaves out: `situation_tower.py`, `projection_court.py` and `projection_court2.py` for Generals and Diplomats, `animate_handheld.py`, and `animate_vault.py` for the ring tower. The last two read their stills from `art/projects/sources/` (`HandHeld-Building.png` and `ring-tower.png`). All of them render into `art/out/`.
+- **Council hall (Council of Fun Masters, October 2026):** the first building made with the settled recipe (section 4): Pro at 256 by 256, the city hall as the style image, from Abdurrahman's prompt, 20 generations. A council hall shaped like a game controller lying flat, with a D-pad skylight, four button domes, thumbstick turrets, a drum of arched windows under a teal dome, six gaming-chair pods floating round a gold cartridge hologram, a mast with a coral beacon, an arcade cabinet, and a cream star plaza.
+  - Its lot came out centered but steeper than 2:1 (0.61), so in the city its side corners floated above the ground.
+    - A code-drawn flat lot under it did not work: the hall is drawn at the same steep angle, so its controller wings reached past the flatter lot's edges.
+    - `council_hall.py` squashes the whole still to 2:1 instead, hall and plaza together, about 18% shorter, so it sits flat on its plot.
+    - The cream plaza stays as drawn. At night the tool turns it brown; Abdurrahman kept it over a city-colored plaza, whose night is right but whose day is pale on pale.
+  - Animated in code, a 10-second loop of 40 frames at 250 ms:
+    - the cartridge turns once on its axis and bobs;
+    - the pods brighten one at a time, each bobbing a pixel on its own rhythm;
+    - two figures walk past the drum's windows inside, seen as shadows on the glass;
+    - the buttons light up in no fixed order, as if pressed;
+    - the beacon blinks and the arcade screen flickers.
+  - The tool draws an animation as its first frame plus what each later frame changes: a later frame can add pixels but never clear them, so the turning cartridge first showed twice in the city.
+    - The GIF therefore opens with a 20 ms frame of only what is solid in every frame, and every later frame only adds to it.
+    - The same trick serves any building whose pieces move over open sky.
+  - 256 by 185, 180 colors, 422 KB, decoding exactly in the tool.
+- **Half Cards' salad diner (October 2026):** made with the settled recipe from Abdurrahman's prompt (Pro at 256, the city hall as the style image, 20 generations): a white diner with a mint roof, a coral rim, SALAD, FRESH and DINER card signs, a golden counter of salad bowls, a teal glass drum of greens, a tomato greenhouse, an order kiosk, two parasol tables and planters on lavender tiles. Its lot came out the city's plot exactly.
+  - Abdurrahman wanted the diner small, like the kiosk, keeping the design; the props could stay their size.
+    - A first Pro redraw at 96 px (20 generations) came back barely smaller and cropped.
+    - What worked: Pro at 84 by 84, which returns 16 candidates (billed 25), with a box-shrunk copy of the diner as the first reference (size and framing), the full diner as the second (design), and a crop of the original as the style image, detail off. Candidate 9 was the only one with its wall whole under the window.
+    - PixelLab copies a reference's flaws exactly: the references had a parasol cleared by a box (most candidates lost the wall there) and a greenhouse sliver cleared by column (candidate 9's roof corner and drum stopped in a straight cut). Clear neighbors by their own pixels, never by a box or a column. `half_cards.py` mends the cut: the drum's outline flush with its band, the roof corner closed in the right side's shaded corals.
+  - `half_cards.py` takes the big diner off the lot, refills the tiles from the lot's own 14 px lattice and its back outline from its own run, carries the path to the new door, and sets the small diner at the back (about 70 px wide) with a new drum shadow. 256 by 138.
+  - Animated in code, 40 frames at 200 ms: the window glow breathes, the door's glass lights once, the drum's grow light swells once, the signs glow warm white (SALAD dims, DINER stutters), the kiosk screen glows cyan with a scanline and its top light blinks, and a glint crosses the greenhouse. 195 colors, 43 KB: each frame keeps only its changed pixels, the rest transparent. It decodes exactly in the tool and uploads as 40 frames.
+  - A server walking behind the counter was tried: the counter and bowls hide all but scraps of the figure.
+  - At night the cream path turns dark red (the tool maps every cream through a peach); a street grey path (#908BA5) was shown as the other choice. Abdurrahman kept the cream for now (7 October 2026) and will fix it later.
+- **Where their scripts are:** `art/projects/`, which git leaves out: `situation_tower.py`, `projection_court.py` and `projection_court2.py` for Generals and Diplomats, `animate_handheld.py`, `animate_vault.py` for the ring tower, `council_hall.py`, and `half_cards.py`. The last four read their stills from `art/projects/sources/` (`HandHeld-Building.png`, `ring-tower.png`, `council-hall.png`, and `half-cards-pixellab.png` with `half-cards-small-diner.png`). All of them render into `art/out/`.
 
 ### Image services
 
@@ -394,10 +418,15 @@ The testing phase ended on 6 October 2026: five recipes settled and citizens can
   - Front: `create_image_pixflux` with isometric on, high top-down view, transparent background, single-color black outline, and the city's 32 colors forced as the palette. 1 generation.
   - Back: `create_object_pro_flash` with the front as its first frame, 8 directions, high top-down view. 1 generation.
   - Prompt shape: "A small <prop>:", then its parts and colors, then "Pastel sci-fi street furniture, isometric view, light from the top left."
-  - Cleanup: pick the true back by eye (the same diagonal, turned around), snap it to the 32 city colors, and fix stray marks by hand.
+  - Cleanup: pick the true back by eye (the same diagonal, turned around), then `python art/props/props.py`: it snaps both views to the 32 city colors (read from `CITY_PALETTE` in `src/js/30-pixel.js`, nearest by the redmean distance), clears each still's known flaws and any stray speck, adds a 1 px dark outline where Pixflux left none, and sets the back on the front's canvas, standing on the same spot.
   - Sizes: art at double detail, shown at half size, like buildings. Bus stop and billboard 64 by 64, vending machine 32 by 48, bin 32 by 32. Abdurrahman approved the size.
   - Facing: a prop faces the street it stands on. The front faces the south-west street, and mirrored the south-east; the back serves the north-east side, and mirrored the north-west.
   - Cost per finished prop: 2 generations, for all four sides.
+- **The finished set (approved 7 October 2026, in the missing art round, with the lavender billboard):**
+  - The stills are in `art/sources/props/`, a front and a back per prop. `art/props/props.py` writes `art/out/props/<prop>-front.png` and `-back.png`, and `props-sheet.png` with the stills beside the finished four sides on dark and light.
+  - The bus stop, vending machine and bin are the test 3 props, finished for free: the vending machine's teal patch and the bench ghost behind the bus stop are gone. The script clears flaws by box and color in each still's own pixels (`FLAWS`), and drops pieces under 8 px, or under a twentieth of the prop.
+  - The test billboard had no dark outline at all, and its back was a plain white slab. A second billboard was made with the same recipe (2 generations): seed 2106, the prompt "a slim lavender post on a round pale base, holding a rounded lavender frame around a glowing translucent cyan hologram panel ...". It came out with a lavender frame, a pink top and the cyan screen, still without an outline; its back is the rotation's `north` view. It is outlined in code. Abdurrahman picked it over the test billboard, which is left in `_extras/pixellab-tests/test3/`.
+  - City shots, with the props round a park block at 1x and 2x: `props-city-1x.png` and `-2x.png`.
 - **Placement on the map:** decided in the street props round; see section 6, Street props. Not built.
 
 **The test, in full:** a bus stop, a vending machine, a holo billboard (icons, no words) and a bin, as one styled set.
@@ -466,12 +495,17 @@ The testing phase ended on 6 October 2026: five recipes settled and citizens can
   - Tool: Pro at 256 by 256 with a transparent background: `python art/pixellab.py pro "prompt" --style src/buildings/city-hall.png --name NAME`.
   - Reference: one of the city's good buildings as `style_image` (image, size, and a usage line asking to match its palette, outline, shading and detail). The city hall is the standard, and the reference must fit inside the canvas.
   - Prompt shape: the builder skill's full prompt: the hero structure, the supporting pieces and the lot in plain colors, then "Isometric pixel art, 2:1 isometric view, standing on a square isometric plot, light from the top left, 1 px dark outline."
-  - Cleanup, the lot fix: measure the lot (it came out the plot's 2:1 shape, centered, but 245 px wide). Draw the exact plot in the lot's own colors: 256 px wide, a white front rim, a 4 px slab in two shades, and a 1 px outline. Lay the original's lot surface and building on it, leaving out the original's own rim. Free.
+  - Cleanup, the lot check: `art/kit/fixlot.py` measures the lot against the city hall's plot (x 5 to 250). An exact match is kept as drawn; the drone port and Half Cards came out exact. A 2:1 lot of another size or a little off center is redrawn on the city's plot in its own colors, with the original's surface and building laid on it, the ground carried out along the tile joints to the new rim, and the original's rim, slab and outline left out. A lot that is not 2:1 (a turned camera, such as the council hall's at slope 0.59) is refused. Free.
+  - Motion: drawn in code on the still, a script per building in `art/buildings/`.
   - Cost per finished building: 20 generations (quoted 20 to 40) and about a minute. Abdurrahman makes few buildings, so 20 each is fine.
 - **Why not the others:**
   - Pixflux (1 generation) is clean and cheap but draws at a different scale: big windows and a person-sized door make it read as a small two-room building beside the city hall's tower, and it cannot take a reference.
   - Pro Flash (9) gives Abdurrahman odd results, and here drew the lot with a steeper, turned camera.
-- **The lot fix's leftovers:** a faint double line on the back-left edge, and a plain strip without tile joints along the new rim. Polish both before the fix becomes a script in `art/`. For now it is `_extras/pixellab-tests/helpers/fixlot.py`, with the lot's measurements written in.
+- **The first lot fix was a mistake:** it stretched the drone port's plot to the full 256 px, about 5 px wider on each side than every other building, and its two leftovers (a faint double line on the back-left edge, and a strip without tile joints along the new rim) came from that stretch. The Pro lot already matched the city's plot. The old helper, `_extras/pixellab-tests/helpers/fixlot.py`, is replaced by `art/kit/fixlot.py`.
+- **The finished drone port (approved 7 October 2026; held out of the app):** `art/buildings/drone_port.py` reads `art/sources/drone-port.png` (the test 5 Pro still), checks its lot, and writes `art/out/drone-port.gif` and `.png`: 256 by 189, 40 frames at 250 ms, 98 colors, 80 KB, up to 835 pixels changed per frame, decoding exactly in the tool. Not slimmed: `art/slim_gifs.py` works only on `src/buildings/`, and the drone port is held out of the app.
+  - Motion: a slow uneven chase round the pad's 8 lights, which glow at night; 3 side lights breathe; the drone's 4 rotors spin; its nav lights take turns; the tower's pink beacon blinks 3 times a loop; the hangar door's glow and its light on the paving breathe; 3 locker lights come on now and then. Two wall shades were nudged so the walls do not glow at night.
+  - By night the butter-cream walls turn a strong brick brown, the way the tool darkens warm colors.
+  - Shown in `art/out/drone-port-sheet.png` (the still, its lot against the city hall's plot, frames by day and by night), `drone-port-preview.gif`, and the city shots `drone-port-city-1x` and `-2x`.
 - **The test, in full:**
 
 The drone port, picked from the held buildings (bus depot, drone port, apartment block, cafe, library), none of which had a design on file.
@@ -492,11 +526,11 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
 - **Pro, same prompt, seed and city hall reference** (20 generations, about 1 minute):
   - Tool: the API's `/generate-image-v2`, with the same nested `style_image` as Pro Flash; `art/pixellab.py pro` now sends exactly this request. At 256 px it returns one image; it billed 20 of the quoted 20 to 40.
   - The result is a butter-cream hub with mint trims, the rooftop pad and drone, the control tower with its pink beacon, a glowing hangar door, the lavender lockers, coral parcels, two gold chevron pads on lavender tiles, and shrubs. 57 colors, hard alpha.
-  - Its lot is the plot's shape: the front corner at the center, both front edges sloping 0.51, but 245 px wide instead of 256, so about 5 px short on each side. A lot that close can be fixed by drawing its rim out to the full width in code.
+  - Its lot is the plot's shape: the front corner at the center, both front edges sloping 0.51, and 245 px wide. The test read that as 5 px short on each side; in fact it is exactly the city hall's plot (see the first lot fix, above).
   - In the city at 2x it sits flat on its plot like the city hall.
   - For comparison, Pixflux's lot slopes 0.54 and is a little lopsided, and Pro Flash's slopes about 0.63 and is turned.
 - **Why Pixflux looked plainer:** it is PixelLab's fast 1-generation model, and at 256 px it simplifies. The round hub became a box and the lockers were dropped, it had no reference image, and the forced 32 colors leave little room for glow and shading. Its isometric setting and the city colors give it the clean, proper look.
-- **The plot to match:** a 256 by 128 diamond, with a 5 px slab under the two front edges and the front corner at the bottom center (`art/kit/kit.py`, `art/kit/lot.py`).
+- **The plot to match:** a 2:1 diamond spanning x 5 to 250 with its outline, a 5 px slab under the two front edges, and the front corner at the bottom center (`art/kit/kit.py`, `art/kit/lot.py`).
 - **Next:** a lot fix. Two ways:
   - Free: lift the building off and set it on a lot drawn in code.
   - 9 generations: Pro Flash inpaint over an exact code-drawn lot, so the lot is right from the start.
@@ -507,8 +541,22 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
   - Tool: Pro at 256 by 128 with a transparent background: `python art/pixellab.py pro "prompt" --style <a park lot PNG> --size 256x128 --name NAME`.
   - Reference: the first frame of one of today's park lots (`src/buildings/lot-*.gif`) as `style_image`, asking to match its palette, outline, shading, scale and detail.
   - Prompt shape: the lot's ground, then its pieces in plain colors, then "Everything small and low, seen from above. Isometric pixel art, 2:1 isometric view, flat ground tile, light from the top left, 1 px dark outline."
-  - Cleanup: fill any empty pixel inside the exact 256 by 128 diamond from its nearest neighbor (`_extras/pixellab-tests/helpers/filllot.py`). Free.
+  - Cleanup: `art/kit/filllot.py`. `fill_lot` fills every empty pixel inside the diamond today's lots cover (columns 0 to 255) from its nearest neighbor; `trim_lot` clears the 1 to 2 px ragged strips outside it, keeping tree tops, as today's lots have them. Free.
+  - Motion: drawn in code on the still, 40 frames at 200 ms like the other lots.
   - Cost per finished lot: 20 generations.
+- **The finished playground (approved 7 October 2026, in the tool since 0.1.21):** `art/lots/playground.py` reads `art/sources/lot-playground.png` (the test 6 Pro still), fills and trims it, and writes `art/out/lot-playground.gif` and `.png`: 256 by 128, 35 colors, 68 KB, 7 to 45 pixels changed per frame, decoding exactly in the tool.
+  - Motion: the carousel's six cyan orbs light one after another so it seems to turn (shifting its pixels was not clean at about 22 px wide); the front swing seat sways a pixel at uneven times; a glint runs down each slide once a loop; a butterfly drifts on a closed path.
+  - The orbs now use the city's glow cyan, so they shine at night. The sand and swing-frame cream was made a touch paler, since the tool lit it like a lamp at night.
+  - Shown in `art/out/lot-playground-compare.png` and the city shots `lot-playground-city-1x`, `-2x` and `-2x-night`.
+  - Installing a park kind reshuffles every park: a plot's kind is a hash of its position modulo the number of kinds (`lotVariant` in `src/js/40-map.js`).
+- **The sculpture garden and mini golf concepts (7 October 2026, made as stills for Abdurrahman to pick):** three concepts each from the missing art round, all six made at once with the recipe (120 generations, 20 each, seed 2106), each with the closest of today's lots as its style image: lot-garden for the garden of forms, lot-plaza for the reflecting court, lot-pond for the lagoon course, lot-park for the floating stones, windmill course and planet course.
+  - Pro drew no ground under three of them: the floating stones covered 26% of the diamond, the windmill and lagoon courses 57%, with their pieces on transparency. Filling from neighbors would smear the pieces, so they were laid on today's park lawn drawn in code (`ground` in `art/lots/lots.py`), leaving out the dark rim Pro drew round the windmill course's edge. So the recipe's cleanup becomes: when the lot covers less than 90% of the diamond, lay it on the code lawn; otherwise fill the edge.
+  - The garden of forms, reflecting court and planet course came out with their own ground (96.6 to 100%). The planet course's ground is dark lavender with stars, the darkest plot in the city.
+  - Files in `art/out/parks/`: one PNG per concept, `parks-sheet.png` (today's four lots and the six concepts), and `parks-city-1x.png` and `-2x.png`, a page copy whose park kinds are today's four plus the six. The script that made them was a one-off in the session scratchpad.
+  - Abdurrahman picked the floating stones and the lagoon course, installed at 0.1.21 with the playground:
+    - `art/lots/sculpture_garden.py` (still `art/sources/lot-sculpture-garden.png`): Pro drew six stones, not five. Each lifts 1 px off its plinth at its own slow pace and drops back, each plinth's glow breathes through four cyan levels on its own curve, and a pink butterfly drifts. The glows use the city's glow cyan, so they stay lit at night, and the gold stone glows too. 38 colors, 39 to 548 pixels changed per frame.
+    - `art/lots/mini_golf.py` (still `art/sources/lot-mini-golf.png`): the lighthouse lantern glows warm three times a loop, glints drift on both halves of the pond, and each of the four flags ripples now and then. The flags' pale gold was nudged so the tool's night does not light it. 39 colors, 10 to 48 pixels changed per frame. The tiny windmill stays still: too small to turn cleanly.
+    - Both lay Pro's pieces whole on the code lawn; neither needed the dark rim rule or the trim (which would clip the mini golf's flag tips).
 - **The test, in full:** the playground, picked from playground, sculpture garden and mini golf.
 - **Today's park lots:** flat 256 by 128 diamonds with no slab, filling the canvas, with small things on them (trees about 30 px tall, benches, a shed). They live in `src/buildings/lot-*.gif`, 40 frames each.
 - **The design:** lawn with pale paths. In the middle, a patch of mint and coral rubber surface holds a small lavender dome tower with a curving pink slide, a gold swing set, a round sandbox and a little carousel with glowing cyan orbs. Two benches, and small trees and shrubs at the corners. The prompt ends with "Everything small and low, seen from above. Isometric pixel art, 2:1 isometric view, flat ground tile, light from the top left, 1 px dark outline."
@@ -516,7 +564,7 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
 - **Pro with today's park lot as reference** (20 generations, about 1 minute):
   - The canvas is 256 by 128, and the reference is the first frame of `lot-park.gif`.
   - It copied today's lawn, scale and finish: 31 colors, hard alpha, and every design piece present. It covers 97.9% of the diamond, with a 1 to 2 px ragged edge at the corners. The pixels outside the diamond are tree tops, as on today's lots.
-  - The fix: fill the empty diamond pixels from their nearest neighbors (`_extras/pixellab-tests/helpers/filllot.py`, free; 352 px here).
+  - The fix: fill the empty diamond pixels from their nearest neighbors (then `_extras/pixellab-tests/helpers/filllot.py`, now `art/kit/filllot.py`; free; 352 px here).
   - In the city it blends in with the other parks.
 - Files: `test6-compare.png` (today's park lot, Pixflux and Pro), `test6-city-2x-close.png` (both playgrounds on the city hall's plot at 2x), `test6-city-pro-1x/2x`, `test6-city-pixflux-1x/2x`, and `_extras/pixellab-tests/test6/`.
 
@@ -567,7 +615,7 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
   - **Plots:** PixelLab draws a building and its lot together; the pipeline redraws the lot whenever it misses the plot standard (section 4, the lot fix).
   - **Motion:** PixMiniMax was tested against code animation on the city hall, which Abdurrahman calls Nullovation hall. Code animation won (section 4, building motion).
   - **Priorities:** high for leader portraits and street props. Low for project buildings, new generics, building variants, vehicles, animals, lot props and park kinds. Not this month: micro building icons and UI art. Citizens, planned at medium, were cancelled (below).
-  - **New buildings:** bus depot, drone port, apartment block, cafe, library. Made, then held out of the app until Abdurrahman says; he will use them as custom buildings. The test drone port in `_extras/pixellab-tests/test5/` is test art.
+  - **New buildings:** bus depot, drone port, apartment block, cafe, library. Made, then held out of the app until Abdurrahman says; he will use them as custom buildings. The drone port is finished from its test 5 still, waiting for approval (section 4, Building still); the other four wait for their designs.
   - **Street props:** bus stop, vending machine, holo billboard (icons, no words), bin. The sprite layer draws them where city life needs them, such as stops where the buses halt; the placement design is the street props decision below.
   - **Citizens:** planned as courier, scientist, engineer, robot citizen, dawn jogger, dusk lamplighter bot, and a street food vendor whose noodle hover-cart parks where crowds gather, with moves matching what people already do (walk, talk in groups, sit on benches). Cancelled after test 4: people stay code-drawn (below).
   - **Park kinds to add:** playground, sculpture garden, mini golf.
@@ -619,12 +667,18 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
     - a small figure on the map, later.
   - **Several projects (5 October 2026):** one leader can run several projects. Leaders live in a Leaders section in the side bar, and in a picker in each project's more menu.
   - **Portraits:** head and shoulders on a transparent background; the leader card sets the signature color behind. The art recipe is in section 4, PixelLab workflow.
+- **The missing art round (7 October 2026, `wizard-rounds/2026-10-07-missing-art-round1.json`, one folder up from the source):**
+  - Approved: the street props with the new lavender billboard, the drone port, and the playground.
+  - Park kinds: the sculpture garden is the floating stones, and the mini golf is the lagoon course. All three new kinds go into the tool together, so the parks reshuffle once.
+  - Held buildings, designs picked: the bus depot is the charging arcade, the apartment block the balcony stack, the cafe the neon cup corner, the library the book stack. Not made yet: Abdurrahman said no buildings for now. The prompts are in the round file.
+  - Project buildings: Decision Wizard, Omar Khallouf Website, Game Analysis Frameworks, Local AI, Trips App, Sync and My Home keep their generic buildings; Shop Town Dooter, Congratulations You Exist, My Talks and Give and Grow get theirs later.
+  - Leaders now for seven projects: Nullovation City Hall, My Retro Life, Generals and Diplomats, Half Cards, Council of Fun Masters, Decision Wizard and Omar Khallouf Website; the rest later. Concepts are in `leaders/2026-10-07-leader-concepts.md`, one folder up from the source; they are picked through a wizard round before any portrait is made.
 
 ## 7. Open items
 
-- Street props on the map: the design and the art recipe are settled, and building them waits. The test props in `_extras/pixellab-tests/test3/` are test art, not the finished set (the vending machine's teal patch and the bus stop back's bench ghost are unfixed).
-- Leaders: build the leader card this month.
-- Abdurrahman names the projects that get the new buildings (bus depot, drone port, apartment block, cafe, library).
+- Street props on the map: the design and the art recipe are settled, and building them waits. The approved set is rendered by `art/props/props.py` into `art/out/props/` (section 4, Street props); placing it on the map is the tool work still to do.
+- Leaders: build the leader card this month. The seven leaders are picked through a wizard round, then their portraits are made (6 generations a try).
+- Abdurrahman names the projects that get the new buildings (bus depot, drone port, apartment block, cafe, library). The drone port is finished; the other four have their designs picked and wait until he says (20 generations each).
 - Dirt on red: decided, and delayed (section 6, Status).
 - The month's list: all six PixelLab tests are done, so the bulk work can start.
 - Opening the city on another device, such as a first-launch prompt to open the data file: needs design.

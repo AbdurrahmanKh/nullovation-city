@@ -16,6 +16,25 @@ with sync_playwright() as p:
     print(f'NOTE all generic buildings decoded {(_t.time() - t0) + 0.8:.1f} s after the page loaded')
     ok('12 generic buildings decoded, the worksite among them', pg.evaluate("() => GENERICS.length === 12 && GENERICS.every(g => !!Art.get('g:' + g.id)) && GENERICS[1].id === 'worksite'"))
     ok('the two projects use the city hall and the research lab', pg.evaluate("() => DB.projects.map(p => p.generic).join() === 'city-hall,research-lab'"))
+    pg.wait_for_function("() => typeof LOTS !== 'undefined' && LOTS.every(l => !!Art.get('lot:' + l.id))", timeout=20000)
+    ok('7 park kinds decoded, the playground, sculpture garden and mini golf among them', pg.evaluate(
+        "() => LOTS.map(l => l.id).join() === 'park,pond,plaza,garden,playground,sculpture-garden,mini-golf'"))
+    ok('every park kind is 256 by 128', pg.evaluate("() => LOTS.every(l => { const a = Art.get('lot:' + l.id); return a.w === 256 && a.h === 128; })"))
+    ok('the three new park kinds animate in 40 frames', pg.evaluate(
+        "() => ['playground', 'sculpture-garden', 'mini-golf'].every(id => Art.get('lot:' + id).count === 40)"))
+    ok('no park shows the same kind as the one above or to the left of it', pg.evaluate("""() => {
+      const n = DB.world.size, used = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v)), ids = new Set(LOTS.map(l => l.id));
+      for (let u = 0; u < n; u++) for (let v = 0; v < n; v++) {
+        const k = MapView.lotInfo(u, v).id;
+        if (!ids.has(k)) return false;
+        if (u > 0 && MapView.lotInfo(u - 1, v).id === k) return false;
+        if (v > 0 && MapView.lotInfo(u, v - 1).id === k) return false;
+      }
+      return true; }"""))
+    kinds = pg.evaluate("() => { const n = DB.world.size, used = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v)), c = {}; "
+                        "for (let u = 0; u < n; u++) for (let v = 0; v < n; v++) if (!used.has(u + ',' + v)) { const k = MapView.lotInfo(u, v).id; c[k] = (c[k] || 0) + 1; } return c; }")
+    ok('the new kinds show up in the test city', all(kinds.get(k, 0) > 0 for k in ('playground', 'sculpture-garden', 'mini-golf')))
+    print('NOTE parks by kind:', kinds)
     idx = [pg.evaluate("() => Art.indexAt(Art.get('g:city-hall'), performance.now())") for _ in range(1)]
     pg.evaluate("() => MapView.setCam({ x: 40, y: 200, z: 3 })"); pg.wait_for_timeout(300)
     pg.screenshot(path=str(SH / '70-seed-generics.png'))

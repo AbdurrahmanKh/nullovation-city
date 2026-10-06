@@ -9,14 +9,14 @@ The file imported above is the knowledge file: features, code, data, art, skills
 ## Where things go
 
 - `src/`: everything the page is built from, and nothing else: `VERSION`, `body.html`, `style.css`, the modules in `src/js/`, the shipped buildings and lots in `src/buildings/`, the fonts, and the folder links setup in `src/setup/`.
-- `art/`: how the buildings are drawn. `art/kit/` is the 256 px kit, `art/buildings/` has one script per building, `art/lots/` the park lots, `art/canon/` the original 128 px designs, `art/sources/` the stills a script starts from, and `art/projects/` the art for Abdurrahman's own projects, which git leaves out. Scripts render into `art/out/`.
+- `art/`: how the buildings are drawn. `art/kit/` is the 256 px kit, `art/buildings/` has one script per building, `art/lots/` the park lots, `art/props/` the street props, `art/canon/` the original 128 px designs, `art/sources/` the stills a script starts from, and `art/projects/` the art for Abdurrahman's own projects, which git leaves out. Scripts render into `art/out/`.
 - `tests/`: the passes, `tests/testkit.py` and `tests/run_tests.py`. `tools/`: `tools/pack.py`.
 - The root keeps `build.py`, `index.html` (the page it builds), the docs and the config. New files go in their folder, never the root.
 
 ## Setup, once per machine
 
 - `pip install -r requirements.txt`: Pillow, NumPy and Playwright. The tests drive Google Chrome; if it is not installed, run `python -m playwright install chrome`.
-- Node and gifsicle on the PATH, only for `art/slim_gifs.py`.
+- Node on the PATH, only for `art/slim_gifs.py`; it also uses gifsicle when that is on the PATH.
 - scipy, only for `art/buildings/city_hall.py`; global-land-mask, only for the Projection Court scripts in `art/projects/`.
 - On Windows, use `python` where these notes say `python3`.
 

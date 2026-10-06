@@ -28,7 +28,7 @@ GitHub Pages serves `index.html` straight from the branch: in Settings, Pages, p
 - `art/`: how the buildings are drawn. Nothing here ships until it is installed into `src/buildings`.
   - `kit/`: the 256 px kit.
   - `buildings/`: one script per building. Each renders into `art/out/`.
-  - `lots/`: the four park lots, with the older kit they use.
+  - `lots/`: the park lots: the four drawn in code with the older kit they use, and one script each for the three made with PixelLab.
   - `canon/`: the original 128 px designs. `render.py` draws them into `canon/out/` to compare.
   - `sources/`: stills made elsewhere that a script starts from.
   - `slim_gifs.py`: shrinks the shipped GIFs, keeping each only if it decodes pixel-identical.
@@ -43,7 +43,7 @@ GitHub Pages serves `index.html` straight from the branch: in Settings, Pages, p
 
 1. Draw with a script in `art/buildings/`; it renders into `art/out/`.
 2. Compare, then install: copy the GIF and PNG into `src/buildings/` and the GIF into `art/unslimmed/`, and update `src/buildings/meta.json`.
-3. `python art/slim_gifs.py` shrinks the GIFs. It needs gifsicle and Node on the PATH.
+3. `python art/slim_gifs.py` shrinks the GIFs. It needs Node on the PATH, and uses gifsicle too when it is there.
 
 ## Between a chat and Claude Code
 
