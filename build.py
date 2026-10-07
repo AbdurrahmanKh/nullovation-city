@@ -53,6 +53,16 @@ for l in lots:
     data = base64.b64encode((art_out / ('lot-' + l['id'] + '.gif')).read_bytes()).decode()
     gen.append("  { id: %s, url: 'data:image/gif;base64,%s' }," % (json.dumps(l['id']), data))
 gen.append('];')
+props = json.loads((art_out / 'props.json').read_text(encoding='utf-8'))
+gen.append('/* Street props: a front and a back each, at double detail like the buildings. faces: the street the front faces as')
+gen.append('   drawn, south-east or south-west; the back faces the opposite street, the same diagonal turned around. */')
+gen.append('const PROPS = [')
+for pr in props:
+    if pr.get('faces') not in ('se', 'sw'):           # a wrong guess turns the prop sideways on every block side
+        sys.exit('src/buildings/props.json: %s needs "faces", the street its front faces as drawn: "se" or "sw"' % pr['id'])
+    urls = {s: base64.b64encode((art_out / ('prop-%s-%s.png' % (pr['id'], s))).read_bytes()).decode() for s in ('front', 'back')}
+    gen.append("  { id: %s, faces: %s, front: 'data:image/png;base64,%s', back: 'data:image/png;base64,%s' }," % (json.dumps(pr['id']), json.dumps(pr['faces']), urls['front'], urls['back']))
+gen.append('];')
 GENERATED = {'25-generics.js': '\n'.join(gen) + '\n'}
 # the Windows setup for folder links: one source file, embedded as text so the tool can hand out the same file
 setup = (SRC / 'setup' / 'nullovation-folder-links.ps1').read_text(encoding='utf-8')

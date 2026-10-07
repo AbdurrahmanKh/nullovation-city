@@ -1,6 +1,6 @@
 # Nullovation City: everything to know
 
-State as of version 0.1.21 (October 2026). The tool file is about 1.6 MB.
+State as of version 0.1.23 (October 2026). The tool file is about 1.6 MB.
 
 ## 1. What it is
 
@@ -38,6 +38,19 @@ What Abdurrahman keeps:
   - No bubbles (cross).
 - Postcard saves the current view as a PNG.
 
+### Street props (0.1.22)
+
+Bus stops, vending machines, holo billboards and bins stand round the blocks, made with PixelLab (section 4, Street props) and drawn at half size like the buildings.
+- **Where:** on the sidewalk. On a block's south-east and south-west sides a prop stands near the curb and reaches back over the plot's rim; on its north-east and north-west sides it stands near the plot, behind it as seen from the camera, so a tall building may hide part of it.
+- **Facing:** each faces its own street: fronts on the south-east and south-west sides, backs on the north-east and north-west.
+  - A front faces one of the two near streets as PixelLab drew it: the bus stop's and billboard's the south-east, the vending machine's and the bin's the south-west. `src/buildings/props.json` records it as `faces`. The back faces the opposite street, the same diagonal turned around.
+  - Mirrored, a view turns to the other street on the same side of the camera, so each view is drawn as is on the side it faces and mirrored on the other.
+  - Until 0.1.23 the tool took every front as facing the south-west street, which turned the bus stops and billboards sideways on every side.
+- **Which prop where:** bus stops by a fixed pattern (a fifth of block sides); vending machines mid-block; holo billboards 0.62 tiles from a corner, just past where a zebra lands; bins on a building's two front sides, where people walk in. At most two to a side, kept apart.
+- **Fixed:** the plan comes from the block and side like the street details, so it looks the same every visit; planting a building only adds or takes away that block's bins.
+- **People** walk through them, drawn in front or behind by depth. Props show with the traffic off too, and their neon (the billboard's screen, the bus stop's sign, the vending machine's front) keeps glowing by night.
+- On the 5 by 5 test city: 51 props on 47 of 100 block sides (20 bus stops, 16 vending machines, 12 billboards, 3 bins).
+
 ### Traffic
 
 The city has 12 cars, 2 small buses, and 2 delivery drones on a 5 by 5 map, scaled with the map's area. 20 people roam the whole city, and 2 cyclists ride its sidewalks.
@@ -51,6 +64,7 @@ The city has 12 cars, 2 small buses, and 2 delivery drones on a 5 by 5 map, scal
   - Cyclists: 2 on a 5 by 5 map, scaled with the map's area, kept apart from the people count. They ride the sidewalk loops at three times walking speed, cross at zebras (cars wait for them too), and never stop.
 
 - Cars keep to the right, turn at crossings, stop at stop lines, wait at zebras, and keep a gap. They do not yet yield inside crossings, so turning paths can briefly overlap.
+- Buses pull up to a bus stop on their side of the street (on their right, along their lane) and pause there for 2 to 3.5 seconds, once as they pass; cars behind them hold back.
 - At night, cars and buses driving toward you show two warm headlights and a soft cone of light on the road ahead. Cars driving away show red tail lights.
 - Drones hop between busy buildings.
 - Busyness comes from a project's activity log over the past 7 days, each event fading out over the week. A building with busyness of 0.3 or more draws its own crowd.
@@ -200,8 +214,8 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 | `26-extra.js` | Made by the build in memory, never on disk: `APP_VERSION` and the folder links setup |
 | `30-pixel.js` | The city palette, the light (day, dusk, night), pixel icons, and the art loader |
 | `35-gif.js` | The tool's GIF decoder |
-| `40-map.js` | The map: geometry, streets, drawing, depth sorting, zoom, bubbles, drop-ups, the bar's buttons |
-| `45-traffic.js` | Cars, buses, drones, people, busyness, crowds, headlights |
+| `40-map.js` | The map: geometry, streets, the street props' plan and drawing, depth sorting, zoom, bubbles, drop-ups, the bar's buttons |
+| `45-traffic.js` | Cars, buses and their stops, drones, people, busyness, crowds, headlights |
 | `50-bubble.js` | The status bubble |
 | `60-fullview.js` | The project view: tasks, milestones, notes, links, panels, local paths |
 | `62-picker.js` | The building picker |
@@ -229,7 +243,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 `build.py` does the following:
 - concatenates the modules, CSS, and body;
 - embeds the fonts;
-- makes `25-generics.js` in memory from `src/buildings/meta.json`, `lots.json` and the GIFs;
+- makes `25-generics.js` in memory from `src/buildings/meta.json`, `lots.json`, `props.json` and the GIFs and prop PNGs (`prop-<id>-front.png` and `-back.png`); it refuses a prop whose `faces` in `props.json` is not `se` or `sw`;
 - makes `26-extra.js` in memory with `APP_VERSION` from `src/VERSION` and the setup script;
 - writes nothing into `src/`;
 - replaces `{{VERSION}}` in the body;
@@ -239,7 +253,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 
 ### Tests
 
-There are 16 passes and 424 checks, all passing at 0.1.21. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
+There are 17 passes and 447 checks, all passing at 0.1.23. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
 - **test02_map:** zoom and the map.
 - **test04_seed_data:** the data version, and the real start: a browser with nothing saved gets one project, Nullovation City.
 - **test05_bubble_art and test08_bubble_tasks:** the status bubble.
@@ -255,6 +269,7 @@ There are 16 passes and 424 checks, all passing at 0.1.21. `python3 tests/run_te
 - **test16_dropups:** the drop-ups, the Tasks view, and dusk.
 - **test17_source:** the source travels: no chat paths in the scripts; the layout (only `build.py` at the root, nothing written into `src/`, git leaving out what runs make, no `dist/`, `.nojekyll` in place, nothing of the decision wizard in the tool or its tests); `index.html` matching a fresh build; what the archive holds and leaves out; a byte-identical build from a copy in another folder; and applying archives safely. It needs no browser.
 - **test18_open_in_claude:** Open in Claude: the menu in every place, the links for Chat, Cowork and Claude Code with folders and files, Arabic text, a text over the limit, the builder card, the status brief, and closing with Esc or a click elsewhere.
+- **test19_street_props:** the street props: all four decoded front and back; at most two to a side; every one on its sidewalk; facing: each prop's `faces`, every prop as drawn facing its own street, and, measured on the art (the slope of its top edge), every bus stop, billboard and vending machine front standing with its long side along its street; bus stops by the pattern, vending machines mid-block, billboards by a corner, bins on a building's front sides; none on a zebra's landing; planting a building only adds its bins; drawn with the traffic off; the same after a reload; people in front or behind by depth; a bus pausing at a stop on its side and driving past one on the far side; the night colors and the neon. It saves close-ups at 4x of a bus stop and a billboard on each side, `tests/shots/191-*.png`, to look at.
 
 Every browser pass but test14_data_file starts from the test city in `tests/testkit.py`, written into the browser before the page first loads: the starter project as it was at 0.1.16, plus a made-up second project, Garden planner, on the research lab. So the passes do not depend on what a new city starts with. It is written once per tab and never on a reload. test14_data_file needs no projects and goes without it: with an init script in its browser context, its two-tab checks failed about one run in three.
 
@@ -420,7 +435,7 @@ The testing phase ended on 6 October 2026: five recipes settled and citizens can
   - Prompt shape: "A small <prop>:", then its parts and colors, then "Pastel sci-fi street furniture, isometric view, light from the top left."
   - Cleanup: pick the true back by eye (the same diagonal, turned around), then `python art/props/props.py`: it snaps both views to the 32 city colors (read from `CITY_PALETTE` in `src/js/30-pixel.js`, nearest by the redmean distance), clears each still's known flaws and any stray speck, adds a 1 px dark outline where Pixflux left none, and sets the back on the front's canvas, standing on the same spot.
   - Sizes: art at double detail, shown at half size, like buildings. Bus stop and billboard 64 by 64, vending machine 32 by 48, bin 32 by 32. Abdurrahman approved the size.
-  - Facing: a prop faces the street it stands on. The front faces the south-west street, and mirrored the south-east; the back serves the north-east side, and mirrored the north-west.
+  - Facing: a prop faces the street it stands on. A front faces one of the two near streets as drawn, and its back the opposite one; mirrored, a view faces the other street on the same side of the camera. So look at which way a new front faces and write it in `src/buildings/props.json` as `faces`, `se` or `sw`: the bus stop's and billboard's face the south-east street, the vending machine's and bin's the south-west. A flat prop's long side runs along the street it faces, so its top edge rising to the right means `se`. The tool mirrors each view on the side it does not face.
   - Cost per finished prop: 2 generations, for all four sides.
 - **The finished set (approved 7 October 2026, in the missing art round, with the lavender billboard):**
   - The stills are in `art/sources/props/`, a front and a back per prop. `art/props/props.py` writes `art/out/props/<prop>-front.png` and `-back.png`, and `props-sheet.png` with the stills beside the finished four sides on dark and light.
@@ -448,7 +463,7 @@ The testing phase ended on 6 October 2026: five recipes settled and citizens can
   - Tool: `create_object_pro_flash` with the Pixflux image as `first_frame_base64`, `n_directions` 8, view "high top-down", and the prop's prompt. Starting from an existing image charges only the rotations, 1 generation per prop. The 8 views download as a zip from `/mcp/objects/<object id>/download`.
   - The tool takes the given image as its "south" view and draws the other 7. The true back is the original turned around on the same diagonal: the "north" view for the bus stop and billboard, but "north-east" for the vending machine, whose "north" came out flat-on. So the back is picked by eye per prop. The bin is round, so any view serves.
   - The views add colors outside the city's (up to 36 per view), so they are snapped to the 32 city colors after, free and local. The vending machine's stray teal patch carries into every view.
-  - **Four sides from two images:** the front faces the south-west street. Mirrored, it faces the south-east street. The back serves the north-east side, and mirrored, the north-west side.
+  - **Four sides from two images:** the front faces the south-west street. Mirrored, it faces the south-east street. The back serves the north-east side, and mirrored, the north-west side. (This held only for the vending machine and the round bin. The bus stop's and billboard's fronts face the south-east street, so at 0.1.22 they stood sideways on every side; fixed at 0.1.23 with `faces` in `props.json`.)
   - Mocked round a park block at 1x and 2x, with two props per side: faces on the south sides, backs on the north sides. Every prop reads as facing its own street. Front-side props overlap the lot behind them, the way isometric depth works.
 - Files (test 3): `test3-rotations.png` (each prop's 8 views), `test3-backs.png` (the back candidates), `test3-block-1x.png`, `test3-block-2x.png` and `test3-block-2x-close.png` (props round a park block), `test3-props.png` (both sets at 1x and 4x, on light and dark), `test3-city-1x.png`, `test3-city-2x.png` and `test3-city-2x-close.png` (Pixflux, Pro Flash and snapped on the sidewalk by the city hall, pasted onto screenshots), and the prop folders in `_extras/pixellab-tests/test3/`.
 
@@ -639,9 +654,9 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
     - a mayor portrait from a photo;
     - tool work for weather, prop placement and micro icons in the lists.
 - **Citizens stay code-drawn (October 2026):** the 5 by 7 px people in `src/js/45-traffic.js` keep their size and abstraction. A 16 px PixelLab courier looked like a giant on the map, so PixelLab test 4 was cancelled.
-- **Street props (October 2026):** designed in one wizard round (`wizard-rounds/2026-10-06-street-props-round1.json`, one folder up from the source) and not built yet (design only). The art recipe is in section 4, PixelLab workflow. The design:
+- **Street props (October 2026):** designed in one wizard round (`wizard-rounds/2026-10-06-street-props-round1.json`, one folder up from the source) and built at 0.1.22 (section 2, Street props). The art recipe is in section 4, PixelLab workflow. The design:
   - **Where they stand:** on the sidewalk, pushed back over the plot's rim, since every prop is wider than the 5 px sidewalk.
-  - **Facing:** a prop faces the street it stands on; faces show on a block's south and east sides, backs on its north and west sides.
+  - **Facing:** a prop faces the street it stands on; faces show on a block's south and east sides, backs on its north and west sides. The code names sides by the screen's diagonals: the south side is `sw` (lower left on screen), east `se` (lower right), north `ne` (upper right) and west `nw` (upper left).
   - **Behind buildings:** props stand on all four sides; a tall building partly hiding one on its north or west side is fine.
   - **Where each prop belongs:**
     - bus stop: anywhere, spread by a fixed pattern;
@@ -676,7 +691,6 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
 
 ## 7. Open items
 
-- Street props on the map: the design and the art recipe are settled, and building them waits. The approved set is rendered by `art/props/props.py` into `art/out/props/` (section 4, Street props); placing it on the map is the tool work still to do.
 - Leaders: build the leader card this month. The seven leaders are picked through a wizard round, then their portraits are made (6 generations a try).
 - Abdurrahman names the projects that get the new buildings (bus depot, drone port, apartment block, cafe, library). The drone port is finished; the other four have their designs picked and wait until he says (20 generations each).
 - Dirt on red: decided, and delayed (section 6, Status).

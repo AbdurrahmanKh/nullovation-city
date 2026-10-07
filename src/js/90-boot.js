@@ -23,7 +23,8 @@
   for (const p of DB.projects) if (p.art.has) Art.load(p.id);
   // the generic buildings and the lot scenes, decoded once, a few at a time so the page stays responsive
   (async () => {
-    const jobs = [...GENERICS.map(g => ['g:' + g.id, g.url]), ...LOTS.map(l => ['lot:' + l.id, l.url])];
+    const jobs = [...GENERICS.map(g => ['g:' + g.id, g.url]), ...LOTS.map(l => ['lot:' + l.id, l.url]),
+      ...PROPS.flatMap(p => [['prop:' + p.id + ':front', p.front], ['prop:' + p.id + ':back', p.back]])];
     for (const [key, url] of jobs) {
       try { await Art.set(key, url); } catch (e) {}
       await new Promise(r => setTimeout(r, 0));

@@ -87,6 +87,12 @@ const Traffic = (() => {
       .filter(([h]) => validEdge(ti, tj, h)).map(([h, bias]) => [h, bias * edgeW(ti, tj, h)]);
     return opts.length ? pickW(opts) : keyOf([-a, -b]);        // a dead end at the map's edge: turn back
   }
+  let stopCache = { from: null, list: [] };                  // the map's bus stops, rebuilt when its prop plan changes
+  function busStops() {
+    const all = MapView.props();
+    if (stopCache.from !== all) stopCache = { from: all, list: all.filter(p => p.kind === 'busstop').map(p => Object.assign({ key: p.u + ',' + p.v + ',' + p.side }, p)) };
+    return stopCache.list;
+  }
   function updateCars(dt, now) {
     for (const c of cars) {
       if (c.wait > 0) { c.wait -= dt; continue; }
@@ -105,6 +111,14 @@ const Traffic = (() => {
         return ahead > 0 && ahead < (c.len + o.len) / 2 + CAR_GAP * 0.6 && side < 0.2;
       });
       if (blocked) continue;
+      if (c.type === 'bus') {                                   // a bus stop on its side of the street: pull up to it and pause
+        const [ra, rb] = rightOf(c.h);
+        const s = busStops().find(s => {
+          const ahead = (s.i - ci) * ha + (s.j - cj) * hb, side = (s.i - ci) * ra + (s.j - cj) * rb;
+          return s.key !== c.served && ahead > 0 && ahead <= step && side > 0.2 && side < 0.8;
+        });
+        if (s) { c.t += (s.i - ci) * ha + (s.j - cj) * hb; c.served = s.key; c.wait = 2 + R() * 1.5; continue; }
+      }
       c.t += step;
       const turn = c.next;
       if (!turn) continue;
@@ -112,7 +126,7 @@ const Traffic = (() => {
       const at = isStraight ? PITCH() : isRight ? PITCH() - LANE : isBack ? PITCH() : PITCH() + LANE;
       if (c.t >= at) {
         const over = c.t - at;
-        c.ri += ha; c.rj += hb; c.h = turn; c.next = null; c.stopped = false;
+        c.ri += ha; c.rj += hb; c.h = turn; c.next = null; c.stopped = false; c.served = null;
         c.t = (isStraight || isBack ? 0 : isRight ? LANE : -LANE) + over;
       }
     }

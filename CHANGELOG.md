@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.23 (2026-10-07)
+
+- Street props face their own street on every side of a block: on the south-west and south-east sides we see their fronts, facing those streets; on the north-east and north-west sides their backs, as they face those streets.
+  - The bus stops and billboards stood turned sideways on all four sides. The tool took every front as facing the south-west street, but PixelLab drew theirs facing the south-east one; only the vending machine's faces south-west.
+  - `src/buildings/props.json` now names the street each front faces as drawn (`faces`), and the map mirrors a view only on the side it does not face. `build.py` refuses a prop without it.
+  - The vending machines and bins were right already and look the same; where every prop stands is unchanged.
+- Tests: test19 checks each prop's `faces`, that every prop as drawn faces its own street, and, measured on the art itself, that every bus stop, billboard and vending machine front stands with its long side along its street. It saves close-ups of a bus stop and a billboard on each side, `191-*.png`.
+
+## 0.1.22 (2026-10-07)
+
+- Street props round the blocks: bus stops, vending machines, holo billboards and bins, made with PixelLab and drawn at half size like the buildings.
+  - Each stands on the sidewalk and faces its street: fronts on a block's south-east and south-west sides, backs on its north-east and north-west, and a tall building may hide part of one behind it.
+  - Bus stops follow a fixed pattern, vending machines stand mid-block, billboards by a corner past where a zebra lands, and bins on a building's two front sides, where people walk in. At most two to a side, fixed like the street details.
+  - People walk through them, drawn in front or behind by depth. They show with the traffic off too, and keep their neon by night.
+  - Buses pull up to a bus stop on their side of the street and pause there for a few seconds.
+- Tests: the new test19 checks the props' plan, facing, places, the bus pause, and their night colors.
+
 ## 0.1.21 (2026-10-07)
 
 - Three new park kinds for empty plots, made with PixelLab and animated in code:

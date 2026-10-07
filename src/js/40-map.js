@@ -44,6 +44,62 @@ const MapView = (() => {
   /* At each end of a street segment: a zebra crossing, a stop line, or nothing. */
   const crossMark = (li, ri, along, e) => pick(seed(li, ri, along ? 1 : 2, e, 7), [['zebra', 55], ['stop', 30], ['none', 15]]);
 
+  /* ---------- street props: fixed per block side, like the street details ---------- */
+  /* A block's four sides, each measured from its own corner going round clockwise: the north-east side from the top
+     corner, the south-east from the right, the south-west from the bottom, the north-west from the left. A prop faces
+     its street: its front shows on the south-east and south-west sides, its back on the north-east and north-west.
+     Its foot stands on the sidewalk; on the front sides it stands near the curb, so it reaches back over the plot's rim,
+     and on the back sides near the plot, so it stays out of the street. */
+  const PROP_SIDES = [
+    { name: 'ne', back: true, off: 0.06, at: (a0, b0, a1, b1, a, o) => [a0 + a, b0 - o] },
+    { name: 'se', back: false, off: 0.22, at: (a0, b0, a1, b1, a, o) => [a1 + o, b0 + a] },
+    { name: 'sw', back: false, off: 0.22, at: (a0, b0, a1, b1, a, o) => [a1 - a, b1 + o] },
+    { name: 'nw', back: true, off: 0.06, at: (a0, b0, a1, b1, a, o) => [a0 - o, b1 - a] },
+  ];
+  /* Which street a view faces as drawn: a front the one named in props.json (PROPS' faces), south-east or south-west;
+     its back the opposite one, the same diagonal turned around. Mirrored, a view turns to the other street on the same
+     side of the camera (south-east and south-west, or north-east and north-west), so each view serves two sides and is
+     mirrored on the one it does not face. */
+  const TURNED = { se: 'nw', sw: 'ne', ne: 'sw', nw: 'se' };
+  function propFaces(kind, back) {
+    const pr = typeof PROPS === 'undefined' ? null : PROPS.find(p => p.id === kind);
+    const front = pr ? pr.faces : 'sw';
+    return back ? TURNED[front] : front;
+  }
+  let propCache = { key: '', list: [] };
+  /* Bus stops follow a fixed pattern; a vending machine stands mid-block; a holo billboard by the corner, just past
+     where a zebra lands; a bin on a building's two front sides, where people walk in. At most two to a side, kept
+     apart. Every draw is taken whatever the block holds, so planting a building only adds or takes away its bins. */
+  function propPlan() {
+    const built = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v));
+    const key = N + ':' + [...built].sort().join(';');
+    if (propCache.key === key) return propCache.list;
+    const list = [];
+    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) {
+      const a0 = MARGIN + u * PITCH, b0 = MARGIN + v * PITCH, a1 = a0 + S, b1 = b0 + S;
+      PROP_SIDES.forEach((sd, k) => {
+        const r = seed(u, v, k, 61), d = Array.from({ length: 6 }, () => r());
+        const want = [];
+        if ((u * 3 + v * 5 + k * 7) % 5 === 0) want.push(['busstop', 1.2 + d[0] * 1.6]);
+        if (built.has(u + ',' + v) && !sd.back && d[1] < 0.6) want.push(['bin', 0.9 + d[2] * 2.2]);
+        if (d[3] < 0.2) want.push(['vending', 1.5 + d[4]]);
+        if (d[5] < 0.15) want.push(['billboard', 0.62]);
+        const placed = [];
+        for (const [kind, a] of want) {
+          if (placed.length >= 2) break;
+          if (placed.some(o => Math.abs(o.a - a) < (kind === 'busstop' || o.kind === 'busstop' ? 1.1 : 0.8))) continue;
+          placed.push({ kind, a });
+        }
+        for (const { kind, a } of placed) {
+          const [i, j] = sd.at(a0, b0, a1, b1, a, sd.off);
+          list.push({ kind, u, v, side: sd.name, a, i, j, back: sd.back, mirror: propFaces(kind, sd.back) !== sd.name });
+        }
+      });
+    }
+    propCache = { key, list };
+    return list;
+  }
+
   /* ---------- static art ---------- */
   /* The ground: a street grid. Every lot is a block wrapped in sidewalks, the gaps between lots
      are two-lane streets, a ring road runs round the city, and empty lots are grass. */
@@ -294,6 +350,28 @@ const MapView = (() => {
     if (flip) ctx.restore();
   }
   function drawRing(r, X, Y) { ctx.drawImage(r.canvas, X - r.cx, Y + 32 - r.cy); }
+  /* The props on screen, as figures for the depth sort: each stands on the middle of its bottom row, at half size like
+     the buildings, and a mirrored one turns round that point. People walk through them, in front or behind by depth. */
+  function propItems() {
+    if (typeof PROPS === 'undefined') return [];
+    const out = [], z = cam.z, hx = vw / (2 * z), hy = vh / (2 * z);
+    for (const pr of propPlan()) {
+      const art = Art.get('prop:' + pr.kind + ':' + (pr.back ? 'back' : 'front'));
+      if (!art) continue;
+      const [x, y] = tileToWorld(pr.i, pr.j), X = Math.round(x), Y = Math.round(y), w = art.w / 2, hgt = art.h / 2;
+      const left = X - Math.round(art.w / 2) / 2, top = Y + 1 - hgt;
+      const box = { x0: X - w / 2 - 1, x1: X + w / 2 + 1, y0: top, y1: Y + 1 };
+      if (box.x1 < cam.x - hx || box.x0 > cam.x + hx || box.y1 < cam.y - hy || box.y0 > cam.y + hy) continue;
+      out.push({ i: pr.i, j: pr.j, key: pr.i + pr.j, box, prop: pr, draw: () => {
+        if (pr.mirror) { ctx.save(); ctx.translate(2 * X, 0); ctx.scale(-1, 1); }
+        drawArt(art, left, top, w, hgt, 0);
+        if (pr.mirror) ctx.restore();
+      } });
+    }
+    lastProps = out.length;
+    return out;
+  }
+  let lastProps = 0;
 
   /* A block as one flat image at 1x: used to fade it as a unit, for previews, and for PNG export. */
   function flatBlock(p, frame = 0, scale = 2) {
@@ -424,7 +502,7 @@ const MapView = (() => {
       plots.push({ plot: true, u, v, a0, a1: a0 + S, b0, b1: b0 + S, key: a0 + b0 + S,
         box: { x0: X - 64, x1: X + 64, y0: p ? blockGeom(p, u, v).top : Y - 30, y1: Y + 66 } });
     }
-    const items = moving ? Traffic.items() : [];
+    const items = (moving ? Traffic.items() : []).concat(propItems());
     for (const it of items.length ? depthSort(plots, items) : plots) {
       if (it.plot) drawPlot(it.u, it.v, lay, slots, T); else it.draw(ctx);
     }
@@ -1138,6 +1216,8 @@ const MapView = (() => {
     previewScale, profileScene, glideBeside,
     bubbleMode: () => bubbleMode, bubbleAt: id => eachBubble(b => b.p.id === id),
     crossMark, layout: () => displayLayout(), tileToWorld,
+    props: () => propPlan(), propsDrawn: () => lastProps,
+    _depthOrder: sprites => depthSort([], sprites),                // for the tests: figures among themselves, back to front
     lotInfo: (u, v) => (typeof LOTS !== 'undefined' && LOTS.length ? { id: LOTS[lotVariant(u, v)].id, flip: ((u * 7 + v * 13) % 3) === 1 } : null),
     kick: () => kick(),
     thumb: p => {                                          // a still, full building, for the side bar

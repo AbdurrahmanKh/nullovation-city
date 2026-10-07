@@ -6,7 +6,7 @@ Open it online at https://abdurrahmankh.github.io/nullovation-city/, or build it
 
 ## Versions
 
-Tool: 0.1.20. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
+Tool: 0.1.23. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
 
 ## Build and test
 
@@ -29,6 +29,7 @@ GitHub Pages serves `index.html` straight from the branch: in Settings, Pages, p
   - `kit/`: the 256 px kit.
   - `buildings/`: one script per building. Each renders into `art/out/`.
   - `lots/`: the park lots: the four drawn in code with the older kit they use, and one script each for the three made with PixelLab.
+  - `props/`: the street props, finished from their PixelLab stills; the tool ships the cropped copies in `src/buildings`.
   - `canon/`: the original 128 px designs. `render.py` draws them into `canon/out/` to compare.
   - `sources/`: stills made elsewhere that a script starts from.
   - `slim_gifs.py`: shrinks the shipped GIFs, keeping each only if it decodes pixel-identical.

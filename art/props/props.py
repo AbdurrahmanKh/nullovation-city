@@ -4,9 +4,12 @@ by eye); mirrored, the two serve all four sides of a block (the knowledge file, 
 
 The cleanup, the same for every image: snap each pixel to the city's 32 colors, read from src/js/30-pixel.js;
 clear the known flaws and any stray speck; give every edge that lacks one a 1 px dark outline; and set the back on
-the front's canvas, standing on the same spot. Nothing here goes into the tool.
+the front's canvas, standing on the same spot.
 Reads art/sources/props/<prop>-front.png and -back.png; writes art/out/props/<prop>-front.png and -back.png,
-and props-sheet.png to compare them with the stills."""
+and props-sheet.png to compare them with the stills. art/out/props/ship/ holds them cropped to their art, as the tool
+ships them in src/buildings/ (prop-<id>-front.png and -back.png, listed in props.json). props.json also names the
+street each front faces as drawn, "faces": "se" or "sw" (a flat prop's top edge rising to the right means "se"); the
+tool mirrors each view on the side it does not face, so a wrong one turns the prop sideways on every block side."""
 import pathlib, re
 import numpy as np
 from PIL import Image, ImageDraw, ImageOps
@@ -129,6 +132,9 @@ if __name__ == '__main__':
         foot = foot_of(front)
         f_im, b_im = Image.fromarray(front, 'RGBA'), place(back, size, foot)
         f_im.save(OUT / f'{prop}-front.png'); b_im.save(OUT / f'{prop}-back.png')
+        (OUT / 'ship').mkdir(exist_ok=True)                 # what the tool ships: each cropped to its art, so it stands
+        for side, im in (('front', f_im), ('back', b_im)):  # on its bottom row's middle
+            im.crop(im.getbbox()).save(OUT / 'ship' / f'prop-{prop}-{side}.png', optimize=True)
         done[prop] = (f_im, b_im)
         ncol = lambda im: len({tuple(p[:3]) for p in np.array(im).reshape(-1, 4) if p[3]})
         print(f'{prop}: {size[0]} x {size[1]}, front {ncol(f_im)} colors, back {ncol(b_im)} colors')
