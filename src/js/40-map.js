@@ -1317,7 +1317,13 @@ const MapView = (() => {
     canvas.addEventListener('pointercancel', onUp);
     canvas.addEventListener('pointerleave', () => { if (!gesture && hoverId) { hoverId = null; invalidate(); } hideTip(); });
     wrap.addEventListener('wheel', onWheel, { passive: false }); // also over the bubble and Enter button
-    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    /* Right-click on a building opens its shortcut wheel; not while planting, moving, or in Edit City. */
+    canvas.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (editing || mode.name !== 'idle') return;
+      const [x, y] = local(e), hit = hitProject(x, y);
+      if (hit) { hideTip(); Wheel.open(hit, x, y); } else Wheel.close();
+    });
     $('#camIcon').innerHTML = iconSvg('camera', 18);
     $('#camIcon').style.display = 'inline-flex';
     $('#btnPostcard').addEventListener('click', () => postcard());

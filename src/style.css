@@ -905,3 +905,36 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
 #menu > .sb-alerts { margin-top: 0; }
 #menu > .sb-alerts:not(:has(> :not([hidden]))) { display: none; }
 .settings .tool-folders { margin-top: 0; }
+
+/* ---------- links: the add panel, the rows while editing, and the shortcut switch ---------- */
+.pv-add-link { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; padding: 12px; background: var(--field); box-shadow: var(--px-edge); }
+.link-form { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; }
+.link-fields { display: grid; gap: 6px; min-width: 0; }
+.link-fields .lbl { font: 400 13px/1.2 var(--f-pixel); color: var(--ink-soft); font-variant-ligatures: no-common-ligatures; }
+.link-fields .field { width: 100%; min-width: 0; }
+.link-sc { font-size: 13.5px; }
+.link-sc .note { font-size: 12px; }
+.link-warn { color: var(--soon); }
+.link-actions { gap: 8px; }
+.link-list { display: grid; gap: 8px; }
+.link-edit { grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: start; padding: 8px 6px; margin-bottom: 0; background: var(--field); box-shadow: var(--px-edge); }
+.link-edit .link-grip { margin-top: 4px; cursor: grab; touch-action: none; }
+.link-edit.dragging { opacity: .6; }
+.link-edit .link-sc { font-size: 12.5px; color: var(--ink-soft); }
+
+/* ---------- the shortcut wheel: a pie of a building's links round the pointer, the middle kept for its leader ---------- */
+.wheel { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 40; pointer-events: none !important; }
+.wheel > * { pointer-events: auto; animation: wheel-in .14s ease-out; }
+@keyframes wheel-in { from { opacity: 0; } }
+.wheel::before { content: ''; position: absolute; left: -118px; top: -118px; width: 236px; height: 236px; border-radius: 50%;
+  border: 2px dashed rgba(107, 99, 136, .85); pointer-events: none; }
+.wheel-hub { position: absolute; left: -38px; top: -38px; width: 76px; height: 76px; border-radius: 50%; background: var(--field); border: 2px solid var(--edge);
+  box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
+.wheel-name { position: absolute; left: 0; top: -168px; margin: 0; transform: translateX(-50%); max-width: 180px; padding: 2px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 400 13px/1.3 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); background: var(--paper); box-shadow: var(--px-edge); }
+.wheel-item { position: absolute; left: 0; top: 0; margin: 0; max-width: 132px; padding: 6px 10px 5px; gap: 6px; font-size: 13px; text-decoration: none; color: var(--ink);
+  transform: translate(calc(var(--x) - 50%), calc(var(--y) - 50%)); }
+.wheel-item:active { transform: translate(calc(var(--x) - 50% + 2px), calc(var(--y) - 50% + 2px)); }
+.wheel-item:focus-visible { outline-offset: 2px; }
+.wheel-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.wheel-empty { position: absolute; left: 0; top: 80px; width: 230px; margin: 0; transform: translateX(-50%); padding: 6px 10px; text-align: center; font-size: 12.5px; color: var(--ink-soft); background: var(--paper); box-shadow: var(--px-edge); }

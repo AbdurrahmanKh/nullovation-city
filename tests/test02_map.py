@@ -65,7 +65,7 @@ with sync_playwright() as p:
     page.screenshot(path=str(SHOTS / '13-read-arabic.png'))
     link = page.get_attribute('.link-btn', 'href')
     ok(f'bare domain link gets https ({link})', link == 'https://www.figma.com/file/abc')
-    ok('a Figma link gets the design icon on its own', page.evaluate("() => DB.projects.find(p => p.name === 'تحديث البلوت').links[0].icon") == 'design')
+    ok('a Figma link, with Design gone from the icons, gets the web icon on its own', page.evaluate("() => DB.projects.find(p => p.name === 'تحديث البلوت').links[0].icon") == 'web')
     ok('no field stays open after adding', page.eval_on_selector_all('#pv input:not([type=checkbox]), #pv textarea', 'els => els.length') == 0)
     page.keyboard.press('Escape'); page.wait_for_timeout(500)
     ok('Esc closes the view', not page.is_visible('#pv'))

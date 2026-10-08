@@ -41,6 +41,7 @@
   window.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (OpenInClaude.close(true)) return;
+    if (Wheel.close()) return;
     if (Confirm.isOpen()) { Confirm.cancel(); return; }
     if (Panel.isOpen()) { Panel.close(); return; }
     if (FullView.isOpen()) { FullView.escape(); return; }

@@ -91,7 +91,7 @@ const OpenInClaude = (() => {
   function button(opts) {
     const btn = h('button', { id: opts.id, class: 'btn oc-btn' + (opts.small === false ? '' : ' btn-small') + (opts.quiet ? ' btn-quiet' : ''), type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false',
       title: 'Opens this in the Claude app, filled in and ready to send: a chat, a Cowork task, or Claude Code' },
-      iconEl('chat', 14), 'Open in Claude');
+      iconEl('claude', 14), 'Open in Claude');
     btn.addEventListener('click', e => { e.stopPropagation(); if (owner === btn) close(); else open(btn, opts); });
     return btn;
   }

@@ -63,9 +63,9 @@ with sync_playwright() as p:
     # 6.3 and 6.7: a task opens beside the view; description, due date, copy for Claude, Esc undoes
     pg.click('.ms >> nth=1 >> li.task >> nth=0 >> .task-title'); pg.wait_for_timeout(250)
     pg.fill('#pvTaskDesc', 'Draw each bed to scale and label it.')
-    pg.click('#pvSide >> text=Copy for Claude'); pg.wait_for_timeout(150)
+    pg.click('#pvSide >> text=Copy task'); pg.wait_for_timeout(150)
     c = clip()
-    ok('6.7 the task copies for Claude with its description', c.startswith('# Task: Draw the beds') and 'Draw each bed to scale' in c and '## About the project' in c)
+    ok('6.7 Copy task copies the task with its description, and no longer the project\'s About', c.startswith('# Task: Draw the beds') and 'Draw each bed to scale' in c and '## About the project' not in c)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     ok('6.3 Esc in the task undoes its session', proj()['todos'][1]['description'] == '' if proj()['todos'][1]['text'].startswith('Draw the beds') else any(t['text'].startswith('Draw the beds') and t['description'] == '' for t in proj()['todos']))
     # milestone panel: rename, then delete with its tasks after a confirm
@@ -78,8 +78,8 @@ with sync_playwright() as p:
     pg.click('.confirm-actions .btn-danger'); pg.wait_for_timeout(300)
     ok('then the milestone and its task are gone', [m['name'] for m in proj()['milestones']] == ['First release'] and not any(t['text'].startswith('Publish the app') for t in proj()['todos']))
     # 1: the add-link form picks icons on the spot
-    pg.click('#pvAddLinkBtn'); pg.fill('#pvLinkUrl', 'https://linear.app/team/issue-1'); pg.wait_for_timeout(100)
-    ok('1 the icon follows the address as you type', 'Task' in pg.get_attribute('#pvLinkIcon', 'aria-label'))
+    pg.click('#pvAddLinkBtn'); pg.fill('#pvLinkUrl', 'https://github.com/team/issue-1'); pg.wait_for_timeout(100)
+    ok('1 the icon follows the address as you type', 'GitHub' in pg.get_attribute('#pvLinkIcon', 'aria-label'))
     pg.click('#pvLinkIcon'); pg.click('.icon-pop button[aria-label="Chat"]'); pg.wait_for_timeout(100)
     pg.fill('.pv-add-link input[aria-label="New link label"]', 'Team thread'); pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
     ok('1 the picked icon is kept, with no edit mode', proj()['links'][-1]['icon'] == 'chat' and pg.locator('[data-sec="links"] .pv-done').count() == 0)

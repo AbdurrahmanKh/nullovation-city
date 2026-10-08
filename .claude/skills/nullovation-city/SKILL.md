@@ -20,7 +20,7 @@ The rule holds inside every task too: each detail in a description comes from th
 
 ## Task descriptions
 
-In the tool, every task has Copy for Claude. It copies the task's title, milestone, due date, and description, plus the project's About, so the task can be pasted into a fresh chat and worked on. Write each description for that reader, as plain text, using these lines:
+In the tool, every task has Copy task. It copies the task's title, project, milestone, due date, and description, without the project's About, so the task can be pasted into a fresh chat and worked on. Write each description for that reader, as plain text, so it stands on its own, using these lines:
 
 ```
 <One or two sentences: what to do, and what it produces.>
@@ -97,7 +97,7 @@ A plan:
       ] }
     ],
     "ideas": [{ "title": "A short title", "text": "What and why" }],
-    "links": [{ "label": "Short name", "url": "https://...", "icon": "doc, task, design, code, chat, folder, or web" }]
+    "links": [{ "label": "Short name", "url": "https://...", "icon": "doc, code, github, claude, chat, folder, or web" }]
   }
 }
 ```

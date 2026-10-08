@@ -35,17 +35,18 @@ function paragraphs(text) {
     return p;
   });
 }
-/* A link's icon, guessed from its address. */
-function guessIcon(url) {
-  if (winPathOf(url)) return 'folder';
-  const u = String(url || '').toLowerCase();
-  if (/notion\.so|docs\.google|confluence|\.pdf|\.docx?\b/.test(u)) return 'doc';
-  if (/asana|jira|linear\.app|trello|clickup|monday\.com/.test(u)) return 'task';
-  if (/figma|miro|dribbble|behance|canva/.test(u)) return 'design';
-  if (/github|gitlab|bitbucket|localhost|codepen|replit/.test(u)) return 'code';
-  if (/slack|claude\.ai|chatgpt|discord|teams\.microsoft|whatsapp|t\.me/.test(u)) return 'chat';
-  if (/drive\.google|dropbox|onedrive|^file:/.test(u)) return 'folder';
-  return 'web';
+/* Where a link goes when clicked, the same in the project view and on the shortcut wheel: a folder or file on this
+   PC opens in File Explorer with the setup, or else in the browser; anything else in a new tab. href is null when
+   the address cannot be opened. */
+function linkTarget(l) {
+  const win = winPathOf(l.url);
+  if (win) {
+    const inExplorer = explorerLinks();
+    return { win, href: inExplorer ? explorerHref(win) : fileUrlOf(win), blank: !inExplorer, name: l.label || win,
+      title: (inExplorer ? 'Opens in File Explorer: ' : 'Opens in the browser: ') + win };
+  }
+  const url = safeUrl(l.url);
+  return { win: null, href: url, blank: true, name: l.label || l.url || 'Link', title: url || 'This address cannot be opened. Fix it with the pencil.' };
 }
 function dataUrlToBlob(url) {
   const [head, b64] = url.split(',');
@@ -247,7 +248,7 @@ const FullView = (() => {
     toast('Checked in. ' + (p.urgency.system === 'finish' ? 'Work until finished stays yellow for 24 hours.' : 'No bubble until ' + (p.urgency.days === 1 ? 'tomorrow at this time.' : p.urgency.days + ' days from now.')));
   }
 
-  /* About: what is next (worked out from the todos), then what the project is, beside the picture */
+  /* About: what the project is, then what is next (worked out from the todos), beside the picture */
   function about(p) {
     const ed = editing && editing.key === 'about';
     const box = h('section', { class: 'pv-sec pv-about', 'data-sec': 'about' }, secHead('About', 'about'));
@@ -264,11 +265,11 @@ const FullView = (() => {
         h('p', { class: 'note' }, 'Changes save as you type. Done closes the section; Esc undoes everything since it opened.')));
       return box;
     }
+    box.append(p.description.trim() ? h('div', { class: 'fv-desc' }, paragraphs(p.description)) : h('p', { class: 'fv-empty' }, 'No description yet. The pencil adds one.'));
     box.append(whatIsNext(p));
     const dl = deadlineInfo(p.deadline);
     if (dl) box.append(h('p', { class: 'pv-deadline ' + (dl.cls || '') }, dl.text));
     if (leader) box.append(h('p', { class: 'pv-leader', dir: 'auto' }, (leader.title ? leader.title + ': ' : '') + leader.text.replace(/\s+/g, ' ').trim()));
-    box.append(p.description.trim() ? h('div', { class: 'fv-desc' }, paragraphs(p.description)) : h('p', { class: 'fv-empty' }, 'No description yet. The pencil adds one.'));
     box.append(h('div', { class: 'pv-about-btns' },
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => openSide('activity') }, iconEl('clock', 14), 'Activity'),
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this project\u2019s full status as text for a Claude chat', onclick: () => copyProjectStatus(p) }, iconEl('copy', 14), 'Copy status'),
@@ -291,7 +292,7 @@ const FullView = (() => {
       late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
     box.append(h('div', { class: 'pv-next-row' },
       d ? h('span', { class: 'due ' + (d.tone || '') }, d.text) : h('span', { class: 'note' }, 'No due date'),
-      h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy for Claude'),
+      h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
       OpenInClaude.button({ id: 'pvNextClaude', text: () => taskForClaude(p, t), project: p, quiet: true })));
     const others = p.todos.filter(x => !x.done && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;
     if (others) box.append(h('p', { class: 'pv-late-note' }, '! ' + plural(others, 'other task is', 'other tasks are') + ' overdue'));
@@ -554,7 +555,7 @@ const FullView = (() => {
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
       h('span', { class: 'lbl' }, 'Description'), desc,
       h('div', { class: 'pv-claude-row' },
-        h('button', { class: 'btn btn-small', type: 'button', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy for Claude'),
+        h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
         OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' },
         h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
@@ -618,7 +619,7 @@ const FullView = (() => {
       h('p', { class: 'note' }, g.todos.filter(t => t.done).length + ' of ' + plural(g.todos.length, 'task', 'tasks') + ' done. To change them, use the list; drag the milestone by its flag to move it.'),
       tasks,
       h('div', { class: 'pv-claude-row' },
-        h('button', { id: 'pvMsCopy', class: 'btn btn-small', type: 'button', title: 'Copies this milestone, its open tasks with their descriptions, and the project\u2019s About, for a Claude chat', onclick: () => copyMilestone(p, m) }, iconEl('copy', 14), 'Copy for Claude'),
+        h('button', { id: 'pvMsCopy', class: 'btn btn-small', type: 'button', title: 'Copies this milestone and its open tasks with their descriptions, for a Claude chat', onclick: () => copyMilestone(p, m) }, iconEl('copy', 14), 'Copy for Claude'),
         OpenInClaude.button({ id: 'pvMsClaude', text: () => milestoneForClaude(p, m), project: p })),
       h('div', { class: 'pv-note-foot' },
         h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: async () => {
@@ -660,30 +661,29 @@ const FullView = (() => {
 
   /* Links: open them in a click; Add link opens a small form only when asked for */
   function linkButton(l) {
-    const win = winPathOf(l.url);
-    if (win) {                                            // a folder or file on this PC: Explorer or the browser, plus a copy of the path
-      const inExplorer = explorerLinks();
-      const attrs = { class: 'btn link-btn', href: inExplorer ? explorerHref(win) : fileUrlOf(win), title: (inExplorer ? 'Opens in File Explorer: ' : 'Opens in the browser: ') + win };
-      if (!inExplorer) { attrs.target = '_blank'; attrs.rel = 'noopener noreferrer'; }
-      const a = h('a', attrs, iconEl(l.icon, 24), h('span', { dir: 'auto' }, l.label || win));
-      const copy = h('button', { class: 'icon-btn link-copy', type: 'button', 'aria-label': 'Copy the path', title: 'Copy the path: ' + win, html: iconSvg('copy', 14),
-        onclick: async () => { if (await copyText(win)) toast('Path copied: ' + win); else toast('The browser blocked copying. Try again.', 'error'); } });
-      return h('span', { class: 'link-local' }, a, copy);
-    }
-    const url = safeUrl(l.url);
-    const a = h('a', { class: 'btn link-btn' + (url ? '' : ' bad'), href: url, target: '_blank', rel: 'noopener noreferrer', title: url || 'This address cannot be opened. Fix it with the pencil.' },
-      iconEl(l.icon, 24), h('span', { dir: 'auto' }, l.label || l.url || 'Link'));
-    if (!url) a.addEventListener('click', e => e.preventDefault());
-    return a;
+    const t = linkTarget(l);
+    const a = h('a', { class: 'btn link-btn' + (t.href ? '' : ' bad'), href: t.href, target: t.blank ? '_blank' : null, rel: t.blank ? 'noopener noreferrer' : null, title: t.title },
+      iconEl(l.icon, 24), h('span', { dir: 'auto' }, t.name));
+    if (!t.href) a.addEventListener('click', e => e.preventDefault());
+    if (!t.win) return a;
+    const copy = h('button', { class: 'icon-btn link-copy', type: 'button', 'aria-label': 'Copy the path', title: 'Copy the path: ' + t.win, html: iconSvg('copy', 14),   // a folder or file on this PC: and a copy of its path
+      onclick: async () => { if (await copyText(t.win)) toast('Path copied: ' + t.win); else toast('The browser blocked copying. Try again.', 'error'); } });
+    return h('span', { class: 'link-local' }, a, copy);
+  }
+  /* More shortcuts than a wheel holds are allowed; this says which show. */
+  function shortcutWarning(p, extra = 0) {
+    const n = p.links.filter(l => l.shortcut !== false).length + extra;
+    return h('p', { class: 'note link-warn', role: 'status', hidden: n <= MAX_SHORTCUTS },
+      'Only ' + MAX_SHORTCUTS + ' shortcuts fit in a building\u2019s wheel, so the first ' + MAX_SHORTCUTS + ' in the list show. Drag the links to choose which.');
   }
   function links(p) {
     const ed = editing && editing.key === 'links';
     const box = h('section', { class: 'pv-sec', 'data-sec': 'links' }, secHead('Links', 'links', addBtn('Add link', 'pvAddLinkBtn', () => openAdd('link'))));
     if (ed) {
-      const list = h('div');
-      const rerender = () => list.replaceChildren(...p.links.map(l => linkRow(p, l, rerender)));
+      const list = h('div', { class: 'link-list' }), warn = h('div');
+      const rerender = () => { list.replaceChildren(...p.links.map(l => linkRow(p, l, rerender, list))); warn.replaceChildren(shortcutWarning(p)); };
       rerender();
-      box.append(list, h('p', { class: 'note' }, 'Pick an icon, fix a label or an address, or remove a link. Done closes the section; Esc undoes everything since it opened.'));
+      box.append(list, warn, h('p', { class: 'note' }, 'Drag a link by its grip to move it, pick an icon, fix an address or a label, choose which are shortcuts, or remove a link. Done closes the section; Esc undoes everything since it opened.'));
       return box;
     }
     if (p.links.length) box.append(h('div', { class: 'links' }, p.links.map(linkButton)));
@@ -697,10 +697,12 @@ const FullView = (() => {
       pick.addEventListener('mousedown', e => e.preventDefault());
       pick.addEventListener('click', e => { e.stopPropagation(); openPopover(pick, icon, n => { picked = true; setIcon(n); url.focus(); }); });
       const label = h('input', { class: 'field', type: 'text', dir: 'auto', placeholder: 'Label (optional)', 'aria-label': 'New link label', autocomplete: 'off' });
+      const warn = shortcutWarning(p, 1);
+      const sc = h('input', { id: 'pvLinkShortcut', type: 'checkbox', class: 'cb', checked: true, onchange: e => { warn.hidden = !e.target.checked || p.links.filter(l => l.shortcut !== false).length < MAX_SHORTCUTS; } });
       const add = () => {
         const u = url.value.trim(); if (!u) { url.focus(); return; }
         if (!safeUrl(u)) { toast('That address cannot be opened. Use https://, a folder path like C:\\Projects, or an app link like slack://.', 'error'); url.focus(); return; }
-        const l = { id: uid('l'), label: label.value.trim().slice(0, 120), url: u.slice(0, 2000), icon: picked ? icon : guessIcon(u) };
+        const l = { id: uid('l'), label: label.value.trim().slice(0, 120), url: u.slice(0, 2000), icon: picked ? icon : guessIcon(u), shortcut: sc.checked };
         p.links.push(l);
         logActivity(p, 'Added link: ' + (l.label || l.url));
         adding = null; changed(p); render();
@@ -710,9 +712,16 @@ const FullView = (() => {
         if (e.key === 'Enter') { e.preventDefault(); add(); }
         else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeAdd(); const b = $('#pvAddLinkBtn', root); if (b) b.focus(); }
       });
-      box.append(h('div', { class: 'pv-add-link', 'data-adding': 'link' }, pick, url, label,
-        h('button', { class: 'btn btn-small', type: 'button', onclick: add }, 'Add'),
-        h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => closeAdd() }, 'Cancel')));
+      box.append(h('div', { class: 'pv-add-link', 'data-adding': 'link' },
+        h('div', { class: 'link-form' }, pick, h('div', { class: 'link-fields' },
+          h('label', { class: 'lbl', for: 'pvLinkUrl' }, 'Address'), url,
+          h('label', { class: 'lbl', for: 'pvLinkLabel' }, 'Label'), label)),
+        h('label', { class: 'check link-sc' }, sc, 'Add to shortcuts', h('span', { class: 'note' }, ' (right-click the building)')),
+        warn,
+        h('div', { class: 'inline link-actions' },
+          h('button', { class: 'btn btn-small btn-accent', type: 'button', onclick: add }, 'Add'),
+          h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => closeAdd() }, 'Cancel'))));
+      label.id = 'pvLinkLabel';
     }
     return box;
   }
@@ -764,7 +773,7 @@ const FullView = (() => {
       oninput: e => { n.text = e.target.value.slice(0, 8000); changed(p, { touch: false }); refreshCard(n); } }, n.text);
     return h('div', { class: 'pv-note-ed' }, title, body,
       h('div', { class: 'pv-claude-row' },
-        h('button', { id: 'pvNoteCopy', class: 'btn btn-small', type: 'button', title: 'Copies this note, with the project\u2019s About, for a Claude chat', onclick: () => copyNote(p, n) }, iconEl('copy', 14), 'Copy for Claude'),
+        h('button', { id: 'pvNoteCopy', class: 'btn btn-small', type: 'button', title: 'Copies this note for a Claude chat', onclick: () => copyNote(p, n) }, iconEl('copy', 14), 'Copy for Claude'),
         OpenInClaude.button({ id: 'pvNoteClaude', text: () => noteForClaude(p, n), project: p })),
       h('div', { class: 'pv-note-foot' },
         h('span', { class: 'note' }, 'Written ' + fmtStamp(n.at) + '. Saves as you type; Esc undoes.'),
@@ -1055,7 +1064,17 @@ const FullView = (() => {
   }
 
   /* ---------- rows used while a section is open ---------- */
-  function linkRow(p, l, rerender) {
+  function linkRow(p, l, rerender, list) {
+    const grip = h('button', { class: 'icon-btn grip link-grip', type: 'button', 'aria-label': 'Move ' + (l.label || l.url || 'this link') + ': drag, or use the up and down arrows', title: 'Drag to move', html: iconSvg('grip', 14) });
+    grip.addEventListener('pointerdown', e => dragLink(e, p, row, list, rerender));
+    grip.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const i = p.links.indexOf(l), j = i + (e.key === 'ArrowUp' ? -1 : 1);
+      if (j < 0 || j >= p.links.length) return;
+      p.links.splice(i, 1); p.links.splice(j, 0, l); changed(p, { touch: false }); rerender();
+      const again = $(`.link-edit[data-id="${l.id}"] .link-grip`, root); if (again) again.focus();
+    });
     const pick = h('button', { class: 'icon-pick', type: 'button', 'aria-haspopup': 'true', 'aria-label': 'Icon: ' + ICON_NAMES[l.icon] + '. Change it', html: iconSvg(l.icon, 24) });
     pick.addEventListener('click', e => {
       e.stopPropagation();
@@ -1064,13 +1083,44 @@ const FullView = (() => {
         const b = $(`[data-id="${l.id}"] .icon-pick`, root); if (b) b.focus();
       });
     });
-    const label = h('input', { class: 'field', type: 'text', dir: 'auto', value: l.label, placeholder: 'Label', 'aria-label': 'Link label', autocomplete: 'off',
+    const label = h('input', { class: 'field', type: 'text', dir: 'auto', value: l.label, placeholder: 'Label (optional)', 'aria-label': 'Link label', autocomplete: 'off',
       oninput: e => { l.label = e.target.value; changed(p); } });
     const url = h('input', { class: 'field url', type: 'text', dir: 'ltr', inputmode: 'url', value: l.url, placeholder: 'https://, C:\\folder, or slack://', 'aria-label': 'Link address', autocomplete: 'off', spellcheck: 'false',
       oninput: e => { l.url = e.target.value; changed(p); } });
-    const del = h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Delete link', html: iconSvg('close', 14),
+    const del = h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Delete link', title: 'Delete link', html: iconSvg('close', 14),
       onclick: () => { p.links.splice(p.links.indexOf(l), 1); changed(p); rerender(); } });
-    return h('div', { class: 'link-edit', 'data-id': l.id }, pick, label, url, del);
+    const sc = h('label', { class: 'check link-sc', title: 'Shows on the building\u2019s shortcut wheel' },
+      h('input', { type: 'checkbox', class: 'cb', checked: l.shortcut !== false, 'aria-label': 'Shortcut: ' + (l.label || l.url),
+        onchange: e => { l.shortcut = e.target.checked; changed(p, { touch: false }); rerender(); } }), 'Shortcut');
+    const row = h('div', { class: 'link-edit', 'data-id': l.id }, grip, pick, h('div', { class: 'link-fields' }, url, label, sc), del);
+    return row;
+  }
+  /* A link follows the pointer by its grip, among the others; the list's order is the wheel's order. */
+  function dragLink(e, p, row, list, rerender) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    const pid = e.pointerId, y0 = e.clientY;
+    row.classList.add('dragging'); document.body.classList.add('pv-dragging');
+    const move = ev => {
+      if (ev.pointerId !== pid) return;
+      ev.preventDefault();
+      edgeScroll(ev.clientY, y0);
+      const others = [...list.children].filter(x => x !== row);
+      const target = others.find(x => { const b = x.getBoundingClientRect(); return ev.clientY < b.top + b.height / 2; });
+      if (target) { if (target.previousElementSibling !== row) list.insertBefore(row, target); }
+      else if (list.lastElementChild !== row) list.append(row);
+    };
+    const up = ev => {
+      if (ev.pointerId !== pid) return;
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      row.classList.remove('dragging'); document.body.classList.remove('pv-dragging');
+      const ids = [...list.children].map(x => x.dataset.id), was = p.links.map(l => l.id).join();
+      p.links.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+      if (p.links.map(l => l.id).join() !== was) changed(p, { touch: false });
+      rerender();
+      const again = $(`.link-edit[data-id="${row.dataset.id}"] .link-grip`, root); if (again) again.focus();
+    };
+    window.addEventListener('pointermove', move, { passive: false }); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
   }
   function openPopover(anchor, current, onPick) {
     closePopover();

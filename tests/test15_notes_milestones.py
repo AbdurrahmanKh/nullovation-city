@@ -33,7 +33,7 @@ with sync_playwright() as p:
     card.locator('.pv-note-copy').click(); pg.wait_for_timeout(200)
     c = clip()
     ok('the card button copies the note for Claude', c.startswith('# Note: Idea: a seed library') and 'Project: Garden planner' in c and 'Keep every seed in a side drawer' in c and 'Plant any of them again.' in c)
-    ok('with the project About, as tasks copy', '## About the project' in c)
+    ok('without the project\'s About, as tasks copy', '## About the project' not in c)
     ok('and it copies without opening the note', not pg.is_visible('#pvNoteTitle'))
     pg.screenshot(path=str(SHOTS / 'notes-copy.png'), clip=pg.query_selector('[data-sec="notes"]').bounding_box())
     card.locator('.pv-note-card').click(); pg.wait_for_timeout(400)
@@ -57,7 +57,7 @@ with sync_playwright() as p:
     open_t = [t for t, d in ms['tasks'] if not d]; done_t = [t for t, d in ms['tasks'] if d]
     ok('Copy for Claude copies the milestone as a work package', c.startswith('# Milestone: ' + ms['name']) and 'Progress: 1/' in c and all('### ' + t in c for t in open_t))
     ok('with each open task\'s full description and due date', 'Draw each bed on the grid.\nDone when: every bed shows.' in c and 'Due tomorrow' in c)
-    ok('then what is done, and the About', '## Done\n- ' + done_t[0] in c and '## About the project' in c)
+    ok('then what is done, and no About', '## Done\n- ' + done_t[0] in c and '## About the project' not in c)
     ok('the version shown is the one in src/VERSION', pg.text_content('#appVersion') == 'v' + VERSION)
     b.close()
 print(errors or 'no console errors')

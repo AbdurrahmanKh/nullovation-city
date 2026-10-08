@@ -71,10 +71,10 @@ with sync_playwright() as p:
     ok('Esc on a new note drops it', len([n for n in proj()['notes'] if not n['title'] and not n['text']]) == 0)
     pg.click('#pvAddLinkBtn'); pg.wait_for_timeout(100)
     pg.fill('#pvLinkUrl', 'https://github.com/example/garden-planner'); pg.keyboard.press('Enter'); pg.wait_for_timeout(150)
-    ok('a link adds straight from the page, with a guessed icon', proj()['links'][-1]['icon'] == 'code')
+    ok('a link adds straight from the page, with a guessed icon', proj()['links'][-1]['icon'] == 'github')
     second = proj()['todos'][1]['text']
     ok('with the first task ticked, What is next moves to the second', pg.text_content('#pvNextTask').strip() == second)
-    pg.click('.pv-next-row >> text=Copy for Claude'); pg.wait_for_timeout(150)
+    pg.click('.pv-next-row >> text=Copy task'); pg.wait_for_timeout(150)
     ok('What is next copies that task for Claude', pg.evaluate("() => navigator.clipboard.readText()").startswith('# Task: ' + second))
     import datetime
     past = (datetime.date.today() - datetime.timedelta(days=2)).isoformat()

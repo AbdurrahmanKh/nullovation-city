@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.26 (2026-10-08)
+
+- Links:
+  - Add link opens a larger panel: the address, then the label on its own line, and Add to shortcuts, on by default.
+  - The icons are Doc, Code, GitHub, Claude, Chat, Folder and Web: Task and Design went, and links saved with them pick an icon from their address. claude.ai and claude:// links get the Claude icon, github.com the GitHub one.
+  - While editing, each link drags by its grip to a new place (or moves with the arrow keys on it), shows the address over the label, and has a Shortcut switch.
+- The shortcut wheel: a right-click on a building opens its shortcuts round the pointer, at most 8, the middle kept for the leader's face. Past 8, the links section says only the first 8 show.
+- Copy for Claude on a task is now Copy task, and no copy carries the project's About any more.
+- Open in Claude wears the Claude icon.
+- The About shows the description first, then What is next.
+- The nullovation-city skill lists the new icons and no longer says a copied task carries the About; reinstall it in the claude.ai plugin.
+- Tests: the new test23 covers all of it; test13's zebra probe tries another car when one is held back, as the stop-line probe does.
+
 ## 0.1.25 (2026-10-08)
 
 - The controls guide behind the ? in Settings no longer lists Rearrange: moving a building is taught by Edit City's bar, where a plain drag does it.

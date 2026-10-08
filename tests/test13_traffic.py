@@ -69,19 +69,28 @@ with sync_playwright() as p:
     ok(f'a car stops at its stop line ({probe})', res['ok'] and probe['stopped'] and abs(probe['t'] - probe['tStop']) < 0.02 and probe['wait'] > 0)
     pg.wait_for_timeout(2600)
     ok('then drives on', js("() => window.__probe.c.t") > probe['tStop'] + 0.05 or js("() => window.__probe.c.ri") != None)
-    # a car waits while someone is on the zebra ahead
-    res = js("""() => { const st = Traffic._state(), P = WORLD.PITCH;
-      for (const c of st.cars) { if (c.type !== 'car' || c === window.__probe.c) continue;
-        for (const h of ['i+', 'j+']) for (let r = 1; r < WORLD.NU; r++) for (let q = 1; q < WORLD.NV; q++) {
-          const along = h[0] === 'i', li = along ? r : q, road = along ? q : r;
-          if (MapView.crossMark(li, road, along, 1) !== 'zebra') continue;
-          const key = li + ',' + road + ',' + (along ? 1 : 2) + ',1';
-          c.h = h; c.ri = along ? r : q; c.rj = along ? q : r; c.next = null; c.wait = 0; c.stopped = false;
-          const E = WORLD.MARGIN + li * P + WORLD.S, tZ = (E - 0.45 - c.len / 2) - ((along ? c.ri : c.rj) * P + 1);
-          c.t = tZ - 0.2; st.busy.set(key, performance.now() + 60000);
-          window.__zebra = { c, tZ, key }; return true; } } return false; }""")
-    pg.wait_for_timeout(1500)
-    z = js("() => ({ t: window.__zebra.c.t, tZ: window.__zebra.tZ })")
+    # a car waits while someone is on the zebra ahead. Like the stop-line probe, a car set down with another car close
+    # ahead in its lane rightly holds back, so the probe then tries another car and zebra
+    ZEBRA = """k => { const st = Traffic._state(), P = WORLD.PITCH, lines = [];
+      for (const h of ['i+', 'j+']) for (let r = 1; r < WORLD.NU; r++) for (let q = 1; q < WORLD.NV; q++) {
+        const along = h[0] === 'i', li = along ? r : q, road = along ? q : r;
+        if (MapView.crossMark(li, road, along, 1) === 'zebra') lines.push({ h, r, q, along, li, road });
+      }
+      const cars = st.cars.filter(c => c.type === 'car' && c !== window.__probe.c);
+      if (!lines.length || !cars.length) return false;
+      if (window.__zebra) st.busy.delete(window.__zebra.key);
+      const L = lines[k % lines.length], c = cars[k % cars.length], key = L.li + ',' + L.road + ',' + (L.along ? 1 : 2) + ',1';
+      c.h = L.h; c.ri = L.along ? L.r : L.q; c.rj = L.along ? L.q : L.r; c.next = null; c.wait = 0; c.stopped = false;
+      const E = WORLD.MARGIN + L.li * P + WORLD.S, tZ = (E - 0.45 - c.len / 2) - ((L.along ? c.ri : c.rj) * P + 1);
+      c.t = tZ - 0.2; st.busy.set(key, performance.now() + 60000);
+      window.__zebra = { c, tZ, key }; return true; }"""
+    for attempt in range(3):
+        res = pg.evaluate(ZEBRA, attempt)
+        pg.wait_for_timeout(1500)
+        z = js("() => ({ t: window.__zebra.c.t, tZ: window.__zebra.tZ })")
+        if res and z['t'] > z['tZ'] - 0.1:
+            break
+        print(f'NOTE the zebra probe car was held back by a car ahead (attempt {attempt + 1}); trying another car and zebra')
     ok(f'a car waits before a zebra while someone is on it ({z})', res and z['t'] <= z['tZ'] + 0.03 and z['t'] > z['tZ'] - 0.1)
     js("() => Traffic._state().busy.delete(window.__zebra.key)")
     pg.wait_for_timeout(1200)

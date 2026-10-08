@@ -1,6 +1,6 @@
 # Nullovation City: everything to know
 
-State as of version 0.1.25 (October 2026). The tool file is about 1.7 MB.
+State as of version 0.1.26 (October 2026). The tool file is about 1.7 MB.
 
 ## 1. What it is
 
@@ -94,11 +94,15 @@ Click a building for a small card:
 
 ### The project view (stepping inside)
 
-- **Top:** the building's picture and the About, which is the project's description.
-- **Milestones and tasks:** tasks are grouped by milestone. They can be reordered by dragging, and each has an optional due date and a description. A task opens in a side panel, with Copy for Claude and Open in Claude.
+- **Top:** the building's picture and the About: the project's description first, then What is next, with Copy task and Open in Claude for the next task.
+- **Milestones and tasks:** tasks are grouped by milestone. They can be reordered by dragging, and each has an optional due date and a description. A task opens in a side panel, with Copy task and Open in Claude.
 - **Milestone view:** clicking a milestone's name opens its rename field and its tasks as a read-only list. Done tasks are ticked and struck through, and open ones show their due date and the first line of their description. It also has Copy for Claude and Delete milestone.
 - **Notes:** notes show as cards, each with its own copy button. A note opens in a panel with Copy for Claude and Delete.
-- **Links:** links show icons: doc, task, design, code, chat, folder, web. A Windows path pasted as a link is detected as a folder. With the setting on, folder links open in File Explorer.
+- **Links:** each link shows an icon: Doc, Code, GitHub, Claude, Chat, Folder or Web. An address picks its own icon as it is typed: claude.ai and claude:// get Claude, github.com GitHub, and a Windows path Folder. With the setting on, folder links open in File Explorer. (Until 0.1.26 there were Task and Design icons; links saved with them get an icon picked from their address.)
+  - **Add link** opens a panel the width of the column: the icon, the address, and the label on its own line under it, then Add to shortcuts, on by default.
+  - **Editing** the section shows each link as a row with a grip, its icon, the address over the label, a Shortcut switch, and delete. A link drags by its grip to a new place, or moves with the arrow keys on the grip; the list's order is the wheel's order.
+  - **Past 8 shortcuts** a note says only 8 fit in a building's wheel, so the first 8 in the list show. More are allowed.
+- **The shortcut wheel (0.1.26):** a right-click on a building opens a pie of its shortcuts round the pointer, like the Sims' pie menu: its links marked as shortcuts that can be opened, in the links' order, at most 8, the first at the top and the rest clockwise. The middle is an empty round frame kept for the leader's face, and the building's name sits above. A shortcut opens like its link in the project view. Esc, a click elsewhere, scrolling, or a click on a shortcut closes it; the arrow keys move between shortcuts. A building with none says so. It does not select the building, and opens nothing on a park, while planting or moving, or in Edit City.
 - **The more menu:** Copy for builder, Builder card in a Claude chat, Load plan or tasks (JSON from the nullovation-city skill), Export this project, and Delete project.
 - **The building:** clicking its picture opens the building panel, which picks one of the generic buildings or uploads the project's own art as a PNG or GIF. Under the picture, Mirror flips the building and Download saves it as a GIF.
 - **The urgency system:** chosen per project.
@@ -151,11 +155,11 @@ The recap keeps one snapshot per Saturday-to-Friday week, and you can go back to
 
 ### Copy for Claude formats
 
-Every copy ends with the project's About, cut to its first 900 characters.
+No copy carries the project's About any more (until 0.1.26 every copy ended with it). Tasks copy with Copy task; notes and milestones still say Copy for Claude.
 
 | Copy | Opens with | Then |
 |---|---|---|
-| Task | `# Task: <title>` | Project, milestone, due date, state, and the description |
+| Task (Copy task) | `# Task: <title>` | Project, milestone, due date, state, and the description |
 | Note | `# Note: <title>` | Project, when it was written, and the note |
 | Milestone | `# Milestone: <name>` | Project and progress; every open task with its due date and full description; then the done tasks as a list |
 | Builder card | `# Nullovation City builder card` | Project name and size signals (open and done tasks, milestones, notes, links), description, milestones, open and done tasks. Abdurrahman may add his own idea for the building under it. |
@@ -163,7 +167,7 @@ Every copy ends with the project's About, cut to its first 900 characters.
 
 ### Open in Claude
 
-Beside every Copy for Claude sits Open in Claude: in the task, milestone and note panels, on What is next, beside Copy status in the project view, and beside Copy status brief in the side bar. Its menu opens the Claude desktop app through the app's `claude://` links, with the same text filled in and ready to send:
+Beside every copy for Claude sits Open in Claude, wearing the Claude icon (the chat icon until 0.1.26): in the task, milestone and note panels, on What is next, beside Copy status in the project view, and beside Copy status brief in the side bar. Its menu opens the Claude desktop app through the app's `claude://` links, with the same text filled in and ready to send:
 - **Chat:** a new chat.
 - **Cowork:** a new task, with the project's local folders and files attached. A local link whose last part has an extension counts as a file.
 - **Claude Code:** a new session in the project's first local folder. Without a folder link it stays greyed out, saying it needs one.
@@ -257,6 +261,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 | `50-bubble.js` | The status bubble |
 | `60-fullview.js` | The project view: tasks, milestones, notes, links, panels, local paths |
 | `62-picker.js` | The building picker |
+| `64-wheel.js` | The shortcut wheel a right-click on a building opens |
 | `65-recap.js` | The weekly recap and the status brief |
 | `67-claude.js` | Open in Claude: its menu, and the `claude://` links it builds |
 | `70-menu.js` | The side bar's lists, Export and Import |
@@ -277,6 +282,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
   - timestamps: `createdAt`, `updatedAt`.
 - **Task:** `{ id, text, description, done, doneAt, due, milestoneId }`, with dates as YYYY-MM-DD.
 - **Note:** a `title`, `text`, and `at` timestamp.
+- **Link:** `{ id, label, url, icon, shortcut }`; `icon` is one of `LINK_ICONS`, and `shortcut` is true unless turned off. `MAX_SHORTCUTS` (8) is how many a wheel shows.
 - **Constants:** `WORLD = { NU, NV, OU, OV, S: 4, GAP: 2, MARGIN: 2, TW: 32, TH: 16, MIN_N: 5, MAX_N: 11 }`, set from `world` by `setWorld`.
 
 ### Build
@@ -294,7 +300,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 
 ### Tests
 
-There are 20 passes and 619 checks, all passing at 0.1.25. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
+There are 21 passes and 657 checks, all passing at 0.1.26. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
 - **test02_map:** zoom and the map.
 - **test04_seed_data:** the data version (3), the map and the city's settings in the data file, Grow and Shrink in Edit City, and the real start: a browser with nothing saved gets one project, Nullovation City.
 - **test05_bubble_art and test08_bubble_tasks:** the status bubble.
@@ -313,11 +319,12 @@ There are 20 passes and 619 checks, all passing at 0.1.25. `python3 tests/run_te
 - **test19_street_props:** the street props: all four decoded front and back; at most two to a side; every one on its sidewalk; facing: each prop's `faces`, every prop as drawn facing its own street, and, measured on the art (the slope of its top edge), every bus stop, billboard and vending machine front standing with its long side along its street; bus stops by the pattern, vending machines mid-block, billboards by a corner, bins on a building's front sides; none on a zebra's landing; planting a building only adds its bins; drawn with the traffic off; the same after a reload; people in front or behind by depth; a bus pausing at a stop on its side and driving past one on the far side; the night colors and the neon. It saves close-ups at 4x of a bus stop and a billboard on each side, `tests/shots/191-*.png`, to look at.
 - **test20_settings:** the panel: its three ways in and Esc, the six tabs, today's controls in their new places, the bar and Settings in step, no toast for a change while actions keep theirs, the dots, Reset to defaults and Reset all settings, reopening at the same tab and place, and the gear on a narrow window. It saves every tab, `tests/shots/200-settings-*.png`.
 - **test21_city_settings:** the settings: who is out and both sliders, the 150 ceiling on 11 by 11, the crowds; street props by kind, How many (none moving) and Deal again; Auto's hours; Still and Saver; the postcard's caption and size; rest days and away until against fixed dates; Test folder links; daily backups in a folder held in memory (the day's copy, the newest 14, exported backups untouched, paused and Allow); storage use; and what a backup carries, imported into a fresh browser, with older backups bringing defaults.
+- **test23_links:** the link icons and the icon an address picks, old Task and Design links picking again, the About with the description first, Copy task, the Claude icon on Open in Claude, the add panel (address over label, wider, Add to shortcuts on), the warning past 8 while adding and editing, the Shortcut switch, dragging a link by its grip and the arrow keys, copies without the About, and the wheel: its shortcuts in order and at most 8, the empty middle, its places in view without overlaps, closing by click, Esc and a click elsewhere, the arrow keys, the empty wheel, and none on a park or in Edit City. It saves `tests/shots/230-*.png` to `233-*.png`.
 - **test22_edit_city:** lines on every side and rings, on and off again, keeping every park, crossing mark, prop, building and the ground's pixels in place; rectangles from 5 to 11; a line with a building on it staying; park picks kept by place; and Edit City itself: the arrows and when they show, framing the city and keeping the arrows in reach on 11 by 11, cycling a park, dragging a building, Grow and Shrink, and the ways out. It saves `tests/shots/220-*.png` to `224-*.png`.
 
 Every browser pass but test14_data_file starts from the test city in `tests/testkit.py`, written into the browser before the page first loads: the starter project as it was at 0.1.16, plus a made-up second project, Garden planner, on the research lab. So the passes do not depend on what a new city starts with. It is written once per tab and never on a reload. test14_data_file needs no projects and goes without it: with an init script in its browser context, its two-tab checks failed about one run in three.
 
-On Windows, Chrome hands clipboard text back with `\r\n` line ends, so test15 and test18 turn them back into `\n` before comparing; the copies themselves are unchanged. The headless test browser sometimes loses a page's stored writes on reload. test09_urgency and test16_dropups detect it, print a NOTE, set the value again, and retry. The real tool is not affected. In test13_traffic, the car the stop-line probe sets down can be held back by another car close ahead in its lane, as it should be; the probe then prints a NOTE and tries another car and line.
+On Windows, Chrome hands clipboard text back with `\r\n` line ends, so test15 and test18 turn them back into `\n` before comparing; the copies themselves are unchanged. The headless test browser sometimes loses a page's stored writes on reload. test09_urgency and test16_dropups detect it, print a NOTE, set the value again, and retry. The real tool is not affected. In test13_traffic, the car the stop-line probe or the zebra probe sets down can be held back by another car close ahead in its lane, as it should be; the probe then prints a NOTE and tries another car and line (the zebra probe since 0.1.26, after it failed once that way).
 
 Every pass builds its paths from the source folder through `tests/testkit.py`, which also draws the files the passes upload on first use: a JPEG, a 700 px PNG, a still PNG, a 128 px block PNG, an 8-frame GIF with set margins, and a version 1 backup for test04. Before 0.1.16 those files existed only in one chat's sandbox, so a fresh chat could not run test2, test4, test5, test6 or test11.
 
@@ -632,6 +639,7 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
 - **`nullovation-city`** writes a tasks file or a whole plan as JSON, loaded in the tool with Load plan or tasks. Only what you know: it never invents tasks. A validator lives in its `scripts/check_plan.py`.
   - Tasks file: `{ app: 'nullovation-city', kind: 'tasks', version, milestone, tasks: [{ text, description }] }`. The tasks join a milestone chosen on loading, and nothing is replaced.
   - Plan file: `{ app: 'nullovation-city', kind: 'plan', version, project: { name, description, milestones: [{ name, tasks: [{ text, description }] }], ideas: [{ title, text }], links: [] } }`. It replaces the description, milestones, and tasks, with a warning first.
+  - A link's icon is one of doc, code, github, claude, chat, folder or web (Task and Design went at 0.1.26); any other is picked from the address. Loaded links are shortcuts. The skill says a copied task carries no About, so a description has to stand on its own. Changed at 0.1.26, so the claude.ai plugin needs it reinstalled.
 - **`nullovation-city-builder`** designs a project's building.
   - The rewrite, decided in a wizard round:
     - three concepts, two grounded and one wild;
@@ -759,6 +767,17 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
     - Paused or failed saving shows under the logo, so it stays in view over the lists and over Settings.
     - Edit City lives in Settings: closing Settings ends it, and Esc leaves Edit City first. It frames the whole city when it opens, and on a city bigger than the view its arrows stay at the view's edge.
     - The controls guide adds the comma key and Esc. At 0.1.25 Abdurrahman had Rearrange taken out of it: it read as if moving worked anywhere, and Edit City's bar teaches it.
+
+- **Links (8 October 2026, Abdurrahman's task "Links, links, links" in Nullovation City Hall, Quick Wins). Built at 0.1.26; section 2, The project view.**
+  - **Asked for:** Copy for Claude becomes Copy task; the add link panel larger, with the link and the label on two lines; the Task and Design icons out, Claude and GitHub in; Add to shortcuts, on by default; a right-click on a building opens a wheel like the Sims' pie menu with its links as shortcuts, the middle empty for the leader's face later, at most 8, with a warning when more are allowed; Open in Claude with a Claude icon, not the chat one; copies without the About part; links dragged to reorder while editing; and the About with the description before What is next.
+  - **Reasoned while building:**
+    - Copy task renames the copy of a task, in its panel and under What is next. Notes and milestones keep Copy for Claude.
+    - The About is gone from every copy that had it: tasks, notes and milestones. Project status copies never carried it.
+    - Open in Claude is one button everywhere, so it wears the Claude icon everywhere, not only in the task panel. Its menu's Chat item keeps the chat icon.
+    - Past 8 shortcuts the switch still turns on, and a note says only the first 8 in the list show; dragging the links chooses which.
+    - The wheel shows only links that can be opened. Its first shortcut sits at the top, the rest clockwise. The building's name sits above it. It opens nothing on a park, while planting or moving, or in Edit City, and it does not select the building.
+    - Links saved with Task or Design get an icon picked from their address; loaded plan links become shortcuts too.
+    - While editing, a link row has the address over the label, as the add panel does, with its Shortcut switch under them.
 
 ## 7. Open items
 

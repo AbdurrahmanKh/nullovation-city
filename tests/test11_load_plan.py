@@ -53,9 +53,9 @@ with sync_playwright() as p:
     ok('the building, place, and urgency stay', after['plot'] == before['plot'] and after['generic'] == before['generic'] and after['urgency']['system'] == 'finish')
     ok('the load is in the activity log', any(e['text'] == 'Loaded a plan: 3 milestones, 7 tasks, 2 ideas' for e in after['activity']))
     ok('the view shows it at once, with What is next on the first task', pg.text_content('#pvTitle') == 'Clan Cup' and 'Write the Clan Cup rules page' in pg.text_content('#pvNextTask'))
-    pg.click('.pv-next-row >> text=Copy for Claude'); pg.wait_for_timeout(150)
+    pg.click('.pv-next-row >> text=Copy task'); pg.wait_for_timeout(150)
     clip = js("() => navigator.clipboard.readText()")
-    ok('Copy for Claude carries the task description and the About, ready to work on', clip.startswith('# Task: Write the Clan Cup rules page') and 'Done when: the rules page exists' in clip and '## About the project' in clip and 'Clan Cup is a weekly tournament' in clip)
+    ok('Copy task carries the task description, ready to work on, without the About', clip.startswith('# Task: Write the Clan Cup rules page') and 'Done when: the rules page exists' in clip and '## About the project' not in clip and 'Clan Cup is a weekly tournament' not in clip)
     # the same plan again, from the file button: no duplicate ideas
     pg.click('#pvMore'); pg.click('.pv-menu-item >> text=Load plan or tasks'); pg.wait_for_timeout(300)
     pg.set_input_files('#planFile', str(PLAN)); pg.wait_for_timeout(500)

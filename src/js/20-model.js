@@ -1,6 +1,22 @@
 const BUBBLE_TODOS = 3;        // open todos shown in the bubble
 const DUE_SOON_DAYS = 3;       // todos due this soon (or overdue) jump to the top of the bubble
-const LINK_ICONS = ['doc', 'task', 'design', 'code', 'chat', 'folder', 'web'];
+const LINK_ICONS = ['doc', 'code', 'github', 'claude', 'chat', 'folder', 'web'];
+const MAX_SHORTCUTS = 8;       // a building's shortcut wheel holds at most this many links
+/* A link's icon, guessed from its address. */
+function guessIcon(url) {
+  if (winPathOf(url)) return 'folder';
+  const u = String(url || '').toLowerCase().trim();
+  if (/^claude:|claude\.ai|claude\.com/.test(u)) return 'claude';
+  if (/github\.com|github\.io|^git@github/.test(u)) return 'github';
+  if (/notion\.so|docs\.google|confluence|\.pdf|\.docx?\b/.test(u)) return 'doc';
+  if (/gitlab|bitbucket|localhost|codepen|replit/.test(u)) return 'code';
+  if (/slack|chatgpt|discord|teams\.microsoft|whatsapp|t\.me/.test(u)) return 'chat';
+  if (/drive\.google|dropbox|onedrive|^file:/.test(u)) return 'folder';
+  return 'web';
+}
+/* A building's shortcuts: the links marked for its wheel that can be opened, in the links' order. Only the first
+   MAX_SHORTCUTS show; more are allowed, with a warning where links are edited. */
+const shortcutLinks = p => p.links.filter(l => l.shortcut !== false && safeUrl(l.url));
 
 /* The map: NU by NV plots, each S x S tiles, GAP tiles of bare ground between. NU runs along u (down to the right on
    screen), NV along v (down to the left); each runs from MIN_N to MAX_N. OU and OV place the grid in the whole city:
@@ -111,7 +127,7 @@ function ensureMilestones(p) {
   for (const t of loose) t.milestoneId = home.id;
   normalizeOrder(p);
 }
-/* One task as text for a Claude chat: what it is, where it sits, and the project around it. */
+/* One task as text for a Claude chat: what it is, and where it sits. */
 function taskForClaude(p, t, now = Date.now()) {
   const L = [];
   const ms = p.milestones.find(m => m.id === t.milestoneId);
@@ -125,26 +141,13 @@ function taskForClaude(p, t, now = Date.now()) {
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
-  if (p.description.trim()) {
-    L.push('');
-    L.push('## About the project');
-    const about = p.description.trim();
-    L.push(about.length > 900 ? about.slice(0, 900) + '...' : about);
-  }
   return L.join('\n');
-}
-/* The About, as every copy carries it: the first 900 characters. */
-function aboutForClaude(p, L) {
-  if (!p.description.trim()) return;
-  const about = p.description.trim();
-  L.push('', '## About the project', about.length > 900 ? about.slice(0, 900) + '...' : about);
 }
 /* A note, ready to paste into a Claude chat. */
 function noteForClaude(p, n) {
   const title = n.title.trim() || (n.text.trim().split('\n')[0] || 'Untitled note').slice(0, 120);
   const body = n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join('\n').trim();
   const L = ['# Note: ' + title, 'Project: ' + p.name, 'Written: ' + fmtStamp(n.at), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title)];
-  aboutForClaude(p, L);
   return L.join('\n');
 }
 async function copyNote(p, n) {
@@ -165,7 +168,6 @@ function milestoneForClaude(p, m, now = Date.now()) {
     L.push((t.description || '').trim() || 'No description yet.');
   }
   if (done.length) { L.push('', '## Done'); for (const t of done) L.push('- ' + t.text); }
-  aboutForClaude(p, L);
   return L.join('\n');
 }
 async function copyMilestone(p, m) {
@@ -250,7 +252,8 @@ function sanitizeProjects(raw) {
         id: typeof n.id === 'string' && n.id ? n.id : uid('n'), title: typeof n.title === 'string' ? n.title.slice(0, 200) : '', text: n.text.slice(0, 8000), at: n.at,
       })),
       links: (Array.isArray(r.links) ? r.links : []).filter(l => l && typeof l.url === 'string').map(l => ({
-        id: typeof l.id === 'string' && l.id ? l.id : uid('l'), label: str(l.label, 120), url: l.url.slice(0, 2000), icon: LINK_ICONS.includes(l.icon) ? l.icon : 'web',
+        id: typeof l.id === 'string' && l.id ? l.id : uid('l'), label: str(l.label, 120), url: l.url.slice(0, 2000), icon: LINK_ICONS.includes(l.icon) ? l.icon : guessIcon(l.url),
+        shortcut: l.shortcut !== false,
       })),
       art: { has: !!(r.art && r.art.has), includesPlot: !!(r.art && r.art.has && r.art.includesPlot === true) },
       generic: typeof GENERIC_IDS !== 'undefined' && GENERIC_IDS.has(r.generic) ? r.generic : null,
@@ -437,7 +440,7 @@ function urgencyOf(p, now = Date.now()) {
 }
 
 /* ---------- plans: a project's whole to-do structure, written elsewhere (by the nullovation-city skill) and loaded in ---------- */
-const PLAN_ICONS = ['doc', 'task', 'design', 'code', 'chat', 'folder', 'web'];
+const PLAN_ICONS = LINK_ICONS;
 function validDue(x) { return typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x) && parseYmd(x) != null ? x : ''; }
 /* Reads a plan file, or one of the tool's own project exports, into one plain shape. Throws with a readable reason. */
 function readPlan(data) {
@@ -460,7 +463,7 @@ function readPlan(data) {
   for (const i of (Array.isArray(src.ideas) ? src.ideas : Array.isArray(src.notes) ? src.notes : []))
     if (i && typeof i === 'object' && (str(i.title, 200) || str(i.text, 8000))) out.ideas.push({ title: str(i.title, 200), text: str(i.text, 8000) });
   for (const l of (Array.isArray(src.links) ? src.links : []))
-    if (l && typeof l.url === 'string' && l.url.trim()) out.links.push({ label: str(l.label, 120), url: l.url.trim().slice(0, 2000), icon: PLAN_ICONS.includes(l.icon) ? l.icon : 'web' });
+    if (l && typeof l.url === 'string' && l.url.trim()) out.links.push({ label: str(l.label, 120), url: l.url.trim().slice(0, 2000), icon: PLAN_ICONS.includes(l.icon) ? l.icon : guessIcon(l.url) });
   if (!out.milestones.length) throw new Error('The plan has no milestones, so there is nothing to load.');
   return out;
 }
@@ -511,7 +514,7 @@ function applyPlan(p, plan, now = Date.now()) {
   });
   const urls = new Set(p.links.map(l => l.url));
   let links = 0;
-  for (const l of plan.links) if (!urls.has(l.url)) { urls.add(l.url); links++; p.links.push({ id: uid('l'), label: l.label, url: l.url, icon: l.icon }); }
+  for (const l of plan.links) if (!urls.has(l.url)) { urls.add(l.url); links++; p.links.push({ id: uid('l'), label: l.label, url: l.url, icon: l.icon, shortcut: true }); }
   logActivity(p, 'Loaded a plan: ' + plural(plan.milestones.length, 'milestone', 'milestones') + ', ' + plural(tasks, 'task', 'tasks') + (ideas ? ', ' + plural(ideas, 'idea', 'ideas') : ''));
   return { milestones: plan.milestones.length, tasks, ideas, links };
 }

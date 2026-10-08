@@ -9,7 +9,7 @@ Usage: python3 check_plan.py <tasks-or-plan.json>
 import datetime, json, sys
 
 LIMITS = {'name': 120, 'description': 8000, 'milestone': 120, 'task': 500, 'task_description': 8000, 'idea_title': 200}
-ICONS = {'doc', 'task', 'design', 'code', 'chat', 'folder', 'web'}
+ICONS = {'doc', 'code', 'github', 'claude', 'chat', 'folder', 'web'}
 DASHES = {'\u2014': 'em dash', '\u2013': 'en dash'}
 STATUS_WORDS = ['currently', 'current work', 'right now', 'in progress', 'working on', 'next step', 'this week', 'upcoming', 'so far', 'at the moment', 'status']
 
@@ -49,12 +49,12 @@ def main(path):
         errors.append(f'project.name is over {LIMITS["name"]} characters')
     desc = p.get('description')
     if not isinstance(desc, str) or not desc.strip():
-        errors.append('project.description (the About) is missing; every copied task carries it')
+        errors.append('project.description (the About) is missing; the project view opens with it')
     else:
         if len(desc) > LIMITS['description']:
             errors.append(f'project.description is over {LIMITS["description"]} characters')
         if len(desc) > 900:
-            warnings.append(f'the About is {len(desc)} characters; copied tasks carry only the first 900, and an About should be one to three sentences')
+            warnings.append(f'the About is {len(desc)} characters; an About should be one to three sentences')
         hits = [w for w in STATUS_WORDS if w in desc.lower()]
         if hits:
             warnings.append(f'the About mentions {hits}; it should hold only facts unlikely to change, never current work or status')
@@ -119,7 +119,7 @@ def main(path):
         if not isinstance(link, dict) or not isinstance(link.get('url'), str) or not link['url'].strip():
             errors.append(f'link {i + 1} has no url')
         elif link.get('icon') not in ICONS:
-            warnings.append(f'link {i + 1}: icon {link.get("icon")!r} is not one of {sorted(ICONS)}; the tool shows it as web')
+            warnings.append(f'link {i + 1}: icon {link.get("icon")!r} is not one of {sorted(ICONS)}; the tool picks one from the address')
     summary = f'{len(ms)} milestones, {n_tasks} tasks, {len(p.get("ideas") or [])} ideas, {len(p.get("links") or [])} links. What is next: {first_open or "nothing open"}'
     return report(errors, warnings, summary)
 
