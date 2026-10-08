@@ -1,6 +1,6 @@
 # Nullovation City: everything to know
 
-State as of version 0.1.26 (October 2026). The tool file is about 1.7 MB.
+State as of version 0.1.27 (October 2026). The tool file is about 1.7 MB.
 
 ## 1. What it is
 
@@ -23,7 +23,7 @@ What Abdurrahman keeps:
 - Empty plots become parks, in seven kinds: garden, park, plaza, pond, and since 0.1.21 playground, sculpture garden, and mini golf. A park's kind comes from a hash of its place in the city, never the same as a neighbor, so adding a kind reshuffles every park once. Edit City can pick any park's kind.
 - Streets vary by segment, fixed so they look the same every visit: repair patches, cracks, manholes, drains, center lines (dashed, double, none, turn arrows), sidewalk paving, crossings (zebra, stop line, none), and crossing centers (plain, manhole, yellow box, small roundabout). Like the parks and the props, they are dealt by their place in the city, so they stay beside their buildings when a line or a ring is added; the ring road round the edge is always the avenue with a double line.
 - Zoom steps are 1x, 2x, 3x, 4x, 6x, and 8x. At even steps every building pixel lands on whole screen pixels. At 3x a building is first enlarged crisply to 2x, then scaled down smoothly, so it stays sharp.
-- Drag to pan. Q and E jump to the previous or next building, and Esc backs out one layer at a time.
+- Drag to pan. Q and E jump to the previous or next building, Enter steps inside the selected one, F opens its shortcut wheel, and Esc backs out one layer at a time.
 - The bar at the bottom right holds Traffic, Bubbles, Time of day, Postcard, Zoom, and a gear that opens Settings.
 - Bubbles and Time of day open drop-ups: stacks of the same buttons as the bar, rising above the one clicked. Each option has its own icon, and the bar's button wears the chosen option's icon and label. The current choice shows pressed, arrow keys and Enter work, and Esc or a click outside closes.
 - Time of day:
@@ -100,9 +100,18 @@ Click a building for a small card:
 - **Notes:** notes show as cards, each with its own copy button. A note opens in a panel with Copy for Claude and Delete.
 - **Links:** each link shows an icon: Doc, Code, GitHub, Claude, Chat, Folder or Web. An address picks its own icon as it is typed: claude.ai and claude:// get Claude, github.com GitHub, and a Windows path Folder. With the setting on, folder links open in File Explorer. (Until 0.1.26 there were Task and Design icons; links saved with them get an icon picked from their address.)
   - **Add link** opens a panel the width of the column: the icon, the address, and the label on its own line under it, then Add to shortcuts, on by default.
-  - **Editing** the section shows each link as a row with a grip, its icon, the address over the label, a Shortcut switch, and delete. A link drags by its grip to a new place, or moves with the arrow keys on the grip; the list's order is the wheel's order.
+  - **Paste to add (0.1.27):** Ctrl+V with an address on the clipboard, while the project view is open and no field is in use, opens Add link with it filled in, ready for a label. Text that is not an address (one line starting with a scheme and //, mailto:, www., or a Windows path) is left alone.
+  - **A label from the address (0.1.27):** the label field offers a name read from the address alone, since the tool works offline: a GitHub repository's name (with #12 for an issue or pull request), a folder's or file's own name, Claude project, Claude chat or Claude, a github.io page's first folder, an app's name (Slack), or the site's name (figma.com). Tab in the empty field takes it, to edit. A link without a label keeps it empty and shows that name, on its button and in the wheel, instead of its whole address. `suggestLabel` in `20-model.js`.
+  - **The same address twice (0.1.27):** an address the project already links, by `addressKey` (case, a trailing slash, www, and http or https aside), says so under the address with that link's name, and Add becomes Add anyway.
+  - **Editing** the section shows each link as a row with a grip, its icon, the address over the label, a Shortcut switch, and delete. A link drags by its grip to a new place, or moves with the arrow keys on the grip; the list's order is the wheel's order. Deleting one shows a toast with Undo for 6 seconds, which puts it back in its place, while the section is open or after Done (0.1.27).
   - **Past 8 shortcuts** a note says only 8 fit in a building's wheel, so the first 8 in the list show. More are allowed.
 - **The shortcut wheel (0.1.26):** a right-click on a building opens a pie of its shortcuts round the pointer, like the Sims' pie menu: its links marked as shortcuts that can be opened, in the links' order, at most 8, the first at the top and the rest clockwise. The middle is an empty round frame kept for the leader's face, and the building's name sits above. A shortcut opens like its link in the project view. Esc, a click elsewhere, scrolling, or a click on a shortcut closes it; the arrow keys move between shortcuts. A building with none says so. It does not select the building, and opens nothing on a park, while planting or moving, or in Edit City.
+  - **Since 0.1.27:**
+    - Its buttons fit about three words (up to 216 px), each growing outward from the ring: left-aligned on the right, right-aligned on the left, centered only near the top and the bottom.
+    - Enter, a button under the wheel, steps inside the building, as the bubble's Enter does. The wheel opens with no shortcut picked, so the Enter key steps inside too; the arrow keys pick a shortcut, and Enter then opens it.
+    - F, with a building selected, opens its wheel round the building, and F again closes it.
+    - The wheel and the status bubble never show together: a right-click closes the bubble, and a click on a building closes the wheel and opens the bubble. The empty middle lets a click through to the building under it.
+    - With the wheel open, the arrow keys and WASD leave the map still, and Q and E hop on from the wheel's building.
 - **The more menu:** Copy for builder, Builder card in a Claude chat, Load plan or tasks (JSON from the nullovation-city skill), Export this project, and Delete project.
 - **The building:** clicking its picture opens the building panel, which picks one of the generic buildings or uploads the project's own art as a PNG or GIF. Under the picture, Mirror flips the building and Download saves it as a GIF.
 - **The urgency system:** chosen per project.
@@ -110,13 +119,13 @@ Click a building for a small card:
 ### The side bar
 
 - **Top:** the logo, with the version in very small text under it. Saving that is paused or has failed (the browser, the data file, the daily backups) shows just under it with its fix, over the lists and Settings alike.
-- **Lists:** New project, which you plant on a free plot; search; This week (the weekly recap), with Copy status brief, a summary of every project for a Claude chat, and Open in Claude beside it; Urgent; and Due this week.
+- **Lists:** New project, which you plant on a free plot; search, which reads names, descriptions, tasks, milestones, notes, and the links' labels and addresses (addresses since 0.1.27); This week (the weekly recap), with Copy status brief, a summary of every project for a Claude chat, and Open in Claude beside it; Urgent; and Due this week.
 - **Settings:** a button at the foot of the side bar turns the side bar into Settings (below).
 
 ### Settings (0.1.24)
 
 The side bar turns into Settings, and back with its arrow, so the map stays in view and shows every change as it is made. It opens from the button at the foot of the side bar, the gear on the map's bar, or the comma key; Esc closes it, after ending Edit City. On a narrow window the gear opens the drawer on Settings.
-- **The header:** the title, the back arrow, and a small ? that shows the controls guide: move, zoom, status, hop, Settings (the comma key) and Esc. It leaves out moving buildings, which Edit City's bar teaches (0.1.25).
+- **The header:** the title, the back arrow, and a small ? that shows the controls guide: move, zoom, status, hop, shortcuts (right-click or F), step inside (Enter), Settings (the comma key) and Esc. It leaves out moving buildings, which Edit City's bar teaches (0.1.25).
 - **Tabs:** six pixel-icon tabs, City, Life, Look, Projects, Saving and Links, with the tab's name under them; arrow keys move between them.
 - **Ground rules:**
   - Changes apply at once and are saved, with no toast; actions such as Export, Download palette and Test folder links keep theirs.
@@ -261,7 +270,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 | `50-bubble.js` | The status bubble |
 | `60-fullview.js` | The project view: tasks, milestones, notes, links, panels, local paths |
 | `62-picker.js` | The building picker |
-| `64-wheel.js` | The shortcut wheel a right-click on a building opens |
+| `64-wheel.js` | The shortcut wheel a right-click on a building, or F, opens, with its Enter |
 | `65-recap.js` | The weekly recap and the status brief |
 | `67-claude.js` | Open in Claude: its menu, and the `claude://` links it builds |
 | `70-menu.js` | The side bar's lists, Export and Import |
@@ -300,7 +309,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 
 ### Tests
 
-There are 21 passes and 657 checks, all passing at 0.1.26. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
+There are 21 passes and 691 checks, all passing at 0.1.27. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
 - **test02_map:** zoom and the map.
 - **test04_seed_data:** the data version (3), the map and the city's settings in the data file, Grow and Shrink in Edit City, and the real start: a browser with nothing saved gets one project, Nullovation City.
 - **test05_bubble_art and test08_bubble_tasks:** the status bubble.
@@ -319,7 +328,7 @@ There are 21 passes and 657 checks, all passing at 0.1.26. `python3 tests/run_te
 - **test19_street_props:** the street props: all four decoded front and back; at most two to a side; every one on its sidewalk; facing: each prop's `faces`, every prop as drawn facing its own street, and, measured on the art (the slope of its top edge), every bus stop, billboard and vending machine front standing with its long side along its street; bus stops by the pattern, vending machines mid-block, billboards by a corner, bins on a building's front sides; none on a zebra's landing; planting a building only adds its bins; drawn with the traffic off; the same after a reload; people in front or behind by depth; a bus pausing at a stop on its side and driving past one on the far side; the night colors and the neon. It saves close-ups at 4x of a bus stop and a billboard on each side, `tests/shots/191-*.png`, to look at.
 - **test20_settings:** the panel: its three ways in and Esc, the six tabs, today's controls in their new places, the bar and Settings in step, no toast for a change while actions keep theirs, the dots, Reset to defaults and Reset all settings, reopening at the same tab and place, and the gear on a narrow window. It saves every tab, `tests/shots/200-settings-*.png`.
 - **test21_city_settings:** the settings: who is out and both sliders, the 150 ceiling on 11 by 11, the crowds; street props by kind, How many (none moving) and Deal again; Auto's hours; Still and Saver; the postcard's caption and size; rest days and away until against fixed dates; Test folder links; daily backups in a folder held in memory (the day's copy, the newest 14, exported backups untouched, paused and Allow); storage use; and what a backup carries, imported into a fresh browser, with older backups bringing defaults.
-- **test23_links:** the link icons and the icon an address picks, old Task and Design links picking again, the About with the description first, Copy task, the Claude icon on Open in Claude, the add panel (address over label, wider, Add to shortcuts on), the warning past 8 while adding and editing, the Shortcut switch, dragging a link by its grip and the arrow keys, copies without the About, and the wheel: its shortcuts in order and at most 8, the empty middle, its places in view without overlaps, closing by click, Esc and a click elsewhere, the arrow keys, the empty wheel, and none on a park or in Edit City. It saves `tests/shots/230-*.png` to `233-*.png`.
+- **test23_links:** the link icons and the icon an address picks, old Task and Design links picking again, the About with the description first, Copy task, the Claude icon on Open in Claude, the add panel (address over label, wider, Add to shortcuts on), the warning past 8 while adding and editing, the Shortcut switch, dragging a link by its grip and the arrow keys, copies without the About, and the wheel: its shortcuts in order and at most 8, the empty middle, its places in view without overlaps, closing by click, Esc and a click elsewhere, the arrow keys, the empty wheel, and none on a park or in Edit City. Since 0.1.27 also the suggested labels and `addressKey`, the same address twice, pasting an address (and not text, nor into a field), Undo for a deleted link, search by address, and on the wheel: Enter (the button and the key), the bubble and the wheel closing each other, F, hopping on from the wheel, the arrows leaving the map still, three-word labels whole and apart with 1 to 8 shortcuts, staying in view at the map's corner, and the controls guide. It saves `tests/shots/230-*.png` to `236-*.png`.
 - **test22_edit_city:** lines on every side and rings, on and off again, keeping every park, crossing mark, prop, building and the ground's pixels in place; rectangles from 5 to 11; a line with a building on it staying; park picks kept by place; and Edit City itself: the arrows and when they show, framing the city and keeping the arrows in reach on 11 by 11, cycling a park, dragging a building, Grow and Shrink, and the ways out. It saves `tests/shots/220-*.png` to `224-*.png`.
 
 Every browser pass but test14_data_file starts from the test city in `tests/testkit.py`, written into the browser before the page first loads: the starter project as it was at 0.1.16, plus a made-up second project, Garden planner, on the research lab. So the passes do not depend on what a new city starts with. It is written once per tab and never on a reload. test14_data_file needs no projects and goes without it: with an init script in its browser context, its two-tab checks failed about one run in three.
@@ -779,12 +788,27 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
     - Links saved with Task or Design get an icon picked from their address; loaded plan links become shortcuts too.
     - While editing, a link row has the address over the label, as the add panel does, with its Shortcut switch under them.
 
+- **Links, round 1 (8 October 2026, `wizard-rounds/2026-10-08-links-qol-round1.json`, one folder up from the source, answered in the same file). Built at 0.1.27; section 2, The project view.**
+  - **Asked for with the answers:** the wheel's buttons larger, fitting about three normal-length words.
+  - **Now:** paste to add, a label from the address, the same address twice (A1); a key for the wheel, F, and search by address (B1); Enter on the wheel (C1); Undo a deleted link (D1).
+    - With Enter, Abdurrahman asked for the Enter key to open the project, and for the bubble and the wheel to close each other.
+  - **Later:** press, move, release on the wheel (B1).
+  - **Left out:** dropping an address on a building, several links at once (A1); number keys in the wheel, shortcuts in the status bubble, a list of every link in the city (B1); Add link, Open in Claude and Copy status on the wheel (C1); editing one link alone, last opened and most used, a note per link, site icons (D1); a home folder, links on a task, links in Copy status (E1).
+  - **Reasoned while building:**
+    - The Enter key steps inside the building whose wheel is open, and, with no wheel, the selected building, when no button or link has the focus. The wheel opens with nothing picked, so Enter steps inside until the arrows pick a shortcut.
+    - A right-click closes the bubble by ending the selection, as the bubble's close does. With the project view showing the selected project, its bubble is already hidden, so the selection stays.
+    - A link left without a label stays empty and shows the suggested name wherever it shows, so the placeholder is what you get, and nothing already saved is rewritten.
+    - Paste to add takes one line starting with a scheme and //, mailto:, www., or a Windows path; a bare word with a dot is too often not an address.
+    - Undo restores a deleted link to its place, after Done too, and never doubles one that Esc already brought back.
+    - With the wheel open, the map ignores the arrow keys and WASD; until 0.1.27 the arrows moved the map under the wheel as they moved between its shortcuts.
+
 ## 7. Open items
 
 - Leaders: build the leader card this month. The seven leaders are picked through a wizard round, then their portraits are made (6 generations a try).
 - Abdurrahman names the projects that get the new buildings (bus depot, drone port, apartment block, cafe, library). The drone port is finished; the other four have their designs picked and wait until he says (20 generations each).
 - Dirt on red: decided, and delayed (section 6, Status).
 - The month's list: all six PixelLab tests are done, so the bulk work can start.
+- Links, later: press, move, release on the wheel (section 6, Links, round 1).
 - Settings, later: the leader speech bubbles switch, a bin for deleted projects, Open in Claude options, desktop notifications, and interface size (section 6, Settings and Edit City).
 - Cars yielding inside crossings, the 7 by 7 speed check, and the handheld's palette: skipped for now.
 - Later: the leader figure on the map, a leader crew, and a spoken voice.

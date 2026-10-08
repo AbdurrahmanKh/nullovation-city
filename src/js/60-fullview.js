@@ -37,16 +37,16 @@ function paragraphs(text) {
 }
 /* Where a link goes when clicked, the same in the project view and on the shortcut wheel: a folder or file on this
    PC opens in File Explorer with the setup, or else in the browser; anything else in a new tab. href is null when
-   the address cannot be opened. */
+   the address cannot be opened. A link without a label shows the name its address suggests. */
 function linkTarget(l) {
   const win = winPathOf(l.url);
   if (win) {
     const inExplorer = explorerLinks();
-    return { win, href: inExplorer ? explorerHref(win) : fileUrlOf(win), blank: !inExplorer, name: l.label || win,
+    return { win, href: inExplorer ? explorerHref(win) : fileUrlOf(win), blank: !inExplorer, name: l.label || suggestLabel(win) || win,
       title: (inExplorer ? 'Opens in File Explorer: ' : 'Opens in the browser: ') + win };
   }
   const url = safeUrl(l.url);
-  return { win: null, href: url, blank: true, name: l.label || l.url || 'Link', title: url || 'This address cannot be opened. Fix it with the pencil.' };
+  return { win: null, href: url, blank: true, name: l.label || suggestLabel(l.url) || l.url || 'Link', title: url || 'This address cannot be opened. Fix it with the pencil.' };
 }
 function dataUrlToBlob(url) {
   const [head, b64] = url.split(',');
@@ -659,6 +659,40 @@ const FullView = (() => {
     return box;
   }
 
+  /* A label left empty shows the name the address suggests, as its placeholder; Tab in the empty field takes it. */
+  function suggestInto(label, url) {
+    const name = suggestLabel(url);
+    label.placeholder = name || 'Label (optional)';
+    label.title = name ? 'Left empty, the link shows ' + name + '. Tab takes it to edit.' : '';
+  }
+  function takeSuggestion(label) {
+    label.addEventListener('keydown', e => {
+      if (e.key !== 'Tab' || e.shiftKey || label.value || label.placeholder === 'Label (optional)') return;
+      e.preventDefault();
+      label.value = label.placeholder;
+      label.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  /* Ctrl+V with an address, in the project view with no field in use, opens Add link with it filled in. */
+  const looksLikeAddress = s => !/\n/.test(s) && (!!winPathOf(s) || (!/\s/.test(s) && /^([a-z][a-z0-9+.-]*:\/\/|mailto:|www\.)/i.test(s) && !!safeUrl(s)));
+  function pasteLink(text) {
+    const p = P(); if (!p || !looksLikeAddress(text)) return false;
+    if (adding !== 'link') openAdd('link');
+    const url = $('#pvLinkUrl', root), label = $('#pvLinkLabel', root);
+    if (!url) return false;
+    url.value = text;
+    url.dispatchEvent(new Event('input', { bubbles: true }));
+    label.focus();
+    $('.pv-add-link', root).scrollIntoView({ block: 'nearest' });
+    return true;
+  }
+  document.addEventListener('paste', e => {
+    const t = e.target;
+    if (!root || Confirm.isOpen() || Panel.isOpen() || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+    const text = ((e.clipboardData && e.clipboardData.getData('text')) || '').trim();
+    if (pasteLink(text)) e.preventDefault();
+  });
+
   /* Links: open them in a click; Add link opens a small form only when asked for */
   function linkButton(l) {
     const t = linkTarget(l);
@@ -693,10 +727,19 @@ const FullView = (() => {
       let icon = 'web', picked = false;                      // guessed from the address as you type, until you pick one
       const pick = h('button', { id: 'pvLinkIcon', class: 'icon-pick', type: 'button', 'aria-haspopup': 'true', 'aria-label': 'Icon: ' + ICON_NAMES[icon] + '. Change it', html: iconSvg(icon, 24) });
       const setIcon = n => { icon = n; pick.innerHTML = iconSvg(n, 24); pick.setAttribute('aria-label', 'Icon: ' + ICON_NAMES[n] + '. Change it'); };
-      url.addEventListener('input', () => { if (!picked) setIcon(guessIcon(url.value)); });
+      const label = h('input', { class: 'field', type: 'text', dir: 'auto', placeholder: 'Label (optional)', 'aria-label': 'New link label', autocomplete: 'off' });
+      const dupe = h('p', { class: 'note link-dupe', role: 'status', hidden: true });
+      const addBtn = h('button', { class: 'btn btn-small btn-accent', type: 'button', onclick: () => add() }, 'Add');
+      url.addEventListener('input', () => {
+        if (!picked) setIcon(guessIcon(url.value));
+        suggestInto(label, url.value);
+        const key = addressKey(url.value), same = key && p.links.find(x => addressKey(x.url) === key);
+        dupe.hidden = !same; addBtn.textContent = same ? 'Add anyway' : 'Add';
+        if (same) dupe.textContent = 'This project already links this address, as ' + linkTarget(same).name + '.';
+      });
+      takeSuggestion(label);
       pick.addEventListener('mousedown', e => e.preventDefault());
       pick.addEventListener('click', e => { e.stopPropagation(); openPopover(pick, icon, n => { picked = true; setIcon(n); url.focus(); }); });
-      const label = h('input', { class: 'field', type: 'text', dir: 'auto', placeholder: 'Label (optional)', 'aria-label': 'New link label', autocomplete: 'off' });
       const warn = shortcutWarning(p, 1);
       const sc = h('input', { id: 'pvLinkShortcut', type: 'checkbox', class: 'cb', checked: true, onchange: e => { warn.hidden = !e.target.checked || p.links.filter(l => l.shortcut !== false).length < MAX_SHORTCUTS; } });
       const add = () => {
@@ -714,12 +757,12 @@ const FullView = (() => {
       });
       box.append(h('div', { class: 'pv-add-link', 'data-adding': 'link' },
         h('div', { class: 'link-form' }, pick, h('div', { class: 'link-fields' },
-          h('label', { class: 'lbl', for: 'pvLinkUrl' }, 'Address'), url,
+          h('label', { class: 'lbl', for: 'pvLinkUrl' }, 'Address'), url, dupe,
           h('label', { class: 'lbl', for: 'pvLinkLabel' }, 'Label'), label)),
         h('label', { class: 'check link-sc' }, sc, 'Add to shortcuts', h('span', { class: 'note' }, ' (right-click the building)')),
         warn,
         h('div', { class: 'inline link-actions' },
-          h('button', { class: 'btn btn-small btn-accent', type: 'button', onclick: add }, 'Add'),
+          addBtn,
           h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => closeAdd() }, 'Cancel'))));
       label.id = 'pvLinkLabel';
     }
@@ -1086,14 +1129,27 @@ const FullView = (() => {
     const label = h('input', { class: 'field', type: 'text', dir: 'auto', value: l.label, placeholder: 'Label (optional)', 'aria-label': 'Link label', autocomplete: 'off',
       oninput: e => { l.label = e.target.value; changed(p); } });
     const url = h('input', { class: 'field url', type: 'text', dir: 'ltr', inputmode: 'url', value: l.url, placeholder: 'https://, C:\\folder, or slack://', 'aria-label': 'Link address', autocomplete: 'off', spellcheck: 'false',
-      oninput: e => { l.url = e.target.value; changed(p); } });
+      oninput: e => { l.url = e.target.value; suggestInto(label, l.url); changed(p); } });
+    suggestInto(label, l.url); takeSuggestion(label);
     const del = h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Delete link', title: 'Delete link', html: iconSvg('close', 14),
-      onclick: () => { p.links.splice(p.links.indexOf(l), 1); changed(p); rerender(); } });
+      onclick: () => { const i = p.links.indexOf(l); p.links.splice(i, 1); changed(p); rerender(); undoRemove(p, l, i); } });
     const sc = h('label', { class: 'check link-sc', title: 'Shows on the building\u2019s shortcut wheel' },
       h('input', { type: 'checkbox', class: 'cb', checked: l.shortcut !== false, 'aria-label': 'Shortcut: ' + (l.label || l.url),
         onchange: e => { l.shortcut = e.target.checked; changed(p, { touch: false }); rerender(); } }), 'Shortcut');
     const row = h('div', { class: 'link-edit', 'data-id': l.id }, grip, pick, h('div', { class: 'link-fields' }, url, label, sc), del);
     return row;
+  }
+  /* A deleted link can come back from the toast, to its place, for a few seconds: while the section is open, or after
+     Done. Esc on the section already brings it back, so then Undo does nothing. */
+  function undoRemove(p, l, i) {
+    toast('Link removed: ' + linkTarget(l).name, '', { label: 'Undo', run: () => {
+      if (!getProject(p.id) || p.links.some(x => x.id === l.id)) return;
+      p.links.splice(Math.min(i, p.links.length), 0, l);
+      if (!(editing && editing.key === 'links' && openId === p.id)) logActivity(p, 'Added link: ' + (l.label || l.url));
+      changed(p);
+      if (openId === p.id) render();
+      toast('Link back: ' + linkTarget(l).name);
+    } });
   }
   /* A link follows the pointer by its grip, among the others; the list's order is the wheel's order. */
   function dragLink(e, p, row, list, rerender) {

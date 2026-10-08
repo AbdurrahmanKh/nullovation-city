@@ -417,6 +417,8 @@ kbd {
   pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.show.has-act { pointer-events: auto; }
+.toast-act { margin-left: 6px; padding: 0; border: 0; background: none; color: #FFC2DD; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .toast.error { background: var(--late); }
 
 /* ---------- small screens ---------- */
@@ -921,20 +923,25 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
 .link-edit .link-grip { margin-top: 4px; cursor: grab; touch-action: none; }
 .link-edit.dragging { opacity: .6; }
 .link-edit .link-sc { font-size: 12.5px; color: var(--ink-soft); }
+.link-dupe { margin: 2px 0 4px; color: var(--soon); }
 
 /* ---------- the shortcut wheel: a pie of a building's links round the pointer, the middle kept for its leader ---------- */
 .wheel { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 40; pointer-events: none !important; }
 .wheel > * { pointer-events: auto; animation: wheel-in .14s ease-out; }
+.wheel > .wheel-hub { pointer-events: none; }           /* a click there reaches the building under it */
 @keyframes wheel-in { from { opacity: 0; } }
-.wheel::before { content: ''; position: absolute; left: -118px; top: -118px; width: 236px; height: 236px; border-radius: 50%;
+.wheel:focus { outline: none; }
+.wheel::before { content: ''; position: absolute; left: -112px; top: -112px; width: 224px; height: 224px; border-radius: 50%;
   border: 2px dashed rgba(107, 99, 136, .85); pointer-events: none; }
 .wheel-hub { position: absolute; left: -38px; top: -38px; width: 76px; height: 76px; border-radius: 50%; background: var(--field); border: 2px solid var(--edge);
   box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
-.wheel-name { position: absolute; left: 0; top: -168px; margin: 0; transform: translateX(-50%); max-width: 180px; padding: 2px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.wheel-name { position: absolute; left: 0; top: -180px; margin: 0; transform: translateX(-50%); max-width: 220px; padding: 2px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font: 400 13px/1.3 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); background: var(--paper); box-shadow: var(--px-edge); }
-.wheel-item { position: absolute; left: 0; top: 0; margin: 0; max-width: 132px; padding: 6px 10px 5px; gap: 6px; font-size: 13px; text-decoration: none; color: var(--ink);
-  transform: translate(calc(var(--x) - 50%), calc(var(--y) - 50%)); }
-.wheel-item:active { transform: translate(calc(var(--x) - 50% + 2px), calc(var(--y) - 50% + 2px)); }
+.wheel-item { position: absolute; left: 0; top: 0; margin: 0; max-width: 216px; padding: 8px 12px 7px; gap: 7px; font-size: 14px; text-decoration: none; color: var(--ink);
+  transform: translate(calc(var(--x) - var(--ax) * 100%), calc(var(--y) - var(--ay) * 100%)); }
+.wheel-item:active { transform: translate(calc(var(--x) - var(--ax) * 100% + 2px), calc(var(--y) - var(--ay) * 100% + 2px)); }
 .wheel-item:focus-visible { outline-offset: 2px; }
 .wheel-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.wheel-empty { position: absolute; left: 0; top: 80px; width: 230px; margin: 0; transform: translateX(-50%); padding: 6px 10px; text-align: center; font-size: 12.5px; color: var(--ink-soft); background: var(--paper); box-shadow: var(--px-edge); }
+.wheel-enter { position: absolute; left: 0; top: 150px; margin: 0; transform: translateX(-50%); padding: 7px 13px 6px 10px; font-size: 15px; gap: 7px; }
+.wheel-enter:active { transform: translate(calc(-50% + 2px), 2px); }
+.wheel-empty { position: absolute; left: 0; top: 52px; width: 230px; margin: 0; transform: translateX(-50%); padding: 6px 10px; text-align: center; font-size: 12.5px; color: var(--ink-soft); background: var(--paper); box-shadow: var(--px-edge); }

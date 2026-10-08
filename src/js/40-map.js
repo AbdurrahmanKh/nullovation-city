@@ -919,6 +919,7 @@ const MapView = (() => {
 
   /* ---------- selection, placing, moving ---------- */
   function select(id, { glide = true } = {}) {
+    Wheel.close();                                           // the wheel closes for the status bubble
     App.selectedId = id; hideTip();
     Bubble.open(id);
     if (glide) { if (FullView.isOpen()) glideBeside(id, FullView.rightEdge()); else glideTo(id); }   // with the view open, into the open strip
@@ -1253,7 +1254,8 @@ const MapView = (() => {
     const list = DB.projects.filter(matchesFilter).sort((a, b) =>
       (a.plot.u + a.plot.v) - (b.plot.u + b.plot.v) || (a.plot.u - a.plot.v) - (b.plot.u - b.plot.v));
     if (!list.length) return;
-    let i = list.findIndex(p => p.id === App.selectedId);
+    const from = App.selectedId || Wheel.owner();           // from the building whose wheel is open, too
+    let i = list.findIndex(p => p.id === from);
     i = i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length;
     select(list[i].id);
   }
@@ -1378,8 +1380,25 @@ const MapView = (() => {
         if (!e.repeat && mode.name === 'idle' && !editing) hop(e.code === 'KeyQ' || e.code === 'BracketLeft' ? -1 : 1);
         return;
       }
+      /* F opens the selected building's shortcut wheel, round the building, and closes it again */
+      if (e.code === 'KeyF') {
+        e.preventDefault();
+        if (e.repeat || mode.name !== 'idle' || editing) return;
+        if (Wheel.close()) return;
+        const p = App.selectedId && getProject(App.selectedId), a = p && anchors(p.id);
+        if (a) Wheel.open(p, a.baseX, Math.round((a.topY + a.baseY) / 2));
+        return;
+      }
+      /* Enter steps inside the selected building, unless a button or a link has the focus and takes it */
+      if (e.key === 'Enter') {
+        const t = e.target;
+        if (e.repeat || e.shiftKey || (t && t !== document.body && t !== canvas) || mode.name !== 'idle' || editing) return;
+        const id = Wheel.owner() || App.selectedId;
+        if (id) { e.preventDefault(); Wheel.close(); FullView.open(id); }
+        return;
+      }
       const d = keyDir(e);
-      if (!d) return;
+      if (!d || Wheel.isOpen()) return;                      // with the wheel open, the arrows move round it
       e.preventDefault(); keys.add(d); cancelGlide(); kick();
     });
     window.addEventListener('keyup', e => { const d = keyDir(e); if (d) keys.delete(d); });

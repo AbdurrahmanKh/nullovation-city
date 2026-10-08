@@ -431,6 +431,8 @@ kbd {
   pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.show.has-act { pointer-events: auto; }
+.toast-act { margin-left: 6px; padding: 0; border: 0; background: none; color: #FFC2DD; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .toast.error { background: var(--late); }
 
 /* ---------- small screens ---------- */
@@ -935,23 +937,28 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
 .link-edit .link-grip { margin-top: 4px; cursor: grab; touch-action: none; }
 .link-edit.dragging { opacity: .6; }
 .link-edit .link-sc { font-size: 12.5px; color: var(--ink-soft); }
+.link-dupe { margin: 2px 0 4px; color: var(--soon); }
 
 /* ---------- the shortcut wheel: a pie of a building's links round the pointer, the middle kept for its leader ---------- */
 .wheel { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 40; pointer-events: none !important; }
 .wheel > * { pointer-events: auto; animation: wheel-in .14s ease-out; }
+.wheel > .wheel-hub { pointer-events: none; }           /* a click there reaches the building under it */
 @keyframes wheel-in { from { opacity: 0; } }
-.wheel::before { content: ''; position: absolute; left: -118px; top: -118px; width: 236px; height: 236px; border-radius: 50%;
+.wheel:focus { outline: none; }
+.wheel::before { content: ''; position: absolute; left: -112px; top: -112px; width: 224px; height: 224px; border-radius: 50%;
   border: 2px dashed rgba(107, 99, 136, .85); pointer-events: none; }
 .wheel-hub { position: absolute; left: -38px; top: -38px; width: 76px; height: 76px; border-radius: 50%; background: var(--field); border: 2px solid var(--edge);
   box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
-.wheel-name { position: absolute; left: 0; top: -168px; margin: 0; transform: translateX(-50%); max-width: 180px; padding: 2px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.wheel-name { position: absolute; left: 0; top: -180px; margin: 0; transform: translateX(-50%); max-width: 220px; padding: 2px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font: 400 13px/1.3 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); background: var(--paper); box-shadow: var(--px-edge); }
-.wheel-item { position: absolute; left: 0; top: 0; margin: 0; max-width: 132px; padding: 6px 10px 5px; gap: 6px; font-size: 13px; text-decoration: none; color: var(--ink);
-  transform: translate(calc(var(--x) - 50%), calc(var(--y) - 50%)); }
-.wheel-item:active { transform: translate(calc(var(--x) - 50% + 2px), calc(var(--y) - 50% + 2px)); }
+.wheel-item { position: absolute; left: 0; top: 0; margin: 0; max-width: 216px; padding: 8px 12px 7px; gap: 7px; font-size: 14px; text-decoration: none; color: var(--ink);
+  transform: translate(calc(var(--x) - var(--ax) * 100%), calc(var(--y) - var(--ay) * 100%)); }
+.wheel-item:active { transform: translate(calc(var(--x) - var(--ax) * 100% + 2px), calc(var(--y) - var(--ay) * 100% + 2px)); }
 .wheel-item:focus-visible { outline-offset: 2px; }
 .wheel-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.wheel-empty { position: absolute; left: 0; top: 80px; width: 230px; margin: 0; transform: translateX(-50%); padding: 6px 10px; text-align: center; font-size: 12.5px; color: var(--ink-soft); background: var(--paper); box-shadow: var(--px-edge); }
+.wheel-enter { position: absolute; left: 0; top: 150px; margin: 0; transform: translateX(-50%); padding: 7px 13px 6px 10px; font-size: 15px; gap: 7px; }
+.wheel-enter:active { transform: translate(calc(-50% + 2px), 2px); }
+.wheel-empty { position: absolute; left: 0; top: 52px; width: 230px; margin: 0; transform: translateX(-50%); padding: 6px 10px; text-align: center; font-size: 12.5px; color: var(--ink-soft); background: var(--paper); box-shadow: var(--px-edge); }
 
 </style>
 </head>
@@ -960,7 +967,7 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.26</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.27</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1021,6 +1028,8 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
           <dt>Zoom</dt><dd>Scroll or pinch</dd>
           <dt>Status</dt><dd>Click a building</dd>
           <dt>Hop</dt><dd>Q and E: previous or next building</dd>
+          <dt>Shortcuts</dt><dd>Right-click a building, or F with one selected</dd>
+          <dt>Step inside</dt><dd>Enter, with a building selected</dd>
           <dt>Settings</dt><dd>The comma key opens and closes them</dd>
           <dt>Back</dt><dd>Esc closes one layer at a time</dd>
         </dl>
@@ -1342,14 +1351,17 @@ function downloadBlob(blob, name) {
 const slug = s => (String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, '-').replace(/^-+|-+$/g, '') || 'project').slice(0, 60);
 
 /* ---------- toast ---------- */
+/* An action, such as Undo, adds a button and keeps the toast up longer. */
 const toast = (() => {
   let t = null;
-  return (msg, kind = '') => {
+  return (msg, kind = '', action = null) => {
     const el = $('#toast');
     el.textContent = msg;
-    el.className = 'toast show' + (kind ? ' ' + kind : '');
+    const hide = () => { clearTimeout(t); el.className = 'toast' + (kind ? ' ' + kind : ''); };
+    if (action) el.append(' ', h('button', { class: 'toast-act', type: 'button', onclick: () => { hide(); action.run(); } }, action.label));
+    el.className = 'toast show' + (kind ? ' ' + kind : '') + (action ? ' has-act' : '');
     clearTimeout(t);
-    t = setTimeout(() => { el.className = 'toast' + (kind ? ' ' + kind : ''); }, kind === 'error' ? 6000 : 3200);
+    t = setTimeout(hide, kind === 'error' || action ? 6000 : 3200);
   };
 })();
 
@@ -1754,6 +1766,40 @@ function guessIcon(url) {
   if (/drive\.google|dropbox|onedrive|^file:/.test(u)) return 'folder';
   return 'web';
 }
+/* A short name for a link without a label, read from its address alone, since the tool works offline: a GitHub
+   repository's name, a folder's or file's own name, Claude, an app's name, or the site's name. Empty when none fits. */
+function suggestLabel(url) {
+  const s = String(url || '').trim();
+  if (!s) return '';
+  const win = winPathOf(s);
+  if (win) { const parts = win.split('\\').filter(Boolean); return parts.length ? parts[parts.length - 1] : win; }
+  if (/^mailto:/i.test(s)) return s.slice(7).split('?')[0];
+  if (/^claude:/i.test(s)) return 'Claude';
+  let u;
+  try { u = new URL(/^[a-z][a-z0-9+.-]*:(?!\d)/i.test(s) ? s : 'https://' + s); } catch (e) { return ''; }      // localhost:3000 is a host
+  if (!/^https?:$/.test(u.protocol)) { const app = u.protocol.slice(0, -1); return app.charAt(0).toUpperCase() + app.slice(1); }   // slack:, notion: ...
+  const host = u.host.replace(/^www\./, '');
+  const path = u.pathname.split('/').filter(Boolean).map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });
+  if (host === 'github.com') return path[1] ? path[1] + (/^(issues|pull)$/.test(path[2]) && path[3] ? ' #' + path[3] : '') : path[0] || 'GitHub';
+  if (host.endsWith('.github.io')) return path[0] || host;
+  if (host === 'claude.ai' || host === 'claude.com') return path[0] === 'project' ? 'Claude project' : path[0] === 'chat' ? 'Claude chat' : 'Claude';
+  return host;
+}
+/* One key per address, so the same place written two ways counts as one: case and trailing slashes aside for a
+   folder, and www, http or https, and a trailing slash aside for a web page. */
+function addressKey(url) {
+  const s = String(url || '').trim();
+  if (!s) return '';
+  const win = winPathOf(s);
+  if (win) return 'path:' + win.replace(/\\+$/, '').toLowerCase();
+  const safe = safeUrl(s);
+  if (!safe) return s.toLowerCase();
+  try {
+    const u = new URL(safe);
+    if (/^https?:$/.test(u.protocol)) return 'web:' + u.host.replace(/^www\./, '') + u.pathname.replace(/\/+$/, '') + u.search + u.hash;
+  } catch (e) { /* kept as written */ }
+  return safe.replace(/\/+$/, '');
+}
 /* A building's shortcuts: the links marked for its wheel that can be opened, in the links' order. Only the first
    MAX_SHORTCUTS show; more are allowed, with a warning where links are edited. */
 const shortcutLinks = p => p.links.filter(l => l.shortcut !== false && safeUrl(l.url));
@@ -1828,7 +1874,7 @@ function matchesFilter(p) {
   const f = App.filter;
   if (!f.q) return true;
   const gname = p.generic && typeof GENERICS !== 'undefined' ? (GENERICS.find(g => g.id === p.generic) || {}).name : '';
-  const hay = norm([p.name, p.description, gname, ...p.todos.map(t => t.text + ' ' + (t.description || '')), ...p.links.map(l => l.label),
+  const hay = norm([p.name, p.description, gname, ...p.todos.map(t => t.text + ' ' + (t.description || '')), ...p.links.map(l => l.label + ' ' + l.url),
     ...p.milestones.map(m => m.name), ...p.notes.map(n => (n.title || '') + ' ' + n.text)].join(' \n '));
   return hay.includes(f.q);
 }
@@ -2295,7 +2341,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.26";
+const APP_VERSION = "0.1.27";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 
 const PAL = {
@@ -3957,6 +4003,7 @@ const MapView = (() => {
 
   /* ---------- selection, placing, moving ---------- */
   function select(id, { glide = true } = {}) {
+    Wheel.close();                                           // the wheel closes for the status bubble
     App.selectedId = id; hideTip();
     Bubble.open(id);
     if (glide) { if (FullView.isOpen()) glideBeside(id, FullView.rightEdge()); else glideTo(id); }   // with the view open, into the open strip
@@ -4291,7 +4338,8 @@ const MapView = (() => {
     const list = DB.projects.filter(matchesFilter).sort((a, b) =>
       (a.plot.u + a.plot.v) - (b.plot.u + b.plot.v) || (a.plot.u - a.plot.v) - (b.plot.u - b.plot.v));
     if (!list.length) return;
-    let i = list.findIndex(p => p.id === App.selectedId);
+    const from = App.selectedId || Wheel.owner();           // from the building whose wheel is open, too
+    let i = list.findIndex(p => p.id === from);
     i = i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length;
     select(list[i].id);
   }
@@ -4416,8 +4464,25 @@ const MapView = (() => {
         if (!e.repeat && mode.name === 'idle' && !editing) hop(e.code === 'KeyQ' || e.code === 'BracketLeft' ? -1 : 1);
         return;
       }
+      /* F opens the selected building's shortcut wheel, round the building, and closes it again */
+      if (e.code === 'KeyF') {
+        e.preventDefault();
+        if (e.repeat || mode.name !== 'idle' || editing) return;
+        if (Wheel.close()) return;
+        const p = App.selectedId && getProject(App.selectedId), a = p && anchors(p.id);
+        if (a) Wheel.open(p, a.baseX, Math.round((a.topY + a.baseY) / 2));
+        return;
+      }
+      /* Enter steps inside the selected building, unless a button or a link has the focus and takes it */
+      if (e.key === 'Enter') {
+        const t = e.target;
+        if (e.repeat || e.shiftKey || (t && t !== document.body && t !== canvas) || mode.name !== 'idle' || editing) return;
+        const id = Wheel.owner() || App.selectedId;
+        if (id) { e.preventDefault(); Wheel.close(); FullView.open(id); }
+        return;
+      }
       const d = keyDir(e);
-      if (!d) return;
+      if (!d || Wheel.isOpen()) return;                      // with the wheel open, the arrows move round it
       e.preventDefault(); keys.add(d); cancelGlide(); kick();
     });
     window.addEventListener('keyup', e => { const d = keyDir(e); if (d) keys.delete(d); });
@@ -5334,16 +5399,16 @@ function paragraphs(text) {
 }
 /* Where a link goes when clicked, the same in the project view and on the shortcut wheel: a folder or file on this
    PC opens in File Explorer with the setup, or else in the browser; anything else in a new tab. href is null when
-   the address cannot be opened. */
+   the address cannot be opened. A link without a label shows the name its address suggests. */
 function linkTarget(l) {
   const win = winPathOf(l.url);
   if (win) {
     const inExplorer = explorerLinks();
-    return { win, href: inExplorer ? explorerHref(win) : fileUrlOf(win), blank: !inExplorer, name: l.label || win,
+    return { win, href: inExplorer ? explorerHref(win) : fileUrlOf(win), blank: !inExplorer, name: l.label || suggestLabel(win) || win,
       title: (inExplorer ? 'Opens in File Explorer: ' : 'Opens in the browser: ') + win };
   }
   const url = safeUrl(l.url);
-  return { win: null, href: url, blank: true, name: l.label || l.url || 'Link', title: url || 'This address cannot be opened. Fix it with the pencil.' };
+  return { win: null, href: url, blank: true, name: l.label || suggestLabel(l.url) || l.url || 'Link', title: url || 'This address cannot be opened. Fix it with the pencil.' };
 }
 function dataUrlToBlob(url) {
   const [head, b64] = url.split(',');
@@ -5956,6 +6021,40 @@ const FullView = (() => {
     return box;
   }
 
+  /* A label left empty shows the name the address suggests, as its placeholder; Tab in the empty field takes it. */
+  function suggestInto(label, url) {
+    const name = suggestLabel(url);
+    label.placeholder = name || 'Label (optional)';
+    label.title = name ? 'Left empty, the link shows ' + name + '. Tab takes it to edit.' : '';
+  }
+  function takeSuggestion(label) {
+    label.addEventListener('keydown', e => {
+      if (e.key !== 'Tab' || e.shiftKey || label.value || label.placeholder === 'Label (optional)') return;
+      e.preventDefault();
+      label.value = label.placeholder;
+      label.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  /* Ctrl+V with an address, in the project view with no field in use, opens Add link with it filled in. */
+  const looksLikeAddress = s => !/\n/.test(s) && (!!winPathOf(s) || (!/\s/.test(s) && /^([a-z][a-z0-9+.-]*:\/\/|mailto:|www\.)/i.test(s) && !!safeUrl(s)));
+  function pasteLink(text) {
+    const p = P(); if (!p || !looksLikeAddress(text)) return false;
+    if (adding !== 'link') openAdd('link');
+    const url = $('#pvLinkUrl', root), label = $('#pvLinkLabel', root);
+    if (!url) return false;
+    url.value = text;
+    url.dispatchEvent(new Event('input', { bubbles: true }));
+    label.focus();
+    $('.pv-add-link', root).scrollIntoView({ block: 'nearest' });
+    return true;
+  }
+  document.addEventListener('paste', e => {
+    const t = e.target;
+    if (!root || Confirm.isOpen() || Panel.isOpen() || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+    const text = ((e.clipboardData && e.clipboardData.getData('text')) || '').trim();
+    if (pasteLink(text)) e.preventDefault();
+  });
+
   /* Links: open them in a click; Add link opens a small form only when asked for */
   function linkButton(l) {
     const t = linkTarget(l);
@@ -5990,10 +6089,19 @@ const FullView = (() => {
       let icon = 'web', picked = false;                      // guessed from the address as you type, until you pick one
       const pick = h('button', { id: 'pvLinkIcon', class: 'icon-pick', type: 'button', 'aria-haspopup': 'true', 'aria-label': 'Icon: ' + ICON_NAMES[icon] + '. Change it', html: iconSvg(icon, 24) });
       const setIcon = n => { icon = n; pick.innerHTML = iconSvg(n, 24); pick.setAttribute('aria-label', 'Icon: ' + ICON_NAMES[n] + '. Change it'); };
-      url.addEventListener('input', () => { if (!picked) setIcon(guessIcon(url.value)); });
+      const label = h('input', { class: 'field', type: 'text', dir: 'auto', placeholder: 'Label (optional)', 'aria-label': 'New link label', autocomplete: 'off' });
+      const dupe = h('p', { class: 'note link-dupe', role: 'status', hidden: true });
+      const addBtn = h('button', { class: 'btn btn-small btn-accent', type: 'button', onclick: () => add() }, 'Add');
+      url.addEventListener('input', () => {
+        if (!picked) setIcon(guessIcon(url.value));
+        suggestInto(label, url.value);
+        const key = addressKey(url.value), same = key && p.links.find(x => addressKey(x.url) === key);
+        dupe.hidden = !same; addBtn.textContent = same ? 'Add anyway' : 'Add';
+        if (same) dupe.textContent = 'This project already links this address, as ' + linkTarget(same).name + '.';
+      });
+      takeSuggestion(label);
       pick.addEventListener('mousedown', e => e.preventDefault());
       pick.addEventListener('click', e => { e.stopPropagation(); openPopover(pick, icon, n => { picked = true; setIcon(n); url.focus(); }); });
-      const label = h('input', { class: 'field', type: 'text', dir: 'auto', placeholder: 'Label (optional)', 'aria-label': 'New link label', autocomplete: 'off' });
       const warn = shortcutWarning(p, 1);
       const sc = h('input', { id: 'pvLinkShortcut', type: 'checkbox', class: 'cb', checked: true, onchange: e => { warn.hidden = !e.target.checked || p.links.filter(l => l.shortcut !== false).length < MAX_SHORTCUTS; } });
       const add = () => {
@@ -6011,12 +6119,12 @@ const FullView = (() => {
       });
       box.append(h('div', { class: 'pv-add-link', 'data-adding': 'link' },
         h('div', { class: 'link-form' }, pick, h('div', { class: 'link-fields' },
-          h('label', { class: 'lbl', for: 'pvLinkUrl' }, 'Address'), url,
+          h('label', { class: 'lbl', for: 'pvLinkUrl' }, 'Address'), url, dupe,
           h('label', { class: 'lbl', for: 'pvLinkLabel' }, 'Label'), label)),
         h('label', { class: 'check link-sc' }, sc, 'Add to shortcuts', h('span', { class: 'note' }, ' (right-click the building)')),
         warn,
         h('div', { class: 'inline link-actions' },
-          h('button', { class: 'btn btn-small btn-accent', type: 'button', onclick: add }, 'Add'),
+          addBtn,
           h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => closeAdd() }, 'Cancel'))));
       label.id = 'pvLinkLabel';
     }
@@ -6383,14 +6491,27 @@ const FullView = (() => {
     const label = h('input', { class: 'field', type: 'text', dir: 'auto', value: l.label, placeholder: 'Label (optional)', 'aria-label': 'Link label', autocomplete: 'off',
       oninput: e => { l.label = e.target.value; changed(p); } });
     const url = h('input', { class: 'field url', type: 'text', dir: 'ltr', inputmode: 'url', value: l.url, placeholder: 'https://, C:\\folder, or slack://', 'aria-label': 'Link address', autocomplete: 'off', spellcheck: 'false',
-      oninput: e => { l.url = e.target.value; changed(p); } });
+      oninput: e => { l.url = e.target.value; suggestInto(label, l.url); changed(p); } });
+    suggestInto(label, l.url); takeSuggestion(label);
     const del = h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Delete link', title: 'Delete link', html: iconSvg('close', 14),
-      onclick: () => { p.links.splice(p.links.indexOf(l), 1); changed(p); rerender(); } });
+      onclick: () => { const i = p.links.indexOf(l); p.links.splice(i, 1); changed(p); rerender(); undoRemove(p, l, i); } });
     const sc = h('label', { class: 'check link-sc', title: 'Shows on the building\u2019s shortcut wheel' },
       h('input', { type: 'checkbox', class: 'cb', checked: l.shortcut !== false, 'aria-label': 'Shortcut: ' + (l.label || l.url),
         onchange: e => { l.shortcut = e.target.checked; changed(p, { touch: false }); rerender(); } }), 'Shortcut');
     const row = h('div', { class: 'link-edit', 'data-id': l.id }, grip, pick, h('div', { class: 'link-fields' }, url, label, sc), del);
     return row;
+  }
+  /* A deleted link can come back from the toast, to its place, for a few seconds: while the section is open, or after
+     Done. Esc on the section already brings it back, so then Undo does nothing. */
+  function undoRemove(p, l, i) {
+    toast('Link removed: ' + linkTarget(l).name, '', { label: 'Undo', run: () => {
+      if (!getProject(p.id) || p.links.some(x => x.id === l.id)) return;
+      p.links.splice(Math.min(i, p.links.length), 0, l);
+      if (!(editing && editing.key === 'links' && openId === p.id)) logActivity(p, 'Added link: ' + (l.label || l.url));
+      changed(p);
+      if (openId === p.id) render();
+      toast('Link back: ' + linkTarget(l).name);
+    } });
   }
   /* A link follows the pointer by its grip, among the others; the list's order is the wheel's order. */
   function dragLink(e, p, row, list, rerender) {
@@ -6513,45 +6634,70 @@ const Picker = (() => {
   return { open, grid };
 })();
 
-/* The shortcut wheel: right-click a building, and its shortcuts fan out round the pointer like a pie menu. They are
-   its links marked as shortcuts, in the links' order, at most MAX_SHORTCUTS. The middle is kept for the leader's
-   face, and stays empty until leaders come. A click opens a link the way the project view does; Esc, a click
-   elsewhere, or moving the map closes it. */
+/* The shortcut wheel: right-click a building, or press F with one selected, and its shortcuts fan out round it like
+   a pie menu. They are its links marked as shortcuts, in the links' order, at most MAX_SHORTCUTS. The middle is kept
+   for the leader's face, and stays empty until leaders come. Each shortcut grows outward from the ring, so a label
+   of about three words fits. A click opens a link the way the project view does; Enter, the key or the button under
+   the wheel, steps inside. The wheel and the status bubble never show together. Esc, a click elsewhere, or moving
+   the map closes it. */
 const Wheel = (() => {
-  const R = 118;                                     // how far the shortcuts sit from the middle, in CSS pixels
+  const R = 112;                                     // the ring the shortcuts stand on, in CSS pixels from the middle
+  const EDGE = 8;                                    // the wheel keeps this far inside the map
   let el = null, onOutside = null;
   function open(p, x, y) {
     close();
+    if (App.selectedId && !FullView.shows(App.selectedId)) MapView.deselect();   // the status bubble closes for the wheel
     const list = shortcutLinks(p).slice(0, MAX_SHORTCUTS), n = list.length;
-    el = h('div', { class: 'wheel', role: 'menu', 'aria-label': 'Shortcuts of ' + p.name, 'data-id': p.id },
+    el = h('div', { class: 'wheel', role: 'menu', tabindex: '-1', 'aria-label': 'Shortcuts of ' + p.name, 'data-id': p.id },
       h('div', { class: 'wheel-hub', 'aria-hidden': 'true' }),
       h('p', { class: 'wheel-name', dir: 'auto' }, p.name));
     list.forEach((l, k) => {
-      const ang = -Math.PI / 2 + k * 2 * Math.PI / n, t = linkTarget(l);       // from the top, clockwise
+      const ang = k * 2 * Math.PI / n, t = linkTarget(l);                  // from the top, clockwise
+      const sx = Math.sin(ang), cy = Math.cos(ang);
+      /* the edge nearest the middle touches the ring: left-aligned on the right, right-aligned on the left, centered
+         only near the top and the bottom, so two buttons either side of the bottom keep apart */
       const a = h('a', { class: 'btn wheel-item', role: 'menuitem', href: t.href, target: t.blank ? '_blank' : null, rel: t.blank ? 'noopener noreferrer' : null, title: t.title,
-        'data-id': l.id, style: `--x: ${Math.round(Math.cos(ang) * R)}px; --y: ${Math.round(Math.sin(ang) * R)}px` },
+        'data-id': l.id, style: `--x: ${Math.round(sx * R)}px; --y: ${Math.round(-cy * R)}px; --ax: ${clamp(0.5 - sx, 0, 1).toFixed(3)}; --ay: ${((1 + cy) / 2).toFixed(3)}` },
         iconEl(l.icon, 16), h('span', { class: 'wheel-label', dir: 'auto' }, t.name));
       a.addEventListener('click', () => setTimeout(close, 0));
       el.append(a);
     });
     if (!n) el.append(h('p', { class: 'wheel-empty' }, 'No shortcuts yet. Links added in the project view show here.'));
+    const enter = h('button', { class: 'btn btn-accent wheel-enter', type: 'button', title: 'Step inside ' + p.name + ' (Enter)' }, iconEl('door', 16), 'Enter');
+    enter.addEventListener('click', () => step(p.id));
+    el.append(enter);
     $('#overlay').append(el);
-    /* the whole wheel stays inside the map */
+    /* the name sits over the highest piece and Enter under the lowest; then the whole wheel stays inside the map */
+    const parts = [...el.children].filter(c => c !== enter && !c.classList.contains('wheel-name'));
+    const off = c => { const r = c.getBoundingClientRect(), o = el.getBoundingClientRect(); return { left: r.left - o.left, right: r.right - o.left, top: r.top - o.top, bottom: r.bottom - o.top }; };
+    const rects = parts.map(off);
+    const hi = Math.min(...rects.map(r => r.top)), lo = Math.max(...rects.map(r => r.bottom));
+    const name = $('.wheel-name', el);
+    name.style.top = Math.round(hi - name.offsetHeight - 8) + 'px';
+    enter.style.top = Math.round(lo + 10) + 'px';
+    const all = [...el.children].map(off);
+    const minX = Math.min(...all.map(r => r.left)), maxX = Math.max(...all.map(r => r.right));
+    const minY = Math.min(...all.map(r => r.top)), maxY = Math.max(...all.map(r => r.bottom));
     const W = $('#mapWrap').clientWidth, H = $('#mapWrap').clientHeight;
-    const halfW = R + 76, top = R + 60, bottom = R + 24;           // the name sits above the top shortcut
-    el.style.left = Math.round(clamp(x, halfW, Math.max(halfW, W - halfW))) + 'px';
-    el.style.top = Math.round(clamp(y, top, Math.max(top, H - bottom))) + 'px';
+    el.style.left = Math.round(clamp(x, EDGE - minX, Math.max(EDGE - minX, W - EDGE - maxX))) + 'px';
+    el.style.top = Math.round(clamp(y, EDGE - minY, Math.max(EDGE - minY, H - EDGE - maxY))) + 'px';
     const items = $$('.wheel-item', el);
-    if (items.length) items[0].focus();
+    el.focus({ preventScroll: true });              // no shortcut picked yet, so Enter steps inside
     el.addEventListener('keydown', e => {
       const i = items.indexOf(document.activeElement);
+      if (e.key === 'Enter' && document.activeElement === el) { e.preventDefault(); e.stopPropagation(); step(p.id); return; }
       if (!items.length) return;
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); items[i < 0 ? items.length - 1 : (i - 1 + items.length) % items.length].focus(); }
       else if (e.key === 'Tab') close();
     });
     onOutside = e => { if (el && !el.contains(e.target)) close(); };
     setTimeout(() => { if (!el) return; document.addEventListener('pointerdown', onOutside, true); window.addEventListener('wheel', close, { passive: true }); window.addEventListener('resize', close); }, 0);
+  }
+  /* steps inside, as the Enter button under the status bubble does */
+  function step(id) {
+    close();
+    if (getProject(id)) FullView.open(id);
   }
   function close() {
     if (!el) return false;
@@ -6560,7 +6706,7 @@ const Wheel = (() => {
     window.removeEventListener('wheel', close); window.removeEventListener('resize', close);
     return true;
   }
-  return { open, close, isOpen: () => !!el, owner: () => el && el.dataset.id };
+  return { open, close, step, isOpen: () => !!el, owner: () => el && el.dataset.id };
 })();
 
 /* ---------- the week: one snapshot per Saturday-to-Friday week, and every older week to go back to ---------- */

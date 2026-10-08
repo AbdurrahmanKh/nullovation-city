@@ -14,6 +14,40 @@ function guessIcon(url) {
   if (/drive\.google|dropbox|onedrive|^file:/.test(u)) return 'folder';
   return 'web';
 }
+/* A short name for a link without a label, read from its address alone, since the tool works offline: a GitHub
+   repository's name, a folder's or file's own name, Claude, an app's name, or the site's name. Empty when none fits. */
+function suggestLabel(url) {
+  const s = String(url || '').trim();
+  if (!s) return '';
+  const win = winPathOf(s);
+  if (win) { const parts = win.split('\\').filter(Boolean); return parts.length ? parts[parts.length - 1] : win; }
+  if (/^mailto:/i.test(s)) return s.slice(7).split('?')[0];
+  if (/^claude:/i.test(s)) return 'Claude';
+  let u;
+  try { u = new URL(/^[a-z][a-z0-9+.-]*:(?!\d)/i.test(s) ? s : 'https://' + s); } catch (e) { return ''; }      // localhost:3000 is a host
+  if (!/^https?:$/.test(u.protocol)) { const app = u.protocol.slice(0, -1); return app.charAt(0).toUpperCase() + app.slice(1); }   // slack:, notion: ...
+  const host = u.host.replace(/^www\./, '');
+  const path = u.pathname.split('/').filter(Boolean).map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });
+  if (host === 'github.com') return path[1] ? path[1] + (/^(issues|pull)$/.test(path[2]) && path[3] ? ' #' + path[3] : '') : path[0] || 'GitHub';
+  if (host.endsWith('.github.io')) return path[0] || host;
+  if (host === 'claude.ai' || host === 'claude.com') return path[0] === 'project' ? 'Claude project' : path[0] === 'chat' ? 'Claude chat' : 'Claude';
+  return host;
+}
+/* One key per address, so the same place written two ways counts as one: case and trailing slashes aside for a
+   folder, and www, http or https, and a trailing slash aside for a web page. */
+function addressKey(url) {
+  const s = String(url || '').trim();
+  if (!s) return '';
+  const win = winPathOf(s);
+  if (win) return 'path:' + win.replace(/\\+$/, '').toLowerCase();
+  const safe = safeUrl(s);
+  if (!safe) return s.toLowerCase();
+  try {
+    const u = new URL(safe);
+    if (/^https?:$/.test(u.protocol)) return 'web:' + u.host.replace(/^www\./, '') + u.pathname.replace(/\/+$/, '') + u.search + u.hash;
+  } catch (e) { /* kept as written */ }
+  return safe.replace(/\/+$/, '');
+}
 /* A building's shortcuts: the links marked for its wheel that can be opened, in the links' order. Only the first
    MAX_SHORTCUTS show; more are allowed, with a warning where links are edited. */
 const shortcutLinks = p => p.links.filter(l => l.shortcut !== false && safeUrl(l.url));
@@ -88,7 +122,7 @@ function matchesFilter(p) {
   const f = App.filter;
   if (!f.q) return true;
   const gname = p.generic && typeof GENERICS !== 'undefined' ? (GENERICS.find(g => g.id === p.generic) || {}).name : '';
-  const hay = norm([p.name, p.description, gname, ...p.todos.map(t => t.text + ' ' + (t.description || '')), ...p.links.map(l => l.label),
+  const hay = norm([p.name, p.description, gname, ...p.todos.map(t => t.text + ' ' + (t.description || '')), ...p.links.map(l => l.label + ' ' + l.url),
     ...p.milestones.map(m => m.name), ...p.notes.map(n => (n.title || '') + ' ' + n.text)].join(' \n '));
   return hay.includes(f.q);
 }

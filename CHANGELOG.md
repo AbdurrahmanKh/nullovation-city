@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.27 (2026-10-08)
+
+From the links round (Nullovation City Links, Round 1):
+- The shortcut wheel:
+  - Its buttons are larger and fit about three words; each grows outward from the ring, like a pie menu.
+  - Enter under the wheel steps inside the building, and so does the Enter key while the wheel is open.
+  - F opens the selected building's wheel round it, and closes it again.
+  - The wheel and the status bubble close each other: a right-click closes the bubble, a click closes the wheel.
+  - The arrow keys in the wheel no longer move the map under it, and Q and E hop on from the wheel's building.
+- Enter steps inside the selected building, unless a button or a link has the focus.
+- Links:
+  - A label from the address: the label field offers a name, such as the repository for GitHub, the folder's own name, Claude, or the site; Tab takes it. A link without a label shows that name instead of its whole address.
+  - Ctrl+V with an address, in the project view with no field in use, opens Add link with it filled in.
+  - Adding an address the project already links says so, and Add becomes Add anyway.
+  - Deleting a link shows a toast with Undo for 6 seconds.
+- Search in the side bar also reads the links' addresses.
+- The controls guide lists F and Enter.
+- Tests: test23 grows by 34 checks.
+
 ## 0.1.26 (2026-10-08)
 
 - Links:

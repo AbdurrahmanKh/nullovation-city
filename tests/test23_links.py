@@ -1,7 +1,10 @@
 """Links: the icons (GitHub and Claude in, Task and Design out), the larger add panel with the address and label on
 their own lines, the shortcut switch and its warning past 8, dragging links to reorder them, and the shortcut wheel
 a right-click on a building opens. Also: Copy task, copies without the project's About, the About opening with the
-description, and the Claude icon on Open in Claude."""
+description, and the Claude icon on Open in Claude. Since 0.1.27, from the links round: a label the address suggests,
+the same address twice, pasting an address to add it, Undo for a deleted link, search by address, and on the wheel
+its larger buttons, Enter (the button and the key), the F key, and the wheel and the status bubble closing each
+other."""
 from playwright.sync_api import sync_playwright
 from testkit import FILE, SH, TEST_CITY
 
@@ -109,7 +112,76 @@ with sync_playwright() as p:
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     nc = js(f"() => noteForClaude(getProject('{gid}'), {{ title: 'T', text: 'x', at: Date.now() }}) + milestoneForClaude(getProject('{gid}'), getProject('{gid}').milestones[0])")
     ok('notes and milestones copy without it too', '## About the project' not in nc and 'A small app that plans' not in nc)
+
+    # ---------- 0.1.27: a label from the address ----------
+    sug = js("""() => ['https://github.com/example/garden', 'https://github.com/example/garden/issues/12', 'C:\\\\Work\\\\Seed Box', 'D:\\\\',
+      'https://claude.ai/project/abc', 'https://claude.ai/chat/abc', 'claude://claude.ai/new', 'https://example.github.io/planner/', 'https://www.figma.com/file/x',
+      'slack://channel?id=1', 'mailto:me@example.com', 'localhost:3000/app'].map(suggestLabel).join('|')""")
+    ok(f'an address suggests a label: the repository, the folder, Claude, the page, the site, the app ({sug})',
+       sug == 'garden|garden #12|Seed Box|D:|Claude project|Claude chat|Claude|planner|figma.com|Slack|me@example.com|localhost:3000')
+    same = js("""() => [addressKey('https://www.Example.com/a/') === addressKey('http://example.com/a'), addressKey('C:\\\\Work\\\\') === addressKey('c:/work'),
+      addressKey('https://example.com/a') !== addressKey('https://example.com/b')]""")
+    ok(f'the same address written two ways counts as one ({same})', same == [True, True, True])
+    pg.click('#pvAddLinkBtn'); pg.fill('#pvLinkUrl', 'https://github.com/example/seed-box'); pg.wait_for_timeout(100)
+    ok('the label field offers the name the address suggests', pg.get_attribute('#pvLinkLabel', 'placeholder') == 'seed-box' and pg.input_value('#pvLinkLabel') == '')
+    pg.focus('#pvLinkLabel'); pg.keyboard.press('Tab'); pg.wait_for_timeout(100)
+    ok('Tab in the empty label takes it, to edit', pg.input_value('#pvLinkLabel') == 'seed-box' and js("() => document.activeElement.id") == 'pvLinkLabel')
+    pg.fill('#pvLinkLabel', ''); pg.uncheck('#pvLinkShortcut'); pg.click('.pv-add-link .link-actions .btn-accent'); pg.wait_for_timeout(250)
+    last = proj()['links'][-1]
+    shown = js("() => [...document.querySelectorAll('[data-sec=\"links\"] .link-btn')].pop().textContent")
+    ok(f'left empty, the label stays empty and the link shows the suggested name ({shown})', last['label'] == '' and shown == 'seed-box')
+
+    # ---------- 0.1.27: the same address twice ----------
+    pg.click('#pvAddLinkBtn'); pg.fill('#pvLinkUrl', 'https://www.github.com/example/seed-box/'); pg.wait_for_timeout(100)
+    dup = pg.text_content('.pv-add-link .link-dupe') if pg.is_visible('.pv-add-link .link-dupe') else ''
+    ok(f'an address the project already links says so, as its name ({dup})', 'already links this address, as seed-box' in dup)
+    ok('and Add becomes Add anyway', pg.locator('.pv-add-link .link-actions .btn-accent').text_content() == 'Add anyway')
+    pg.locator('.pv-add-link').scroll_into_view_if_needed(); pg.screenshot(path=str(SH / '235-links-dupe.png'))
+    pg.fill('#pvLinkUrl', 'https://github.com/example/other'); pg.wait_for_timeout(100)
+    ok('a new address clears it', not pg.is_visible('.pv-add-link .link-dupe') and pg.locator('.pv-add-link .link-actions .btn-accent').text_content() == 'Add')
+    pg.fill('#pvLinkUrl', 'https://github.com/example/seed-box'); n0 = len(proj()['links'])
+    pg.uncheck('#pvLinkShortcut'); pg.click('.pv-add-link .link-actions .btn-accent'); pg.wait_for_timeout(250)
+    ok('Add anyway adds it', len(proj()['links']) == n0 + 1)
+
+    # ---------- 0.1.27: pasting an address ----------
+    js("() => navigator.clipboard.writeText('https://github.com/example/compost')")
+    js("() => document.activeElement && document.activeElement.blur()")
+    pg.keyboard.press('Control+V'); pg.wait_for_timeout(250)
+    ok('Ctrl+V with an address, no field in use, opens Add link with it filled in',
+       pg.is_visible('.pv-add-link') and pg.input_value('#pvLinkUrl') == 'https://github.com/example/compost' and pg.get_attribute('#pvLinkIcon', 'aria-label').startswith('Icon: GitHub'))
+    ok('ready for a label, which it suggests', js("() => document.activeElement.id") == 'pvLinkLabel' and pg.get_attribute('#pvLinkLabel', 'placeholder') == 'compost')
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    js("() => navigator.clipboard.writeText('just some words: not a link')")
+    js("() => document.activeElement && document.activeElement.blur()")
+    pg.keyboard.press('Control+V'); pg.wait_for_timeout(200)
+    ok('text that is not an address opens nothing', not pg.is_visible('.pv-add-link'))
+    js("() => navigator.clipboard.writeText('https://github.com/example/compost')")
+    pg.click('#search'); pg.keyboard.press('Control+V'); pg.wait_for_timeout(200)
+    ok('pasting into a field pastes as always', pg.input_value('#search') == 'https://github.com/example/compost' and not pg.is_visible('.pv-add-link'))
+    pg.fill('#search', ''); pg.wait_for_timeout(150)
+
+    # ---------- 0.1.27: Undo a deleted link ----------
+    pg.click('[data-sec="links"] .pv-pencil'); pg.wait_for_timeout(300)
+    before_del = [x['id'] for x in proj()['links']]
+    pg.locator('.link-edit').nth(1).locator('button[aria-label="Delete link"]').click(); pg.wait_for_timeout(150)
+    pg.screenshot(path=str(SH / '236-links-undo.png'))
+    ok('deleting a link shows a toast with Undo', len(proj()['links']) == len(before_del) - 1 and pg.is_visible('#toast .toast-act') and pg.text_content('#toast .toast-act') == 'Undo')
+    pg.click('#toast .toast-act'); pg.wait_for_timeout(200)
+    ok('Undo puts it back in its place, the section still open', [x['id'] for x in proj()['links']] == before_del and pg.locator('.link-edit').count() == len(before_del))
+    pg.locator('.link-edit').nth(1).locator('button[aria-label="Delete link"]').click(); pg.wait_for_timeout(150)
+    pg.click('[data-sec="links"] .pv-done'); pg.wait_for_timeout(200)
+    ok('after Done the link is gone, with Undo still offered', len(proj()['links']) == len(before_del) - 1 and pg.is_visible('#toast .toast-act'))
+    pg.click('#toast .toast-act'); pg.wait_for_timeout(200)
+    ok('and Undo then brings it back too, in the activity', [x['id'] for x in proj()['links']] == before_del and proj()['activity'][-1]['text'].startswith('Added link: '))
+
+    # ---------- 0.1.27: search reads addresses ----------
     js("() => FullView.close()"); pg.wait_for_timeout(300)
+    pg.fill('#search', 'compost'); pg.wait_for_timeout(250)
+    hits = js("() => DB.projects.filter(matchesFilter).map(p => p.name)")
+    pg.fill('#search', 'seed-box'); pg.wait_for_timeout(250)
+    hits2 = js("() => DB.projects.filter(matchesFilter).map(p => p.name)")
+    ok(f'search finds a project by what is in a link\'s address ({hits2})', hits2 == ['Garden planner'] and hits == [])
+    pg.fill('#search', ''); pg.wait_for_timeout(200)
 
     # ---------- the shortcut wheel ----------
     js("() => { MapView.deselect(); MapView.setCam({ x: 0, y: 260, z: 2 }); }"); pg.wait_for_timeout(300)
@@ -137,8 +209,55 @@ with sync_playwright() as p:
     right_click(gid); pg.mouse.click(left + 60, 120); pg.wait_for_timeout(150)
     ok('a click elsewhere closes it', not js("() => Wheel.isOpen()"))
     right_click(gid)
-    ok('the arrow keys move between the shortcuts', (pg.keyboard.press('ArrowRight'), js("() => document.activeElement.classList.contains('wheel-item') && [...document.querySelectorAll('.wheel-item')].indexOf(document.activeElement) === 1"))[1])
+    ok('it opens with no shortcut picked, so Enter steps inside', js("() => document.activeElement === document.querySelector('.wheel')"))
+    at0 = js(f"() => MapView.anchors('{gid}')")
+    pg.keyboard.press('ArrowRight'); first = js("() => [...document.querySelectorAll('.wheel-item')].indexOf(document.activeElement)")
+    pg.keyboard.press('ArrowRight'); second = js("() => [...document.querySelectorAll('.wheel-item')].indexOf(document.activeElement)")
+    ok(f'the arrow keys move between the shortcuts, from the first ({first}, {second})', first == 0 and second == 1)
+    ok('and leave the map where it is', js(f"() => MapView.anchors('{gid}')") == at0)
     pg.keyboard.press('Escape')
+
+    # ---------- 0.1.27: Enter, the button and the key ----------
+    right_click(gid)
+    eb, ib = js("() => document.querySelector('.wheel-enter').getBoundingClientRect().top"), js("() => Math.max(...[...document.querySelectorAll('.wheel-item')].map(e => e.getBoundingClientRect().bottom))")
+    ok('Enter sits under the wheel', pg.is_visible('.wheel-enter') and 'Enter' in pg.text_content('.wheel-enter') and eb > ib)
+    pg.click('.wheel-enter'); pg.wait_for_timeout(500)
+    ok('the Enter button steps inside the building, closing the wheel', js("() => FullView.isOpen() && FullView.currentId()") == gid and not js("() => Wheel.isOpen()"))
+    js("() => { FullView.close(); MapView.deselect(); MapView.setCam({ x: 0, y: 260, z: 2 }); }"); pg.wait_for_timeout(400)
+    right_click(gid); pg.keyboard.press('Enter'); pg.wait_for_timeout(500)
+    ok('so does the Enter key', js("() => FullView.isOpen() && FullView.currentId()") == gid and not js("() => Wheel.isOpen()"))
+    js("() => { FullView.close(); MapView.deselect(); MapView.setCam({ x: 0, y: 260, z: 2 }); }"); pg.wait_for_timeout(400)
+
+    # ---------- 0.1.27: the wheel and the status bubble close each other ----------
+    def left_click(pid):
+        a = js(f"() => MapView.anchors('{pid}')")
+        pg.mouse.click(left + a['baseX'], a['baseY'] - 30); pg.wait_for_timeout(400)
+    left_click(gid)
+    ok('a click shows the status bubble', pg.is_visible('#bubble') and js("() => App.selectedId") == gid)
+    right_click(gid)
+    ok('a right-click then closes the bubble for the wheel', js("() => Wheel.isOpen()") and not pg.is_visible('#bubble') and js("() => App.selectedId") is None)
+    left_click(gid)
+    ok('and a click closes the wheel for the bubble', not js("() => Wheel.isOpen()") and pg.is_visible('#bubble'))
+    js("() => document.activeElement && document.activeElement.blur()")
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(500)
+    ok('Enter steps inside the selected building', js("() => FullView.isOpen() && FullView.currentId()") == gid)
+    js("() => { FullView.close(); MapView.setCam({ x: 0, y: 260, z: 2 }); }"); pg.wait_for_timeout(400)
+
+    # ---------- 0.1.27: the F key ----------
+    js("() => document.activeElement && document.activeElement.blur()")
+    ok('with a building selected', js("() => App.selectedId") == gid and pg.is_visible('#bubble'))
+    pg.keyboard.press('f'); pg.wait_for_timeout(300)
+    a = js(f"() => MapView.anchors('{gid}')")
+    c = js("() => { const w = document.querySelector('.wheel').getBoundingClientRect(); return [w.left, w.top]; }")
+    ok(f'F opens its wheel round the building, closing the bubble ({c[0] - left:.0f}, {c[1]:.0f})', js("() => Wheel.owner()") == gid and not pg.is_visible('#bubble')
+       and abs(c[0] - left - a['baseX']) < 2 and a['topY'] < c[1] < a['baseY'])
+    pg.keyboard.press('f'); pg.wait_for_timeout(150)
+    ok('and F again closes it', not js("() => Wheel.isOpen()"))
+    nxt = js(f"""() => {{ const list = DB.projects.filter(matchesFilter).sort((a, b) => (a.plot.u + a.plot.v) - (b.plot.u + b.plot.v) || (a.plot.u - a.plot.v) - (b.plot.u - b.plot.v));
+      return list[(list.findIndex(p => p.id === '{gid}') + 1) % list.length].id; }}""")
+    right_click(gid); pg.keyboard.press('e'); pg.wait_for_timeout(300)
+    ok('E with the wheel open hops on from its building, closing the wheel', js("() => App.selectedId") == nxt and not js("() => Wheel.isOpen()"))
+    js("() => { MapView.deselect(); MapView.setCam({ x: 0, y: 260, z: 2 }); }"); pg.wait_for_timeout(300)
     nid = js("() => DB.projects.find(p => p.name === 'Nullovation City').id")
     right_click(nid)
     ok('a building with no shortcuts shows its empty wheel, saying so', js("() => Wheel.isOpen()") and pg.locator('.wheel .wheel-item').count() == 0 and 'No shortcuts yet' in pg.text_content('.wheel-empty'))
@@ -153,5 +272,29 @@ with sync_playwright() as p:
     js("() => { MapView.setEditing(false); Settings.close(); }")
     pg.reload(); pg.wait_for_timeout(1500)
     ok('the order and the shortcuts are kept after a reload', [x['label'] for x in proj()['links']][1] == before[2] and proj()['links'][[x['label'] for x in proj()['links']].index('Repo')]['shortcut'] is False)
+
+    # ---------- 0.1.27: buttons for about three words, from 1 to 8 shortcuts ----------
+    words = ['Design system docs', 'Weekly planning chat', 'Garden planner repo', 'Claude project notes', 'Shared drive folder', 'Seed catalog site', 'Budget sheet', 'Notes']
+    js("() => { MapView.deselect(); MapView.setCam({ x: 0, y: 260, z: 2 }); }"); pg.wait_for_timeout(300)
+    bad = []
+    for n in range(1, 9):
+        js("(a) => { const p = getProject(a[0]); p.links = a[1].map((t, k) => ({ id: uid('l'), label: t, url: 'https://example.com/' + k, icon: LINK_ICONS[k % 7], shortcut: true })); changed(p); }", [nid, words[:n]])
+        right_click(nid)
+        cut = js("() => [...document.querySelectorAll('.wheel-label')].filter(s => s.scrollWidth > s.clientWidth).length")
+        lap = js("() => { const r = [...document.querySelectorAll('.wheel > *')].map(e => e.getBoundingClientRect()); for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], c = r[j]; if (a.left < c.right - 1 && c.left < a.right - 1 && a.top < c.bottom - 1 && c.top < a.bottom - 1) return true; } return false; }")
+        out = js("() => { const W = document.querySelector('#mapWrap').getBoundingClientRect(); return ![...document.querySelectorAll('.wheel > *')].every(e => { const r = e.getBoundingClientRect(); return r.left >= W.left - 1 && r.right <= W.right + 1 && r.top >= W.top - 1 && r.bottom <= W.bottom + 1; }); }")
+        if cut or lap or out: bad.append((n, cut, lap, out))
+        if n == 8: pg.screenshot(path=str(SH / '234-wheel-words.png'))
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
+    ok(f'labels of about three words fit whole, with 1 to 8 shortcuts, in view and apart ({bad or "all fine"})', not bad)
+    js(f"() => {{ const p = getProject('{nid}'); Wheel.open(p, 10, 10); }}"); pg.wait_for_timeout(200)
+    out = js("() => { const W = document.querySelector('#mapWrap').getBoundingClientRect(); return [...document.querySelectorAll('.wheel > *')].every(e => { const r = e.getBoundingClientRect(); return r.left >= W.left + 7 && r.top >= W.top + 7; }); }")
+    ok('opened at the map\'s corner, the wheel moves in to stay whole', out)
+    js("() => Wheel.close()")
+
+    # ---------- 0.1.27: the controls guide ----------
+    js("() => Settings.open('city')"); pg.click('#setHelpBtn'); pg.wait_for_timeout(100)
+    g = pg.text_content('#setHelp')
+    ok('the controls guide names F for the wheel and Enter to step inside', 'Right-click a building, or F' in g and 'Enter, with a building selected' in g)
     b.close()
 print(errors or 'no console errors')

@@ -138,14 +138,17 @@ function downloadBlob(blob, name) {
 const slug = s => (String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, '-').replace(/^-+|-+$/g, '') || 'project').slice(0, 60);
 
 /* ---------- toast ---------- */
+/* An action, such as Undo, adds a button and keeps the toast up longer. */
 const toast = (() => {
   let t = null;
-  return (msg, kind = '') => {
+  return (msg, kind = '', action = null) => {
     const el = $('#toast');
     el.textContent = msg;
-    el.className = 'toast show' + (kind ? ' ' + kind : '');
+    const hide = () => { clearTimeout(t); el.className = 'toast' + (kind ? ' ' + kind : ''); };
+    if (action) el.append(' ', h('button', { class: 'toast-act', type: 'button', onclick: () => { hide(); action.run(); } }, action.label));
+    el.className = 'toast show' + (kind ? ' ' + kind : '') + (action ? ' has-act' : '');
     clearTimeout(t);
-    t = setTimeout(() => { el.className = 'toast' + (kind ? ' ' + kind : ''); }, kind === 'error' ? 6000 : 3200);
+    t = setTimeout(hide, kind === 'error' || action ? 6000 : 3200);
   };
 })();
 
