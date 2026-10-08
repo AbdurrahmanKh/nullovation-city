@@ -1,5 +1,5 @@
 from playwright.sync_api import sync_playwright
-from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture
+from testkit import open_settings, FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture
 
 errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
@@ -26,7 +26,7 @@ with sync_playwright() as p:
     pg.on('pageerror', lambda e: errors.append(str(e)))
     pg.goto(FILE); pg.wait_for_timeout(1500)
     js = lambda code, *a: pg.evaluate(code, *a)
-    pg.click('#foldData summary'); pg.wait_for_timeout(100)
+    open_settings(pg, 'saving')
     alert = lambda: (pg.is_visible('#fileAlert'), pg.text_content('#fileAlert') or '')
     # a file busy for a moment: quiet retries, then saved, no error
     js(FAKE, [['NoModificationAllowedError', 'NoModificationAllowedError', 'ok'], 'granted'])
@@ -38,7 +38,7 @@ with sync_playwright() as p:
     vis, txt = alert()
     ok(f'a file that stays busy fails only after its retries ({js("() => window.__tries")} tries)', js("() => DataFile.state()") == 'failed' and js("() => DataFile.reason()") == 'busy' and js("() => window.__tries") == 4)
     ok('its message names the cause and offers both fixes', vis and 'the file was busy' in txt and 'Try again' in txt and 'Pick the file again' in txt)
-    ok('the Backup section says it too', 'stayed busy' in (pg.text_content('#fileBox') or '') and 'sync app' in (pg.text_content('#fileBox') or ''))
+    ok('Settings, Saving, says it too', 'stayed busy' in (pg.text_content('#fileBox') or '') and 'sync app' in (pg.text_content('#fileBox') or ''))
     js("() => { window.__tries = 99; }")                       # the file frees up
     js("() => { window.__h.createWritable = async () => { let b = ''; return { write: async t => { b += t; }, close: async () => { window.__writes.push(b.length); } }; }; }")
     pg.click('#fileAlert >> text=Try again'); pg.wait_for_timeout(400)

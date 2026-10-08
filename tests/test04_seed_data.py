@@ -1,6 +1,6 @@
 import json, pathlib
 from playwright.sync_api import sync_playwright
-from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY
+from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY, open_settings, close_settings
 
 errors = []
 def attach(page):
@@ -28,22 +28,24 @@ with sync_playwright() as p:
     page = ctx.new_page(); attach(page)
     page.goto(FILE); page.wait_for_timeout(600)
     left = page.evaluate("() => document.querySelector('#mapWrap').getBoundingClientRect().left")
-    ok('the test city loads at data version 2 on a 5 by 5 map', page.evaluate("() => DB.version === 2 && DB.world.size === 5 && WORLD.N === 5"))
+    ok('the test city, saved at data version 2, loads at version 3 on a 5 by 5 map', page.evaluate("() => DB.version === 3 && DB.world.nu === 5 && DB.world.nv === 5 && WORLD.NU === 5 && WORLD.NV === 5"))
     ok('key hint visible', page.is_visible('.keyhint'))
 
-    # map size: grow shifts every plot by one and keeps the view on the same buildings
+    # map size, in Edit City: grow shifts every plot by one and keeps the view on the same buildings
+    open_settings(page, 'city'); page.click('#btnEditCity'); page.wait_for_timeout(250)
     before = page.evaluate("() => DB.projects.map(p => ({...p.plot}))")
     a0 = page.evaluate("() => MapView.anchors(DB.projects[0].id)")
     page.click('#btnGrow'); page.wait_for_timeout(200)
     after = page.evaluate("() => DB.projects.map(p => ({...p.plot}))")
     a1 = page.evaluate("() => MapView.anchors(DB.projects[0].id)")
-    ok('grow makes 7 by 7', page.evaluate("() => WORLD.N === 7 && DB.world.size === 7") and page.text_content('#mapSize') == '7 by 7 plots')
+    ok('grow makes 7 by 7', page.evaluate("() => WORLD.NU === 7 && WORLD.NV === 7 && DB.world.nu === 7 && DB.world.nv === 7") and page.text_content('#mapSize') == '7 by 7 plots' and page.text_content('#editSize') == '7 by 7 plots')
     ok('plots shift by one ring', all(x['u'] == y['u'] + 1 and x['v'] == y['v'] + 1 for x, y in zip(after, before)))
     ok(f"view stays on the same building ({a0['baseY']:.0f} vs {a1['baseY']:.0f})", abs(a0['baseY'] - a1['baseY']) < 2 and abs(a0['baseX'] - a1['baseX']) < 2)
     page.screenshot(path=str(SHOTS / '40-grown.png'))
     page.click('#btnShrink'); page.wait_for_timeout(200)
-    ok('shrink back to 5', page.evaluate("() => WORLD.N === 5"))
+    ok('shrink back to 5', page.evaluate("() => WORLD.NU === 5 && WORLD.NV === 5"))
     ok('shrink disabled at 5', page.is_disabled('#btnShrink'))
+    page.click('#btnEditDone'); close_settings(page)
 
     # full map: New project offers a ring
     page.evaluate("""() => { const free = freePlots(); for (const f of free) DB.projects.push(blankProject({ name: 'Filler ' + f.u + f.v, plot: f })); persistNow(); MapView.invalidate(); Menu.refresh(); }""")
@@ -51,11 +53,11 @@ with sync_playwright() as p:
     page.click('.pick-card >> nth=1'); page.wait_for_timeout(300)
     ok('full map asks to add a ring', page.is_visible('.backdrop.top') and 'Every plot is taken' in page.text_content('#cfTitle'))
     page.click('.confirm-actions .btn-accent'); page.wait_for_timeout(300)
-    ok('map grew and placing started', page.evaluate("() => WORLD.N === 7") and page.is_visible('#banner'))
+    ok('map grew and placing started', page.evaluate("() => WORLD.NU === 7 && WORLD.NV === 7") and page.is_visible('#banner'))
     page.keyboard.press('Escape')
     page.evaluate("() => { DB.projects = DB.projects.filter(p => !p.name.startsWith('Filler')); persistNow(); MapView.resizeWorld(-1); MapView.frameAll(); }")
     page.wait_for_timeout(200)
-    ok('back to 2 projects on 5 by 5', page.evaluate("() => DB.projects.length === 2 && WORLD.N === 5"))
+    ok('back to 2 projects on 5 by 5', page.evaluate("() => DB.projects.length === 2 && WORLD.NU === 5 && WORLD.NV === 5"))
 
     # hop with E and Q
     page.mouse.click(left + 60, 60); page.wait_for_timeout(100)
@@ -136,16 +138,17 @@ with sync_playwright() as p:
     ok('recap name selects the building', not page.is_visible('.modal.panel') and page.evaluate("() => !!App.selectedId"))
 
     # status brief to the clipboard
-    page.click('#foldTools summary'); page.click('#btnBrief'); page.wait_for_timeout(200)
+    page.click('#btnBrief'); page.wait_for_timeout(200)
     clip = page.evaluate("() => navigator.clipboard.readText()")
     ok('brief copied with headings, todos, and milestone tags', clip.startswith('# Nullovation City status') and '## Garden planner' in clip and '(First release' in clip and 'Due tomorrow' in clip and 'Next task: ' in clip)
     (DATA / 'brief.txt').write_text(clip, encoding='utf-8')
 
     # data file (the picker is faked for the test)
-    page.click('#foldData summary'); page.click('text=Keep a data file'); page.wait_for_timeout(1500)
+    open_settings(page, 'saving'); page.click('text=Keep a data file'); page.wait_for_timeout(1500)
     n0 = page.evaluate("() => window.__writes.length")
     data = json.loads(page.evaluate("() => window.__writes[window.__writes.length - 1]"))
-    ok(f'data file written on connect ({n0} writes, {len(data["projects"])} projects)', n0 >= 1 and len(data['projects']) == 2 and data['version'] == 2)
+    ok(f'data file written on connect ({n0} writes, {len(data["projects"])} projects)', n0 >= 1 and len(data['projects']) == 2 and data['version'] == 3)
+    ok('the file carries the map and the city\'s settings', data['world'] == {'nu': 5, 'nv': 5, 'ou': 0, 'ov': 0} and data['city']['crowd'] == 'medium' and data['city']['night'] == '19:00')
     ok('status shows the file', 'nullovation-city-data.json' in page.text_content('#fileBox'))
     page.evaluate("() => { const p = DB.projects[0]; p.description = 'changed for the file test'; changed(p); }"); page.wait_for_timeout(1800)
     last = json.loads(page.evaluate("() => window.__writes[window.__writes.length - 1]"))
@@ -155,17 +158,17 @@ with sync_playwright() as p:
     # an old v1 backup still imports
     page.set_input_files('#fileImport', fixture('backup-v1.json')); page.wait_for_timeout(300)
     page.click('.confirm-actions .btn-danger'); page.wait_for_timeout(900)
-    ok('v1 backup imports into v2', page.evaluate("() => DB.projects.length === 3 && DB.projects.every(p => Array.isArray(p.milestones) && Array.isArray(p.notes) && p.todos.every(t => 'due' in t))"))
+    ok('v1 backup imports into v3, with default settings', page.evaluate("() => DB.projects.length === 3 && DB.projects.every(p => Array.isArray(p.milestones) && Array.isArray(p.notes) && p.todos.every(t => 'due' in t)) && DB.version === 3 && DB.city.crowd === 'medium'"))
     page.reload(); page.wait_for_timeout(700)
-    ok('reload keeps v2 data', page.evaluate("() => DB.projects.length === 3 && DB.version === 2"))
+    ok('reload keeps v3 data', page.evaluate("() => DB.projects.length === 3 && DB.version === 3"))
 
     # the real start: a browser with nothing saved gets the one starter project, on the city hall
     fresh = b.new_context(viewport={'width': 1440, 'height': 900}); fp = fresh.new_page(); attach(fp)
     fp.goto(FILE); fp.wait_for_timeout(600)
     ok('a new city starts with one project, Nullovation City on the city hall',
        fp.evaluate("() => DB.projects.length === 1 && DB.projects[0].name === 'Nullovation City' && DB.projects[0].generic === 'city-hall'"))
-    ok('it starts at data version 2 on a 5 by 5 map, with its history begun',
-       fp.evaluate("() => DB.version === 2 && DB.world.size === 5 && WORLD.N === 5 && DB.projects[0].activity.some(e => e.text === 'Planted')"))
+    ok('it starts at data version 3 on a 5 by 5 map, with its history begun',
+       fp.evaluate("() => DB.version === 3 && DB.world.nu === 5 && DB.world.nv === 5 && WORLD.NU === 5 && WORLD.NV === 5 && DB.projects[0].activity.some(e => e.text === 'Planted')"))
     fresh.close()
     b.close()
 print('\n'.join(errors) if errors else 'no console errors')

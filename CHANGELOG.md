@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.25 (2026-10-08)
+
+- The controls guide behind the ? in Settings no longer lists Rearrange: moving a building is taught by Edit City's bar, where a plain drag does it.
+- Tests: test10 checks the guide leaves it out.
+
+## 0.1.24 (2026-10-08)
+
+- Settings, as designed over two rounds on 7 October 2026. The side bar turns into Settings, with a back arrow, from a Settings button at its foot, a gear on the map's bar, or the comma key; Esc closes it.
+  - Six tabs: City, Life, Look, Projects, Saving and Links. Changes apply at once with no toast, a dot marks what differs from its default, each tab has Reset to defaults, and Reset all settings asks first. It opens again on the same tab and place.
+  - The map's size, crowds, folder links, Download palette, Export and Import, and the data file moved in; the controls guide sits behind a small ? in its header. Copy status brief and Open in Claude stay outside, under This week. Traffic, Bubbles and Time of day are on the bar and in Settings, in step.
+  - New: who is out (cars, buses, drones, cyclists, walkers), sliders for street traffic and walkers, street props on or off by kind with a slider for how many and Deal again, Auto's hours, motion (Full, Saver, Still), the postcard's caption and size, rest days, away until, daily backups keeping the last 14, storage use, and Test folder links.
+  - The city's settings travel in the data file and backups; how this computer shows the city stays in this browser. The database is version 3; older backups import with default settings.
+- Edit City, from Settings, City: an arrow on each side adds a line of plots there and another takes the outer line off when it is empty, so the city can be a rectangle, 5 to 11 plots each way; Grow and Shrink work as before; a click on a park deals its next kind; a building moves with a plain drag.
+- Lines and rings keep everything with its buildings: parks, street details and props are dealt by their place in the city. Today's parks, props and crossing marks stay exactly as they were; the ring road's sidewalks and verges and the asphalt grain were dealt once more.
+- Tests: three new passes, test20 (the panel), test21 (the settings) and test22 (Edit City), and the passes that used the old side bar find the controls in Settings.
+
 ## 0.1.23 (2026-10-07)
 
 - Street props face their own street on every side of a block: on the south-west and south-east sides we see their fronts, facing those streets; on the north-east and north-west sides their backs, as they face those streets.

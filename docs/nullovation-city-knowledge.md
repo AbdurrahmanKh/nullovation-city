@@ -1,6 +1,6 @@
 # Nullovation City: everything to know
 
-State as of version 0.1.23 (October 2026). The tool file is about 1.6 MB.
+State as of version 0.1.25 (October 2026). The tool file is about 1.7 MB.
 
 ## 1. What it is
 
@@ -19,15 +19,15 @@ What Abdurrahman keeps:
 
 ### The city map
 
-- The map is an N by N grid of plots, from 5 by 5 up to 11 by 11, grown or shrunk one ring at a time from the side bar. Each plot is 4 by 4 tiles, with streets between plots.
-- Empty plots become parks, in seven kinds: garden, park, plaza, pond, and since 0.1.21 playground, sculpture garden, and mini golf. A plot's kind comes from a hash of its position, never the same as the plot above or to its left, so adding a kind reshuffles every park once.
-- Streets vary by segment, fixed so they look the same every visit: repair patches, cracks, manholes, drains, center lines (dashed, double, none, turn arrows), sidewalk paving, crossings (zebra, stop line, none), and crossing centers (plain, manhole, yellow box, small roundabout).
+- The map is a grid of plots, 5 to 11 each way, so it can be a rectangle, such as 7 by 5. Edit City, in Settings, adds or takes off a line on any side, or a ring all round (Edit City, below). Each plot is 4 by 4 tiles, with streets between plots.
+- Empty plots become parks, in seven kinds: garden, park, plaza, pond, and since 0.1.21 playground, sculpture garden, and mini golf. A park's kind comes from a hash of its place in the city, never the same as a neighbor, so adding a kind reshuffles every park once. Edit City can pick any park's kind.
+- Streets vary by segment, fixed so they look the same every visit: repair patches, cracks, manholes, drains, center lines (dashed, double, none, turn arrows), sidewalk paving, crossings (zebra, stop line, none), and crossing centers (plain, manhole, yellow box, small roundabout). Like the parks and the props, they are dealt by their place in the city, so they stay beside their buildings when a line or a ring is added; the ring road round the edge is always the avenue with a double line.
 - Zoom steps are 1x, 2x, 3x, 4x, 6x, and 8x. At even steps every building pixel lands on whole screen pixels. At 3x a building is first enlarged crisply to 2x, then scaled down smoothly, so it stays sharp.
 - Drag to pan. Q and E jump to the previous or next building, and Esc backs out one layer at a time.
-- The bar at the bottom right holds Traffic, Bubbles, Time of day, Postcard, and Zoom.
+- The bar at the bottom right holds Traffic, Bubbles, Time of day, Postcard, Zoom, and a gear that opens Settings.
 - Bubbles and Time of day open drop-ups: stacks of the same buttons as the bar, rising above the one clicked. Each option has its own icon, and the bar's button wears the chosen option's icon and label. The current choice shows pressed, arrow keys and Enter work, and Esc or a click outside closes.
 - Time of day:
-  - Auto (clock icon) follows the computer's clock, passing through dawn and dusk.
+  - Auto (clock icon) follows the computer's clock, passing through dawn and dusk, at the hours set in Settings, Look: night from 19:00 and day from 06:30 by default.
   - Day (sun).
   - Dusk (a sun on the horizon) holds the halfway light. Dawn looks the same, so it is listed once.
   - Night (moon).
@@ -36,7 +36,7 @@ What Abdurrahman keeps:
   - Red only (flag).
   - Tasks (task icon) puts a near-white bubble over every building with that project's count of open tasks, 0 included.
   - No bubbles (cross).
-- Postcard saves the current view as a PNG.
+- Postcard saves the current view as a PNG, with a caption and the date, at screen size; Settings, Look, can leave out the caption or double the size.
 
 ### Street props (0.1.22)
 
@@ -47,13 +47,14 @@ Bus stops, vending machines, holo billboards and bins stand round the blocks, ma
   - Mirrored, a view turns to the other street on the same side of the camera, so each view is drawn as is on the side it faces and mirrored on the other.
   - Until 0.1.23 the tool took every front as facing the south-west street, which turned the bus stops and billboards sideways on every side.
 - **Which prop where:** bus stops by a fixed pattern (a fifth of block sides); vending machines mid-block; holo billboards 0.62 tiles from a corner, just past where a zebra lands; bins on a building's two front sides, where people walk in. At most two to a side, kept apart.
-- **Fixed:** the plan comes from the block and side like the street details, so it looks the same every visit; planting a building only adds or takes away that block's bins.
+- **Fixed:** the plan comes from the block's place in the city and its side, like the street details, so it looks the same every visit and stays put when the map grows; planting a building only adds or takes away that block's bins.
+- **Settings, City:** street props on or off, each kind on or off, How many, and Deal again (Settings, below). Off, a kind only goes; it moves nothing else.
 - **People** walk through them, drawn in front or behind by depth. Props show with the traffic off too, and their neon (the billboard's screen, the bus stop's sign, the vending machine's front) keeps glowing by night.
 - On the 5 by 5 test city: 51 props on 47 of 100 block sides (20 bus stops, 16 vending machines, 12 billboards, 3 bins).
 
 ### Traffic
 
-The city has 12 cars, 2 small buses, and 2 delivery drones on a 5 by 5 map, scaled with the map's area. 20 people roam the whole city, and 2 cyclists ride its sidewalks.
+The city has 12 cars, 2 small buses, and 2 delivery drones on a 5 by 5 map, scaled with the map's area. 20 people roam the whole city, and 2 cyclists ride its sidewalks. Settings, Life, keeps any of them in, and scales the street traffic and the walkers from a quarter to twice those counts.
 
 - **People (0.1.20):** 5 px wide and 6 tall, drawn in code from row strings in `src/js/45-traffic.js` (`BODY`, `personRows`).
   - They face the way they move: toward you the face shows under the hair, walking away the head is all hair, and walking left mirrors the sprite.
@@ -68,9 +69,9 @@ The city has 12 cars, 2 small buses, and 2 delivery drones on a 5 by 5 map, scal
 - At night, cars and buses driving toward you show two warm headlights and a soft cone of light on the road ahead. Cars driving away show red tail lights.
 - Drones hop between busy buildings.
 - Busyness comes from a project's activity log over the past 7 days, each event fading out over the week. A building with busyness of 0.3 or more draws its own crowd.
-- The crowd size is a setting under Tools: None, Small, Medium, or Large, for 0, 8, 14, or 20 extra people per busy building. Medium is the default, and the whole city is capped at 150 people.
+- The crowd size is a setting in Settings, Life: None, Small, Medium, or Large, for 0, 8, 14, or 20 extra people per busy building. Medium is the default, and the whole city is capped at 150 people: the walkers stay under it, and the crowds take what room is left.
 - People walk the sidewalks, cross at zebras, gather in groups and talk, sit on park benches, and go in and out of buildings.
-- The Traffic button turns all of it on or off.
+- The Traffic button, and the Traffic switch in Settings, Life, turn all of it on or off. Motion set to Still stops it too.
 
 ### Urgency and bubbles
 
@@ -79,7 +80,9 @@ Each project picks an urgency system:
 - **Work until finished:** its open tasks count.
 - **One task per N days:** a pace. If no task is finished in time, the project turns red.
 
-Due dates also count: tasks due soon or overdue jump to the top of the status bubble. Red and yellow bubbles float over buildings that need attention, showing a count, or "!" for a single item. The side bar's Urgent section lists red projects.
+Due dates also count: tasks due soon or overdue jump to the top of the status bubble.
+
+Settings, Projects, pauses the systems, never the due dates: rest days are weekdays that do not count for either system, and away until a date keeps every system quiet until that day, from which each counts afresh. Red and yellow bubbles float over buildings that need attention, showing a count, or "!" for a single item. The side bar's Urgent section lists red projects.
 
 ### The status bubble
 
@@ -102,16 +105,45 @@ Click a building for a small card:
 
 ### The side bar
 
-- **Top:** the logo, with the version in very small text under it, and New project, which you plant on a free plot.
-- **Lists:** search, This week (the weekly recap), Urgent, and Due this week.
-- **Map size:** grow or shrink the grid.
-- **Tools:**
-  - Copy status brief, a summary of every project for a Claude chat, with Open in Claude beside it.
-  - Download palette, the city palette as a PNG.
-  - Crowds round busy buildings.
-  - Folder links open in File Explorer, with "Get the setup".
-- **Backup and data file:** Export, Import, and the data file connection.
-- **Controls:** a short guide to the controls.
+- **Top:** the logo, with the version in very small text under it. Saving that is paused or has failed (the browser, the data file, the daily backups) shows just under it with its fix, over the lists and Settings alike.
+- **Lists:** New project, which you plant on a free plot; search; This week (the weekly recap), with Copy status brief, a summary of every project for a Claude chat, and Open in Claude beside it; Urgent; and Due this week.
+- **Settings:** a button at the foot of the side bar turns the side bar into Settings (below).
+
+### Settings (0.1.24)
+
+The side bar turns into Settings, and back with its arrow, so the map stays in view and shows every change as it is made. It opens from the button at the foot of the side bar, the gear on the map's bar, or the comma key; Esc closes it, after ending Edit City. On a narrow window the gear opens the drawer on Settings.
+- **The header:** the title, the back arrow, and a small ? that shows the controls guide: move, zoom, status, hop, Settings (the comma key) and Esc. It leaves out moving buildings, which Edit City's bar teaches (0.1.25).
+- **Tabs:** six pixel-icon tabs, City, Life, Look, Projects, Saving and Links, with the tab's name under them; arrow keys move between them.
+- **Ground rules:**
+  - Changes apply at once and are saved, with no toast; actions such as Export, Download palette and Test folder links keep theirs.
+  - A dot marks a setting that differs from its default, and its tab.
+  - Each tab has Reset to defaults, except Saving, whose data file and backups folder are connections rather than preferences. Reset all settings, at the foot, asks first. Resets never touch the projects, the map, or the parks picked in Edit City.
+  - It opens again on the tab, and at the place on the page, where it was left.
+  - Traffic, Bubbles and Time of day are on the bar and in Settings, with the same choices and icons, in step.
+- **City:** the map's size, with the Edit City button; street props on or off, each kind on or off, How many, from a quarter to twice today's props, and Deal again.
+  - How many: each prop has its own draw, so more only adds props and fewer only takes some away; none moves. Bus stops keep their pattern up to today's amount, and above it some stand off it.
+  - Deal again lays the props out anew by the same rules, kept until dealt again.
+  - At today's amount with no new deal, the plan is today's.
+- **Life:** Traffic; who is out: cars, buses, drones, cyclists, walkers; two sliders from a quarter to twice today's counts, Street traffic (cars, buses and drones) and Walkers (people and cyclists); and Crowds round busy buildings. Walkers kept in takes the crowds too; with bus stops off, the buses drive past.
+- **Look:** Time of day; Auto's hours, when night starts (19:00) and day starts (06:30), with dusk and dawn blending over the 90 minutes before each; Bubbles; Motion; Postcard, the caption on or off, as on screen or doubled; and Download palette.
+  - Motion: Full; Saver, at most 30 frames a second; or Still: no traffic, every building and park on its first frame, and bubbles that do not bob. Until one is chosen it follows the system: Still when the system asks for reduced motion.
+- **Projects:** rest days, picked by weekday from Saturday, and away until a date (with Clear).
+  - Rest days count for neither One task per N days nor Work until finished; a building's reason says so.
+  - Before the away date no system turns a building yellow or red; from that day every system counts from its start. Due dates count every day, rest or away.
+- **Saving:** the data file; daily backups; Export and Import; and storage use: how much of about 5 MB the projects and settings take in this browser, with a bar and a warning near the limit, and what the building art and the rest take.
+  - Daily backups (Chrome and Edge): a folder picked once. The first time the city is open each day, before the day's changes, it saves `nullovation-city-daily-YYYY-MM-DD.json` there and keeps the newest 14. Only files with that name are counted and pruned, so exported backups in the same folder are never touched. One tab writes, the one the data file uses. Paused or failed shows under the logo too, with Allow or Pick the folder again.
+- **Links:** folder links in File Explorer, Get the setup, and Test folder links, which opens C:\Windows through a folder link.
+- **Where each setting lives:** what the city is like travels in the data file and every backup: crowds, who is out, the sliders, street props, Deal again, the parks picked, Auto's hours, rest days and away until. How this computer shows it stays in this browser: the Traffic, Bubbles and Time of day buttons, the camera, folder links, the data file, the daily backups' folder, motion and the postcard.
+
+### Edit City (0.1.24)
+
+Opened from Settings, City. A bar over the map shows the size, Grow, Shrink and Done, and the map frames the whole city.
+- **Lines:** each side has an arrow out that adds a line of plots on that side, while the city is under 11 plots that way, and an arrow in that takes off that side's outer line, only when the line is empty and the city is over 5 plots that way. So the city can be a rectangle, 5 to 11 plots each way. The arrows follow the map, and on a city bigger than the view they stay at its edge.
+- **Rings:** Grow and Shrink, as before: a ring all round, while both ways stay within 5 to 11; Shrink only when the ring is empty.
+- **Parks:** pointing at a park names its kind, and a click deals the next one. The picks travel with the city, kept by their place, so a line taken off and added back brings its picks back. Round all seven, back at the kind its place deals, the pick is dropped.
+- **Buildings:** a plain drag moves one, with no hold, and a click does nothing. Outside Edit City, moving stays hold then drag.
+- **Everything stays with its buildings:** a line or a ring moves the grid, not the city. Each plot keeps its place in the whole city, so parks, street details, crossings and props stay beside their buildings, and the view stays on them.
+- Esc, Done, closing Settings, or planting a project ends it. Q and E do not hop in it.
 
 ### The weekly recap
 
@@ -141,8 +173,10 @@ Nothing is sent by itself: Claude shows the text and waits. The text also goes o
 ### Data, storage, and backups
 
 - A browser with nothing saved starts a new city with one project: Nullovation City, on the city hall.
-- Everything lives in the browser on that computer; nothing is uploaded anywhere. The database sits in localStorage under `nullovation-city:v1` (database version 2). Uploaded art and the data file's handle sit in IndexedDB. Another browser or device does not see any of it.
-- Export makes one JSON backup with every project and its uploaded art. The art is stored as text, about a third bigger than the image. Import restores both.
+- Everything lives in the browser on that computer; nothing is uploaded anywhere. The database sits in localStorage under `nullovation-city:v1` (database version 3). Uploaded art and the handles of the data file and the daily backups' folder sit in IndexedDB. Another browser or device does not see any of it.
+- Export makes one JSON backup with the map, the city's settings, and every project with its uploaded art. The art is stored as text, about a third bigger than the image. Import restores them all; a backup from before 0.1.24 brings default settings.
+- Daily backups keep a dated copy a day in a folder of your choosing, the newest 14 (Settings, above).
+- On a new device you import the data file or a backup, then connect the data file again; a first-launch prompt was decided against for now.
 - **The data file:** a JSON file on disk, picked once, that the tool rewrites on every change (File System Access API).
   - A busy file gets quiet retries after 1, 3, and 8 seconds.
   - Failures name their cause: "moved or deleted" offers Pick the file again; "busy" offers Try again; ended permission becomes "paused" with Allow.
@@ -156,17 +190,20 @@ Nothing is sent by itself: Claude shows the text and waits. The text also goes o
 | `nullovation-city:light` | Time of day choice |
 | `nullovation-city:bubbles` | Bubbles choice |
 | `nullovation-city:traffic` | Traffic on or off |
-| `nullovation-city:crowds` | Crowd size |
+| `nullovation-city:crowds` | Crowd size before 0.1.24; read once into the city's settings |
 | `nullovation-city:explorerLinks` | Folder links setting |
+| `nullovation-city:motion` | Motion, when chosen |
+| `nullovation-city:postcard` | The postcard's caption and size, when not the default |
+| `nullovation-city:settings` | Settings' tab and the place on each page |
 | `nullovation-city:fileWriter` | Which tab writes the data file |
 | `nullovation-city:ui` | Interface state |
-| `nullovation-city:art`, `:dataFile`, `:dataFolder` | Art and data file storage |
+| `nullovation-city:art`, `:dataFile`, `:dataFolder` | Art and data file storage; the daily backups' folder is the `backupDir` handle in IndexedDB |
 
 ### Folder links in File Explorer
 
 A web page cannot open Explorer by itself, so a one-time setup adds a `nullovation-folder:` link type for the current Windows user.
 
-- **The setup:** `nullovation-folder-links.ps1`, from Tools, Get the setup. Run it from a normal PowerShell window, not admin:
+- **The setup:** `nullovation-folder-links.ps1`, from Settings, Links, Get the setup. Test folder links there checks it once it has run. Run it from a normal PowerShell window, not admin:
   - Install: `powershell -ExecutionPolicy Bypass -File .\nullovation-folder-links.ps1`
   - Remove: add `-Uninstall`.
   - It waits for Enter before closing, so the result stays on screen; `-NoPause` skips that.
@@ -209,24 +246,28 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 | `00-util.js` | Dates and small helpers |
 | `10-store.js` | IndexedDB storage for art and the data file handle |
 | `15-datafile.js` | The data file: saving, retries, named causes, one writer across tabs |
-| `20-model.js` | The world grid, projects, tasks, milestones, urgency, plan and tasks loading, Copy for Claude texts |
+| `16-backups.js` | Daily backups: the folder, the day's copy, keeping the newest 14 |
+| `20-model.js` | The world grid and its place in the city, the city's settings, projects, tasks, milestones, urgency with rest days and away until, plan and tasks loading, Copy for Claude texts |
 | `25-generics.js` | Made by the build in memory, never on disk: the generic buildings and lots from `src/buildings` |
 | `26-extra.js` | Made by the build in memory, never on disk: `APP_VERSION` and the folder links setup |
-| `30-pixel.js` | The city palette, the light (day, dusk, night), pixel icons, and the art loader |
+| `30-pixel.js` | The city palette, the light (day, dusk, night, Auto's hours), motion, pixel icons, and the art loader |
 | `35-gif.js` | The tool's GIF decoder |
-| `40-map.js` | The map: geometry, streets, the street props' plan and drawing, depth sorting, zoom, bubbles, drop-ups, the bar's buttons |
+| `40-map.js` | The map: geometry, streets, parks, the street props' plan and drawing, depth sorting, zoom, bubbles, drop-ups, the bar's buttons, lines and rings, Edit City, the postcard |
 | `45-traffic.js` | Cars, buses and their stops, drones, people, busyness, crowds, headlights |
 | `50-bubble.js` | The status bubble |
 | `60-fullview.js` | The project view: tasks, milestones, notes, links, panels, local paths |
 | `62-picker.js` | The building picker |
 | `65-recap.js` | The weekly recap and the status brief |
 | `67-claude.js` | Open in Claude: its menu, and the `claude://` links it builds |
-| `70-menu.js` | The side bar |
-| `90-boot.js` | Start-up, and Esc backing out one layer at a time |
+| `70-menu.js` | The side bar's lists, Export and Import |
+| `72-settings.js` | Settings: the panel, its tabs, dots and resets, and storage use |
+| `90-boot.js` | Start-up, Esc backing out one layer at a time, and the comma key |
 
-### Data model (database version 2)
+### Data model (database version 3)
 
-- **Database:** `{ app: 'nullovation-city', version: 2, world: { size }, projects: [] }`.
+- **Database:** `{ app: 'nullovation-city', version: 3, world: { nu, nv, ou, ov }, city, projects: [] }`.
+  - `world`: the map is `nu` plots along u (down to the right on screen) by `nv` along v (down to the left), and its plot (u, v) is the city's plot (u + ou, v + ov). Before version 3 it was `{ size }`, square, at the city's origin, and older data still reads that way.
+  - `city`: the city's settings, which travel with it: `crowd`; `cars`, `buses`, `drones`, `cyclists`, `walkers`; `street` and `walk` (0.25 to 2); `props`, `busstop`, `vending`, `billboard`, `bin`, `amount` (0.25 to 2) and `deal`; `night` and `day` (HH:MM); `rest` (weekdays, 0 for Sunday) and `away` (YYYY-MM-DD); and `parks`, the kinds picked in Edit City, by the city's plot as `"U,V"`. Defaults are `CITY_DEFAULTS` in `20-model.js`.
 - **Project:**
   - identity: `id`, `name`, `description`, `deadline`, `progressOverride`;
   - content: `todos`, `links`, `milestones`, `notes`;
@@ -236,7 +277,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
   - timestamps: `createdAt`, `updatedAt`.
 - **Task:** `{ id, text, description, done, doneAt, due, milestoneId }`, with dates as YYYY-MM-DD.
 - **Note:** a `title`, `text`, and `at` timestamp.
-- **Constants:** `WORLD = { N: 5, S: 4, GAP: 2, MARGIN: 2, TW: 32, TH: 16, MIN_N: 5, MAX_N: 11 }`.
+- **Constants:** `WORLD = { NU, NV, OU, OV, S: 4, GAP: 2, MARGIN: 2, TW: 32, TH: 16, MIN_N: 5, MAX_N: 11 }`, set from `world` by `setWorld`.
 
 ### Build
 
@@ -253,14 +294,14 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 
 ### Tests
 
-There are 17 passes and 447 checks, all passing at 0.1.23. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
+There are 20 passes and 619 checks, all passing at 0.1.25. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
 - **test02_map:** zoom and the map.
-- **test04_seed_data:** the data version, and the real start: a browser with nothing saved gets one project, Nullovation City.
+- **test04_seed_data:** the data version (3), the map and the city's settings in the data file, Grow and Shrink in Edit City, and the real start: a browser with nothing saved gets one project, Nullovation City.
 - **test05_bubble_art and test08_bubble_tasks:** the status bubble.
 - **test06_generics:** the generic buildings decoding, and the seven park kinds: all decoded at 256 by 128, the new ones animated in 40 frames, and no park repeating its neighbor.
 - **test07_project_view:** activity and the project view.
 - **test09_urgency:** urgency, the bubbles, the bubbles menu, and postcards.
-- **test10_sidebar:** the side bar.
+- **test10_sidebar:** the side bar: urgent, due this week, the week with the status brief beside it, the controls that moved into Settings, and the order of it all.
 - **test11_load_plan:** loading plans and tasks.
 - **test12_folder_links:** folder links.
 - **test13_traffic:** traffic and crowds; the people's facing, looks and their shares, runners, kids and dogs, the cyclists, and the glow by night.
@@ -270,6 +311,9 @@ There are 17 passes and 447 checks, all passing at 0.1.23. `python3 tests/run_te
 - **test17_source:** the source travels: no chat paths in the scripts; the layout (only `build.py` at the root, nothing written into `src/`, git leaving out what runs make, no `dist/`, `.nojekyll` in place, nothing of the decision wizard in the tool or its tests); `index.html` matching a fresh build; what the archive holds and leaves out; a byte-identical build from a copy in another folder; and applying archives safely. It needs no browser.
 - **test18_open_in_claude:** Open in Claude: the menu in every place, the links for Chat, Cowork and Claude Code with folders and files, Arabic text, a text over the limit, the builder card, the status brief, and closing with Esc or a click elsewhere.
 - **test19_street_props:** the street props: all four decoded front and back; at most two to a side; every one on its sidewalk; facing: each prop's `faces`, every prop as drawn facing its own street, and, measured on the art (the slope of its top edge), every bus stop, billboard and vending machine front standing with its long side along its street; bus stops by the pattern, vending machines mid-block, billboards by a corner, bins on a building's front sides; none on a zebra's landing; planting a building only adds its bins; drawn with the traffic off; the same after a reload; people in front or behind by depth; a bus pausing at a stop on its side and driving past one on the far side; the night colors and the neon. It saves close-ups at 4x of a bus stop and a billboard on each side, `tests/shots/191-*.png`, to look at.
+- **test20_settings:** the panel: its three ways in and Esc, the six tabs, today's controls in their new places, the bar and Settings in step, no toast for a change while actions keep theirs, the dots, Reset to defaults and Reset all settings, reopening at the same tab and place, and the gear on a narrow window. It saves every tab, `tests/shots/200-settings-*.png`.
+- **test21_city_settings:** the settings: who is out and both sliders, the 150 ceiling on 11 by 11, the crowds; street props by kind, How many (none moving) and Deal again; Auto's hours; Still and Saver; the postcard's caption and size; rest days and away until against fixed dates; Test folder links; daily backups in a folder held in memory (the day's copy, the newest 14, exported backups untouched, paused and Allow); storage use; and what a backup carries, imported into a fresh browser, with older backups bringing defaults.
+- **test22_edit_city:** lines on every side and rings, on and off again, keeping every park, crossing mark, prop, building and the ground's pixels in place; rectangles from 5 to 11; a line with a building on it staying; park picks kept by place; and Edit City itself: the arrows and when they show, framing the city and keeping the arrows in reach on 11 by 11, cycling a park, dragging a building, Grow and Shrink, and the ways out. It saves `tests/shots/220-*.png` to `224-*.png`.
 
 Every browser pass but test14_data_file starts from the test city in `tests/testkit.py`, written into the browser before the page first loads: the starter project as it was at 0.1.16, plus a made-up second project, Garden planner, on the research lab. So the passes do not depend on what a new city starts with. It is written once per tab and never on a reload. test14_data_file needs no projects and goes without it: with an init script in its browser context, its two-tab checks failed about one run in three.
 
@@ -689,13 +733,40 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
   - Project buildings: Decision Wizard, Omar Khallouf Website, Game Analysis Frameworks, Local AI, Trips App, Sync and My Home keep their generic buildings; Shop Town Dooter, Congratulations You Exist, My Talks and Give and Grow get theirs later.
   - Leaders now for seven projects: Nullovation City Hall, My Retro Life, Generals and Diplomats, Half Cards, Council of Fun Masters, Decision Wizard and Omar Khallouf Website; the rest later. Concepts are in `leaders/2026-10-07-leader-concepts.md`, one folder up from the source; they are picked through a wizard round before any portrait is made.
 
+- **Settings and Edit City (7 October 2026, two wizard rounds: `wizard-rounds/2026-10-07-settings-round1.json` and `-round2.json`, answered in `nullovation-city-settings-round-1-answers-2026-10-08.json` and `-round-2-answers-2026-10-08.json`, one folder up from the source). Built at 0.1.24; section 2, Settings and Edit City.**
+  - **The panel:** opens from both a Settings button at the bottom of the side bar and a gear on the bottom bar (P1); the side bar turns into Settings, with a back arrow (P2); tabs (P3).
+  - **Today's controls (P4):** Map size, crowds, folder links, Download palette, Export and Import, and the data file move into Settings; the Controls guide moves behind a small ? in the header; Copy status brief with Open in Claude stays outside, beside This week; Traffic, Bubbles and Time of day are in both places, in sync.
+    - Map size: Abdurrahman asked for Edit City, which shows the old Grow and Shrink, an arrow on each side adding a line in that direction, and a click on a park cycling its kind.
+  - **Ground rules (P5, all approved):** changes apply at once with no Save button; Reset to defaults per tab, and Reset all settings at the bottom behind a confirm, settings only; a dot on a setting that differs from its default; the comma key opens and closes Settings; no toast per change, while actions keep theirs; it reopens where it was left. Taken as given: Esc closes it; a setting with a bar button shares its choices and icons and stays in sync.
+  - **Where settings live (S1):** the split. The city travels in the data file and backups: map size, crowds, who is out, amounts, street props, parks, Auto's hours, rest days, away until. The computer keeps the rest: the view buttons, the camera, folder links, the data file, the daily backups folder, motion.
+  - **Now:** who is out (C1); amounts, as sliders to play with (C1); street props on or off and by kind, with an amount or distribution setting (C1), which became both a slider and Deal again (R1); parks, through Edit City (V1); the postcard's caption and size (V1); Auto's hours you set (V2); rest days and away until (U1); daily backups and storage use (D1); Test folder links (L1); motion (I1).
+  - **Edit City (round 2):** an arrow out and an arrow in on each side, the arrow in only when the line is empty and the side longer than 5 plots (E1); in Edit City a building moves with a plain drag and a click does nothing (E2).
+  - **The tabs (T1, all approved):** City (the map, Edit City, street props), Life (Traffic, who is out, the two sliders, crowds), Look (Time of day with Auto's hours, Bubbles, Motion, Postcard, Download palette), Projects (rest days, away until), Saving (the data file, daily backups, Export and Import, storage use), Links (folder links, Get the setup, Test folder links).
+  - **Opening the city on a new computer (D2):** kept manual: a new browser starts a fresh city, and you import from Settings.
+  - **Later:** the leader speech bubbles switch, with the leaders; a bin for deleted projects; Open in Claude options and desktop notifications, which would join the Links tab; interface size.
+  - **Left out:** quiet nights, city moods, name labels, a default urgency for new projects, a calendar file, a theme, sound, and an Arabic interface.
+  - **Reasoned while building (not asked in the rounds):**
+    - Adding or taking off a line or a ring keeps the parks, street marks and props with their buildings, which Grow did not: it shifted every plot and dealt everything again by grid position. The map now keeps an origin, so each plot has its place in the whole city, and everything is dealt by that place.
+      - Parks: round the origin each plot checks its neighbors nearer the origin, so no two neighbors share a kind and a park never depends on where the edge is. Today's cities keep every park.
+      - Streets: the ring road deals its own marking too, unused, so a street that stops or starts being the ring road keeps its sidewalks. At the upgrade the ring road's sidewalks and verges, the asphalt grain and the grass under the parks were dealt once more; every park, prop and crossing mark stayed.
+    - The sliders run from a quarter to twice today's counts in quarter steps, the props' slider too. Walkers off takes the crowds with them; at twice on a big map the walkers stay under the city's 150 people, and the crowds use what room is left.
+    - How many props: each has its own draw, so the slider adds or takes away without moving any; a kind turned off only takes that kind away. At today's amount with no new deal, the plan is today's.
+    - The park picks travel with the city, kept by their place, and no reset touches them: they are the city's layout, like the buildings' places. Back at the kind its place deals, a pick is dropped.
+    - Motion follows the system's reduced motion setting until one is chosen; Still stops the traffic, holds every building and park on its first frame, and stops the bubbles bobbing. The postcard's options stay on the computer, like the view buttons.
+    - Rest days and away until pause only the urgency systems; due dates count every day. From the away date every system counts from its start.
+    - Daily backups: the copy is taken the first time the city is open each day, before the day's changes, and named `nullovation-city-daily-YYYY-MM-DD.json`, so pruning never touches exported backups, which are named `nullovation-city-backup-YYYY-MM-DD.json`.
+    - The Saving tab has no Reset to defaults: the data file and the backups folder are connections, not preferences.
+    - Paused or failed saving shows under the logo, so it stays in view over the lists and over Settings.
+    - Edit City lives in Settings: closing Settings ends it, and Esc leaves Edit City first. It frames the whole city when it opens, and on a city bigger than the view its arrows stay at the view's edge.
+    - The controls guide adds the comma key and Esc. At 0.1.25 Abdurrahman had Rearrange taken out of it: it read as if moving worked anywhere, and Edit City's bar teaches it.
+
 ## 7. Open items
 
 - Leaders: build the leader card this month. The seven leaders are picked through a wizard round, then their portraits are made (6 generations a try).
 - Abdurrahman names the projects that get the new buildings (bus depot, drone port, apartment block, cafe, library). The drone port is finished; the other four have their designs picked and wait until he says (20 generations each).
 - Dirt on red: decided, and delayed (section 6, Status).
 - The month's list: all six PixelLab tests are done, so the bulk work can start.
-- Opening the city on another device, such as a first-launch prompt to open the data file: needs design.
+- Settings, later: the leader speech bubbles switch, a bin for deleted projects, Open in Claude options, desktop notifications, and interface size (section 6, Settings and Edit City).
 - Cars yielding inside crossings, the 7 by 7 speed check, and the handheld's palette: skipped for now.
 - Later: the leader figure on the map, a leader crew, and a spoken voice.
 - The stills behind three animations are not in the source: `art/sources/city-hall.png` for the city hall, and the handheld and ring tower stills in `art/projects/sources/`. Those scripts cannot run until Abdurrahman adds them.

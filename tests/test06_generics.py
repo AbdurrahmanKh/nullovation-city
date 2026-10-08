@@ -23,16 +23,16 @@ with sync_playwright() as p:
     ok('the three new park kinds animate in 40 frames', pg.evaluate(
         "() => ['playground', 'sculpture-garden', 'mini-golf'].every(id => Art.get('lot:' + id).count === 40)"))
     ok('no park shows the same kind as the one above or to the left of it', pg.evaluate("""() => {
-      const n = DB.world.size, used = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v)), ids = new Set(LOTS.map(l => l.id));
-      for (let u = 0; u < n; u++) for (let v = 0; v < n; v++) {
+      const nu = WORLD.NU, nv = WORLD.NV, used = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v)), ids = new Set(LOTS.map(l => l.id));
+      for (let u = 0; u < nu; u++) for (let v = 0; v < nv; v++) {
         const k = MapView.lotInfo(u, v).id;
         if (!ids.has(k)) return false;
         if (u > 0 && MapView.lotInfo(u - 1, v).id === k) return false;
         if (v > 0 && MapView.lotInfo(u, v - 1).id === k) return false;
       }
       return true; }"""))
-    kinds = pg.evaluate("() => { const n = DB.world.size, used = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v)), c = {}; "
-                        "for (let u = 0; u < n; u++) for (let v = 0; v < n; v++) if (!used.has(u + ',' + v)) { const k = MapView.lotInfo(u, v).id; c[k] = (c[k] || 0) + 1; } return c; }")
+    kinds = pg.evaluate("() => { const nu = WORLD.NU, nv = WORLD.NV, used = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v)), c = {}; "
+                        "for (let u = 0; u < nu; u++) for (let v = 0; v < nv; v++) if (!used.has(u + ',' + v)) { const k = MapView.lotInfo(u, v).id; c[k] = (c[k] || 0) + 1; } return c; }")
     ok('the new kinds show up in the test city', all(kinds.get(k, 0) > 0 for k in ('playground', 'sculpture-garden', 'mini-golf')))
     print('NOTE parks by kind:', kinds)
     idx = [pg.evaluate("() => Art.indexAt(Art.get('g:city-hall'), performance.now())") for _ in range(1)]

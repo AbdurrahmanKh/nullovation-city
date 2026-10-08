@@ -2,17 +2,48 @@ const BUBBLE_TODOS = 3;        // open todos shown in the bubble
 const DUE_SOON_DAYS = 3;       // todos due this soon (or overdue) jump to the top of the bubble
 const LINK_ICONS = ['doc', 'task', 'design', 'code', 'chat', 'folder', 'web'];
 
-/* The map: an N x N lattice of plots, each S x S tiles, GAP tiles of bare ground between.
-   N grows and shrinks one ring at a time (by 2), between MIN_N and MAX_N. */
-const WORLD = { N: 5, S: 4, GAP: 2, MARGIN: 2, TW: 32, TH: 16, MIN_N: 5, MAX_N: 11 };
+/* The map: NU by NV plots, each S x S tiles, GAP tiles of bare ground between. NU runs along u (down to the right on
+   screen), NV along v (down to the left); each runs from MIN_N to MAX_N. OU and OV place the grid in the whole city:
+   plot (u, v) is the city's plot (u + OU, v + OV). Everything dealt by place (parks, street details, props) is dealt
+   by the city's plot, so it stays with its buildings when a line or a ring is added or taken off. */
+const WORLD = { NU: 5, NV: 5, OU: 0, OV: 0, S: 4, GAP: 2, MARGIN: 2, TW: 32, TH: 16, MIN_N: 5, MAX_N: 11 };
 WORLD.PITCH = WORLD.S + WORLD.GAP;
-function setWorldSize(n) {
-  WORLD.N = n;
-  WORLD.TILES = WORLD.MARGIN * 2 + n * WORLD.S + (n - 1) * WORLD.GAP;
+const spanTiles = n => WORLD.MARGIN * 2 + n * WORLD.S + (n - 1) * WORLD.GAP;
+function setWorld(w) {
+  WORLD.NU = w.nu; WORLD.NV = w.nv; WORLD.OU = w.ou; WORLD.OV = w.ov;
+  WORLD.TI = spanTiles(w.nu); WORLD.TJ = spanTiles(w.nv);
 }
-setWorldSize(5);
+const worldState = () => ({ nu: WORLD.NU, nv: WORLD.NV, ou: WORLD.OU, ov: WORLD.OV });
+setWorld({ nu: 5, nv: 5, ou: 0, ov: 0 });
 
-let DB = { app: 'nullovation-city', version: 2, world: { size: 5 }, projects: [] };
+/* The city's settings: what the city is like, so they travel with it in the data file and every backup. How this
+   computer shows the city (the bar's buttons, motion, the postcard, folder links) stays in this browser instead.
+   parks holds the kinds picked in Edit City, by the city's plot; it is the city's layout, so no reset touches it. */
+const CITY_DEFAULTS = {
+  crowd: 'medium', cars: true, buses: true, drones: true, cyclists: true, walkers: true, street: 1, walk: 1,
+  props: true, busstop: true, vending: true, billboard: true, bin: true, amount: 1, deal: 0,
+  night: '19:00', day: '06:30', rest: [], away: '',
+};
+const AMOUNTS = { min: 0.25, max: 2, step: 0.25 };   // the sliders: a quarter to twice today's counts
+function sanitizeCity(raw, crowdFallback = null) {
+  const r = raw && typeof raw === 'object' ? raw : {}, out = {};
+  const CROWDS = ['none', 'small', 'medium', 'large'];
+  for (const [k, d] of Object.entries(CITY_DEFAULTS)) {           // in the defaults' order, so files read alike
+    const v = r[k];
+    if (k === 'crowd') out[k] = CROWDS.includes(v) ? v : CROWDS.includes(crowdFallback) ? crowdFallback : d;
+    else if (typeof d === 'boolean') out[k] = typeof v === 'boolean' ? v : d;
+    else if (k === 'deal') out[k] = Number.isInteger(v) && v >= 0 ? v : d;
+    else if (typeof d === 'number') out[k] = typeof v === 'number' && isFinite(v) ? clamp(Math.round(v / AMOUNTS.step) * AMOUNTS.step, AMOUNTS.min, AMOUNTS.max) : d;
+    else if (k === 'night' || k === 'day') out[k] = typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : d;
+    else if (k === 'rest') out[k] = Array.isArray(v) ? [...new Set(v.filter(x => Number.isInteger(x) && x >= 0 && x <= 6))].sort() : [];
+    else if (k === 'away') out[k] = parseYmd(v) != null ? v : '';
+  }
+  out.parks = {};
+  if (r.parks && typeof r.parks === 'object') for (const [k, v] of Object.entries(r.parks)) if (/^-?\d+,-?\d+$/.test(k) && typeof v === 'string') out.parks[k] = v.slice(0, 60);
+  return out;
+}
+
+let DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null), projects: [] };
 
 const App = {
   selectedId: null,
@@ -23,7 +54,7 @@ function getProject(id) { return DB.projects.find(p => p.id === id) || null; }
 function projectAt(u, v, list = DB.projects) { return list.find(p => p.plot.u === u && p.plot.v === v) || null; }
 function freePlots() {
   const out = [];
-  for (let v = 0; v < WORLD.N; v++) for (let u = 0; u < WORLD.N; u++) if (!projectAt(u, v)) out.push({ u, v });
+  for (let v = 0; v < WORLD.NV; v++) for (let u = 0; u < WORLD.NU; u++) if (!projectAt(u, v)) out.push({ u, v });
   return out;
 }
 
@@ -245,15 +276,15 @@ function sanitizeProjects(raw) {
     backfillActivity(p);
     const u = r.plot && Number.isInteger(r.plot.u) ? r.plot.u : -1;
     const v = r.plot && Number.isInteger(r.plot.v) ? r.plot.v : -1;
-    p.plot = (u >= 0 && v >= 0 && u < WORLD.N && v < WORLD.N && !taken.has(u + ',' + v)) ? { u, v } : null;
+    p.plot = (u >= 0 && v >= 0 && u < WORLD.NU && v < WORLD.NV && !taken.has(u + ',' + v)) ? { u, v } : null;
     if (p.plot) taken.add(u + ',' + v);
     out.push({ p, raw: r });
   }
   /* Anything without a valid plot takes the free plot nearest the middle. */
-  const mid = (WORLD.N - 1) / 2;
+  const mu = (WORLD.NU - 1) / 2, mv = (WORLD.NV - 1) / 2;
   const spare = [];
-  for (let v = 0; v < WORLD.N; v++) for (let u = 0; u < WORLD.N; u++) if (!taken.has(u + ',' + v)) spare.push({ u, v });
-  spare.sort((a, b) => Math.hypot(a.u - mid, a.v - mid) - Math.hypot(b.u - mid, b.v - mid));
+  for (let v = 0; v < WORLD.NV; v++) for (let u = 0; u < WORLD.NU; u++) if (!taken.has(u + ',' + v)) spare.push({ u, v });
+  spare.sort((a, b) => Math.hypot(a.u - mu, a.v - mv) - Math.hypot(b.u - mu, b.v - mv));
   const kept = [];
   for (const item of out) {
     if (!item.p.plot) {
@@ -274,9 +305,10 @@ function persistNow() {
   if (typeof DataFile !== 'undefined') DataFile.writeSoon();
   return ok;
 }
-/* The complete backup: every project, with block art inlined. Used by export and the data file. */
+/* The complete backup: the map, the city's settings, and every project with block art inlined. Used by export, the
+   data file and the daily backups. */
 async function buildBackup() {
-  const out = { app: 'nullovation-city', version: 2, exportedAt: new Date().toISOString(), world: { size: WORLD.N }, projects: [] };
+  const out = { app: 'nullovation-city', version: 3, exportedAt: new Date().toISOString(), world: worldState(), city: JSON.parse(JSON.stringify(DB.city)), projects: [] };
   for (const p of DB.projects) {
     const q = JSON.parse(JSON.stringify(p));
     if (p.art.has) { const url = await Store.getArt(p.id) || (Art.get(p.id) || {}).url; if (url) q.art.dataUrl = url; }
@@ -284,9 +316,13 @@ async function buildBackup() {
   }
   return out;
 }
-function worldSizeFrom(data) {
-  const n = data && data.world && Number.isInteger(data.world.size) ? data.world.size : 5;
-  return clamp(n % 2 ? n : n + 1, WORLD.MIN_N, WORLD.MAX_N);
+/* The map a database or backup holds. Before version 3 a map was square, N by N, placed at the city's origin. */
+function worldFrom(data) {
+  const w = data && data.world && typeof data.world === 'object' ? data.world : {};
+  const side = n => clamp(n, WORLD.MIN_N, WORLD.MAX_N), int = x => Number.isInteger(x) ? x : 0;
+  if (Number.isInteger(w.nu) && Number.isInteger(w.nv)) return { nu: side(w.nu), nv: side(w.nv), ou: int(w.ou), ov: int(w.ov) };
+  const n = Number.isInteger(w.size) ? w.size : 5, sq = side(n % 2 ? n : n + 1);
+  return { nu: sq, nv: sq, ou: 0, ov: 0 };
 }
 /* Call after any change. touch updates the project's last-updated time. */
 function changed(p, { touch = true, redraw = true } = {}) {
@@ -346,6 +382,25 @@ function urgencyName(p) {
 /* Work, for urgency, is ticking a task done or pressing I worked!. */
 function markWorked(p, now = Date.now()) { p.urgency.lastWorked = now; }
 function iWorked(p) { markWorked(p); logActivity(p, 'I worked!'); }
+/* The time an urgency system counts between two moments: rest days (the city's setting) do not count, nor does any
+   time before the day you come back from being away. Due dates are not counted here: they count every day. */
+function countedMs(from, to) {
+  const c = DB.city || {}, back = parseYmd(c.away), rest = new Set(c.rest || []);
+  const a = Math.max(from, back != null ? back : -Infinity);
+  if (!(to > a)) return 0;
+  if (!isFinite(a)) return Infinity;
+  if (!rest.size) return to - a;
+  let n = 0;
+  for (let d = startOfDay(a); d < to;) {
+    const next = new Date(d); next.setDate(next.getDate() + 1);
+    const s = Math.max(d, a), e = Math.min(next.getTime(), to);
+    if (e > s && !rest.has(new Date(d).getDay())) n += e - s;
+    d = next.getTime();
+  }
+  return n;
+}
+/* Away: until that day no urgency system turns a building yellow or red. */
+const awayNow = (now = Date.now()) => { const back = DB.city ? parseYmd(DB.city.away) : null; return back != null && startOfDay(now) < back; };
 /* What floats over a building: red or yellow, how many distinct things need you, and why.
    Red: open tasks with less than 2 days left or overdue, or a system gone red. Yellow: a system waiting. */
 function urgencyOf(p, now = Date.now()) {
@@ -354,18 +409,21 @@ function urgencyOf(p, now = Date.now()) {
   const u = p.urgency || { system: 'none' };
   let sys = null, why = '';
   const span = d => d === 1 ? '24 hours' : d + ' days';
-  if (u.system === 'finish' && open.length) {
-    const fresh = u.lastWorked && now - u.lastWorked < 24 * HOUR;
+  const away = awayNow(now), rested = DB.city && DB.city.rest && DB.city.rest.length ? ', not counting rest days' : '';
+  if (away) { /* systems wait until the day you come back; due dates still count */ }
+  else if (u.system === 'finish' && open.length) {
+    const fresh = countedMs(u.lastWorked || -Infinity, now) < 24 * HOUR;
     sys = fresh ? 'yellow' : 'red';
-    why = (fresh ? 'A task was finished in the last 24 hours' : 'No task finished in the last 24 hours') + '; ' + plural(open.length, 'task', 'tasks') + ' left to finish';
+    why = (fresh ? 'A task was finished in the last 24 hours' : 'No task finished in the last 24 hours') + rested + '; ' + plural(open.length, 'task', 'tasks') + ' left to finish';
   } else if (u.system === 'pace') {
     const N = Math.max(1, u.days || 1) * DAY, start = u.pickedAt || now;
     const worked = u.lastWorked && u.lastWorked >= start;
-    const gone = now - (worked ? u.lastWorked : start - N);
+    const gone = worked ? countedMs(u.lastWorked, now) : countedMs(start, now) + N;
     if (gone >= N) {
       sys = gone >= 2 * N ? 'red' : 'yellow';
       why = worked ? 'No task finished in the last ' + span(gone >= 2 * N ? 2 * u.days : u.days) : 'No task finished since ' + urgencyName(p).toLowerCase() + ' was set';
       if (!worked && sys === 'red') why += ', ' + span(u.days) + ' ago';
+      why += rested;
     }
   }
   const ids = new Set(due.map(t => t.id));

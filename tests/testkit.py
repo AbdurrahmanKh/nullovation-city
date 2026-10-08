@@ -110,6 +110,19 @@ _DRAW = {
 }
 
 
+def open_settings(pg, tab):
+    """Opens Settings on one tab, the way a click on its button and then the tab does."""
+    if not pg.is_visible('#settings'):
+        pg.click('#btnOpenSettings')
+    pg.click(f'#setTabs [data-tab="{tab}"]'); pg.wait_for_timeout(150)
+
+
+def close_settings(pg):
+    """Back to the side bar's lists."""
+    if pg.is_visible('#settings'):
+        pg.click('#setBack'); pg.wait_for_timeout(150)
+
+
 def fixture(name):
     """The path of a test file, drawn the first time it is asked for."""
     path = DATA / name

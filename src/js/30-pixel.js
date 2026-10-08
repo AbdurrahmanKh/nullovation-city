@@ -86,13 +86,21 @@ const Light = (() => {
   let mode = 'auto', t = -1;
   const subs = [], cache = new Map();
   try { const m = localStorage.getItem('nullovation-city:light'); if (m === 'day' || m === 'night' || m === 'auto' || m === 'dusk') mode = m; } catch (e) {}
-  /* Night from 19:00 to 05:00, day from 06:30 to 17:30, with dawn and dusk blending in between. */
+  /* Auto's hours are the city's: night starts at 19:00 and day at 06:30 unless set, with dusk and dawn blending over
+     the 90 minutes before each. Times wrap round midnight, so any two hours work. */
+  const BLEND = 90;
+  const minutes = s => { const m = /^(\d\d):(\d\d)$/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
+  function hours() {
+    const c = typeof DB !== 'undefined' && DB.city ? DB.city : {};
+    return { night: minutes(c.night) ?? 1140, day: minutes(c.day) ?? 390 };
+  }
+  const since = (m, from) => ((m - from) % 1440 + 1440) % 1440;     // minutes from `from` forward to m
   function fromClock(d = new Date()) {
-    const m = d.getHours() * 60 + d.getMinutes();
-    if (m >= 390 && m < 1050) return 0;
-    if (m >= 1050 && m < 1140) return (m - 1050) / 90;
-    if (m >= 300 && m < 390) return 1 - (m - 300) / 90;
-    return 1;
+    const m = d.getHours() * 60 + d.getMinutes(), { night, day } = hours();
+    const dusk = since(m, night - BLEND), dawn = since(m, day - BLEND);
+    if (dusk < BLEND) return dusk / BLEND;
+    if (dawn < BLEND) return 1 - dawn / BLEND;
+    return since(m, day) < since(night - BLEND, day) ? 0 : 1;        // between day's start and dusk: day
   }
   const target = () => mode === 'day' ? 0 : mode === 'night' ? 1 : mode === 'dusk' ? 0.5 : Math.round(fromClock() * 8) / 8;   // dusk: the halfway light
   function update() {
@@ -120,9 +128,29 @@ const Light = (() => {
     const a = hexToRgb(day), b = hexToRgb(night);
     return '#' + a.map((c, i) => Math.round(c + (b[i] - c) * t).toString(16).padStart(2, '0')).join('');
   }
-  const phase = () => mode === 'dusk' ? 'dusk' : t <= 0 ? 'day' : t >= 1 ? 'night' : (new Date().getHours() < 12 ? 'dawn' : 'dusk');
+  const phase = () => {
+    if (mode === 'dusk') return 'dusk';
+    if (t <= 0) return 'day';
+    if (t >= 1) return 'night';
+    const d = new Date(), m = d.getHours() * 60 + d.getMinutes();
+    return since(m, hours().day - BLEND) < BLEND ? 'dawn' : 'dusk';
+  };
   update();
-  return { update, setMode, rgb, mixHex, phase, onChange: f => subs.push(f), get t() { return t; }, get mode() { return mode; } };
+  return { update, setMode, rgb, mixHex, phase, fromClock, onChange: f => subs.push(f), get t() { return t; }, get mode() { return mode; } };
+})();
+
+/* Motion, on this computer: Full, Saver at 30 frames a second, or Still, with nothing moving. Until one is chosen it
+   follows the system: Still when the system asks for reduced motion, Full otherwise. */
+const Motion = (() => {
+  const KEY = 'nullovation-city:motion', MODES = ['full', 'saver', 'still'];
+  let chosen = (() => { try { const v = localStorage.getItem(KEY); return MODES.includes(v) ? v : null; } catch (e) { return null; } })();
+  const dflt = () => reducedMotion() ? 'still' : 'full';
+  const mode = () => chosen || dflt();
+  function set(v) {
+    chosen = MODES.includes(v) ? v : null;                         // null: follow the system again
+    try { if (chosen) localStorage.setItem(KEY, chosen); else localStorage.removeItem(KEY); } catch (e) { /* this visit only */ }
+  }
+  return { mode, dflt, set, still: () => mode() === 'still', saver: () => mode() === 'saver', MODES };
 })();
 function shadeData(d) {
   if (Light.t <= 0) return d;
@@ -428,6 +456,12 @@ const ICONS = {
   download: ['....##....', '....##....', '....##....', '.#..##..#.', '.##.##.##.', '..######..', '...####...', '....##....', '#........#', '##########'],
   clock: ['...####...', '.##....##.', '.#..#...#.', '#...#....#', '#...###..#', '#........#', '.#......#.', '.##....##.', '...####...', '..........'],
   copy: ['...######.', '...#....#.', '######..#.', '#....#..#.', '#....#..#.', '#....####.', '#....#....', '#....#....', '######....', '..........'],
+  gear: ['....##....', '.#.####.#.', '..######..', '.###..###.', '####..####', '####..####', '.###..###.', '..######..', '.#.####.#.', '....##....'],
+  back: ['..........', '....#.....', '...##.....', '..########', '.#########', '..########', '...##.....', '....#.....', '..........', '..........'],
+  help: ['..####..', '.##..##.', '.....##.', '....##..', '...##...', '...##...', '........', '...##...', '...##...', '........'],
+  walker: ['....##....', '....##....', '..........', '...####...', '..#.##.#..', '..#.##.#..', '....##....', '...#..#...', '...#..#...', '..##..##..'],
+  disk: ['#########.', '#+#....#+#', '#+#....#+#', '#+######+#', '#++++++++#', '#+######+#', '#+#....#+#', '#+#....#+#', '#+######+#', '##########'],
+  arrow: ['######....', '######....', '####......', '##.##.....', '##..##....', '##...##...', '......##..', '.......##.', '........##', '..........'],
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
 const ICON_NAMES = { doc: 'Doc', task: 'Task', design: 'Design', code: 'Code', chat: 'Chat', folder: 'Folder', web: 'Web' };
@@ -561,7 +595,7 @@ const Art = (() => {
     for (const q of list) g.drawImage(q.c, x + q.x * s, y + q.y * s, q.w * s, q.h * s);
   }
   function indexAt(a, t) {
-    if (!a.animated) return 0;
+    if (!a.animated || Motion.still()) return 0;           // Still: every building and park on its first frame
     let m = t % a.total;
     for (let i = 0; i < a.delays.length; i++) { m -= a.delays[i]; if (m < 0) return i; }
     return a.count - 1;

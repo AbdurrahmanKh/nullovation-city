@@ -36,32 +36,10 @@ const Menu = (() => {
     $('#bannerCancel').addEventListener('click', () => MapView.cancelMode());
 
     $('#btnRecap').addEventListener('click', () => { closeDrawer(); openRecap(); });
-    for (const id of ['foldTools', 'foldData']) {                  // each collapsible remembers whether it was open
-      const d = $('#' + id), key = 'nullovation-city:' + id;
-      try { d.open = localStorage.getItem(key) === '1'; } catch (e) { /* closed */ }
-      d.addEventListener('toggle', () => { try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { /* this visit only */ } });
-    }
-    $('#btnPalette').addEventListener('click', () => paletteCanvas().toBlob(blob => {
-      if (!blob) return;
-      downloadBlob(blob, 'nullovation-city-palette.png');
-      toast('Palette saved: 32 colors as 8 px swatches.');
-    }, 'image/png'));
+    /* The status brief starts a planning chat, so it sits with the week rather than in Settings. */
     $('#btnBrief').addEventListener('click', copyBrief);
-    $('#btnBrief').after(OpenInClaude.button({ id: 'btnBriefClaude', text: () => statusBrief(), small: false }));
-    const cr = $('#optCrowds');
-    cr.value = Traffic.crowd();
-    cr.addEventListener('change', () => { Traffic.setCrowd(cr.value); toast({ none: 'No crowds round busy buildings.', small: 'Small crowds round busy buildings.', medium: 'Medium crowds round busy buildings.', large: 'Large crowds round busy buildings.' }[cr.value]); });
-    const ex = $('#optExplorer');
-    ex.checked = explorerLinks();
-    ex.addEventListener('change', () => {
-      try { localStorage.setItem(EXPLORER_KEY, ex.checked ? '1' : '0'); } catch (e) { /* this visit only */ }
-      FullView.render();
-      toast(ex.checked ? 'Folder links now open in File Explorer, once the Windows setup has run on this PC.' : 'Folder links open in the browser again.');
-    });
-    $('#btnFolderSetup').addEventListener('click', () => {
-      downloadBlob(new Blob([FOLDER_SETUP_PS1], { type: 'text/plain' }), 'nullovation-folder-links.ps1');
-      toast('Saved nullovation-folder-links.ps1. Right-click it, choose Run with PowerShell, then turn on the setting.');
-    });
+    $('#btnBrief').after(OpenInClaude.button({ id: 'btnBriefClaude', text: () => statusBrief(), small: true }));
+    /* Edit City's bar: the ring as before, and Done */
     $('#btnGrow').addEventListener('click', () => { if (MapView.resizeWorld(1)) toast('Added a ring of plots.'); });
     $('#btnShrink').addEventListener('click', () => {
       if (!MapView.outerRingEmpty()) { toast('The outer ring has buildings on it. Move them inward first.', 'error'); return; }
@@ -70,6 +48,7 @@ const Menu = (() => {
     $('#btnExport').addEventListener('click', exportAll);
     $('#btnImport').addEventListener('click', () => $('#fileImport').click());
     $('#fileImport').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importFile(f); });
+    $('#btnEditDone').addEventListener('click', () => { MapView.setEditing(false); Settings.refresh(); });
     $('#menuToggle').addEventListener('click', () => toggleDrawer());
     $('#menuClose').innerHTML = iconSvg('close', 18);
     $('#menuClose').addEventListener('click', () => { closeDrawer(); $('#menuToggle').focus(); });
@@ -122,10 +101,7 @@ const Menu = (() => {
   function refresh() {
     if (!countEl) return;
     renderUrgent(); renderDue(); renderWeek();
-    const n = WORLD.N;
-    $('#mapSize').textContent = n + ' by ' + n + ' plots';
-    $('#btnGrow').disabled = n >= WORLD.MAX_N;
-    $('#btnShrink').disabled = n <= WORLD.MIN_N;
+    $('#mapSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
     const total = DB.projects.length;
     countEl.replaceChildren();
     if (!total) { countEl.append('No projects yet. Use New project to put up the first building.'); return; }
@@ -146,7 +122,7 @@ const Menu = (() => {
       ? 'Saving failed because browser storage is full. Export a backup now.'
       : 'Not saving: this browser blocks storage for local files. Export a backup before closing.';
     saveEl.classList.add('bad');
-    if (alertEl) { alertEl.textContent = saveEl.textContent; alertEl.hidden = false; }      // something is wrong: it shows outside the collapsible
+    if (alertEl) { alertEl.textContent = saveEl.textContent; alertEl.hidden = false; }      // something is wrong: it shows in the side bar too
   }
 
   async function exportAll() {
@@ -162,7 +138,7 @@ const Menu = (() => {
   /* One exported project joins the city on the first free plot; it never replaces anything. */
   async function importProject(data) {
     const free = [];
-    for (let v = 0; v < WORLD.N; v++) for (let u = 0; u < WORLD.N; u++) if (!DB.projects.some(p => p.plot && p.plot.u === u && p.plot.v === v)) free.push({ u, v });
+    for (let v = 0; v < WORLD.NV; v++) for (let u = 0; u < WORLD.NU; u++) if (!DB.projects.some(p => p.plot && p.plot.u === u && p.plot.v === v)) free.push({ u, v });
     if (!free.length) { toast('Every plot is taken. Grow the map, then import the project again.', 'error'); return; }
     const raw = Object.assign({}, data.project, { id: uid('p'), plot: free[0] });
     const [item] = sanitizeProjects([raw]);
@@ -183,10 +159,10 @@ const Menu = (() => {
     try { data = JSON.parse(await file.text()); } catch (e) { toast('That file is not valid JSON. Pick a backup exported from Nullovation City.', 'error'); return; }
     if (data && data.kind === 'project' && data.project) { await importProject(data); return; }
     if (!data || !Array.isArray(data.projects)) { toast('That file has no projects list, so it is not a Nullovation City backup.', 'error'); return; }
-    const prevSize = WORLD.N;
-    setWorldSize(worldSizeFrom(data));           // a backup restores its own map size
+    const prevWorld = worldState();
+    setWorld(worldFrom(data));                   // a backup restores its own map, and the city's settings with it
     const items = sanitizeProjects(data.projects);
-    setWorldSize(prevSize);
+    setWorld(prevWorld);
     const ok = await Confirm.ask({
       title: 'Replace your projects?',
       body: 'This replaces the ' + DB.projects.length + ' project' + (DB.projects.length === 1 ? '' : 's') + ' in this browser with the ' + items.length + ' in the backup.',
@@ -195,9 +171,11 @@ const Menu = (() => {
     if (!ok) return;
     FullView.close(); MapView.deselect(); MapView.cancelMode();
     for (const p of DB.projects) { await Store.deleteArt(p.id); Art.drop(p.id); MapView.dropCache(p.id); }
-    setWorldSize(worldSizeFrom(data));
-    DB.world = { size: WORLD.N };
+    setWorld(worldFrom(data));
+    DB.world = worldState();
+    DB.city = sanitizeCity(data.city);           // a backup from before version 3 brings default settings
     MapView.applyWorld();
+    Traffic.reset();
     DB.projects = items.map(x => x.p);
     let lost = 0;
     for (const { p, raw } of items) {
@@ -212,6 +190,7 @@ const Menu = (() => {
       } catch (e) { /* skip unreadable art */ }
     }
     persistNow();
+    Light.update(); Settings.refresh();          // the city's settings came with it: Auto's hours, props, life
     MapView.frameAll(); MapView.invalidate(); refresh();
     const dropped = data.projects.length - items.length;
     let msg = 'Imported ' + items.length + (items.length === 1 ? ' project.' : ' projects.');
@@ -228,5 +207,5 @@ const Menu = (() => {
   }
   const closeDrawer = () => toggleDrawer(false);
 
-  return { init, refresh, setSaveStatus, closeDrawer };
+  return { init, refresh, setSaveStatus, closeDrawer, toggleDrawer };
 })();

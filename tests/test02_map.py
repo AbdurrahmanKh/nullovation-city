@@ -1,6 +1,6 @@
 import datetime, json, pathlib
 from playwright.sync_api import sync_playwright
-from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY
+from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY, open_settings, close_settings
 
 errors = []
 def attach(page):
@@ -134,7 +134,7 @@ with sync_playwright() as p:
 
     # export, then import it back
     with page.expect_download() as dl:
-        page.evaluate("() => { document.querySelector('#foldData').open = true; }"); page.click('#btnExport')
+        open_settings(page, 'saving'); page.click('#btnExport')
     path = dl.value.path(); data = json.loads(pathlib.Path(path).read_text())
     ok(f"export has {len(data['projects'])} projects with art", len(data['projects']) == 3 and any('dataUrl' in q['art'] for q in data['projects']))
     (DATA / 'backup.json').write_text(json.dumps(data), encoding='utf-8')

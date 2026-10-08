@@ -10,7 +10,7 @@ const Traffic = (() => {
   const keyOf = v => Object.keys(HEADS).find(k => HEADS[k][0] === v[0] && HEADS[k][1] === v[1]);
   const R = Math.random;
   const pickW = list => { let s = 0; for (const x of list) s += x[1]; let r = R() * s; for (const x of list) if ((r -= x[1]) < 0) return x[0]; return list.length ? list[list.length - 1][0] : null; };
-  let N = 0, ready = false, cars = [], people = [], riders = [], drones = [], busy = new Map(), weights = new Map(), seats = new Map();
+  let NU = 0, NV = 0, wkey = '', ready = false, cars = [], people = [], riders = [], drones = [], busy = new Map(), weights = new Map(), seats = new Map();
   let last = 0, lastDraw = 0, lastW = 0;
   const S = () => WORLD.S, PITCH = () => WORLD.PITCH;
   const roadC = r => r * WORLD.PITCH + WORLD.GAP / 2;          // a road's centre line, in tiles
@@ -31,15 +31,15 @@ const Traffic = (() => {
   function refreshWeights(now = Date.now()) {
     weights = new Map();
     const lay = MapView.layout();
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) {
+    for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) {
       const p = lay.get(u + ',' + v);
       weights.set(u + ',' + v, p ? 0.03 + 0.97 * busyness(p, now) : 0.1);   // parks: a few people pass through and sit
     }
   }
   const BUSY = 0.3;                                             // at or above this, a building draws its own crowd
-  const CROWD_KEY = 'nullovation-city:crowds', CROWD_PER = { none: 0, small: 8, medium: 14, large: 20 }, CEILING = 150;
-  let crowd = (() => { try { const v = localStorage.getItem(CROWD_KEY); return v in CROWD_PER ? v : 'medium'; } catch (e) { return 'medium'; } })();
-  const wAt = (u, v) => (u < 0 || v < 0 || u >= N || v >= N) ? 0 : (weights.get(u + ',' + v) ?? 0);
+  /* The crowd size and who is out are the city's settings (DB.city), so they travel with it. */
+  const CROWD_PER = { none: 0, small: 8, medium: 14, large: 20 }, CEILING = 150;
+  const wAt = (u, v) => (u < 0 || v < 0 || u >= NU || v >= NV) ? 0 : (weights.get(u + ',' + v) ?? 0);
   const projectAt = (u, v) => MapView.layout().get(u + ',' + v) || null;
 
   /* ---------- cars and the bus ---------- */
@@ -50,7 +50,7 @@ const Traffic = (() => {
     return [[ri - 1, rj - 1], [ri, rj - 1]];
   };
   const edgeW = (ri, rj, h) => 0.08 + 2 * edgeLots(ri, rj, h).reduce((s, [u, v]) => s + wAt(u, v), 0);
-  const validEdge = (ri, rj, h) => { const [a, b] = HEADS[h]; const ti = ri + a, tj = rj + b; return ti >= 0 && tj >= 0 && ti <= N && tj <= N; };
+  const validEdge = (ri, rj, h) => { const [a, b] = HEADS[h]; const ti = ri + a, tj = rj + b; return ti >= 0 && tj >= 0 && ti <= NU && tj <= NV; };
   function carPos(c) {
     const [a, b] = HEADS[c.h], [ra, rb] = rightOf(c.h);
     return [roadC(c.ri) + a * c.t + ra * LANE, roadC(c.rj) + b * c.t + rb * LANE];
@@ -60,7 +60,7 @@ const Traffic = (() => {
     const along = c.h[0] === 'i', plus = c.h[1] === '+';
     const road = along ? c.rj : c.ri, from = along ? c.ri : c.rj;
     const li = plus ? from : from - 1;
-    if (li < 0 || li >= N) return null;
+    if (li < 0 || li >= (along ? NU : NV)) return null;
     const e = plus ? 1 : 0, E = plus ? lotA0(li) + S() : lotA0(li);
     const sign = plus ? 1 : -1, half = c.len / 2, base = roadC(from);
     const tAt = front => (front - sign * half - base) * sign;
@@ -69,7 +69,7 @@ const Traffic = (() => {
   }
   function spawnCar(type) {
     const edges = [];
-    for (let ri = 0; ri <= N; ri++) for (let rj = 0; rj <= N; rj++) for (const h of Object.keys(HEADS)) if (validEdge(ri, rj, h)) edges.push([[ri, rj, h], edgeW(ri, rj, h)]);
+    for (let ri = 0; ri <= NU; ri++) for (let rj = 0; rj <= NV; rj++) for (const h of Object.keys(HEADS)) if (validEdge(ri, rj, h)) edges.push([[ri, rj, h], edgeW(ri, rj, h)]);
     for (let tries = 0; tries < 30; tries++) {
       const [ri, rj, h] = pickW(edges);
       const c = { type, ri, rj, h, t: 0.6 + R() * (PITCH() - 2), next: null, wait: 0, stopped: false,
@@ -148,9 +148,9 @@ const Traffic = (() => {
       if (MapView.crossMark(li, road, along, e) === 'zebra') out.push({ p, u2, v2, p2, key: li + ',' + road + ',' + (along ? 1 : 2) + ',' + e, from, to });
     };
     if (v > 0) { const J = lotA0(v - 1) + S() + SW / 2; for (const [e, iz] of [[0, a0 + 0.23], [1, a1 - 0.23]]) add(u, v, true, e, [iz, J0], [iz, J], u, v - 1, iz - I0, 2 * s + (I1 - iz)); }
-    if (v < N - 1) { const J = lotA0(v + 1) - SW / 2; for (const [e, iz] of [[0, a0 + 0.23], [1, a1 - 0.23]]) add(u, v + 1, true, e, [iz, J1], [iz, J], u, v + 1, 2 * s + (I1 - iz), iz - I0); }
+    if (v < NV - 1) { const J = lotA0(v + 1) - SW / 2; for (const [e, iz] of [[0, a0 + 0.23], [1, a1 - 0.23]]) add(u, v + 1, true, e, [iz, J1], [iz, J], u, v + 1, 2 * s + (I1 - iz), iz - I0); }
     if (u > 0) { const I = lotA0(u - 1) + S() + SW / 2; for (const [e, jz] of [[0, b0 + 0.23], [1, b1 - 0.23]]) add(v, u, false, e, [I0, jz], [I, jz], u - 1, v, 3 * s + (J1 - jz), s + (jz - J0)); }
-    if (u < N - 1) { const I = lotA0(u + 1) - SW / 2; for (const [e, jz] of [[0, b0 + 0.23], [1, b1 - 0.23]]) add(v, u + 1, false, e, [I1, jz], [I, jz], u + 1, v, s + (jz - J0), 3 * s + (J1 - jz)); }
+    if (u < NU - 1) { const I = lotA0(u + 1) - SW / 2; for (const [e, jz] of [[0, b0 + 0.23], [1, b1 - 0.23]]) add(v, u + 1, false, e, [I1, jz], [I, jz], u + 1, v, s + (jz - J0), 3 * s + (J1 - jz)); }
     return out;
   }
   const crossCache = new Map();
@@ -195,17 +195,25 @@ const Traffic = (() => {
     return { u, v, p, dir: R() < 0.5 ? 1 : -1, sp: 0.6 + R() * 0.3, mode: 'walk', alpha: 1, walked: R(),
       look: Object.assign(newLook(), { frame: pickI(BIKES) }) };
   }
-  const riderCount = () => Math.round(2 * N * N / 25);
+  /* How many of each are out: today's counts on a 5 by 5 map, scaled with the map's area and by the two sliders,
+     street traffic (cars, buses, drones) and walkers (people and cyclists); each kind can be kept in. The walkers stay
+     under the city's ceiling of 150 people, and the crowds round busy buildings take what room is left. */
+  const area = () => NU * NV / 25;
+  const riderCount = () => DB.city.cyclists ? Math.round(2 * area() * DB.city.walk) : 0;
+  function vehicleCounts() {
+    const c = DB.city, m = c.street, few = Math.max(1, Math.round(2 * area() * m));
+    return { cars: c.cars ? Math.max(0, Math.round(16 * area() * m) - 2 * few) : 0, buses: c.buses ? few : 0, drones: c.drones ? few : 0 };
+  }
   function blockPick() {
     const list = [];
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) list.push([[u, v], wAt(u, v) + 0.03]);
+    for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) list.push([[u, v], wAt(u, v) + 0.03]);
     return pickW(list);
   }
   function spawnPerson() { const [u, v] = blockPick(); return newPerson(u, v, R() * PER()); }
   /* Someone steps out of a building you worked on recently, or out of a park when there are none. */
   function personFromBuilding(at = null) {
     const list = [];
-    if (!at) for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) if (projectAt(u, v)) list.push([[u, v], wAt(u, v) + 0.02]);
+    if (!at) for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) if (projectAt(u, v)) list.push([[u, v], wAt(u, v) + 0.02]);
     if (!at && !list.length) return spawnPerson();
     const [u, v] = at || pickW(list), s = SIDE();
     const front = R() < 0.5 ? 1 : 2, f = 0.6 + R() * (s - 1.2), p = front * s + f;
@@ -219,13 +227,13 @@ const Traffic = (() => {
   /* The extras each busy building should have, in proportion to how busy it is. */
   function extraTargets() {
     const busyOnes = [];
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) if (projectAt(u, v) && wAt(u, v) >= BUSY) busyOnes.push([u + ',' + v, wAt(u, v)]);
-    const out = new Map(), per = CROWD_PER[crowd];
+    for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) if (projectAt(u, v) && wAt(u, v) >= BUSY) busyOnes.push([u + ',' + v, wAt(u, v)]);
+    const out = new Map(), per = DB.city.walkers ? CROWD_PER[DB.city.crowd] || 0 : 0;
     const room = Math.max(0, CEILING - baseCount()), scale = busyOnes.length * per > room ? room / (busyOnes.length * per) : 1;
     for (const [k] of busyOnes) out.set(k, Math.floor(per * scale));
     return out;
   }
-  const baseCount = () => Math.round(20 * N * N / 25);
+  const baseCount = () => DB.city.walkers ? Math.min(CEILING, Math.round(20 * area() * DB.city.walk)) : 0;
   let lastBalance = 0;
   function balanceExtras(now) {
     const want = extraTargets(), have = new Map();
@@ -331,7 +339,7 @@ const Traffic = (() => {
   /* ---------- delivery drones: hops between the buildings you are busy with ---------- */
   function droneTarget() {
     const list = [];
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) list.push([[u, v], (projectAt(u, v) ? wAt(u, v) : 0.02) + 0.01]);
+    for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) list.push([[u, v], (projectAt(u, v) ? wAt(u, v) : 0.02) + 0.01]);
     const [u, v] = pickW(list);
     return [lotA0(u) + S() / 2 + (R() - 0.5), lotA0(v) + S() / 2 + (R() - 0.5)];
   }
@@ -576,13 +584,13 @@ const Traffic = (() => {
     }
   }
   function reset() {
-    N = WORLD.N; crossCache.clear(); busy.clear(); seats.clear();
+    NU = WORLD.NU; NV = WORLD.NV; wkey = worldKey(); crossCache.clear(); busy.clear(); seats.clear();
     refreshWeights();
-    const total = Math.round(16 * N * N / 25), nDrones = Math.max(1, Math.round(12 * N * N / 25 / 6)), nBus = Math.max(1, Math.round(2 * N * N / 25));
+    const n = vehicleCounts();
     cars = [];
-    for (let k = 0; k < total - nDrones - nBus; k++) { const c = spawnCar('car'); if (c) cars.push(c); }
-    for (let k = 0; k < nBus; k++) { const c = spawnCar('bus'); if (c) cars.push(c); }
-    drones = Array.from({ length: nDrones }, () => { const [i, j] = droneTarget(); return { i, j, to: droneTarget(), alt: 64 + Math.round(R() * 16), sp: 0.7 + R() * 0.3, hold: 0, spin: R() * 5 }; });
+    for (let k = 0; k < n.cars; k++) { const c = spawnCar('car'); if (c) cars.push(c); }
+    for (let k = 0; k < n.buses; k++) { const c = spawnCar('bus'); if (c) cars.push(c); }
+    drones = Array.from({ length: n.drones }, () => { const [i, j] = droneTarget(); return { i, j, to: droneTarget(), alt: 64 + Math.round(R() * 16), sp: 0.7 + R() * 0.3, hold: 0, spin: R() * 5 }; });
     people = [];
     while (people.length < baseCount()) people.push(spawnPerson());
     for (const [k, n] of extraTargets()) {                         // the crowds round busy buildings, already out
@@ -593,8 +601,9 @@ const Traffic = (() => {
     while (riders.length < riderCount()) { const [u, v] = blockPick(); riders.push(newRider(u, v, R() * PER())); }
     ready = true;
   }
+  const worldKey = () => [WORLD.NU, WORLD.NV, WORLD.OU, WORLD.OV].join();
   function step(t) {
-    if (!ready || N !== WORLD.N) reset();
+    if (!ready || wkey !== worldKey()) reset();
     const dt = last ? Math.min(0.1, (t - last) / 1000) : 0;
     last = t;
     if (t - lastW > 5000) { refreshWeights(); lastW = t; }
@@ -603,12 +612,13 @@ const Traffic = (() => {
     return false;
   }
   return {
-    active: () => on, isOn: () => on, step, items, drawGround, drawAir, reset,
+    /* Still: nothing moves, whatever the button says */
+    active: () => on && !Motion.still(), isOn: () => on, step, items, drawGround, drawAir, reset,
     setOn: v => { on = !!v; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { /* this visit only */ } last = 0; },
     stats: () => ({ cars: cars.filter(c => c.type === 'car').length, buses: cars.filter(c => c.type === 'bus').length, drones: drones.length, people: people.length, extras: people.filter(q => q.home).length, bikes: riders.length }),
     busyness: p => busyness(p),
-    crowd: () => crowd,
-    setCrowd: v => { if (!(v in CROWD_PER)) return; crowd = v; try { localStorage.setItem(CROWD_KEY, v); } catch (e) { /* this visit only */ } lastBalance = 0; },
+    crowd: () => DB.city.crowd,
+    setCrowd: v => { if (!(v in CROWD_PER)) return; DB.city.crowd = v; persistSoon(); lastBalance = 0; },
     _state: () => ({ cars, people, riders, drones, busy }),
     /* for the tests: a look, and the sprite rows and canvases the map draws */
     _look: () => newLook(), _rows: (look, frame, back) => personRows(look, frame, back),

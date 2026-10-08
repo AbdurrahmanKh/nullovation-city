@@ -89,10 +89,11 @@ const Store = (() => {
       memArt.set(id, dataUrl);
       return false;
     },
-    /* The data file's handle (Chrome and Edge). Resolves false when it can only live in memory. */
-    async putHandle(hdl) { try { await idb('readwrite', st => st.put(hdl, 'dataFile'), 'handles'); return true; } catch (e) { return false; } },
-    async getHandle() { try { return (await idb('readonly', st => st.get('dataFile'), 'handles')) || null; } catch (e) { return null; } },
-    async deleteHandle() { try { await idb('readwrite', st => st.delete('dataFile'), 'handles'); } catch (e) { /* ignore */ } },
+    /* File and folder handles (Chrome and Edge): the data file, and the daily backups' folder. Resolves false when a
+       handle can only live in memory. */
+    async putHandle(hdl, key = 'dataFile') { try { await idb('readwrite', st => st.put(hdl, key), 'handles'); return true; } catch (e) { return false; } },
+    async getHandle(key = 'dataFile') { try { return (await idb('readonly', st => st.get(key), 'handles')) || null; } catch (e) { return null; } },
+    async deleteHandle(key = 'dataFile') { try { await idb('readwrite', st => st.delete(key), 'handles'); } catch (e) { /* ignore */ } },
     async deleteArt(id) {
       try { await idb('readwrite', st => st.delete(id)); } catch (e) { /* ignore */ }
       if (lsOk) { try { localStorage.removeItem(ART_PREFIX + id); } catch (e) { /* ignore */ } }

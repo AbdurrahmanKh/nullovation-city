@@ -1,6 +1,6 @@
 import pathlib
 from playwright.sync_api import sync_playwright
-from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY
+from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY, open_settings, close_settings
 
 SETUP = (ROOT / 'src' / 'setup' / 'nullovation-folder-links.ps1').read_text(encoding='utf-8')
 errors = []
@@ -36,10 +36,10 @@ with sync_playwright() as p:
     ok('copy path copies the Windows path', js("() => navigator.clipboard.readText()") == 'C:\\Users\\Abdurrahman\\My Designs')
     pg.click('[data-sec="links"] .link-local >> nth=1 >> .link-copy'); pg.wait_for_timeout(150)
     ok('a file:// address copies as a Windows path', js("() => navigator.clipboard.readText()") == 'D:\\Work\\Game Assets')
-    # the setting, in Tools
+    # the setting, in Settings, Links
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
-    pg.click('#foldTools summary'); pg.wait_for_timeout(100)
-    ok('Tools has the Explorer setting, off by default', pg.is_visible('#optExplorer') and not js("() => document.querySelector('#optExplorer').checked"))
+    open_settings(pg, 'links')
+    ok('Settings, Links, has the Explorer setting, off by default', pg.is_visible('#optExplorer') and not js("() => document.querySelector('#optExplorer').checked"))
     with pg.expect_download() as dl:
         pg.click('#btnFolderSetup')
     got = pathlib.Path(dl.value.path()).read_text()

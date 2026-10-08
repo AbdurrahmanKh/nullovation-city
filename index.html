@@ -834,6 +834,92 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
 .map-tools .dropup .btn { justify-content: flex-start; white-space: nowrap; }
 .map-tools .dropup .btn[aria-pressed="true"] { transform: translate(2px, 2px); box-shadow: var(--px-edge); }   /* the current one, pressed */
 
+/* ---------- the side bar's two faces: the lists, and Settings ---------- */
+.sb-lists { display: flex; flex-direction: column; gap: 18px; flex: 1; min-height: 0; }
+.brief-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.sb-settings { align-self: flex-start; font-size: 15px; padding: 7px 12px 6px; }
+.sb-settings > span { display: inline-flex; }
+.settings { display: flex; flex-direction: column; gap: 12px; }
+.set-head { display: flex; align-items: center; gap: 6px; }
+.set-title { margin: 0; font: 400 20px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
+.set-help-btn { margin-left: auto; box-shadow: var(--px-edge); width: 26px; height: 26px; }
+.set-help-btn[aria-expanded="true"] { background: var(--hover); }
+.settings .help { padding: 10px 12px; border: 0; background: var(--field); box-shadow: var(--px-edge); margin: 2px; }
+.set-tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.set-tab { position: relative; display: grid; place-items: center; height: 36px; margin: 2px; padding: 0; background: var(--paper); border: 0; color: var(--ink-soft); box-shadow: var(--px-edge); cursor: pointer; }
+.set-tab:hover { background: var(--hover); color: var(--ink); }
+.set-tab[aria-selected="true"] { background: var(--accent); color: #fff; --ic-o: #fff; }
+.set-tab .set-tab-ic { display: inline-flex; }
+.set-tab-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.set-tab-title { margin: 2px 0 0; font: 400 16px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); }
+.set-dot { display: none; width: 6px; height: 6px; background: var(--accent); box-shadow: 0 0 0 1px #5A1030; }
+.changed > .set-dot { display: block; }
+.set-tab > .set-dot { position: absolute; top: -4px; right: -4px; }
+.set-tab[aria-selected="true"] > .set-dot { background: #FFE38A; box-shadow: 0 0 0 1px #6A4A08; }
+.set-row { position: relative; }
+.set-row > .set-dot { position: absolute; left: -13px; top: 50%; margin-top: -3px; }
+.set-body { display: flex; flex-direction: column; gap: 14px; }
+.set-page { display: flex; flex-direction: column; gap: 14px; }
+.set-page[hidden] { display: none; }
+.set-group { display: grid; gap: 8px; padding-top: 12px; border-top: 2px solid var(--line); }
+.set-page > .set-group:first-child { border-top: 0; padding-top: 0; }
+.set-h { margin: 0; font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); }
+.set-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13.5px; color: var(--muted); }
+.set-line b { color: var(--ink); font-weight: 600; }
+.set-line .field { flex: 1; min-width: 0; }
+.set-sub { display: grid; gap: 6px; padding-left: 28px; }
+.settings .check { font-size: 14px; }
+.settings .check .cb:disabled + * , .settings .check:has(.cb:disabled) { color: var(--muted); }
+.settings .note { font-size: 12.5px; line-height: 1.45; }
+.set-slider { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; }
+.set-slider .lbl { grid-column: 1 / -1; font: 400 13.5px/1.2 var(--f-pixel); color: var(--ink-soft); font-variant-ligatures: no-common-ligatures; }
+.set-slider input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
+.set-slider output { min-width: 44px; text-align: right; font: 600 14px/1 var(--f-pixel); font-variant-numeric: tabular-nums; }
+.set-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.set-choice { font-size: 13.5px; padding: 6px 9px 5px; gap: 6px; }
+.set-choice[aria-pressed="true"] { transform: translate(2px, 2px); box-shadow: var(--px-edge); background: var(--hover); color: var(--ink); }
+.set-choice > span { display: inline-flex; }
+.set-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.set-day { font-size: 12px; padding: 6px 0 5px; margin: 2px; min-width: 0; }
+.set-day[aria-pressed="true"] { background: #2F6B56; color: #fff; transform: translate(2px, 2px); box-shadow: var(--px-edge); }
+.set-times { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px; }
+.set-times .lbl { font-size: 13.5px; color: var(--ink-soft); }
+.set-times .field, .set-line input[type="date"] { padding: 5px 8px; font-size: 14px; }
+.set-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 14px; border-top: 2px solid var(--line); }
+.storage-box { display: grid; gap: 6px; }
+.storage-bar { flex: none; width: calc(100% - 4px); }
+.storage-bar.soon > i { background: #C9861A; }
+.storage-bar.bad > i { background: var(--late); }
+.storage-line b { color: var(--ink); font-weight: 600; }
+.data-btns .btn-small { font-size: 13.5px; }
+
+/* the gear on the map's bar */
+.map-tools .btn-gear { padding: 8px 9px 7px; }
+.btn-gear > span { display: inline-flex; }
+
+/* ---------- Edit City: a bar over the map, and an arrow pair on each side of the city ---------- */
+.edit-bar { flex-wrap: wrap; justify-content: center; gap: 10px 14px; max-width: min(720px, calc(100% - 36px)); }
+.edit-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
+.edit-text b { font: 600 16px/1.2 var(--f-pixel); }
+.edit-size { font-size: 13.5px; color: var(--ink-soft); }
+.edit-hint { flex-basis: 100%; font-size: 12.5px; color: var(--muted); }
+.edit-arrows { position: absolute; inset: 0; pointer-events: none !important; }
+.edit-side { position: absolute; left: 0; top: 0; display: flex; gap: 6px; pointer-events: none; }
+.edit-arrow { pointer-events: auto; width: 34px; height: 34px; padding: 0; margin: 2px; color: var(--ink); }
+.edit-arrow[data-dir="out"] { background: var(--accent); color: #fff; }
+.edit-arrow[data-dir="out"]:hover { background: var(--accent-press); }
+.edit-arrow-ic { display: inline-flex; }
+#map.editing { cursor: grab; }
+#map.editing.over-building { cursor: pointer; }
+#map.editing.edit-grab { cursor: grab; }
+#map.editing.moving { cursor: grabbing; }
+.settings .lbl { display: block; font: 400 13.5px/1.2 var(--f-pixel); color: var(--ink-soft); font-variant-ligatures: no-common-ligatures; }
+.settings .tool-crowds { display: grid; gap: 6px; margin: 0; }
+/* the alerts sit under the logo, over the lists and Settings alike, and take no room while all is well */
+#menu > .sb-alerts { margin-top: 0; }
+#menu > .sb-alerts:not(:has(> :not([hidden]))) { display: none; }
+.settings .tool-folders { margin-top: 0; }
+
 </style>
 </head>
 <body>
@@ -841,89 +927,204 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.23</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.25</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
-    <div class="new-row">
-      <button id="btnNew" class="btn btn-accent" type="button"><span id="plusIcon" aria-hidden="true"></span>New project</button>
-      <div id="newWrap" hidden>
-        <label class="sr-only" for="newName">New project name</label>
-        <div class="new-name">
-          <input id="newName" class="field" type="text" dir="auto" maxlength="80" placeholder="Project name" autocomplete="off">
-          <button id="newNext" class="btn btn-accent btn-small" type="button">Next</button>
-        </div>
-        <p class="hint" style="margin-top:6px">Name it, pick its building, then plant it on the map.</p>
-      </div>
-    </div>
-
-    <div class="find">
-      <label class="sr-only" for="search">Search projects</label>
-      <input id="search" class="field" type="search" dir="auto" placeholder="Search projects" autocomplete="off">
-      <p id="count" class="count" aria-live="polite"></p>
-    </div>
-
-    <section class="sb-sec" aria-label="This week">
-      <button id="btnRecap" class="week-card" type="button" title="Open this week's snapshot, and every week before it"></button>
-    </section>
-    <section id="sbUrgent" class="sb-sec" aria-label="Urgent projects" hidden>
-      <h2 class="sb-h">Urgent</h2>
-      <div id="urgentList" class="urgent-list"></div>
-    </section>
-    <section id="sbDue" class="sb-sec" aria-label="Due this week" hidden>
-      <h2 class="sb-h">Due this week</h2>
-      <ul id="dueList" class="due-list"></ul>
-    </section>
-    <div class="grow"></div>
-    <div class="mapsize">
-      <span>Map: <b id="mapSize">5 by 5 plots</b></span>
-      <span class="mapsize-btns">
-        <button id="btnGrow" class="btn btn-small" type="button" title="Add a ring of plots around the city">Grow</button>
-        <button id="btnShrink" class="btn btn-small" type="button" title="Remove the outer ring when it is empty">Shrink</button>
-      </span>
-    </div>
+    <!-- something wrong with saving shows here, over the lists and over Settings alike -->
     <div id="alerts" class="sb-alerts" aria-live="polite">
       <p id="saveAlert" class="save-alert" hidden></p>
       <div id="fileAlert" class="save-alert" hidden></div>
+      <div id="backupAlert" class="save-alert" hidden></div>
     </div>
-    <details id="foldTools" class="sb-fold">
-      <summary>Tools</summary>
-      <div class="tools">
-        <button id="btnBrief" class="btn" type="button" title="Copies a text summary of every project for a Claude chat">Copy status brief</button>
-        <button id="btnPalette" class="btn" type="button" title="The city's 32 colors as a PNG, for image tools that take a forced palette">Download palette</button>
-        <div class="tool-crowds">
-          <label class="lbl" for="optCrowds">Crowds round busy buildings</label>
-          <select id="optCrowds" class="field"><option value="none">None</option><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select>
-        </div>
-        <div class="tool-folders">
-          <label class="check"><input id="optExplorer" type="checkbox" class="cb"> Folder links open in File Explorer</label>
-          <p class="note">Windows only, after a one-time setup on this PC. <button id="btnFolderSetup" class="linkish" type="button">Get the setup</button></p>
-        </div>
-      </div>
-    </details>
-    <details id="foldData" class="sb-fold">
-      <summary>Backup and data file</summary>
-      <div class="data">
-        <div class="data-btns">
-          <button id="btnExport" class="btn" type="button">Export backup</button>
-          <button id="btnImport" class="btn" type="button">Import backup</button>
-        </div>
-        <input id="fileImport" type="file" accept="application/json,.json" hidden>
-        <div id="fileBox" class="file-box"></div>
-        <p id="saveStatus" class="save-status">Saved in this browser.</p>
-      </div>
-    </details>
 
-    <section class="help" aria-label="Controls">
-      <h2>Controls</h2>
-      <dl>
-        <dt>Move</dt><dd>Arrow keys, WASD, or drag the ground</dd>
-        <dt>Zoom</dt><dd>Scroll or pinch</dd>
-        <dt>Status</dt><dd>Click a building</dd>
-        <dt>Hop</dt><dd>Q and E: previous or next building</dd>
-        <dt>Rearrange</dt><dd>Hold a building, then drag it to another plot</dd>
-      </dl>
-    </section>
+    <div id="sbLists" class="sb-lists">
+      <div class="new-row">
+        <button id="btnNew" class="btn btn-accent" type="button"><span id="plusIcon" aria-hidden="true"></span>New project</button>
+        <div id="newWrap" hidden>
+          <label class="sr-only" for="newName">New project name</label>
+          <div class="new-name">
+            <input id="newName" class="field" type="text" dir="auto" maxlength="80" placeholder="Project name" autocomplete="off">
+            <button id="newNext" class="btn btn-accent btn-small" type="button">Next</button>
+          </div>
+          <p class="hint" style="margin-top:6px">Name it, pick its building, then plant it on the map.</p>
+        </div>
+      </div>
+
+      <div class="find">
+        <label class="sr-only" for="search">Search projects</label>
+        <input id="search" class="field" type="search" dir="auto" placeholder="Search projects" autocomplete="off">
+        <p id="count" class="count" aria-live="polite"></p>
+      </div>
+
+      <section class="sb-sec" aria-label="This week">
+        <button id="btnRecap" class="week-card" type="button" title="Open this week's snapshot, and every week before it"></button>
+        <div id="briefRow" class="brief-row">
+          <button id="btnBrief" class="btn btn-small" type="button" title="Copies a text summary of every project for a Claude chat">Copy status brief</button>
+        </div>
+      </section>
+      <section id="sbUrgent" class="sb-sec" aria-label="Urgent projects" hidden>
+        <h2 class="sb-h">Urgent</h2>
+        <div id="urgentList" class="urgent-list"></div>
+      </section>
+      <section id="sbDue" class="sb-sec" aria-label="Due this week" hidden>
+        <h2 class="sb-h">Due this week</h2>
+        <ul id="dueList" class="due-list"></ul>
+      </section>
+      <div class="grow"></div>
+      <button id="btnOpenSettings" class="btn sb-settings" type="button" title="Settings (comma key)"><span id="sbGearIcon" aria-hidden="true"></span>Settings</button>
+    </div>
+
+    <div id="settings" class="settings" hidden>
+      <header class="set-head">
+        <button id="setBack" class="icon-btn" type="button" aria-label="Back to the lists" title="Back to the lists"></button>
+        <h2 class="set-title">Settings</h2>
+        <button id="setHelpBtn" class="icon-btn set-help-btn" type="button" aria-label="Controls" title="Controls" aria-expanded="false" aria-controls="setHelp"></button>
+      </header>
+      <section id="setHelp" class="help" aria-label="Controls" hidden>
+        <h2>Controls</h2>
+        <dl>
+          <dt>Move</dt><dd>Arrow keys, WASD, or drag the ground</dd>
+          <dt>Zoom</dt><dd>Scroll or pinch</dd>
+          <dt>Status</dt><dd>Click a building</dd>
+          <dt>Hop</dt><dd>Q and E: previous or next building</dd>
+          <dt>Settings</dt><dd>The comma key opens and closes them</dd>
+          <dt>Back</dt><dd>Esc closes one layer at a time</dd>
+        </dl>
+      </section>
+      <div id="setTabs" class="set-tabs" role="tablist" aria-label="Settings"></div>
+      <div id="setBody" class="set-body">
+
+        <div class="set-page" data-tab="city" role="tabpanel" hidden>
+          <section class="set-group">
+            <h3 class="set-h">Map</h3>
+            <div class="set-line"><span>Map: <b id="mapSize">5 by 5 plots</b></span><button id="btnEditCity" class="btn btn-small" type="button">Edit City</button></div>
+            <p class="note">Add or take off lines of plots, pick each park, and move buildings.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Street props</h3>
+            <label class="check set-row" data-set="props"><input id="optProps" type="checkbox" class="cb"> Street props</label>
+            <div class="set-sub">
+              <label class="check set-row" data-set="busstop"><input id="optBusstop" type="checkbox" class="cb"> Bus stops</label>
+              <label class="check set-row" data-set="vending"><input id="optVending" type="checkbox" class="cb"> Vending machines</label>
+              <label class="check set-row" data-set="billboard"><input id="optBillboard" type="checkbox" class="cb"> Holo billboards</label>
+              <label class="check set-row" data-set="bin"><input id="optBin" type="checkbox" class="cb"> Bins</label>
+            </div>
+            <div class="set-row set-slider" data-set="amount"><label class="lbl" for="optAmount">How many</label><input id="optAmount" type="range"><output id="optAmountOut" for="optAmount"></output></div>
+            <div class="set-row set-line" data-set="deal"><span class="note">Where they stand, by the same rules</span><button id="btnDeal" class="btn btn-small" type="button">Deal again</button></div>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="life" role="tabpanel" hidden>
+          <section class="set-group">
+            <label class="check set-row" data-set="traffic"><input id="optTraffic" type="checkbox" class="cb"> Traffic</label>
+            <p class="note">Everything that moves. The Traffic button on the map turns it on and off too.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Who is out</h3>
+            <label class="check set-row" data-set="cars"><input id="optCars" type="checkbox" class="cb"> Cars</label>
+            <label class="check set-row" data-set="buses"><input id="optBuses" type="checkbox" class="cb"> Buses</label>
+            <label class="check set-row" data-set="drones"><input id="optDrones" type="checkbox" class="cb"> Drones</label>
+            <label class="check set-row" data-set="cyclists"><input id="optCyclists" type="checkbox" class="cb"> Cyclists</label>
+            <label class="check set-row" data-set="walkers"><input id="optWalkers" type="checkbox" class="cb"> Walkers</label>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">How many</h3>
+            <div class="set-row set-slider" data-set="street"><label class="lbl" for="optStreet">Street traffic</label><input id="optStreet" type="range"><output id="optStreetOut" for="optStreet"></output></div>
+            <p class="note">Cars, buses and drones.</p>
+            <div class="set-row set-slider" data-set="walk"><label class="lbl" for="optWalk">Walkers</label><input id="optWalk" type="range"><output id="optWalkOut" for="optWalk"></output></div>
+            <p class="note">People and cyclists, up to 150 people in the whole city.</p>
+          </section>
+          <section class="set-group">
+            <div class="set-row tool-crowds" data-set="crowd">
+              <label class="lbl" for="optCrowds">Crowds round busy buildings</label>
+              <select id="optCrowds" class="field"><option value="none">None</option><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select>
+            </div>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="look" role="tabpanel" hidden>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="light">Time of day</h3>
+            <div id="optLight" class="set-choices" role="group" aria-label="Time of day"></div>
+            <div class="set-row set-times" data-set="hours">
+              <label class="lbl" for="optNight">Night starts</label><input id="optNight" class="field" type="time">
+              <label class="lbl" for="optDay">Day starts</label><input id="optDay" class="field" type="time">
+            </div>
+            <p class="note">Auto's hours. Dusk and dawn blend over the 90 minutes before each.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="bubbles">Bubbles</h3>
+            <div id="optBubbles" class="set-choices" role="group" aria-label="Bubbles"></div>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="motion">Motion</h3>
+            <div id="optMotion" class="set-choices" role="group" aria-label="Motion"></div>
+            <p id="motionNote" class="note"></p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Postcard</h3>
+            <label class="check set-row" data-set="caption"><input id="optCaption" type="checkbox" class="cb"> Caption with the date</label>
+            <div id="optCardSize" class="set-choices set-row" data-set="cardSize" role="group" aria-label="Postcard size"></div>
+          </section>
+          <section class="set-group">
+            <button id="btnPalette" class="btn btn-small" type="button" title="The city's 32 colors as a PNG, for image tools that take a forced palette">Download palette</button>
+            <p class="note">The city's 32 colors as a PNG, for image tools that take a forced palette.</p>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="projects" role="tabpanel" hidden>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="rest">Rest days</h3>
+            <div id="optRest" class="set-days" role="group" aria-label="Rest days"></div>
+            <p class="note">Days that do not count for One task per N days or Work until finished. Due dates count every day.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="away">Away until</h3>
+            <div class="set-line"><input id="optAway" class="field" type="date" aria-label="Away until"><button id="btnAwayClear" class="btn btn-small" type="button">Clear</button></div>
+            <p class="note">No yellow or red from urgency systems until that day, and from that day they count from it. Due dates still count.</p>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="saving" role="tabpanel" hidden>
+          <section class="set-group">
+            <h3 class="set-h">The data file</h3>
+            <div id="fileBox" class="file-box"></div>
+            <p id="saveStatus" class="save-status">Saved in this browser.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Daily backups</h3>
+            <div id="backupBox" class="file-box"></div>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Backup</h3>
+            <div class="data-btns">
+              <button id="btnExport" class="btn btn-small" type="button">Export backup</button>
+              <button id="btnImport" class="btn btn-small" type="button">Import backup</button>
+            </div>
+            <input id="fileImport" type="file" accept="application/json,.json" hidden>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Storage use</h3>
+            <div id="storageBox" class="storage-box"></div>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="links" role="tabpanel" hidden>
+          <section class="set-group tool-folders">
+            <label class="check set-row" data-set="explorer"><input id="optExplorer" type="checkbox" class="cb"> Folder links open in File Explorer</label>
+            <p class="note">Windows only, after a one-time setup on this PC. <button id="btnFolderSetup" class="linkish" type="button">Get the setup</button></p>
+            <div class="set-line"><button id="btnFolderTest" class="btn btn-small" type="button">Test folder links</button></div>
+            <p class="note">Opens C:\Windows through a folder link. If nothing opens, the setup has not run on this PC.</p>
+          </section>
+        </div>
+
+        <div class="set-foot">
+          <button id="btnTabReset" class="btn btn-small" type="button">Reset to defaults</button>
+          <button id="btnResetAll" class="btn btn-small btn-danger" type="button">Reset all settings</button>
+        </div>
+      </div>
+    </div>
   </aside>
 
   <main id="mapWrap">
@@ -932,10 +1133,22 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
       <div id="bubble" class="bubble" role="dialog" aria-label="Project status" hidden></div>
       <button id="enterBtn" class="btn btn-accent enter" type="button" hidden><span id="doorIcon" aria-hidden="true"></span>Enter</button>
       <div id="tip" class="tip" hidden></div>
+      <div id="editArrows" class="edit-arrows" hidden></div>
     </div>
     <div id="banner" class="banner" role="status" hidden>
       <span>Plant <b id="bannerName" dir="auto"></b>: aim at a free plot, then click.</span>
       <button id="bannerCancel" class="btn btn-quiet" type="button">Cancel</button>
+    </div>
+    <div id="editBar" class="banner edit-bar" role="region" aria-label="Edit City" hidden>
+      <div class="edit-text">
+        <b>Edit City</b> <span id="editSize" class="edit-size"></span>
+        <span class="edit-hint">Arrows add or take off a line. Click a park for its next kind. Drag a building to move it.</span>
+      </div>
+      <span class="mapsize-btns">
+        <button id="btnGrow" class="btn btn-small" type="button" title="Add a ring of plots around the city">Grow</button>
+        <button id="btnShrink" class="btn btn-small" type="button" title="Remove the outer ring when it is empty">Shrink</button>
+      </span>
+      <button id="btnEditDone" class="btn btn-accent btn-small" type="button">Done</button>
     </div>
     <div class="keyhint" aria-hidden="true"><kbd>Q</kbd><kbd>E</kbd><span>previous or next building</span></div>
     <div class="map-tools">
@@ -948,6 +1161,7 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
         <output id="zoomLevel" aria-live="polite">2x</output>
         <button id="zoomIn" class="icon-btn" type="button" aria-label="Zoom in"></button>
       </div>
+      <button id="btnSettings" class="btn btn-gear" type="button" aria-label="Settings" title="Settings (comma key)"><span id="gearIcon" aria-hidden="true"></span></button>
     </div>
     <button id="menuToggle" class="btn menu-toggle" type="button" aria-controls="menu" aria-expanded="false">Menu</button>
   </main>
@@ -1199,10 +1413,11 @@ const Store = (() => {
       memArt.set(id, dataUrl);
       return false;
     },
-    /* The data file's handle (Chrome and Edge). Resolves false when it can only live in memory. */
-    async putHandle(hdl) { try { await idb('readwrite', st => st.put(hdl, 'dataFile'), 'handles'); return true; } catch (e) { return false; } },
-    async getHandle() { try { return (await idb('readonly', st => st.get('dataFile'), 'handles')) || null; } catch (e) { return null; } },
-    async deleteHandle() { try { await idb('readwrite', st => st.delete('dataFile'), 'handles'); } catch (e) { /* ignore */ } },
+    /* File and folder handles (Chrome and Edge): the data file, and the daily backups' folder. Resolves false when a
+       handle can only live in memory. */
+    async putHandle(hdl, key = 'dataFile') { try { await idb('readwrite', st => st.put(hdl, key), 'handles'); return true; } catch (e) { return false; } },
+    async getHandle(key = 'dataFile') { try { return (await idb('readonly', st => st.get(key), 'handles')) || null; } catch (e) { return null; } },
+    async deleteHandle(key = 'dataFile') { try { await idb('readwrite', st => st.delete(key), 'handles'); } catch (e) { /* ignore */ } },
     async deleteArt(id) {
       try { await idb('readwrite', st => st.delete(id)); } catch (e) { /* ignore */ }
       if (lsOk) { try { localStorage.removeItem(ART_PREFIX + id); } catch (e) { /* ignore */ } }
@@ -1386,21 +1601,156 @@ const DataFile = (() => {
     _test: { use: h => { handle = h; state = 'on'; reason = ''; claim(); render(); }, fast: () => { RETRIES = [60, 120, 180]; } } };
 })();
 
+/*
+  Backups: one dated copy of the city a day, in a folder picked once, keeping the last 14 (Chrome and Edge, like the
+  data file). The data file holds only the latest state, so a mistake it saves at once, such as a deleted project, can
+  be undone from the day's copy. The copy is taken the first time the city is open each day, before the day's changes.
+  Only files named nullovation-city-daily-YYYY-MM-DD.json are counted and pruned, so exported backups kept in the
+  same folder are never touched. The folder belongs to this browser; it does not travel with the city.
+*/
+const Backups = (() => {
+  const supported = typeof window.showDirectoryPicker === 'function';
+  const KEEP = 14, NAME = /^nullovation-city-daily-(\d{4}-\d{2}-\d{2})\.json$/, HANDLE = 'backupDir';
+  let dir = null, state = supported ? 'off' : 'unsupported', newest = '', kept = 0, busy = false, doneDay = '';
+
+  async function init() {
+    if (!supported) { render(); return; }
+    dir = await Store.getHandle(HANDLE);
+    if (!dir) { state = 'off'; render(); return; }
+    try { state = (await dir.queryPermission({ mode: 'readwrite' })) === 'granted' ? 'on' : 'paused'; } catch (e) { state = 'paused'; }
+    render();
+    tick();
+  }
+  async function choose() {
+    let d;
+    try { d = await window.showDirectoryPicker({ id: 'nullovation-city-backups', mode: 'readwrite' }); } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      toast('That folder could not be used. Pick a different folder.', 'error'); return;
+    }
+    dir = d; state = 'on'; doneDay = '';
+    const stays = await Store.putHandle(d, HANDLE);
+    await tick();
+    if (state === 'on') toast(stays ? 'Daily backups go to ' + d.name + ', one copy a day, the last 14 kept.' : 'Daily backups go to ' + d.name + ' until you close this tab. Pick it again next time.');
+  }
+  async function allow() {
+    if (!dir) return;
+    try { state = (await dir.requestPermission({ mode: 'readwrite' })) === 'granted' ? 'on' : 'paused'; } catch (e) { state = 'paused'; }
+    render();
+    if (state === 'on') tick();
+  }
+  async function stop() {
+    dir = null; state = 'off'; doneDay = ''; newest = ''; kept = 0;
+    await Store.deleteHandle(HANDLE);
+    render();
+    toast('Stopped the daily backups. The copies already made stay in the folder.');
+  }
+  /* Takes today's copy if there is none yet, then keeps the newest 14. One tab does it: the one the data file uses. */
+  async function tick() {
+    if (state !== 'on' || !dir || busy || !DataFile.isWriter()) return;
+    const today = ymd();
+    if (doneDay === today) return;
+    busy = true;
+    try {
+      const name = 'nullovation-city-daily-' + today + '.json';
+      let have = true;
+      try { await dir.getFileHandle(name); } catch (e) { if (e && e.name === 'NotFoundError') have = false; else throw e; }
+      if (!have) {
+        persistSoon.flush();
+        const data = await buildBackup();
+        const put = async () => { const fh = await dir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(JSON.stringify(data, null, 2)); await w.close(); };
+        if (navigator.locks && navigator.locks.request) await navigator.locks.request('nullovation-city:backups', put); else await put();
+      }
+      const days = [];
+      for await (const [n] of dir.entries()) { const m = NAME.exec(n); if (m) days.push(m[1]); }
+      days.sort();
+      while (days.length > KEEP) await dir.removeEntry('nullovation-city-daily-' + days.shift() + '.json');
+      newest = days[days.length - 1] || ''; kept = days.length; doneDay = today;
+      state = 'on';
+    } catch (e) {
+      const n = e && e.name;
+      state = n === 'NotAllowedError' || n === 'SecurityError' ? 'paused' : 'failed';
+    }
+    busy = false;
+    render();
+  }
+  function render() {
+    const box = $('#backupBox');
+    if (!box) return;
+    const name = dir ? dir.name : '', kids = [];
+    if (state === 'unsupported') kids.push(h('p', { class: 'save-status' }, 'Daily backups work in Chrome and Edge.'));
+    else if (state === 'off') {
+      kids.push(h('button', { class: 'btn btn-small', type: 'button', onclick: choose }, 'Pick a backups folder'));
+      kids.push(h('p', { class: 'save-status' }, 'One dated copy a day, the last 14 kept, so a mistake the data file saves at once can be undone.'));
+    } else if (state === 'on') {
+      kids.push(h('p', { class: 'save-status file-on' }, 'A copy each day in this folder:'));
+      kids.push(h('p', { class: 'file-path', dir: 'ltr' }, h('span', { class: 'fp-name' }, name)));
+      kids.push(h('p', { class: 'save-status' }, newest ? 'Latest copy ' + fmtDate(parseYmd(newest)) + ', ' + plural(kept, 'copy', 'copies') + ' kept. ' : 'No copy yet. ',
+        h('button', { class: 'linkish', type: 'button', onclick: stop }, 'Stop')));
+    } else if (state === 'paused') {
+      kids.push(h('button', { class: 'btn btn-small', type: 'button', onclick: allow }, 'Allow daily backups'));
+      kids.push(h('p', { class: 'save-status' }, 'Daily backups to ', h('b', { dir: 'auto' }, name), ' are paused until you allow them. ', h('button', { class: 'linkish', type: 'button', onclick: stop }, 'Stop')));
+    } else {
+      kids.push(h('button', { class: 'btn btn-small', type: 'button', onclick: choose }, 'Pick a backups folder again'));
+      kids.push(h('p', { class: 'save-status bad' }, 'The daily backup to ', h('b', { dir: 'auto' }, name), ' failed: the folder was moved, renamed, or deleted.'));
+    }
+    box.replaceChildren(...kids);
+    /* Paused or failed shows in the side bar too, with its fix, like the data file. */
+    const alertEl = $('#backupAlert');
+    if (alertEl) {
+      if (state === 'paused') alertEl.replaceChildren(h('span', null, 'Daily backups to ', h('b', { dir: 'auto' }, name), ' are paused. '), h('button', { class: 'linkish', type: 'button', onclick: allow }, 'Allow them'));
+      else if (state === 'failed') alertEl.replaceChildren(h('span', null, 'The daily backup to ', h('b', { dir: 'auto' }, name), ' failed. '), h('button', { class: 'linkish', type: 'button', onclick: choose }, 'Pick the folder again'));
+      alertEl.hidden = !(state === 'paused' || state === 'failed');
+    }
+  }
+  return { init, tick, render, state: () => state, newest: () => newest, kept: () => kept, KEEP };
+})();
+
 const BUBBLE_TODOS = 3;        // open todos shown in the bubble
 const DUE_SOON_DAYS = 3;       // todos due this soon (or overdue) jump to the top of the bubble
 const LINK_ICONS = ['doc', 'task', 'design', 'code', 'chat', 'folder', 'web'];
 
-/* The map: an N x N lattice of plots, each S x S tiles, GAP tiles of bare ground between.
-   N grows and shrinks one ring at a time (by 2), between MIN_N and MAX_N. */
-const WORLD = { N: 5, S: 4, GAP: 2, MARGIN: 2, TW: 32, TH: 16, MIN_N: 5, MAX_N: 11 };
+/* The map: NU by NV plots, each S x S tiles, GAP tiles of bare ground between. NU runs along u (down to the right on
+   screen), NV along v (down to the left); each runs from MIN_N to MAX_N. OU and OV place the grid in the whole city:
+   plot (u, v) is the city's plot (u + OU, v + OV). Everything dealt by place (parks, street details, props) is dealt
+   by the city's plot, so it stays with its buildings when a line or a ring is added or taken off. */
+const WORLD = { NU: 5, NV: 5, OU: 0, OV: 0, S: 4, GAP: 2, MARGIN: 2, TW: 32, TH: 16, MIN_N: 5, MAX_N: 11 };
 WORLD.PITCH = WORLD.S + WORLD.GAP;
-function setWorldSize(n) {
-  WORLD.N = n;
-  WORLD.TILES = WORLD.MARGIN * 2 + n * WORLD.S + (n - 1) * WORLD.GAP;
+const spanTiles = n => WORLD.MARGIN * 2 + n * WORLD.S + (n - 1) * WORLD.GAP;
+function setWorld(w) {
+  WORLD.NU = w.nu; WORLD.NV = w.nv; WORLD.OU = w.ou; WORLD.OV = w.ov;
+  WORLD.TI = spanTiles(w.nu); WORLD.TJ = spanTiles(w.nv);
 }
-setWorldSize(5);
+const worldState = () => ({ nu: WORLD.NU, nv: WORLD.NV, ou: WORLD.OU, ov: WORLD.OV });
+setWorld({ nu: 5, nv: 5, ou: 0, ov: 0 });
 
-let DB = { app: 'nullovation-city', version: 2, world: { size: 5 }, projects: [] };
+/* The city's settings: what the city is like, so they travel with it in the data file and every backup. How this
+   computer shows the city (the bar's buttons, motion, the postcard, folder links) stays in this browser instead.
+   parks holds the kinds picked in Edit City, by the city's plot; it is the city's layout, so no reset touches it. */
+const CITY_DEFAULTS = {
+  crowd: 'medium', cars: true, buses: true, drones: true, cyclists: true, walkers: true, street: 1, walk: 1,
+  props: true, busstop: true, vending: true, billboard: true, bin: true, amount: 1, deal: 0,
+  night: '19:00', day: '06:30', rest: [], away: '',
+};
+const AMOUNTS = { min: 0.25, max: 2, step: 0.25 };   // the sliders: a quarter to twice today's counts
+function sanitizeCity(raw, crowdFallback = null) {
+  const r = raw && typeof raw === 'object' ? raw : {}, out = {};
+  const CROWDS = ['none', 'small', 'medium', 'large'];
+  for (const [k, d] of Object.entries(CITY_DEFAULTS)) {           // in the defaults' order, so files read alike
+    const v = r[k];
+    if (k === 'crowd') out[k] = CROWDS.includes(v) ? v : CROWDS.includes(crowdFallback) ? crowdFallback : d;
+    else if (typeof d === 'boolean') out[k] = typeof v === 'boolean' ? v : d;
+    else if (k === 'deal') out[k] = Number.isInteger(v) && v >= 0 ? v : d;
+    else if (typeof d === 'number') out[k] = typeof v === 'number' && isFinite(v) ? clamp(Math.round(v / AMOUNTS.step) * AMOUNTS.step, AMOUNTS.min, AMOUNTS.max) : d;
+    else if (k === 'night' || k === 'day') out[k] = typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : d;
+    else if (k === 'rest') out[k] = Array.isArray(v) ? [...new Set(v.filter(x => Number.isInteger(x) && x >= 0 && x <= 6))].sort() : [];
+    else if (k === 'away') out[k] = parseYmd(v) != null ? v : '';
+  }
+  out.parks = {};
+  if (r.parks && typeof r.parks === 'object') for (const [k, v] of Object.entries(r.parks)) if (/^-?\d+,-?\d+$/.test(k) && typeof v === 'string') out.parks[k] = v.slice(0, 60);
+  return out;
+}
+
+let DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null), projects: [] };
 
 const App = {
   selectedId: null,
@@ -1411,7 +1761,7 @@ function getProject(id) { return DB.projects.find(p => p.id === id) || null; }
 function projectAt(u, v, list = DB.projects) { return list.find(p => p.plot.u === u && p.plot.v === v) || null; }
 function freePlots() {
   const out = [];
-  for (let v = 0; v < WORLD.N; v++) for (let u = 0; u < WORLD.N; u++) if (!projectAt(u, v)) out.push({ u, v });
+  for (let v = 0; v < WORLD.NV; v++) for (let u = 0; u < WORLD.NU; u++) if (!projectAt(u, v)) out.push({ u, v });
   return out;
 }
 
@@ -1633,15 +1983,15 @@ function sanitizeProjects(raw) {
     backfillActivity(p);
     const u = r.plot && Number.isInteger(r.plot.u) ? r.plot.u : -1;
     const v = r.plot && Number.isInteger(r.plot.v) ? r.plot.v : -1;
-    p.plot = (u >= 0 && v >= 0 && u < WORLD.N && v < WORLD.N && !taken.has(u + ',' + v)) ? { u, v } : null;
+    p.plot = (u >= 0 && v >= 0 && u < WORLD.NU && v < WORLD.NV && !taken.has(u + ',' + v)) ? { u, v } : null;
     if (p.plot) taken.add(u + ',' + v);
     out.push({ p, raw: r });
   }
   /* Anything without a valid plot takes the free plot nearest the middle. */
-  const mid = (WORLD.N - 1) / 2;
+  const mu = (WORLD.NU - 1) / 2, mv = (WORLD.NV - 1) / 2;
   const spare = [];
-  for (let v = 0; v < WORLD.N; v++) for (let u = 0; u < WORLD.N; u++) if (!taken.has(u + ',' + v)) spare.push({ u, v });
-  spare.sort((a, b) => Math.hypot(a.u - mid, a.v - mid) - Math.hypot(b.u - mid, b.v - mid));
+  for (let v = 0; v < WORLD.NV; v++) for (let u = 0; u < WORLD.NU; u++) if (!taken.has(u + ',' + v)) spare.push({ u, v });
+  spare.sort((a, b) => Math.hypot(a.u - mu, a.v - mv) - Math.hypot(b.u - mu, b.v - mv));
   const kept = [];
   for (const item of out) {
     if (!item.p.plot) {
@@ -1662,9 +2012,10 @@ function persistNow() {
   if (typeof DataFile !== 'undefined') DataFile.writeSoon();
   return ok;
 }
-/* The complete backup: every project, with block art inlined. Used by export and the data file. */
+/* The complete backup: the map, the city's settings, and every project with block art inlined. Used by export, the
+   data file and the daily backups. */
 async function buildBackup() {
-  const out = { app: 'nullovation-city', version: 2, exportedAt: new Date().toISOString(), world: { size: WORLD.N }, projects: [] };
+  const out = { app: 'nullovation-city', version: 3, exportedAt: new Date().toISOString(), world: worldState(), city: JSON.parse(JSON.stringify(DB.city)), projects: [] };
   for (const p of DB.projects) {
     const q = JSON.parse(JSON.stringify(p));
     if (p.art.has) { const url = await Store.getArt(p.id) || (Art.get(p.id) || {}).url; if (url) q.art.dataUrl = url; }
@@ -1672,9 +2023,13 @@ async function buildBackup() {
   }
   return out;
 }
-function worldSizeFrom(data) {
-  const n = data && data.world && Number.isInteger(data.world.size) ? data.world.size : 5;
-  return clamp(n % 2 ? n : n + 1, WORLD.MIN_N, WORLD.MAX_N);
+/* The map a database or backup holds. Before version 3 a map was square, N by N, placed at the city's origin. */
+function worldFrom(data) {
+  const w = data && data.world && typeof data.world === 'object' ? data.world : {};
+  const side = n => clamp(n, WORLD.MIN_N, WORLD.MAX_N), int = x => Number.isInteger(x) ? x : 0;
+  if (Number.isInteger(w.nu) && Number.isInteger(w.nv)) return { nu: side(w.nu), nv: side(w.nv), ou: int(w.ou), ov: int(w.ov) };
+  const n = Number.isInteger(w.size) ? w.size : 5, sq = side(n % 2 ? n : n + 1);
+  return { nu: sq, nv: sq, ou: 0, ov: 0 };
 }
 /* Call after any change. touch updates the project's last-updated time. */
 function changed(p, { touch = true, redraw = true } = {}) {
@@ -1734,6 +2089,25 @@ function urgencyName(p) {
 /* Work, for urgency, is ticking a task done or pressing I worked!. */
 function markWorked(p, now = Date.now()) { p.urgency.lastWorked = now; }
 function iWorked(p) { markWorked(p); logActivity(p, 'I worked!'); }
+/* The time an urgency system counts between two moments: rest days (the city's setting) do not count, nor does any
+   time before the day you come back from being away. Due dates are not counted here: they count every day. */
+function countedMs(from, to) {
+  const c = DB.city || {}, back = parseYmd(c.away), rest = new Set(c.rest || []);
+  const a = Math.max(from, back != null ? back : -Infinity);
+  if (!(to > a)) return 0;
+  if (!isFinite(a)) return Infinity;
+  if (!rest.size) return to - a;
+  let n = 0;
+  for (let d = startOfDay(a); d < to;) {
+    const next = new Date(d); next.setDate(next.getDate() + 1);
+    const s = Math.max(d, a), e = Math.min(next.getTime(), to);
+    if (e > s && !rest.has(new Date(d).getDay())) n += e - s;
+    d = next.getTime();
+  }
+  return n;
+}
+/* Away: until that day no urgency system turns a building yellow or red. */
+const awayNow = (now = Date.now()) => { const back = DB.city ? parseYmd(DB.city.away) : null; return back != null && startOfDay(now) < back; };
 /* What floats over a building: red or yellow, how many distinct things need you, and why.
    Red: open tasks with less than 2 days left or overdue, or a system gone red. Yellow: a system waiting. */
 function urgencyOf(p, now = Date.now()) {
@@ -1742,18 +2116,21 @@ function urgencyOf(p, now = Date.now()) {
   const u = p.urgency || { system: 'none' };
   let sys = null, why = '';
   const span = d => d === 1 ? '24 hours' : d + ' days';
-  if (u.system === 'finish' && open.length) {
-    const fresh = u.lastWorked && now - u.lastWorked < 24 * HOUR;
+  const away = awayNow(now), rested = DB.city && DB.city.rest && DB.city.rest.length ? ', not counting rest days' : '';
+  if (away) { /* systems wait until the day you come back; due dates still count */ }
+  else if (u.system === 'finish' && open.length) {
+    const fresh = countedMs(u.lastWorked || -Infinity, now) < 24 * HOUR;
     sys = fresh ? 'yellow' : 'red';
-    why = (fresh ? 'A task was finished in the last 24 hours' : 'No task finished in the last 24 hours') + '; ' + plural(open.length, 'task', 'tasks') + ' left to finish';
+    why = (fresh ? 'A task was finished in the last 24 hours' : 'No task finished in the last 24 hours') + rested + '; ' + plural(open.length, 'task', 'tasks') + ' left to finish';
   } else if (u.system === 'pace') {
     const N = Math.max(1, u.days || 1) * DAY, start = u.pickedAt || now;
     const worked = u.lastWorked && u.lastWorked >= start;
-    const gone = now - (worked ? u.lastWorked : start - N);
+    const gone = worked ? countedMs(u.lastWorked, now) : countedMs(start, now) + N;
     if (gone >= N) {
       sys = gone >= 2 * N ? 'red' : 'yellow';
       why = worked ? 'No task finished in the last ' + span(gone >= 2 * N ? 2 * u.days : u.days) : 'No task finished since ' + urgencyName(p).toLowerCase() + ' was set';
       if (!worked && sys === 'red') why += ', ' + span(u.days) + ' ago';
+      why += rested;
     }
   }
   const ids = new Set(due.map(t => t.id));
@@ -1882,7 +2259,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.23";
+const APP_VERSION = "0.1.25";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 
 const PAL = {
@@ -1973,13 +2350,21 @@ const Light = (() => {
   let mode = 'auto', t = -1;
   const subs = [], cache = new Map();
   try { const m = localStorage.getItem('nullovation-city:light'); if (m === 'day' || m === 'night' || m === 'auto' || m === 'dusk') mode = m; } catch (e) {}
-  /* Night from 19:00 to 05:00, day from 06:30 to 17:30, with dawn and dusk blending in between. */
+  /* Auto's hours are the city's: night starts at 19:00 and day at 06:30 unless set, with dusk and dawn blending over
+     the 90 minutes before each. Times wrap round midnight, so any two hours work. */
+  const BLEND = 90;
+  const minutes = s => { const m = /^(\d\d):(\d\d)$/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
+  function hours() {
+    const c = typeof DB !== 'undefined' && DB.city ? DB.city : {};
+    return { night: minutes(c.night) ?? 1140, day: minutes(c.day) ?? 390 };
+  }
+  const since = (m, from) => ((m - from) % 1440 + 1440) % 1440;     // minutes from `from` forward to m
   function fromClock(d = new Date()) {
-    const m = d.getHours() * 60 + d.getMinutes();
-    if (m >= 390 && m < 1050) return 0;
-    if (m >= 1050 && m < 1140) return (m - 1050) / 90;
-    if (m >= 300 && m < 390) return 1 - (m - 300) / 90;
-    return 1;
+    const m = d.getHours() * 60 + d.getMinutes(), { night, day } = hours();
+    const dusk = since(m, night - BLEND), dawn = since(m, day - BLEND);
+    if (dusk < BLEND) return dusk / BLEND;
+    if (dawn < BLEND) return 1 - dawn / BLEND;
+    return since(m, day) < since(night - BLEND, day) ? 0 : 1;        // between day's start and dusk: day
   }
   const target = () => mode === 'day' ? 0 : mode === 'night' ? 1 : mode === 'dusk' ? 0.5 : Math.round(fromClock() * 8) / 8;   // dusk: the halfway light
   function update() {
@@ -2007,9 +2392,29 @@ const Light = (() => {
     const a = hexToRgb(day), b = hexToRgb(night);
     return '#' + a.map((c, i) => Math.round(c + (b[i] - c) * t).toString(16).padStart(2, '0')).join('');
   }
-  const phase = () => mode === 'dusk' ? 'dusk' : t <= 0 ? 'day' : t >= 1 ? 'night' : (new Date().getHours() < 12 ? 'dawn' : 'dusk');
+  const phase = () => {
+    if (mode === 'dusk') return 'dusk';
+    if (t <= 0) return 'day';
+    if (t >= 1) return 'night';
+    const d = new Date(), m = d.getHours() * 60 + d.getMinutes();
+    return since(m, hours().day - BLEND) < BLEND ? 'dawn' : 'dusk';
+  };
   update();
-  return { update, setMode, rgb, mixHex, phase, onChange: f => subs.push(f), get t() { return t; }, get mode() { return mode; } };
+  return { update, setMode, rgb, mixHex, phase, fromClock, onChange: f => subs.push(f), get t() { return t; }, get mode() { return mode; } };
+})();
+
+/* Motion, on this computer: Full, Saver at 30 frames a second, or Still, with nothing moving. Until one is chosen it
+   follows the system: Still when the system asks for reduced motion, Full otherwise. */
+const Motion = (() => {
+  const KEY = 'nullovation-city:motion', MODES = ['full', 'saver', 'still'];
+  let chosen = (() => { try { const v = localStorage.getItem(KEY); return MODES.includes(v) ? v : null; } catch (e) { return null; } })();
+  const dflt = () => reducedMotion() ? 'still' : 'full';
+  const mode = () => chosen || dflt();
+  function set(v) {
+    chosen = MODES.includes(v) ? v : null;                         // null: follow the system again
+    try { if (chosen) localStorage.setItem(KEY, chosen); else localStorage.removeItem(KEY); } catch (e) { /* this visit only */ }
+  }
+  return { mode, dflt, set, still: () => mode() === 'still', saver: () => mode() === 'saver', MODES };
 })();
 function shadeData(d) {
   if (Light.t <= 0) return d;
@@ -2315,6 +2720,12 @@ const ICONS = {
   download: ['....##....', '....##....', '....##....', '.#..##..#.', '.##.##.##.', '..######..', '...####...', '....##....', '#........#', '##########'],
   clock: ['...####...', '.##....##.', '.#..#...#.', '#...#....#', '#...###..#', '#........#', '.#......#.', '.##....##.', '...####...', '..........'],
   copy: ['...######.', '...#....#.', '######..#.', '#....#..#.', '#....#..#.', '#....####.', '#....#....', '#....#....', '######....', '..........'],
+  gear: ['....##....', '.#.####.#.', '..######..', '.###..###.', '####..####', '####..####', '.###..###.', '..######..', '.#.####.#.', '....##....'],
+  back: ['..........', '....#.....', '...##.....', '..########', '.#########', '..########', '...##.....', '....#.....', '..........', '..........'],
+  help: ['..####..', '.##..##.', '.....##.', '....##..', '...##...', '...##...', '........', '...##...', '...##...', '........'],
+  walker: ['....##....', '....##....', '..........', '...####...', '..#.##.#..', '..#.##.#..', '....##....', '...#..#...', '...#..#...', '..##..##..'],
+  disk: ['#########.', '#+#....#+#', '#+#....#+#', '#+######+#', '#++++++++#', '#+######+#', '#+#....#+#', '#+#....#+#', '#+######+#', '##########'],
+  arrow: ['######....', '######....', '####......', '##.##.....', '##..##....', '##...##...', '......##..', '.......##.', '........##', '..........'],
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
 const ICON_NAMES = { doc: 'Doc', task: 'Task', design: 'Design', code: 'Code', chat: 'Chat', folder: 'Folder', web: 'Web' };
@@ -2448,7 +2859,7 @@ const Art = (() => {
     for (const q of list) g.drawImage(q.c, x + q.x * s, y + q.y * s, q.w * s, q.h * s);
   }
   function indexAt(a, t) {
-    if (!a.animated) return 0;
+    if (!a.animated || Motion.still()) return 0;           // Still: every building and park on its first frame
     let m = t % a.total;
     for (let i = 0; i < a.delays.length; i++) { m -= a.delays[i]; if (m < 0) return i; }
     return a.count - 1;
@@ -2591,7 +3002,7 @@ const MapView = (() => {
   const { S, MARGIN, TW, TH, PITCH } = WORLD;
   const HW = TW / 2, HH = TH / 2;
   const SLAB = 14;
-  let N = 0, TILES = 0, WX0 = 0, WX1 = 0, WY0 = 0, WY1 = 0;   // set by applyWorld() from WORLD.N
+  let NU = 0, NV = 0, OU = 0, OV = 0, TI = 0, TJ = 0, WX0 = 0, WX1 = 0, WY0 = 0, WY1 = 0;   // set by applyWorld() from WORLD
 
   let canvas, ctx, wrap;
   let dpr = 1, vw = 1, vh = 1;               // canvas size in device pixels
@@ -2630,8 +3041,10 @@ const MapView = (() => {
   /* ---------- the streets' fixed choices, shared by the ground and the traffic on it ---------- */
   const seed = (...k) => mulberry32(k.reduce((h, v) => (Math.imul(h ^ (v + 0x9e37), 0x85ebca6b) + 0x27d4eb2f) >>> 0, 17));
   const pick = (r, weights) => { let x = r() * weights.reduce((s, w) => s + w[1], 0); for (const [v, w] of weights) { if ((x -= w) < 0) return v; } return weights[0][0]; };
-  /* At each end of a street segment: a zebra crossing, a stop line, or nothing. */
-  const crossMark = (li, ri, along, e) => pick(seed(li, ri, along ? 1 : 2, e, 7), [['zebra', 55], ['stop', 30], ['none', 15]]);
+  /* At each end of a street segment: a zebra crossing, a stop line, or nothing. A segment along i runs beside lot li
+     on the u axis, across road ri on the v axis; along j the other way round. Dealt by the city's plot, so a mark
+     stays where it is when the map grows. */
+  const crossMark = (li, ri, along, e) => pick(seed(li + (along ? OU : OV), ri + (along ? OV : OU), along ? 1 : 2, e, 7), [['zebra', 55], ['stop', 30], ['none', 15]]);
 
   /* ---------- street props: fixed per block side, like the street details ---------- */
   /* A block's four sides, each measured from its own corner going round clockwise: the north-east side from the top
@@ -2656,23 +3069,31 @@ const MapView = (() => {
     return back ? TURNED[front] : front;
   }
   let propCache = { key: '', list: [] };
+  const mod = (x, m) => ((x % m) + m) % m;
   /* Bus stops follow a fixed pattern; a vending machine stands mid-block; a holo billboard by the corner, just past
      where a zebra lands; a bin on a building's two front sides, where people walk in. At most two to a side, kept
-     apart. Every draw is taken whatever the block holds, so planting a building only adds or takes away its bins. */
+     apart. Every draw is taken whatever the block holds, so planting a building only adds or takes away its bins.
+     Each side is dealt by the city's plot, so the props stay with their blocks when the map grows.
+     The amount scales how many: each prop has its own draw, so a higher amount only adds props and a lower one only
+     takes some away, and none moves. Bus stops keep the pattern up to today's amount, and above it some stand off the
+     pattern too. Deal again lays them out anew by the same rules. A kind turned off is only taken away. */
   function propPlan() {
-    const built = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v));
-    const key = N + ':' + [...built].sort().join(';');
+    const c = DB.city, built = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v));
+    const key = [NU, NV, OU, OV, c.props, c.busstop, c.vending, c.billboard, c.bin, c.amount, c.deal].join(':') + ':' + [...built].sort().join(';');
     if (propCache.key === key) return propCache.list;
-    const list = [];
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) {
+    const list = [], amt = c.amount, deal = c.deal;
+    const pat = deal ? (r => [1 + Math.floor(r() * 4), 1 + Math.floor(r() * 4), 1 + Math.floor(r() * 4), Math.floor(r() * 5)])(mulberry32(deal * 7919 + 13)) : [3, 5, 7, 0];
+    if (c.props) for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) {
+      const U = u + OU, V = v + OV;
       const a0 = MARGIN + u * PITCH, b0 = MARGIN + v * PITCH, a1 = a0 + S, b1 = b0 + S;
       PROP_SIDES.forEach((sd, k) => {
-        const r = seed(u, v, k, 61), d = Array.from({ length: 6 }, () => r());
+        const r = deal ? seed(U, V, k, 61, deal) : seed(U, V, k, 61), d = Array.from({ length: 6 }, () => r());
+        const e = (deal ? seed(U, V, k, 62, deal) : seed(U, V, k, 62))();
         const want = [];
-        if ((u * 3 + v * 5 + k * 7) % 5 === 0) want.push(['busstop', 1.2 + d[0] * 1.6]);
-        if (built.has(u + ',' + v) && !sd.back && d[1] < 0.6) want.push(['bin', 0.9 + d[2] * 2.2]);
-        if (d[3] < 0.2) want.push(['vending', 1.5 + d[4]]);
-        if (d[5] < 0.15) want.push(['billboard', 0.62]);
+        if (mod(U * pat[0] + V * pat[1] + k * pat[2] + pat[3], 5) === 0 ? e < Math.min(1, amt) : e < (amt - 1) * 0.25) want.push(['busstop', 1.2 + d[0] * 1.6]);
+        if (built.has(u + ',' + v) && !sd.back && d[1] < 0.6 * amt) want.push(['bin', 0.9 + d[2] * 2.2]);
+        if (d[3] < 0.2 * amt) want.push(['vending', 1.5 + d[4]]);
+        if (d[5] < 0.15 * amt) want.push(['billboard', 0.62]);
         const placed = [];
         for (const [kind, a] of want) {
           if (placed.length >= 2) break;
@@ -2680,6 +3101,7 @@ const MapView = (() => {
           placed.push({ kind, a });
         }
         for (const { kind, a } of placed) {
+          if (!c[kind]) continue;
           const [i, j] = sd.at(a0, b0, a1, b1, a, sd.off);
           list.push({ kind, u, v, side: sd.name, a, i, j, back: sd.back, mirror: propFaces(kind, sd.back) !== sd.name });
         }
@@ -2691,41 +3113,53 @@ const MapView = (() => {
 
   /* ---------- static art ---------- */
   /* The ground: a street grid. Every lot is a block wrapped in sidewalks, the gaps between lots
-     are two-lane streets, a ring road runs round the city, and empty lots are grass. */
+     are two-lane streets, a ring road runs round the city, and empty lots are grass. Every detail is dealt by the
+     city's plot or tile, never by its place on the grid, so it stays put when a line or a ring is added. */
   function buildWorld() {
     const w = WX1 - WX0, hgt = WY1 - WY0 + 2;
     const [c, g] = mkCanvas(w, hgt);
     const ox = -WX0;
     const pt = (i, j) => { const [x, y] = tileToWorld(i, j); return [ox + x, y]; };
     const Q = (i0, j0, i1, j1, col) => fillPoly(g, [pt(i0, j0), pt(i1, j0), pt(i1, j1), pt(i0, j1)], col);
-    const left = [0, TILES * HH], bottom = [ox, TILES * TH], right = [w, TILES * HH];
+    const left = [0, TJ * HH], bottom = [ox + (TI - TJ) * HW, (TI + TJ) * HH], right = [w, TI * HH];
     fillPoly(g, [left, bottom, [bottom[0], bottom[1] + SLAB], [left[0], left[1] + SLAB]], worldColor('slabL'));
     fillPoly(g, [bottom, right, [right[0], right[1] + SLAB], [bottom[0], bottom[1] + SLAB]], worldColor('slabR'));
     g.fillStyle = worldColor('strata');
-    const steps = (TILES * HW) / 2;
-    for (let k = 0; k < steps; k++) { g.fillRect(2 * k, left[1] + 6 + k, 2, 1); g.fillRect(ox + 2 * k, bottom[1] + 5 - k, 2, 1); }
+    const stepsL = (TI * HW) / 2, stepsR = (TJ * HW) / 2;
+    for (let k = 0; k < stepsL; k++) g.fillRect(2 * k, left[1] + 6 + k, 2, 1);
+    for (let k = 0; k < stepsR; k++) g.fillRect(bottom[0] + 2 * k, bottom[1] + 5 - k, 2, 1);
 
-    const lots = [], roads = [[0, MARGIN]];
-    for (let u = 0; u < N; u++) {
-      const l0 = MARGIN + u * PITCH;
-      lots.push([l0, l0 + S]);
-      roads.push(u < N - 1 ? [l0 + S, l0 + PITCH] : [l0 + S, TILES]);
-    }
+    /* lots and roads along each axis: i runs over u, j over v */
+    const axis = (n, span) => {
+      const lots = [], roads = [[0, MARGIN]];
+      for (let k = 0; k < n; k++) {
+        const l0 = MARGIN + k * PITCH;
+        lots.push([l0, l0 + S]);
+        roads.push(k < n - 1 ? [l0 + S, l0 + PITCH] : [l0 + S, span]);
+      }
+      return { lots, roads };
+    };
+    const I = axis(NU, TI), J = axis(NV, TJ);
     const SW = 0.3, PX = 1 / 16;               // sidewalk width, and one pixel in tile units
     const C = k => worldColor(k);
-    Q(0, 0, TILES, TILES, C('road'));                     // asphalt everywhere, then everything on top of it
+    Q(0, 0, TI, TJ, C('road'));                           // asphalt everywhere, then everything on top of it
     const px = (i, j, col) => { const [x, y] = pt(i, j); g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), 1, 1); };
     const ellipse = (ci, cj, r, col, n = 20) => fillPoly(g, Array.from({ length: n }, (_, k) => pt(ci + r * Math.cos(k / n * 2 * Math.PI), cj + r * Math.sin(k / n * 2 * Math.PI))), col);
-    { const r = seed(1); for (let n = 0; n < TILES * TILES * 9; n++) px(r() * TILES, r() * TILES, r() < 0.6 ? C('roadDk') : C('roadLt')); }   // a faint grain
-    const outer = ri => ri === 0 || ri === roads.length - 1;
-    for (let li = 0; li < lots.length; li++) {
-      const [l0, l1] = lots[li];
-      for (let ri = 0; ri < roads.length; ri++) {
-        const [r0, r1] = roads[ri];
-        for (const along of [true, false]) {    // a street segment: along i (j across the road) or along j
+    for (let i = 0; i < TI; i++) for (let j = 0; j < TJ; j++) {        // a faint grain, dealt by the city's tile
+      const r = seed(i + OU * PITCH, j + OV * PITCH, 5);
+      for (let n = 0; n < 9; n++) px(i + r(), j + r(), r() < 0.6 ? C('roadDk') : C('roadLt'));
+    }
+    for (const along of [true, false]) {        // a street segment: along i (j across the road) or along j
+      const lotsA = along ? I.lots : J.lots, roadsA = along ? J.roads : I.roads;
+      const oL = along ? OU : OV, oR = along ? OV : OU;
+      for (let li = 0; li < lotsA.length; li++) {
+        const [l0, l1] = lotsA[li];
+        for (let ri = 0; ri < roadsA.length; ri++) {
+          const [r0, r1] = roadsA[ri];
+          const outer = ri === 0 || ri === roadsA.length - 1;
           const q = (a0, a1, c0, c1, col) => along ? Q(a0, c0, a1, c1, col) : Q(c0, a0, c1, a1, col);
           const P = (a, c) => along ? [a, c] : [c, a];
-          const r = seed(li, ri, along ? 1 : 2);
+          const r = seed(li + oL, ri + oR, along ? 1 : 2);
           const in0 = r0 + SW, in1 = r1 - SW, mid = (r0 + r1) / 2;
           /* wear: a repaired patch, a crack, a manhole, a drain at the curb */
           if (r() < 0.4) {
@@ -2748,10 +3182,13 @@ const MapView = (() => {
             q(a, a + 0.16, c0, c0 + 0.07, C('drain'));
             for (let k = 1; k < 4; k++) q(a + k * 0.04, a + k * 0.04 + PX, c0 + PX, c0 + 0.07 - PX, C('roadLt'));
           }
-          /* markings: each street its own; the ring road is always the avenue with a double line */
-          const kind = outer(ri) ? 'double' : pick(r, [['dash', 45], ['double', 18], ['none', 17], ['arrows', 20]]);
+          /* markings: each street its own; the ring road is always the avenue with a double line. The ring road deals
+             its own marking too, unused, so a street that stops or starts being the ring keeps its sidewalks. */
+          const own = pick(r, [['dash', 45], ['double', 18], ['none', 17], ['arrows', 20]]);
+          const dashes = own === 'dash' || own === 'arrows' ? (() => { const step = 0.55 + r() * 0.35; return { step, len: step * (0.4 + r() * 0.2), phase: r() * step }; })() : null;
+          const kind = outer ? 'double' : own;
           if (kind === 'dash' || kind === 'arrows') {
-            const step = 0.55 + r() * 0.35, len = step * (0.4 + r() * 0.2), phase = r() * step;
+            const { step, len, phase } = dashes;
             for (let k = l0 + 0.62 + phase; k < l1 - 0.62; k += step) q(k, Math.min(k + len, l1 - 0.62), mid - PX / 2, mid + PX / 2, C('dash'));
           } else if (kind === 'double') {
             q(l0 + 0.5, l1 - 0.5, mid - PX * 1.5, mid - PX / 2, C('dash'));
@@ -2795,17 +3232,18 @@ const MapView = (() => {
         }
       }
     }
-    for (let ai = 0; ai < roads.length; ai++) for (let bi = 0; bi < roads.length; bi++) {   // crossings: corners, and each its own middle
-      const [a0, a1] = roads[ai], [b0, b1] = roads[bi];
+    for (let ai = 0; ai < I.roads.length; ai++) for (let bi = 0; bi < J.roads.length; bi++) {   // crossings: corners, and each its own middle
+      const [a0, a1] = I.roads[ai], [b0, b1] = J.roads[bi];
       for (const [i0, i1] of [[a0, a0 + SW], [a1 - SW, a1]]) for (const [j0, j1] of [[b0, b0 + SW], [b1 - SW, b1]]) Q(i0, j0, i1, j1, C('walk'));
       const ci = (a0 + a1) / 2, cj = (b0 + b1) / 2, rr = Math.min(a1 - a0, b1 - b0) / 2 - SW;
-      const r = seed(ai, bi, 91);
-      const kind = outer(ai) || outer(bi) ? pick(r, [['plain', 70], ['manhole', 30]]) : pick(r, [['plain', 50], ['manhole', 22], ['island', 12], ['box', 16]]);
+      const r = seed(ai + OU, bi + OV, 91);
+      const ring = ai === 0 || ai === I.roads.length - 1 || bi === 0 || bi === J.roads.length - 1;
+      const kind = ring ? pick(r, [['plain', 70], ['manhole', 30]]) : pick(r, [['plain', 50], ['manhole', 22], ['island', 12], ['box', 16]]);
       if (kind === 'manhole') { ellipse(ci + 0.15, cj - 0.1, 0.11, C('manhole')); ellipse(ci + 0.15, cj - 0.1, 0.075, C('manholeHi')); ellipse(ci + 0.15, cj - 0.1, 0.05, C('manhole')); }
       else if (kind === 'island') {                                // a small roundabout: a curb ring, grass, and a painted circle round it
         ellipse(ci, cj, rr * 0.72, C('paint'), 28); ellipse(ci, cj, rr * 0.72 - PX, C('road'), 28);
         ellipse(ci, cj, rr * 0.42, C('curb'), 24); ellipse(ci, cj, rr * 0.42 - PX, C('island'), 24);
-        const rs = seed(ai, bi, 92);
+        const rs = seed(ai + OU, bi + OV, 92);
         for (let n = 0; n < 6; n++) { const t = rs() * Math.PI * 2, d = rs() * rr * 0.28; px(ci + d * Math.cos(t), cj + d * Math.sin(t), C('vergeDk')); }
       } else if (kind === 'box') {                                 // a yellow box junction: keep clear
         const d = rr * 0.62, col = C('dash');
@@ -2814,17 +3252,18 @@ const MapView = (() => {
         for (let s = 0; s <= 1; s += PX / (4 * d)) { px(ci - d + 2 * d * s, cj - d + 2 * d * s, col); px(ci - d + 2 * d * s, cj + d - 2 * d * s, col); }
       }
     }
-    const rnd = mulberry32(99);
-    for (const [a0, a1] of lots) for (const [b0, b1] of lots) {      // empty lots are grass until a building is planted
+    I.lots.forEach(([a0, a1], u) => J.lots.forEach(([b0, b1], v) => {   // empty lots are grass until a building is planted
+      const rnd = seed(u + OU, v + OV, 99);
       Q(a0, b0, a1, b1, Light.mixHex('#D4F2DE', '#1D302C'));
       for (let n = 0; n < 70; n++) {
         const [x, y] = pt(a0 + 0.1 + rnd() * (a1 - a0 - 0.2), b0 + 0.1 + rnd() * (b1 - b0 - 0.2));
         g.fillStyle = rnd() < 0.8 ? Light.mixHex('#A9E2BE', '#26423A') : Light.mixHex('#FFFFFF', '#2F5046');
         g.fillRect(Math.round(x), Math.round(y), 1, 1);
       }
-    }
+    }));
     g.fillStyle = worldColor('rim');
-    for (let k = 0; k < steps; k++) { g.fillRect(2 * k, left[1] + k - 1, 2, 1); g.fillRect(ox + 2 * k, bottom[1] - k - 1, 2, 1); }
+    for (let k = 0; k < stepsL; k++) g.fillRect(2 * k, left[1] + k - 1, 2, 1);
+    for (let k = 0; k < stepsR; k++) g.fillRect(bottom[0] + 2 * k, bottom[1] - k - 1, 2, 1);
     return c;
   }
   function buildRings() {
@@ -2906,34 +3345,46 @@ const MapView = (() => {
     }
     if (g.flip) ctx.restore();
   }
-  /* Empty lots are little parks, one of a few scenes picked by the lot's position. */
+  /* Empty lots are little parks, one of a few scenes picked by the city's plot (U, V). */
   const lotPlan = new Map();
   function mixHash(u, v) {
     let h = (Math.imul(u + 1, 374761393) + Math.imul(v + 1, 668265263)) | 0;
     h = Math.imul(h ^ (h >>> 13), 1274126177);
     return (h ^ (h >>> 16)) >>> 0;
   }
-  /* Scenes are shuffled by a hash, then nudged so no lot repeats its neighbour above or to the left. */
-  function lotVariant(u, v) {
-    const key = u + ',' + v;
+  /* Scenes are shuffled by a hash, then nudged so no park repeats a neighbour. Round the city's origin each plot checks
+     the neighbours nearer the origin: from (0, 0) outward the one above and the one to the left, as before, and in the
+     other three quarters the mirror of that. So every two neighbours are checked once, and a plot's scene depends only
+     on its place in the city, never on where the map's edge is. */
+  function lotVariant(U, V) {
+    const key = U + ',' + V;
     if (lotPlan.has(key)) return lotPlan.get(key);
-    const n = LOTS.length;
-    let k = mixHash(u, v) % n;
-    const up = v > 0 ? lotVariant(u, v - 1) : -1, left = u > 0 ? lotVariant(u - 1, v) : -1;
-    for (let tries = 0; tries < n && (k === up || k === left); tries++) k = (k + 1) % n;
+    const n = LOTS.length, near = [];
+    if (U >= 0 && V >= 0) { if (V > 0) near.push(lotVariant(U, V - 1)); if (U > 0) near.push(lotVariant(U - 1, V)); }
+    else if (U < 0 && V >= 0) { near.push(lotVariant(U + 1, V)); if (V > 0) near.push(lotVariant(U, V - 1)); }
+    else if (U < 0) near.push(lotVariant(U + 1, V), lotVariant(U, V + 1));
+    else { near.push(lotVariant(U, V + 1)); if (U > 0) near.push(lotVariant(U - 1, V)); }
+    let k = mixHash(U, V) % n;
+    for (let tries = 0; tries < n && near.includes(k); tries++) k = (k + 1) % n;
     lotPlan.set(key, k);
     return k;
   }
+  /* A park's scene: the one picked for it in Edit City, or else the one dealt by its place. */
+  function lotIndex(u, v) {
+    const U = u + OU, V = v + OV, pick = DB.city.parks[U + ',' + V], at = pick ? LOTS.findIndex(l => l.id === pick) : -1;
+    return at >= 0 ? at : lotVariant(U, V);
+  }
+  const lotFlip = (u, v) => mod((u + OU) * 7 + (v + OV) * 13, 3) === 1;   // mirror some of them, for variety
   function lotScene(u, v) {
     if (typeof LOTS === 'undefined' || !LOTS.length) return null;
-    return Art.get('lot:' + LOTS[lotVariant(u, v)].id);
+    return Art.get('lot:' + LOTS[lotIndex(u, v)].id);
   }
   function drawLot(u, v) {
     const art = lotScene(u, v);
     if (!art) return;
     const [X, Y] = plotTop(u, v);
     const s = PLOT.W / art.w, dh = art.h * s;
-    const flip = ((u * 7 + v * 13) % 3) === 1;               // mirror some of them, for variety
+    const flip = lotFlip(u, v);
     if (flip) { ctx.save(); ctx.translate(2 * X, 0); ctx.scale(-1, 1); }
     drawArt(art, X - 64, Y + 64 - dh, PLOT.W, dh);
     if (flip) ctx.restore();
@@ -3083,9 +3534,9 @@ const MapView = (() => {
     const moving = typeof Traffic !== 'undefined' && Traffic.active();
     if (moving) Traffic.drawGround(ctx);
     const plots = [];
-    for (let d = 0; d <= 2 * (N - 1); d++) for (let u = 0; u < N; u++) {
+    for (let d = 0; d <= NU + NV - 2; d++) for (let u = 0; u < NU; u++) {
       const v = d - u;
-      if (v < 0 || v >= N) continue;
+      if (v < 0 || v >= NV) continue;
       const [X, Y] = plotTop(u, v), p = lay.get(u + ',' + v);
       const a0 = MARGIN + u * PITCH, b0 = MARGIN + v * PITCH;
       plots.push({ plot: true, u, v, a0, a1: a0 + S, b0, b1: b0 + S, key: a0 + b0 + S,
@@ -3106,6 +3557,7 @@ const MapView = (() => {
     const isTarget = slots && T && T.u === u && T.v === v;
     if (!p) {
       drawLot(u, v);
+      if (editing && editHover && editHover.u === u && editHover.v === v && !clean) { drawRing(rings.free, X, Y); drawRing(rings.freeRing, X, Y); }
       if (!slots) return;
       if (isTarget && mode.name === 'place') {
         drawRing(rings.target, X, Y); drawRing(rings.targetRing, X, Y);
@@ -3226,7 +3678,7 @@ const MapView = (() => {
     const g = blockGeom(p, u, v);
     const tw = [...text].reduce((w, ch) => w + GLYPH[ch][0].length, 0) + text.length - 1;
     const w = Math.max(9, tw + 6), hh = 11, k = idHash(p.id);
-    const bob = Math.round(Math.sin(t / (1500 + (k % 420)) + (k % 628) / 100));
+    const bob = Motion.still() ? 0 : Math.round(Math.sin(t / (1500 + (k % 420)) + (k % 628) / 100));
     return { p, color, count, text, tw, x: Math.round(g.X - w / 2), y: Math.round(g.top) - 6 - hh + bob, w, h: hh, bob };
   }
   function eachBubble(fn) {
@@ -3300,25 +3752,26 @@ const MapView = (() => {
       dirty = true;
     }
     let animating = false;
+    const still = Motion.still();
     if (t - lastBobCheck > 90) {
       lastBobCheck = t;
       const key = bubbleKey();
       if (key !== lastBobKey) { lastBobKey = key; dirty = true; }
     }
-    if (lastBobKey) more = true;
+    if (lastBobKey && !still) more = true;
     if (typeof Traffic !== 'undefined' && Traffic.active()) { if (Traffic.step(t)) dirty = true; more = true; }
     if (planting) {
       dirty = true; more = true;
       if (t - planting.t0 >= planting.dur) { const done = planting.then; planting = null; if (done) setTimeout(done, 0); }
     }
-    if (typeof LOTS !== 'undefined') for (const l of LOTS) {
+    if (typeof LOTS !== 'undefined' && !still) for (const l of LOTS) {
       const a = Art.get('lot:' + l.id);
       if (!a || !a.animated) continue;
       animating = true;
       const i = Art.indexAt(a, t);
       if (animIdx.get('lot:' + l.id) !== i) { animIdx.set('lot:' + l.id, i); dirty = true; }
     }
-    for (const p of DB.projects) {
+    if (!still) for (const p of DB.projects) {
       const a = artFor(p).art;
       if (!a || !a.animated) continue;
       animating = true;
@@ -3326,9 +3779,11 @@ const MapView = (() => {
       if (animIdx.get(p.id) !== i) { animIdx.set(p.id, i); dirty = true; }
     }
     if (animating) more = true;
-    if (dirty) { draw(); dirty = false; Bubble.position(); }
+    if (dirty && Motion.saver() && t - lastPaint < 32) more = true;   // Saver: the next frame draws it
+    else if (dirty) { draw(); dirty = false; lastPaint = t; paints++; Bubble.position(); if (editing) placeArrows(); }
     if (more) kick(); else lastT = 0;
   }
+  let lastPaint = 0, paints = 0;
 
   /* ---------- camera ---------- */
   function updateZoomLabel() {
@@ -3455,7 +3910,7 @@ const MapView = (() => {
     const [wx, wy] = cssToWorld(cx, cy);
     const [i, j] = worldToTile(wx, wy + PLOT.RAISE);
     const u = Math.round((i - MARGIN - S / 2) / PITCH), v = Math.round((j - MARGIN - S / 2) / PITCH);
-    if (u < 0 || v < 0 || u >= N || v >= N) return null;
+    if (u < 0 || v < 0 || u >= NU || v >= NV) return null;
     const ci = MARGIN + u * PITCH + S / 2, cj = MARGIN + v * PITCH + S / 2;
     if (Math.abs(i - ci) > PITCH / 2 + 0.5 || Math.abs(j - cj) > PITCH / 2 + 0.5) return null;
     return { u, v };
@@ -3475,9 +3930,14 @@ const MapView = (() => {
     return true;
   }
   async function startPlace(name, generic) {
+    setEditing(false);
     if (!freePlots().length) {
-      if (WORLD.N >= WORLD.MAX_N) { toast('Every plot is taken, and the map is at its largest. Delete a project to free one up.', 'error'); return false; }
-      const ok = await Confirm.ask({ title: 'Every plot is taken', body: 'Add a ring of plots around the city? The map grows from ' + WORLD.N + ' by ' + WORLD.N + ' to ' + (WORLD.N + 2) + ' by ' + (WORLD.N + 2) + ' plots.', confirm: 'Add a ring' });
+      if (!canResize(1)) {
+        if (WORLD.NU < WORLD.MAX_N || WORLD.NV < WORLD.MAX_N) toast('Every plot is taken. Add a line of plots in Edit City, under Settings, then plant it.', 'error');
+        else toast('Every plot is taken, and the map is at its largest. Delete a project to free one up.', 'error');
+        return false;
+      }
+      const ok = await Confirm.ask({ title: 'Every plot is taken', body: 'Add a ring of plots around the city? The map grows from ' + WORLD.NU + ' by ' + WORLD.NV + ' to ' + (WORLD.NU + 2) + ' by ' + (WORLD.NV + 2) + ' plots.', confirm: 'Add a ring' });
       if (!ok || !resizeWorld(1)) return false;
     }
     deselect();
@@ -3528,6 +3988,7 @@ const MapView = (() => {
       changed(null, { touch: false });       // moving a building is not work on the project
     }
     invalidate(); Bubble.position();
+    if (editing) editUi();
   }
   function cancelMode() {
     if (mode.name === 'place') { endPlace(); return true; }
@@ -3553,6 +4014,16 @@ const MapView = (() => {
       return;
     }
     if (mode.name === 'move') return;
+    if (editing) {
+      const hit = hitProject(x, y), t = hit ? null : plotNear(x, y), park = t && !projectAt(t.u, t.v) ? t : null;
+      if (!same(park, editHover)) { editHover = park; invalidate(); }
+      canvas.classList.toggle('over-building', !!park);
+      canvas.classList.toggle('edit-grab', !!hit);
+      if (park) showTip(parkName(LOTS[lotIndex(park.u, park.v)].id) + ': click for the next kind', x, y);
+      else if (hit) showTip(hit.name + ': drag to move', x, y);
+      else hideTip();
+      return;
+    }
     const hit = hitProject(x, y);
     const id = hit ? hit.id : null;
     if (id !== hoverId) { hoverId = id; invalidate(); }
@@ -3573,7 +4044,7 @@ const MapView = (() => {
     if (pointers.size > 2) return;
     const hit = mode.name === 'place' ? null : hitProject(x, y);
     gesture = { type: 'maybe', id: e.pointerId, sx: x, sy: y, lx: x, ly: y, hit, hold: null };
-    if (hit && mode.name === 'idle') gesture.hold = setTimeout(() => beginMove(hit, x, y), 380);
+    if (hit && mode.name === 'idle' && !editing) gesture.hold = setTimeout(() => beginMove(hit, x, y), 380);
   }
   function onMove(e) {
     const [x, y] = local(e);
@@ -3583,8 +4054,9 @@ const MapView = (() => {
     const dx = x - gesture.lx, dy = y - gesture.ly;
     gesture.lx = x; gesture.ly = y;
     if (gesture.type === 'maybe' && Math.hypot(x - gesture.sx, y - gesture.sy) > 5) {
-      clearTimeout(gesture.hold); gesture.type = 'pan';
-      canvas.classList.add('panning'); hideTip();
+      clearTimeout(gesture.hold);
+      if (editing && gesture.hit && mode.name === 'idle') beginMove(gesture.hit, gesture.sx, gesture.sy);
+      else { gesture.type = 'pan'; canvas.classList.add('panning'); hideTip(); }
     }
     if (gesture.type === 'pan') {
       cam.x -= (dx * dpr) / cam.z; cam.y -= (dy * dpr) / cam.z;
@@ -3609,6 +4081,11 @@ const MapView = (() => {
     else if (g.type === 'move') finishMove(true);
   }
   function click(x, y, hit) {
+    if (editing) {
+      const t = hit ? null : plotNear(x, y);
+      if (t && !projectAt(t.u, t.v)) cyclePark(t.u, t.v);
+      return;
+    }
     if (mode.name === 'place') {
       const t = plotNear(x, y);
       if (t && !projectAt(t.u, t.v)) placeAt(t);
@@ -3656,24 +4133,121 @@ const MapView = (() => {
   const typing = e => { const t = e.target; return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)); };
 
   function applyWorld() {
-    N = WORLD.N; TILES = WORLD.TILES;
-    WX0 = -TILES * HW; WX1 = TILES * HW; WY0 = 0; WY1 = TILES * TH + SLAB;
+    NU = WORLD.NU; NV = WORLD.NV; OU = WORLD.OU; OV = WORLD.OV; TI = WORLD.TI; TJ = WORLD.TJ;
+    WX0 = -TJ * HW; WX1 = TI * HW; WY0 = 0; WY1 = (TI + TJ) * HH + SLAB;
     worldCanvas = buildWorld();
   }
-  const outerRingEmpty = () => !DB.projects.some(p => p.plot.u === 0 || p.plot.v === 0 || p.plot.u === WORLD.N - 1 || p.plot.v === WORLD.N - 1);
-  /* Adds (dir 1) or removes (dir -1) one ring of plots around the city. The view stays on the same buildings. */
-  function resizeWorld(dir) {
-    const n = WORLD.N + 2 * dir;
-    if (n < WORLD.MIN_N || n > WORLD.MAX_N) return false;
-    if (dir < 0 && !outerRingEmpty()) return false;
+  /* The map's four sides, named like a block's: the north-east side is the line v = 0 (top right on screen), the
+     south-east u = NU - 1, the south-west v = NV - 1, and the north-west u = 0. A line added on the north-west or
+     north-east side moves the grid's start, so the plots there shift by one and the city's origin by one back. */
+  const SIDES = ['ne', 'se', 'sw', 'nw'];
+  const lineOf = side => side === 'nw' ? (p => p.u === 0) : side === 'se' ? (p => p.u === WORLD.NU - 1) : side === 'ne' ? (p => p.v === 0) : (p => p.v === WORLD.NV - 1);
+  const lineEmpty = side => !DB.projects.some(p => lineOf(side)(p.plot));
+  const outerRingEmpty = () => SIDES.every(lineEmpty);
+  const fits = n => n >= WORLD.MIN_N && n <= WORLD.MAX_N;
+  /* A ring fits when both sides stay within 5 to 11; taking one off also needs the ring empty. */
+  const canResize = dir => fits(WORLD.NU + 2 * dir) && fits(WORLD.NV + 2 * dir) && (dir > 0 || outerRingEmpty());
+  const canLine = (side, dir) => fits((side === 'nw' || side === 'se' ? WORLD.NU : WORLD.NV) + dir) && (dir > 0 || lineEmpty(side));
+  /* Moves the grid: du and dv plots added before it on each axis, and the new size. The view stays on the same
+     buildings, and everything dealt by place stays with them. */
+  function reshape(du, dv, nu, nv) {
     cancelMode();
-    for (const p of DB.projects) p.plot = { u: p.plot.u + dir, v: p.plot.v + dir };
-    setWorldSize(n); DB.world = { size: n };
-    cam.y += dir * PITCH * TH;
+    for (const p of DB.projects) p.plot = { u: p.plot.u + du, v: p.plot.v + dv };
+    setWorld({ nu, nv, ou: WORLD.OU - du, ov: WORLD.OV - dv }); DB.world = worldState();
+    cam.x += (du - dv) * PITCH * HW; cam.y += (du + dv) * PITCH * HH;
     applyWorld(); clampCam();
     persistNow(); invalidate(); Menu.refresh(); Bubble.position();
+    if (typeof Settings !== 'undefined') Settings.refresh();
+    if (editing) editUi();
     return true;
   }
+  /* Adds (dir 1) or removes (dir -1) one ring of plots around the city. */
+  function resizeWorld(dir) {
+    if (!canResize(dir)) return false;
+    return reshape(dir, dir, WORLD.NU + 2 * dir, WORLD.NV + 2 * dir);
+  }
+  /* Adds (dir 1) or takes off (dir -1) one line of plots on one side of the city. */
+  function addLine(side, dir) {
+    if (!SIDES.includes(side) || !canLine(side, dir)) return false;
+    const du = side === 'nw' ? dir : 0, dv = side === 'ne' ? dir : 0;
+    return reshape(du, dv, WORLD.NU + (side === 'nw' || side === 'se' ? dir : 0), WORLD.NV + (side === 'ne' || side === 'sw' ? dir : 0));
+  }
+  /* ---------- Edit City: lines, rings, parks and buildings, from the City tab of Settings ---------- */
+  let editing = false, editHover = null;
+  const SIDE_NAMES = { ne: 'north-east', se: 'south-east', sw: 'south-west', nw: 'north-west' };
+  const SIDE_TURN = { nw: 0, ne: 90, se: 180, sw: 270 };            // the arrow icon points north-west
+  const parkName = id => (id.charAt(0).toUpperCase() + id.slice(1)).replace(/-/g, ' ');
+  function setEditing(on) {
+    on = !!on;
+    if (on === editing) return false;
+    if (on) { cancelMode(); deselect(); hideTip(); }
+    else { if (mode.name === 'move') { if (gesture) { clearTimeout(gesture.hold); gesture = null; } finishMove(false); } editHover = null; hideTip(); }
+    editing = on;
+    $('#editBar').hidden = !on; $('#editArrows').hidden = !on;
+    canvas.classList.toggle('editing', on);
+    canvas.classList.remove('edit-grab', 'over-building');
+    if (on) { buildArrows(); frameCity(); editUi(); }
+    invalidate();
+    if (typeof Settings !== 'undefined') Settings.refresh();
+    return true;
+  }
+  /* Opening Edit City frames the whole map, its four arrow pairs included, between its bar and the map's buttons. */
+  function frameCity() {
+    const pad = 3 * PITCH * HW, top = 130 * dpr, bottom = 80 * dpr;
+    const w = WX1 - WX0 + 2 * pad, hh = WY1 - WY0 + 2 * pad;
+    const fit = Math.min(vw * 0.94 / w, (vh - top - bottom) * 0.94 / hh);
+    const L = zoomLevels(), z = L.filter(x => x <= fit).pop() || L[0];
+    cam.z = z;
+    cam.x = (WX0 + WX1) / 2;
+    cam.y = (WY0 + WY1) / 2 + (vh / 2 - (top + (vh - top - bottom) / 2)) / z;
+    anim.glide = null; anim.zoom = null;
+    clampCam(); updateZoomLabel(); saveUiSoon();
+  }
+  /* Each side: an arrow out that adds a line, and an arrow in that takes off the outer line; the arrow in shows only
+     when that line is empty and the city is longer than 5 plots that way, and the arrow out while it is under 11. */
+  function buildArrows() {
+    const box = $('#editArrows');
+    box.replaceChildren(...SIDES.map(side => h('div', { class: 'edit-side', 'data-side': side },
+      [1, -1].map(dir => h('button', { class: 'btn edit-arrow', type: 'button', 'data-dir': dir > 0 ? 'out' : 'in',
+        'aria-label': dir > 0 ? 'Add a line on the ' + SIDE_NAMES[side] + ' side' : 'Take off the ' + SIDE_NAMES[side] + ' line',
+        title: dir > 0 ? 'Add a line on the ' + SIDE_NAMES[side] + ' side' : 'Take off the ' + SIDE_NAMES[side] + ' line',
+        onclick: () => { addLine(side, dir); },
+      }, h('span', { class: 'edit-arrow-ic', style: 'transform: rotate(' + ((SIDE_TURN[side] + (dir > 0 ? 0 : 180)) % 360) + 'deg)', html: iconSvg('arrow', 16) }))))));
+  }
+  function editUi() {
+    if (!editing) return;
+    $('#editSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
+    $('#btnGrow').disabled = !canResize(1);
+    $('#btnShrink').disabled = !fits(WORLD.NU - 2) || !fits(WORLD.NV - 2);
+    for (const el of $$('#editArrows .edit-side')) {
+      const side = el.dataset.side;
+      el.querySelector('[data-dir="out"]').hidden = !canLine(side, 1);
+      el.querySelector('[data-dir="in"]').hidden = !canLine(side, -1);
+    }
+    placeArrows();
+  }
+  /* The arrows sit just outside the middle of each side, and follow the map as it pans and zooms. A city bigger than
+     the view keeps them at its edge, between the bar and the map's buttons, so every side stays in reach. */
+  function placeArrows() {
+    if (!editing) return;
+    const at = { nw: [-1.6, TJ / 2], ne: [TI / 2, -1.6], se: [TI + 2.2, TJ / 2], sw: [TI / 2, TJ + 2.2] };
+    const bar = $('#editBar'), W = wrap.clientWidth, H = wrap.clientHeight;
+    const top = bar.offsetTop + bar.offsetHeight + 34, bottom = H - 84;
+    for (const el of $$('#editArrows .edit-side')) {
+      let [cx, cy] = worldToCss(...tileToWorld(...at[el.dataset.side]));
+      const half = el.offsetWidth / 2 + 8;
+      cx = clamp(cx, half, W - half); cy = clamp(cy, top, Math.max(top, bottom));
+      el.style.transform = `translate(${Math.round(cx)}px, ${Math.round(cy)}px) translate(-50%, -50%)`;
+    }
+  }
+  /* A click on a park deals its next kind. Back at the kind its place deals, the pick is dropped. */
+  function cyclePark(u, v) {
+    const U = u + OU, V = v + OV, next = LOTS[(lotIndex(u, v) + 1) % LOTS.length].id;
+    if (next === LOTS[lotVariant(U, V)].id) delete DB.city.parks[U + ',' + V]; else DB.city.parks[U + ',' + V] = next;
+    persistSoon(); invalidate();
+    const t = $('#tip'); if (t && !t.hidden) t.textContent = parkName(next) + ': click for the next kind';
+  }
+
   /* Q and E (or [ and ]) step through buildings in map order: top to bottom, then left to right. */
   function hop(dir) {
     const list = DB.projects.filter(matchesFilter).sort((a, b) =>
@@ -3683,23 +4257,30 @@ const MapView = (() => {
     i = i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length;
     select(list[i].id);
   }
-  /* Saves the current view as a PNG, without selection marks, with a small caption. */
+  /* The postcard's options, on this computer: the caption with the date, and the size, as on screen or doubled. */
+  const CARD_KEY = 'nullovation-city:postcard', CARD_DEFAULT = { caption: true, size: 'screen' };
+  let card = (() => { try { const v = JSON.parse(localStorage.getItem(CARD_KEY) || 'null'); return v && typeof v === 'object' ? { caption: v.caption !== false, size: v.size === 'double' ? 'double' : 'screen' } : { ...CARD_DEFAULT }; } catch (e) { return { ...CARD_DEFAULT }; } })();
+  function setCard(o) {
+    card = Object.assign({}, card, o);
+    try { if (card.caption === CARD_DEFAULT.caption && card.size === CARD_DEFAULT.size) localStorage.removeItem(CARD_KEY); else localStorage.setItem(CARD_KEY, JSON.stringify(card)); } catch (e) { /* this visit only */ }
+  }
+  /* Saves the current view as a PNG, without selection marks, with a small caption. Doubled, the same view is drawn
+     at twice the scale on a canvas twice the size. */
   async function postcard() {
     try { await document.fonts.load('600 16px "Readex Pro"'); } catch (e) { /* fall back to any font */ }
-    clean = true; draw(); clean = false;
+    const k = card.size === 'double' ? 2 : 1;
     const out = document.createElement('canvas');
-    out.width = vw; out.height = vh;
+    out.width = vw * k; out.height = vh * k;
     const g = out.getContext('2d');
-    g.drawImage(canvas, 0, 0);
+    const saved = { ctx, vw, vh, z: cam.z };
+    ctx = g; vw = out.width; vh = out.height; cam.z = saved.z * k; clean = true;
+    try { draw(); } finally {
+      ctx = saved.ctx; vw = saved.vw; vh = saved.vh; cam.z = saved.z; clean = false;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
     invalidate();
-    const u = dpr, fs = Math.round(15 * u), pad = Math.round(14 * u), padIn = Math.round(9 * u), bw = Math.max(2, Math.round(2 * u));
-    const text = 'Nullovation City, ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-    g.font = `600 ${fs}px "Readex Pro", system-ui, sans-serif`;
-    const tw = Math.ceil(g.measureText(text).width);
-    const boxW = tw + padIn * 2, boxH = fs + padIn * 2, x = pad, y = vh - pad - boxH;
-    g.fillStyle = '#6B6388'; g.fillRect(x - bw, y - bw, boxW + bw * 2, boxH + bw * 2);
-    g.fillStyle = '#221D33'; g.fillRect(x, y, boxW, boxH);
-    g.fillStyle = '#ECE8F6'; g.textBaseline = 'middle'; g.fillText(text, x + padIn, y + boxH / 2 + Math.round(u));
+    if (card.caption) caption(g, out.width, out.height, dpr * k);
     out.toBlob(blob => {
       if (!blob) { toast('The postcard could not be made. Try again.', 'error'); return; }
       const a = h('a', { href: URL.createObjectURL(blob), download: 'nullovation-city-' + ymd() + '.png' });
@@ -3707,6 +4288,16 @@ const MapView = (() => {
       setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
       toast('Postcard saved as a PNG.');
     }, 'image/png');
+  }
+  function caption(g, vw, vh, u) {
+    const fs = Math.round(15 * u), pad = Math.round(14 * u), padIn = Math.round(9 * u), bw = Math.max(2, Math.round(2 * u));
+    const text = 'Nullovation City, ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    g.font = `600 ${fs}px "Readex Pro", system-ui, sans-serif`;
+    const tw = Math.ceil(g.measureText(text).width);
+    const boxW = tw + padIn * 2, boxH = fs + padIn * 2, x = pad, y = vh - pad - boxH;
+    g.fillStyle = '#6B6388'; g.fillRect(x - bw, y - bw, boxW + bw * 2, boxH + bw * 2);
+    g.fillStyle = '#221D33'; g.fillRect(x, y, boxW, boxH);
+    g.fillStyle = '#ECE8F6'; g.textBaseline = 'middle'; g.fillText(text, x + padIn, y + boxH / 2 + Math.round(u));
   }
 
   function init() {
@@ -3743,7 +4334,7 @@ const MapView = (() => {
       $('#btnLight').title = 'Time of day: choose Auto, Day, Dusk, or Night';
     };
     $('#btnLight').addEventListener('click', () => dropUp($('#btnLight'), LIGHTS, Light.mode, v => {
-      Light.setMode(v); lightUi();
+      Light.setMode(v); lightUi(); Settings.refresh();
       toast(v === 'auto' ? 'The city follows your clock: day, dusk, night, and dawn.' : 'The city stays at ' + v + '.');
     }));
     Light.onChange(lightUi);
@@ -3755,7 +4346,7 @@ const MapView = (() => {
       $('#btnBubbles').title = 'Bubbles: ' + { all: 'red and yellow urgency', red: 'red urgency only', tasks: 'open tasks in every project', none: 'hidden' }[bubbleMode] + '. Click to choose.';
     };
     $('#btnBubbles').addEventListener('click', () => dropUp($('#btnBubbles'), BUBBLES, bubbleMode, v => {
-      setBubbleMode(v); bubUi();
+      setBubbleMode(v); bubUi(); Settings.refresh();
       toast({ all: 'Showing red and yellow bubbles.', red: 'Showing red bubbles only.', tasks: 'Showing open tasks in every project.', none: 'Bubbles are hidden.' }[v]);
     }));
     bubUi();
@@ -3765,8 +4356,12 @@ const MapView = (() => {
       $('#btnTraffic').setAttribute('aria-pressed', String(Traffic.isOn()));
       $('#btnTraffic').title = Traffic.isOn() ? 'Cars and people are out. Click to clear the streets.' : 'The streets are empty. Click to bring the traffic back.';
     };
-    $('#btnTraffic').addEventListener('click', () => { Traffic.setOn(!Traffic.isOn()); trafficUi(); invalidate(); kick(); });
+    $('#btnTraffic').addEventListener('click', () => { Traffic.setOn(!Traffic.isOn()); trafficUi(); invalidate(); kick(); Settings.refresh(); });
     trafficUi();
+    syncBar = () => { lightUi(); bubUi(); trafficUi(); };
+    LIGHT_OPTIONS = LIGHTS; BUBBLE_OPTIONS = BUBBLES;
+    $('#gearIcon').innerHTML = iconSvg('gear', 16);
+    $('#btnSettings').addEventListener('click', () => Settings.toggle());
     $('#zoomIn').addEventListener('click', () => zoomStep(1));
     $('#zoomOut').addEventListener('click', () => zoomStep(-1));
     window.addEventListener('keydown', e => {
@@ -3774,7 +4369,7 @@ const MapView = (() => {
       if (typing(e) || FullView.isOpen() || Confirm.isOpen() || Panel.isOpen()) return;
       if (e.code === 'KeyQ' || e.code === 'BracketLeft' || e.code === 'KeyE' || e.code === 'BracketRight') {
         e.preventDefault();
-        if (!e.repeat && mode.name === 'idle') hop(e.code === 'KeyQ' || e.code === 'BracketLeft' ? -1 : 1);
+        if (!e.repeat && mode.name === 'idle' && !editing) hop(e.code === 'KeyQ' || e.code === 'BracketLeft' ? -1 : 1);
         return;
       }
       const d = keyDir(e);
@@ -3785,6 +4380,7 @@ const MapView = (() => {
     window.addEventListener('blur', () => keys.clear());
   }
 
+  let syncBar = () => {}, LIGHT_OPTIONS = [], BUBBLE_OPTIONS = [];
   function anchors(id) {
     const p = getProject(id); if (!p) return null;
     let u = p.plot.u, v = p.plot.v;
@@ -3799,7 +4395,7 @@ const MapView = (() => {
 
   return {
     init, invalidate, frameAll, setCam, select, deselect, glideTo, startPlace, cancelMode, anchors, blockPreview,
-    resizeWorld, outerRingEmpty, hop, postcard, applyWorld, blockPng,
+    resizeWorld, outerRingEmpty, canResize, addLine, canLine, lineEmpty, hop, postcard, applyWorld, blockPng,
     moving: () => mode.name === 'move',
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
     previewScale, profileScene, glideBeside,
@@ -3807,7 +4403,13 @@ const MapView = (() => {
     crossMark, layout: () => displayLayout(), tileToWorld,
     props: () => propPlan(), propsDrawn: () => lastProps,
     _depthOrder: sprites => depthSort([], sprites),                // for the tests: figures among themselves, back to front
-    lotInfo: (u, v) => (typeof LOTS !== 'undefined' && LOTS.length ? { id: LOTS[lotVariant(u, v)].id, flip: ((u * 7 + v * 13) % 3) === 1 } : null),
+    lotInfo: (u, v) => (typeof LOTS !== 'undefined' && LOTS.length ? { id: LOTS[lotIndex(u, v)].id, flip: lotFlip(u, v) } : null),
+    /* for the tests: a fingerprint of the ground's pixels in a box round a plot, in world pixels from its top corner */
+    _groundHash: (u, v, x0, y0, w, hh) => {
+      const [X, Y] = plotTop(u, v), d = worldCanvas.getContext('2d').getImageData(Math.round(X + x0 - WX0), Math.round(Y + y0 - WY0), w, hh).data;
+      let x = 2166136261; for (let k = 0; k < d.length; k++) x = Math.imul(x ^ d[k], 16777619);
+      return x >>> 0;
+    },
     kick: () => kick(),
     thumb: p => {                                          // a still, full building, for the side bar
       let c;
@@ -3819,6 +4421,10 @@ const MapView = (() => {
     dropCache: id => { bcache.delete(id); flat.delete(id); },
     plotCss: (u, v) => { const [X, Y] = plotTop(u, v); return worldToCss(X, Y + 32); },
     camState: () => ({ x: cam.x, y: cam.y, z: cam.z, dpr }),
+    _paints: () => paints,                                  // for the tests: how many times the map has been drawn
+    editing: () => editing, setEditing, cyclePark,
+    syncBar: () => syncBar(), setBubbleMode, lightOptions: () => LIGHT_OPTIONS, bubbleOptions: () => BUBBLE_OPTIONS,
+    card: () => ({ ...card }), setCard, CARD_DEFAULT,
   };
 })();
 
@@ -3834,7 +4440,7 @@ const Traffic = (() => {
   const keyOf = v => Object.keys(HEADS).find(k => HEADS[k][0] === v[0] && HEADS[k][1] === v[1]);
   const R = Math.random;
   const pickW = list => { let s = 0; for (const x of list) s += x[1]; let r = R() * s; for (const x of list) if ((r -= x[1]) < 0) return x[0]; return list.length ? list[list.length - 1][0] : null; };
-  let N = 0, ready = false, cars = [], people = [], riders = [], drones = [], busy = new Map(), weights = new Map(), seats = new Map();
+  let NU = 0, NV = 0, wkey = '', ready = false, cars = [], people = [], riders = [], drones = [], busy = new Map(), weights = new Map(), seats = new Map();
   let last = 0, lastDraw = 0, lastW = 0;
   const S = () => WORLD.S, PITCH = () => WORLD.PITCH;
   const roadC = r => r * WORLD.PITCH + WORLD.GAP / 2;          // a road's centre line, in tiles
@@ -3855,15 +4461,15 @@ const Traffic = (() => {
   function refreshWeights(now = Date.now()) {
     weights = new Map();
     const lay = MapView.layout();
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) {
+    for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) {
       const p = lay.get(u + ',' + v);
       weights.set(u + ',' + v, p ? 0.03 + 0.97 * busyness(p, now) : 0.1);   // parks: a few people pass through and sit
     }
   }
   const BUSY = 0.3;                                             // at or above this, a building draws its own crowd
-  const CROWD_KEY = 'nullovation-city:crowds', CROWD_PER = { none: 0, small: 8, medium: 14, large: 20 }, CEILING = 150;
-  let crowd = (() => { try { const v = localStorage.getItem(CROWD_KEY); return v in CROWD_PER ? v : 'medium'; } catch (e) { return 'medium'; } })();
-  const wAt = (u, v) => (u < 0 || v < 0 || u >= N || v >= N) ? 0 : (weights.get(u + ',' + v) ?? 0);
+  /* The crowd size and who is out are the city's settings (DB.city), so they travel with it. */
+  const CROWD_PER = { none: 0, small: 8, medium: 14, large: 20 }, CEILING = 150;
+  const wAt = (u, v) => (u < 0 || v < 0 || u >= NU || v >= NV) ? 0 : (weights.get(u + ',' + v) ?? 0);
   const projectAt = (u, v) => MapView.layout().get(u + ',' + v) || null;
 
   /* ---------- cars and the bus ---------- */
@@ -3874,7 +4480,7 @@ const Traffic = (() => {
     return [[ri - 1, rj - 1], [ri, rj - 1]];
   };
   const edgeW = (ri, rj, h) => 0.08 + 2 * edgeLots(ri, rj, h).reduce((s, [u, v]) => s + wAt(u, v), 0);
-  const validEdge = (ri, rj, h) => { const [a, b] = HEADS[h]; const ti = ri + a, tj = rj + b; return ti >= 0 && tj >= 0 && ti <= N && tj <= N; };
+  const validEdge = (ri, rj, h) => { const [a, b] = HEADS[h]; const ti = ri + a, tj = rj + b; return ti >= 0 && tj >= 0 && ti <= NU && tj <= NV; };
   function carPos(c) {
     const [a, b] = HEADS[c.h], [ra, rb] = rightOf(c.h);
     return [roadC(c.ri) + a * c.t + ra * LANE, roadC(c.rj) + b * c.t + rb * LANE];
@@ -3884,7 +4490,7 @@ const Traffic = (() => {
     const along = c.h[0] === 'i', plus = c.h[1] === '+';
     const road = along ? c.rj : c.ri, from = along ? c.ri : c.rj;
     const li = plus ? from : from - 1;
-    if (li < 0 || li >= N) return null;
+    if (li < 0 || li >= (along ? NU : NV)) return null;
     const e = plus ? 1 : 0, E = plus ? lotA0(li) + S() : lotA0(li);
     const sign = plus ? 1 : -1, half = c.len / 2, base = roadC(from);
     const tAt = front => (front - sign * half - base) * sign;
@@ -3893,7 +4499,7 @@ const Traffic = (() => {
   }
   function spawnCar(type) {
     const edges = [];
-    for (let ri = 0; ri <= N; ri++) for (let rj = 0; rj <= N; rj++) for (const h of Object.keys(HEADS)) if (validEdge(ri, rj, h)) edges.push([[ri, rj, h], edgeW(ri, rj, h)]);
+    for (let ri = 0; ri <= NU; ri++) for (let rj = 0; rj <= NV; rj++) for (const h of Object.keys(HEADS)) if (validEdge(ri, rj, h)) edges.push([[ri, rj, h], edgeW(ri, rj, h)]);
     for (let tries = 0; tries < 30; tries++) {
       const [ri, rj, h] = pickW(edges);
       const c = { type, ri, rj, h, t: 0.6 + R() * (PITCH() - 2), next: null, wait: 0, stopped: false,
@@ -3972,9 +4578,9 @@ const Traffic = (() => {
       if (MapView.crossMark(li, road, along, e) === 'zebra') out.push({ p, u2, v2, p2, key: li + ',' + road + ',' + (along ? 1 : 2) + ',' + e, from, to });
     };
     if (v > 0) { const J = lotA0(v - 1) + S() + SW / 2; for (const [e, iz] of [[0, a0 + 0.23], [1, a1 - 0.23]]) add(u, v, true, e, [iz, J0], [iz, J], u, v - 1, iz - I0, 2 * s + (I1 - iz)); }
-    if (v < N - 1) { const J = lotA0(v + 1) - SW / 2; for (const [e, iz] of [[0, a0 + 0.23], [1, a1 - 0.23]]) add(u, v + 1, true, e, [iz, J1], [iz, J], u, v + 1, 2 * s + (I1 - iz), iz - I0); }
+    if (v < NV - 1) { const J = lotA0(v + 1) - SW / 2; for (const [e, iz] of [[0, a0 + 0.23], [1, a1 - 0.23]]) add(u, v + 1, true, e, [iz, J1], [iz, J], u, v + 1, 2 * s + (I1 - iz), iz - I0); }
     if (u > 0) { const I = lotA0(u - 1) + S() + SW / 2; for (const [e, jz] of [[0, b0 + 0.23], [1, b1 - 0.23]]) add(v, u, false, e, [I0, jz], [I, jz], u - 1, v, 3 * s + (J1 - jz), s + (jz - J0)); }
-    if (u < N - 1) { const I = lotA0(u + 1) - SW / 2; for (const [e, jz] of [[0, b0 + 0.23], [1, b1 - 0.23]]) add(v, u + 1, false, e, [I1, jz], [I, jz], u + 1, v, s + (jz - J0), 3 * s + (J1 - jz)); }
+    if (u < NU - 1) { const I = lotA0(u + 1) - SW / 2; for (const [e, jz] of [[0, b0 + 0.23], [1, b1 - 0.23]]) add(v, u + 1, false, e, [I1, jz], [I, jz], u + 1, v, s + (jz - J0), 3 * s + (J1 - jz)); }
     return out;
   }
   const crossCache = new Map();
@@ -4019,17 +4625,25 @@ const Traffic = (() => {
     return { u, v, p, dir: R() < 0.5 ? 1 : -1, sp: 0.6 + R() * 0.3, mode: 'walk', alpha: 1, walked: R(),
       look: Object.assign(newLook(), { frame: pickI(BIKES) }) };
   }
-  const riderCount = () => Math.round(2 * N * N / 25);
+  /* How many of each are out: today's counts on a 5 by 5 map, scaled with the map's area and by the two sliders,
+     street traffic (cars, buses, drones) and walkers (people and cyclists); each kind can be kept in. The walkers stay
+     under the city's ceiling of 150 people, and the crowds round busy buildings take what room is left. */
+  const area = () => NU * NV / 25;
+  const riderCount = () => DB.city.cyclists ? Math.round(2 * area() * DB.city.walk) : 0;
+  function vehicleCounts() {
+    const c = DB.city, m = c.street, few = Math.max(1, Math.round(2 * area() * m));
+    return { cars: c.cars ? Math.max(0, Math.round(16 * area() * m) - 2 * few) : 0, buses: c.buses ? few : 0, drones: c.drones ? few : 0 };
+  }
   function blockPick() {
     const list = [];
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) list.push([[u, v], wAt(u, v) + 0.03]);
+    for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) list.push([[u, v], wAt(u, v) + 0.03]);
     return pickW(list);
   }
   function spawnPerson() { const [u, v] = blockPick(); return newPerson(u, v, R() * PER()); }
   /* Someone steps out of a building you worked on recently, or out of a park when there are none. */
   function personFromBuilding(at = null) {
     const list = [];
-    if (!at) for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) if (projectAt(u, v)) list.push([[u, v], wAt(u, v) + 0.02]);
+    if (!at) for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) if (projectAt(u, v)) list.push([[u, v], wAt(u, v) + 0.02]);
     if (!at && !list.length) return spawnPerson();
     const [u, v] = at || pickW(list), s = SIDE();
     const front = R() < 0.5 ? 1 : 2, f = 0.6 + R() * (s - 1.2), p = front * s + f;
@@ -4043,13 +4657,13 @@ const Traffic = (() => {
   /* The extras each busy building should have, in proportion to how busy it is. */
   function extraTargets() {
     const busyOnes = [];
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) if (projectAt(u, v) && wAt(u, v) >= BUSY) busyOnes.push([u + ',' + v, wAt(u, v)]);
-    const out = new Map(), per = CROWD_PER[crowd];
+    for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) if (projectAt(u, v) && wAt(u, v) >= BUSY) busyOnes.push([u + ',' + v, wAt(u, v)]);
+    const out = new Map(), per = DB.city.walkers ? CROWD_PER[DB.city.crowd] || 0 : 0;
     const room = Math.max(0, CEILING - baseCount()), scale = busyOnes.length * per > room ? room / (busyOnes.length * per) : 1;
     for (const [k] of busyOnes) out.set(k, Math.floor(per * scale));
     return out;
   }
-  const baseCount = () => Math.round(20 * N * N / 25);
+  const baseCount = () => DB.city.walkers ? Math.min(CEILING, Math.round(20 * area() * DB.city.walk)) : 0;
   let lastBalance = 0;
   function balanceExtras(now) {
     const want = extraTargets(), have = new Map();
@@ -4155,7 +4769,7 @@ const Traffic = (() => {
   /* ---------- delivery drones: hops between the buildings you are busy with ---------- */
   function droneTarget() {
     const list = [];
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) list.push([[u, v], (projectAt(u, v) ? wAt(u, v) : 0.02) + 0.01]);
+    for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) list.push([[u, v], (projectAt(u, v) ? wAt(u, v) : 0.02) + 0.01]);
     const [u, v] = pickW(list);
     return [lotA0(u) + S() / 2 + (R() - 0.5), lotA0(v) + S() / 2 + (R() - 0.5)];
   }
@@ -4400,13 +5014,13 @@ const Traffic = (() => {
     }
   }
   function reset() {
-    N = WORLD.N; crossCache.clear(); busy.clear(); seats.clear();
+    NU = WORLD.NU; NV = WORLD.NV; wkey = worldKey(); crossCache.clear(); busy.clear(); seats.clear();
     refreshWeights();
-    const total = Math.round(16 * N * N / 25), nDrones = Math.max(1, Math.round(12 * N * N / 25 / 6)), nBus = Math.max(1, Math.round(2 * N * N / 25));
+    const n = vehicleCounts();
     cars = [];
-    for (let k = 0; k < total - nDrones - nBus; k++) { const c = spawnCar('car'); if (c) cars.push(c); }
-    for (let k = 0; k < nBus; k++) { const c = spawnCar('bus'); if (c) cars.push(c); }
-    drones = Array.from({ length: nDrones }, () => { const [i, j] = droneTarget(); return { i, j, to: droneTarget(), alt: 64 + Math.round(R() * 16), sp: 0.7 + R() * 0.3, hold: 0, spin: R() * 5 }; });
+    for (let k = 0; k < n.cars; k++) { const c = spawnCar('car'); if (c) cars.push(c); }
+    for (let k = 0; k < n.buses; k++) { const c = spawnCar('bus'); if (c) cars.push(c); }
+    drones = Array.from({ length: n.drones }, () => { const [i, j] = droneTarget(); return { i, j, to: droneTarget(), alt: 64 + Math.round(R() * 16), sp: 0.7 + R() * 0.3, hold: 0, spin: R() * 5 }; });
     people = [];
     while (people.length < baseCount()) people.push(spawnPerson());
     for (const [k, n] of extraTargets()) {                         // the crowds round busy buildings, already out
@@ -4417,8 +5031,9 @@ const Traffic = (() => {
     while (riders.length < riderCount()) { const [u, v] = blockPick(); riders.push(newRider(u, v, R() * PER())); }
     ready = true;
   }
+  const worldKey = () => [WORLD.NU, WORLD.NV, WORLD.OU, WORLD.OV].join();
   function step(t) {
-    if (!ready || N !== WORLD.N) reset();
+    if (!ready || wkey !== worldKey()) reset();
     const dt = last ? Math.min(0.1, (t - last) / 1000) : 0;
     last = t;
     if (t - lastW > 5000) { refreshWeights(); lastW = t; }
@@ -4427,12 +5042,13 @@ const Traffic = (() => {
     return false;
   }
   return {
-    active: () => on, isOn: () => on, step, items, drawGround, drawAir, reset,
+    /* Still: nothing moves, whatever the button says */
+    active: () => on && !Motion.still(), isOn: () => on, step, items, drawGround, drawAir, reset,
     setOn: v => { on = !!v; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { /* this visit only */ } last = 0; },
     stats: () => ({ cars: cars.filter(c => c.type === 'car').length, buses: cars.filter(c => c.type === 'bus').length, drones: drones.length, people: people.length, extras: people.filter(q => q.home).length, bikes: riders.length }),
     busyness: p => busyness(p),
-    crowd: () => crowd,
-    setCrowd: v => { if (!(v in CROWD_PER)) return; crowd = v; try { localStorage.setItem(CROWD_KEY, v); } catch (e) { /* this visit only */ } lastBalance = 0; },
+    crowd: () => DB.city.crowd,
+    setCrowd: v => { if (!(v in CROWD_PER)) return; DB.city.crowd = v; persistSoon(); lastBalance = 0; },
     _state: () => ({ cars, people, riders, drones, busy }),
     /* for the tests: a look, and the sprite rows and canvases the map draws */
     _look: () => newLook(), _rows: (look, frame, back) => personRows(look, frame, back),
@@ -6137,32 +6753,10 @@ const Menu = (() => {
     $('#bannerCancel').addEventListener('click', () => MapView.cancelMode());
 
     $('#btnRecap').addEventListener('click', () => { closeDrawer(); openRecap(); });
-    for (const id of ['foldTools', 'foldData']) {                  // each collapsible remembers whether it was open
-      const d = $('#' + id), key = 'nullovation-city:' + id;
-      try { d.open = localStorage.getItem(key) === '1'; } catch (e) { /* closed */ }
-      d.addEventListener('toggle', () => { try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { /* this visit only */ } });
-    }
-    $('#btnPalette').addEventListener('click', () => paletteCanvas().toBlob(blob => {
-      if (!blob) return;
-      downloadBlob(blob, 'nullovation-city-palette.png');
-      toast('Palette saved: 32 colors as 8 px swatches.');
-    }, 'image/png'));
+    /* The status brief starts a planning chat, so it sits with the week rather than in Settings. */
     $('#btnBrief').addEventListener('click', copyBrief);
-    $('#btnBrief').after(OpenInClaude.button({ id: 'btnBriefClaude', text: () => statusBrief(), small: false }));
-    const cr = $('#optCrowds');
-    cr.value = Traffic.crowd();
-    cr.addEventListener('change', () => { Traffic.setCrowd(cr.value); toast({ none: 'No crowds round busy buildings.', small: 'Small crowds round busy buildings.', medium: 'Medium crowds round busy buildings.', large: 'Large crowds round busy buildings.' }[cr.value]); });
-    const ex = $('#optExplorer');
-    ex.checked = explorerLinks();
-    ex.addEventListener('change', () => {
-      try { localStorage.setItem(EXPLORER_KEY, ex.checked ? '1' : '0'); } catch (e) { /* this visit only */ }
-      FullView.render();
-      toast(ex.checked ? 'Folder links now open in File Explorer, once the Windows setup has run on this PC.' : 'Folder links open in the browser again.');
-    });
-    $('#btnFolderSetup').addEventListener('click', () => {
-      downloadBlob(new Blob([FOLDER_SETUP_PS1], { type: 'text/plain' }), 'nullovation-folder-links.ps1');
-      toast('Saved nullovation-folder-links.ps1. Right-click it, choose Run with PowerShell, then turn on the setting.');
-    });
+    $('#btnBrief').after(OpenInClaude.button({ id: 'btnBriefClaude', text: () => statusBrief(), small: true }));
+    /* Edit City's bar: the ring as before, and Done */
     $('#btnGrow').addEventListener('click', () => { if (MapView.resizeWorld(1)) toast('Added a ring of plots.'); });
     $('#btnShrink').addEventListener('click', () => {
       if (!MapView.outerRingEmpty()) { toast('The outer ring has buildings on it. Move them inward first.', 'error'); return; }
@@ -6171,6 +6765,7 @@ const Menu = (() => {
     $('#btnExport').addEventListener('click', exportAll);
     $('#btnImport').addEventListener('click', () => $('#fileImport').click());
     $('#fileImport').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importFile(f); });
+    $('#btnEditDone').addEventListener('click', () => { MapView.setEditing(false); Settings.refresh(); });
     $('#menuToggle').addEventListener('click', () => toggleDrawer());
     $('#menuClose').innerHTML = iconSvg('close', 18);
     $('#menuClose').addEventListener('click', () => { closeDrawer(); $('#menuToggle').focus(); });
@@ -6223,10 +6818,7 @@ const Menu = (() => {
   function refresh() {
     if (!countEl) return;
     renderUrgent(); renderDue(); renderWeek();
-    const n = WORLD.N;
-    $('#mapSize').textContent = n + ' by ' + n + ' plots';
-    $('#btnGrow').disabled = n >= WORLD.MAX_N;
-    $('#btnShrink').disabled = n <= WORLD.MIN_N;
+    $('#mapSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
     const total = DB.projects.length;
     countEl.replaceChildren();
     if (!total) { countEl.append('No projects yet. Use New project to put up the first building.'); return; }
@@ -6247,7 +6839,7 @@ const Menu = (() => {
       ? 'Saving failed because browser storage is full. Export a backup now.'
       : 'Not saving: this browser blocks storage for local files. Export a backup before closing.';
     saveEl.classList.add('bad');
-    if (alertEl) { alertEl.textContent = saveEl.textContent; alertEl.hidden = false; }      // something is wrong: it shows outside the collapsible
+    if (alertEl) { alertEl.textContent = saveEl.textContent; alertEl.hidden = false; }      // something is wrong: it shows in the side bar too
   }
 
   async function exportAll() {
@@ -6263,7 +6855,7 @@ const Menu = (() => {
   /* One exported project joins the city on the first free plot; it never replaces anything. */
   async function importProject(data) {
     const free = [];
-    for (let v = 0; v < WORLD.N; v++) for (let u = 0; u < WORLD.N; u++) if (!DB.projects.some(p => p.plot && p.plot.u === u && p.plot.v === v)) free.push({ u, v });
+    for (let v = 0; v < WORLD.NV; v++) for (let u = 0; u < WORLD.NU; u++) if (!DB.projects.some(p => p.plot && p.plot.u === u && p.plot.v === v)) free.push({ u, v });
     if (!free.length) { toast('Every plot is taken. Grow the map, then import the project again.', 'error'); return; }
     const raw = Object.assign({}, data.project, { id: uid('p'), plot: free[0] });
     const [item] = sanitizeProjects([raw]);
@@ -6284,10 +6876,10 @@ const Menu = (() => {
     try { data = JSON.parse(await file.text()); } catch (e) { toast('That file is not valid JSON. Pick a backup exported from Nullovation City.', 'error'); return; }
     if (data && data.kind === 'project' && data.project) { await importProject(data); return; }
     if (!data || !Array.isArray(data.projects)) { toast('That file has no projects list, so it is not a Nullovation City backup.', 'error'); return; }
-    const prevSize = WORLD.N;
-    setWorldSize(worldSizeFrom(data));           // a backup restores its own map size
+    const prevWorld = worldState();
+    setWorld(worldFrom(data));                   // a backup restores its own map, and the city's settings with it
     const items = sanitizeProjects(data.projects);
-    setWorldSize(prevSize);
+    setWorld(prevWorld);
     const ok = await Confirm.ask({
       title: 'Replace your projects?',
       body: 'This replaces the ' + DB.projects.length + ' project' + (DB.projects.length === 1 ? '' : 's') + ' in this browser with the ' + items.length + ' in the backup.',
@@ -6296,9 +6888,11 @@ const Menu = (() => {
     if (!ok) return;
     FullView.close(); MapView.deselect(); MapView.cancelMode();
     for (const p of DB.projects) { await Store.deleteArt(p.id); Art.drop(p.id); MapView.dropCache(p.id); }
-    setWorldSize(worldSizeFrom(data));
-    DB.world = { size: WORLD.N };
+    setWorld(worldFrom(data));
+    DB.world = worldState();
+    DB.city = sanitizeCity(data.city);           // a backup from before version 3 brings default settings
     MapView.applyWorld();
+    Traffic.reset();
     DB.projects = items.map(x => x.p);
     let lost = 0;
     for (const { p, raw } of items) {
@@ -6313,6 +6907,7 @@ const Menu = (() => {
       } catch (e) { /* skip unreadable art */ }
     }
     persistNow();
+    Light.update(); Settings.refresh();          // the city's settings came with it: Auto's hours, props, life
     MapView.frameAll(); MapView.invalidate(); refresh();
     const dropped = data.projects.length - items.length;
     let msg = 'Imported ' + items.length + (items.length === 1 ? ' project.' : ' projects.');
@@ -6329,17 +6924,280 @@ const Menu = (() => {
   }
   const closeDrawer = () => toggleDrawer(false);
 
-  return { init, refresh, setSaveStatus, closeDrawer };
+  return { init, refresh, setSaveStatus, closeDrawer, toggleDrawer };
+})();
+
+/* Settings: the side bar turns into them, one tab at a time. Changes apply at once and are saved, with no toast;
+   actions such as Export keep theirs. A setting that differs from its default shows a dot, and so does its tab.
+   What the city is like (DB.city) travels with it in the data file and backups; how this computer shows it (the
+   bar's buttons, motion, the postcard, folder links) stays in this browser. Resetting touches settings only. */
+const Settings = (() => {
+  const UI_KEY = 'nullovation-city:settings';
+  const TABS = [
+    { id: 'city', label: 'City', icon: 'brand' }, { id: 'life', label: 'Life', icon: 'walker' }, { id: 'look', label: 'Look', icon: 'sun' },
+    { id: 'projects', label: 'Projects', icon: 'flag' }, { id: 'saving', label: 'Saving', icon: 'disk' }, { id: 'links', label: 'Links', icon: 'folder' },
+  ];
+  const LIFE = ['cars', 'buses', 'drones', 'cyclists', 'walkers', 'street', 'walk', 'crowd'];
+  const PROPS_KEYS = ['props', 'busstop', 'vending', 'billboard', 'bin', 'amount', 'deal'];
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  /* Every setting: the tab it sits in, how to read it, its default, and how to set it. */
+  const city = k => ({ get: () => DB.city[k], def: () => CITY_DEFAULTS[k], set: v => setCity(k, v) });
+  const DEFS = {
+    props: { tab: 'city', ...city('props') }, busstop: { tab: 'city', ...city('busstop') }, vending: { tab: 'city', ...city('vending') },
+    billboard: { tab: 'city', ...city('billboard') }, bin: { tab: 'city', ...city('bin') }, amount: { tab: 'city', ...city('amount') },
+    deal: { tab: 'city', ...city('deal') },
+    traffic: { tab: 'life', get: () => Traffic.isOn(), def: () => true, set: v => { Traffic.setOn(v); MapView.syncBar(); MapView.invalidate(); MapView.kick(); } },
+    cars: { tab: 'life', ...city('cars') }, buses: { tab: 'life', ...city('buses') }, drones: { tab: 'life', ...city('drones') },
+    cyclists: { tab: 'life', ...city('cyclists') }, walkers: { tab: 'life', ...city('walkers') },
+    street: { tab: 'life', ...city('street') }, walk: { tab: 'life', ...city('walk') }, crowd: { tab: 'life', ...city('crowd') },
+    light: { tab: 'look', get: () => Light.mode, def: () => 'auto', set: v => { Light.setMode(v); MapView.syncBar(); } },
+    hours: { tab: 'look', get: () => [DB.city.night, DB.city.day], def: () => [CITY_DEFAULTS.night, CITY_DEFAULTS.day], set: v => { setCity('night', v[0]); setCity('day', v[1]); } },
+    bubbles: { tab: 'look', get: () => MapView.bubbleMode(), def: () => 'all', set: v => { MapView.setBubbleMode(v); MapView.syncBar(); } },
+    motion: { tab: 'look', get: () => Motion.mode(), def: () => Motion.dflt(), set: v => { Motion.set(v); MapView.invalidate(); MapView.kick(); } },
+    caption: { tab: 'look', get: () => MapView.card().caption, def: () => MapView.CARD_DEFAULT.caption, set: v => MapView.setCard({ caption: v }) },
+    cardSize: { tab: 'look', get: () => MapView.card().size, def: () => MapView.CARD_DEFAULT.size, set: v => MapView.setCard({ size: v }) },
+    rest: { tab: 'projects', ...city('rest') }, away: { tab: 'projects', ...city('away') },
+    explorer: { tab: 'links', get: () => explorerLinks(), def: () => false, set: v => { try { localStorage.setItem(EXPLORER_KEY, v ? '1' : '0'); } catch (e) { /* this visit only */ } if (FullView.isOpen()) FullView.render(); } },
+  };
+  const changedFromDefault = k => !same(DEFS[k].get(), DEFS[k].def());
+  function setCity(k, v) {
+    if (same(DB.city[k], v)) return;
+    DB.city[k] = v;
+    persistSoon();
+    if (LIFE.includes(k)) Traffic.reset();
+    if (k === 'night' || k === 'day') { Light.update(); MapView.syncBar(); }
+    if (k === 'rest' || k === 'away') { Bubble.refresh(); Menu.refresh(); if (FullView.isOpen()) FullView.render(); }
+    MapView.invalidate();
+  }
+  function set(k, v) { DEFS[k].set(v); refresh(); }
+
+  /* ---------- the panel ---------- */
+  let ui = (() => { try { const v = JSON.parse(localStorage.getItem(UI_KEY) || 'null'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+  if (!TABS.some(t => t.id === ui.tab)) ui.tab = 'city';
+  if (!ui.scroll || typeof ui.scroll !== 'object') ui.scroll = {};
+  const writeUi = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({ tab: ui.tab, scroll: ui.scroll })); } catch (e) { /* this visit only */ } };
+  const saveUi = debounce(writeUi, 250);
+  const isOpen = () => !$('#settings').hidden;
+  function open(tab) {
+    if (tab) ui.tab = tab;
+    Menu.toggleDrawer(true);
+    $('#sbLists').hidden = true; $('#settings').hidden = false;
+    $('#menu').classList.add('in-settings');
+    showTab(ui.tab);
+    refresh();
+    saveUi();
+    const btn = $('#setTabs [aria-selected="true"]'); if (btn) btn.focus({ preventScroll: true });
+  }
+  function close() {
+    if (!isOpen()) return false;
+    MapView.setEditing(false);
+    rememberScroll();
+    $('#settings').hidden = true; $('#sbLists').hidden = false;
+    $('#menu').classList.remove('in-settings');
+    saveUi();
+    $('#btnOpenSettings').focus({ preventScroll: true });
+    return true;
+  }
+  const toggle = () => { if (isOpen()) close(); else open(); };
+  function rememberScroll() { ui.scroll[ui.tab] = $('#menu').scrollTop; }
+  function showTab(id) {
+    if (isOpen() && id !== ui.tab) rememberScroll();
+    ui.tab = id;
+    for (const b of $$('#setTabs .set-tab')) { const on = b.dataset.tab === id; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }
+    for (const pg of $$('#setBody .set-page')) pg.hidden = pg.dataset.tab !== id;
+    $('#setTabName').textContent = TABS.find(t => t.id === id).label;
+    writeUi();
+    $('#btnTabReset').hidden = !TAB_RESET[id];
+    $('#menu').scrollTop = ui.scroll[id] || 0;
+    if (id === 'saving') StorageUse.render();
+    saveUi();
+  }
+
+  /* ---------- the controls ---------- */
+  /* A row of choices drawn as the bar's buttons, the current one pressed. Redrawn on every refresh, it keeps the
+     keyboard's place. */
+  const choiceRow = (box, options, current, onPick) => {
+    const had = box.contains(document.activeElement) ? document.activeElement.dataset.value : null;
+    box.replaceChildren(...options.map(o => h('button', { class: 'btn set-choice', type: 'button', 'data-value': o.value, 'aria-pressed': String(same(o.value, current)), title: o.hint || o.label,
+      onclick: () => onPick(o.value) }, o.icon ? h('span', { 'aria-hidden': 'true', html: iconSvg(o.icon, 14) }) : null, h('span', null, o.label))));
+    if (had != null) { const b = box.querySelector(`[data-value="${had}"]`); if (b) b.focus(); }
+  };
+  const DAYS = [[6, 'Sat'], [0, 'Sun'], [1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri']];   // weeks run Saturday to Friday
+  const MOTIONS = [{ value: 'full', label: 'Full' }, { value: 'saver', label: 'Saver', hint: 'At most 30 frames a second' }, { value: 'still', label: 'Still', hint: 'Nothing moves' }];
+  const SIZES = [{ value: 'screen', label: 'As on screen' }, { value: 'double', label: 'Doubled' }];
+  const times = v => (Math.round(v * 100) / 100) + 'x';
+  function slider(id, key) {
+    const inp = $('#' + id);
+    Object.assign(inp, { min: AMOUNTS.min, max: AMOUNTS.max, step: AMOUNTS.step });
+    inp.addEventListener('input', () => { set(key, +inp.value); });
+  }
+  function check(id, key) { $('#' + id).addEventListener('change', e => set(key, e.target.checked)); }
+
+  function init() {
+    $('#setBack').innerHTML = iconSvg('back', 18);
+    $('#setHelpBtn').innerHTML = iconSvg('help', 14);
+    $('#sbGearIcon').innerHTML = iconSvg('gear', 16);
+    $('#sbGearIcon').style.display = 'inline-flex';
+    $('#setTabs').replaceChildren(...TABS.map(t => h('button', { class: 'set-tab', type: 'button', role: 'tab', 'data-tab': t.id, 'aria-label': t.label, title: t.label,
+      onclick: () => showTab(t.id) }, h('span', { class: 'set-tab-ic', 'aria-hidden': 'true', html: iconSvg(t.icon, 18) }), h('span', { class: 'set-tab-name' }, t.label), h('i', { class: 'set-dot', 'aria-hidden': 'true' }))));
+    $('#setTabs').addEventListener('keydown', e => {
+      const k = TABS.findIndex(t => t.id === ui.tab);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const next = TABS[(k + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length].id;
+        showTab(next); $('#setTabs [aria-selected="true"]').focus();
+      }
+    });
+    $('#setTabs').after(h('p', { id: 'setTabName', class: 'set-tab-title', 'aria-hidden': 'true' }));
+    for (const pg of $$('#setBody .set-page')) pg.setAttribute('aria-label', TABS.find(t => t.id === pg.dataset.tab).label);
+    for (const row of $$('#setBody [data-set]')) row.prepend(h('i', { class: 'set-dot', 'aria-hidden': 'true', title: 'Changed from its default' }));
+    $('#setBack').addEventListener('click', close);
+    $('#btnOpenSettings').addEventListener('click', () => open());
+    $('#setHelpBtn').addEventListener('click', () => {
+      const box = $('#setHelp'), show = box.hidden;
+      box.hidden = !show; $('#setHelpBtn').setAttribute('aria-expanded', String(show));
+    });
+    $('#menu').addEventListener('scroll', () => { if (isOpen()) { rememberScroll(); saveUi(); } }, { passive: true });
+
+    /* City */
+    $('#btnEditCity').addEventListener('click', () => { MapView.setEditing(!MapView.editing()); refresh(); });
+    check('optProps', 'props');
+    for (const k of ['busstop', 'vending', 'billboard', 'bin']) check('opt' + k[0].toUpperCase() + k.slice(1), k);
+    slider('optAmount', 'amount');
+    $('#btnDeal').addEventListener('click', () => set('deal', DB.city.deal + 1));
+    /* Life */
+    check('optTraffic', 'traffic');
+    for (const k of ['cars', 'buses', 'drones', 'cyclists', 'walkers']) check('opt' + k[0].toUpperCase() + k.slice(1), k);
+    slider('optStreet', 'street'); slider('optWalk', 'walk');
+    $('#optCrowds').addEventListener('change', e => set('crowd', e.target.value));
+    /* Look */
+    const hoursIn = () => { const n = $('#optNight').value, d = $('#optDay').value; if (/^\d\d:\d\d$/.test(n) && /^\d\d:\d\d$/.test(d)) set('hours', [n, d]); };
+    $('#optNight').addEventListener('change', hoursIn); $('#optDay').addEventListener('change', hoursIn);
+    $('#optCaption').addEventListener('change', e => set('caption', e.target.checked));
+    $('#btnPalette').addEventListener('click', () => paletteCanvas().toBlob(blob => {
+      if (!blob) return;
+      downloadBlob(blob, 'nullovation-city-palette.png');
+      toast('Palette saved: 32 colors as 8 px swatches.');
+    }, 'image/png'));
+    /* Projects */
+    $('#optAway').addEventListener('change', e => set('away', parseYmd(e.target.value) != null ? e.target.value : ''));
+    $('#btnAwayClear').addEventListener('click', () => set('away', ''));
+    /* Links */
+    check('optExplorer', 'explorer');
+    $('#btnFolderSetup').addEventListener('click', () => {
+      downloadBlob(new Blob([FOLDER_SETUP_PS1], { type: 'text/plain' }), 'nullovation-folder-links.ps1');
+      toast('Saved nullovation-folder-links.ps1. Right-click it, choose Run with PowerShell, then turn on the setting.');
+    });
+    $('#btnFolderTest').addEventListener('click', () => {
+      const a = h('a', { href: explorerHref('C:\\Windows') });
+      document.body.append(a); a.click(); a.remove();
+      toast('Opening C:\\Windows through a folder link. If nothing opens, the setup has not run on this PC.');
+    });
+    /* Resets */
+    $('#btnTabReset').addEventListener('click', () => resetTab(ui.tab));
+    $('#btnResetAll').addEventListener('click', async () => {
+      const ok = await Confirm.ask({ title: 'Reset all settings?', body: 'Every setting goes back to its default, in the city and on this computer. Your projects, the map, and the parks you picked stay as they are.', confirm: 'Reset all settings', danger: true });
+      if (ok) for (const t of TABS) resetTab(t.id);
+    });
+    showTab(ui.tab);
+    refresh();
+  }
+  /* What each tab's Reset to defaults puts back. The Saving tab holds connections, not preferences, so it has none. */
+  const TAB_RESET = {
+    city: () => { for (const k of PROPS_KEYS) DEFS[k].set(DEFS[k].def()); },
+    life: () => { DEFS.traffic.set(true); for (const k of LIFE) DEFS[k].set(DEFS[k].def()); },
+    look: () => { for (const k of ['light', 'hours', 'bubbles', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
+    projects: () => { DEFS.rest.set([]); DEFS.away.set(''); },
+    links: () => DEFS.explorer.set(false),
+  };
+  function resetTab(id) { if (TAB_RESET[id]) { TAB_RESET[id](); refresh(); } }
+
+  /* Puts every control in step with the values, and the dots on what differs from its default. */
+  function refresh() {
+    if (!$('#setTabs') || !$('#setTabs').children.length) return;
+    const c = DB.city;
+    $('#mapSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
+    $('#btnEditCity').textContent = MapView.editing() ? 'Done editing' : 'Edit City';
+    $('#btnEditCity').setAttribute('aria-pressed', String(MapView.editing()));
+    $('#optProps').checked = c.props;
+    for (const k of ['busstop', 'vending', 'billboard', 'bin']) { const el = $('#opt' + k[0].toUpperCase() + k.slice(1)); el.checked = c[k]; el.disabled = !c.props; }
+    $('#optAmount').value = c.amount; $('#optAmountOut').textContent = times(c.amount); $('#optAmount').disabled = !c.props;
+    $('#btnDeal').disabled = !c.props;
+    $('#optTraffic').checked = Traffic.isOn();
+    for (const k of ['cars', 'buses', 'drones', 'cyclists', 'walkers']) $('#opt' + k[0].toUpperCase() + k.slice(1)).checked = c[k];
+    $('#optStreet').value = c.street; $('#optStreetOut').textContent = times(c.street);
+    $('#optWalk').value = c.walk; $('#optWalkOut').textContent = times(c.walk);
+    $('#optCrowds').value = c.crowd;
+    choiceRow($('#optLight'), MapView.lightOptions(), Light.mode, v => set('light', v));
+    if (document.activeElement !== $('#optNight')) $('#optNight').value = c.night;
+    if (document.activeElement !== $('#optDay')) $('#optDay').value = c.day;
+    choiceRow($('#optBubbles'), MapView.bubbleOptions(), MapView.bubbleMode(), v => set('bubbles', v));
+    choiceRow($('#optMotion'), MOTIONS, Motion.mode(), v => set('motion', v));
+    $('#motionNote').textContent = { full: 'Everything moves.', saver: 'Drawn at most 30 times a second.', still: 'Nothing moves: no traffic, and every building and park on its first frame.' }[Motion.mode()]
+      + (Motion.dflt() === 'still' ? ' This computer asks for reduced motion, so Still is the default.' : '');
+    $('#optCaption').checked = MapView.card().caption;
+    choiceRow($('#optCardSize'), SIZES, MapView.card().size, v => set('cardSize', v));
+    const dayFocus = $('#optRest').contains(document.activeElement) ? document.activeElement.dataset.day : null;
+    $('#optRest').replaceChildren(...DAYS.map(([d, name]) => h('button', { class: 'btn set-day', type: 'button', 'aria-pressed': String(c.rest.includes(d)), 'data-day': d,
+      title: c.rest.includes(d) ? name + ': a rest day' : name + ': counts', onclick: () => { const r = DB.city.rest; set('rest', r.includes(d) ? r.filter(x => x !== d) : [...r, d].sort()); } }, name)));
+    if (dayFocus != null) $(`#optRest [data-day="${dayFocus}"]`).focus();
+    if (document.activeElement !== $('#optAway')) $('#optAway').value = c.away;
+    $('#btnAwayClear').disabled = !c.away;
+    $('#optExplorer').checked = explorerLinks();
+    /* the dots */
+    const tabs = new Set();
+    for (const row of $$('#setBody [data-set]')) {
+      const k = row.dataset.set, on = changedFromDefault(k);
+      row.classList.toggle('changed', on);
+      if (on) tabs.add(DEFS[k].tab);
+    }
+    for (const b of $$('#setTabs .set-tab')) b.classList.toggle('changed', tabs.has(b.dataset.tab));
+    $('#btnResetAll').disabled = !Object.keys(DEFS).some(changedFromDefault);
+    if (ui.tab === 'saving') StorageUse.render();
+  }
+
+  /* Storage use: how much this browser holds, against its limit, so the full-storage message never comes first. */
+  const StorageUse = (() => {
+    const LIMIT = 5 * 1024 * 1024;                     // browsers keep about 5 MB of text per site
+    const kb = n => n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + ' KB' : n < 1024 ** 3 ? (n / 1024 / 1024).toFixed(1) + ' MB' : Math.round(n / 1024 ** 3) + ' GB';
+    function used() {
+      let n = 0;
+      try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); n += k.length + (localStorage.getItem(k) || '').length; } } catch (e) { /* none */ }
+      return n;
+    }
+    let art = null;
+    async function estimate() {
+      try { if (navigator.storage && navigator.storage.estimate) { const e = await navigator.storage.estimate(); art = { usage: e.usage || 0, quota: e.quota || 0 }; } } catch (e) { art = null; }
+      render(false);
+    }
+    function render(ask = true) {
+      const box = $('#storageBox');
+      if (!box) return;
+      const n = used(), pct = Math.min(100, Math.round(n / LIMIT * 100)), tone = pct >= 80 ? 'bad' : pct >= 60 ? 'soon' : '';
+      box.replaceChildren(...[
+        h('p', { class: 'save-status storage-line' }, 'Projects and settings: ', h('b', null, kb(n)), ' of about 5 MB'),
+        h('div', { class: 'bar storage-bar ' + tone, role: 'meter', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct, 'aria-label': 'Browser storage used' }, h('i', { style: 'width:' + pct + '%' })),
+        tone ? h('p', { class: 'save-status ' + (tone === 'bad' ? 'bad' : '') }, 'Close to the limit. Export a backup, and keep a data file, so nothing is lost if saving stops.') : null,
+        art ? h('p', { class: 'save-status' }, 'Building art and the rest: ', h('b', null, kb(art.usage)), art.quota ? ', of ' + kb(art.quota) + ' this browser allows' : '') : null].filter(Boolean));
+      if (ask) estimate();
+    }
+    return { render, used, LIMIT };
+  })();
+
+  return { init, open, close, toggle, isOpen, refresh, showTab, tab: () => ui.tab, resetTab, set, changed: changedFromDefault, storageUsed: () => StorageUse.used() };
 })();
 
 (function boot() {
   const saved = Store.load();
+  /* Before version 3 the crowd size was kept in this browser; it moves into the city once, so nothing changes. */
+  const oldCrowd = (() => { try { return localStorage.getItem('nullovation-city:crowds'); } catch (e) { return null; } })();
   if (saved && Array.isArray(saved.projects)) {
-    setWorldSize(worldSizeFrom(saved));
-    DB = { app: 'nullovation-city', version: 2, world: { size: WORLD.N }, projects: sanitizeProjects(saved.projects).map(x => x.p) };
+    setWorld(worldFrom(saved));
+    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(saved.city, oldCrowd), projects: sanitizeProjects(saved.projects).map(x => x.p) };
     Store.save(DB);
   } else {
-    DB = { app: 'nullovation-city', version: 2, world: { size: WORLD.N }, projects: seedProjects() };
+    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null, oldCrowd), projects: seedProjects() };
     DB.projects.forEach(backfillActivity);   // seeds start with their history, like saved projects do
     Store.save(DB);
   }
@@ -6347,6 +7205,7 @@ const Menu = (() => {
   Menu.init();
   Bubble.init();
   MapView.init();
+  Settings.init();
   Menu.refresh();                                          // the side bar's tiny buildings need the map's ground art
 
   const ui = Store.loadUi();
@@ -6366,8 +7225,9 @@ const Menu = (() => {
     Menu.refresh();                                        // the side bar's tiny buildings, now with their real art
   })();
   DataFile.init();
+  Backups.init();
 
-  /* Esc backs out of one layer at a time. The full view always closes on Esc. */
+  /* Esc backs out of one layer at a time. The full view always closes on Esc. Edit City ends before Settings closes. */
   window.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (OpenInClaude.close(true)) return;
@@ -6375,14 +7235,25 @@ const Menu = (() => {
     if (Panel.isOpen()) { Panel.close(); return; }
     if (FullView.isOpen()) { FullView.escape(); return; }
     if (MapView.cancelMode()) return;
+    if (MapView.setEditing(false)) return;
     if (MapView.deselect()) return;
+    if (Settings.close()) return;
     Menu.closeDrawer();
+  });
+  /* The comma key opens and closes Settings, unless you are typing or a dialog is open. */
+  window.addEventListener('keydown', e => {
+    if (e.key !== ',' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (Confirm.isOpen() || Panel.isOpen()) return;
+    e.preventDefault();
+    Settings.toggle();
   });
   window.addEventListener('beforeunload', () => persistSoon.flush());
   window.addEventListener('pagehide', () => persistSoon.flush());
 
   /* Keeps "updated" times and the light current while the page stays open. */
-  setInterval(() => { Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); }, 60000);
+  setInterval(() => { Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); Backups.tick(); }, 60000);
 })();
 
 </script>

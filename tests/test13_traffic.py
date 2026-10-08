@@ -7,8 +7,8 @@ errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
 
 CHECK_PLACES = """() => {
-  const S = WORLD.S, P = WORLD.PITCH, M = WORLD.MARGIN, N = WORLD.N, SW = 0.3;
-  const inLot = (i, j) => { for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) { const a = M + u * P, b = M + v * P; if (i > a + 0.02 && i < a + S - 0.02 && j > b + 0.02 && j < b + S - 0.02) return [u, v]; } return null; };
+  const S = WORLD.S, P = WORLD.PITCH, M = WORLD.MARGIN, NU = WORLD.NU, NV = WORLD.NV, SW = 0.3;
+  const inLot = (i, j) => { for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) { const a = M + u * P, b = M + v * P; if (i > a + 0.02 && i < a + S - 0.02 && j > b + 0.02 && j < b + S - 0.02) return [u, v]; } return null; };
   const onRoadMiddle = (i, j) => { const inGap = x => { const r = ((x % P) + P) % P; return r > SW + 0.02 && r < WORLD.GAP - SW - 0.02; }; return inGap(i) || inGap(j); };
   const st = Traffic._state();
   const carsOff = st.cars.filter(c => { const [i, j] = (() => { const H = { 'i+': [1, 0], 'i-': [-1, 0], 'j+': [0, 1], 'j-': [0, -1] }[c.h]; const r = [-H[1], H[0]]; return [c.ri * P + 1 + H[0] * c.t + r[0] * 0.35, c.rj * P + 1 + H[1] * c.t + r[1] * 0.35]; })(); return inLot(i, j); }).length;
@@ -49,7 +49,7 @@ with sync_playwright() as p:
     # a car at a stop line stops there, briefly. The probe sets a car down just before a stop line; when another car
     # happens to sit close ahead in that lane, the probe car rightly holds back, so it tries another car and line
     PROBE = """k => { const st = Traffic._state(), P = WORLD.PITCH, lines = [];
-      for (const h of ['i+', 'j+']) for (let r = 1; r < WORLD.N; r++) for (let q = 1; q < WORLD.N; q++) {
+      for (const h of ['i+', 'j+']) for (let r = 1; r < WORLD.NU; r++) for (let q = 1; q < WORLD.NV; q++) {
         const along = h[0] === 'i', li = along ? r : q, road = along ? q : r;
         if (MapView.crossMark(li, road, along, 1) === 'stop') lines.push({ h, r, q, along, li });
       }
@@ -72,7 +72,7 @@ with sync_playwright() as p:
     # a car waits while someone is on the zebra ahead
     res = js("""() => { const st = Traffic._state(), P = WORLD.PITCH;
       for (const c of st.cars) { if (c.type !== 'car' || c === window.__probe.c) continue;
-        for (const h of ['i+', 'j+']) for (let r = 1; r < WORLD.N; r++) for (let q = 1; q < WORLD.N; q++) {
+        for (const h of ['i+', 'j+']) for (let r = 1; r < WORLD.NU; r++) for (let q = 1; q < WORLD.NV; q++) {
           const along = h[0] === 'i', li = along ? r : q, road = along ? q : r;
           if (MapView.crossMark(li, road, along, 1) !== 'zebra') continue;
           const key = li + ',' + road + ',' + (along ? 1 : 2) + ',1';
@@ -103,7 +103,7 @@ with sync_playwright() as p:
         js(f"() => {{ Traffic.setCrowd('{lv}'); Traffic.reset(); }}"); sizes[lv] = js("() => Traffic.stats().extras")
     ok(f'each size gives its own crowd per busy building ({sizes})', sizes == {'none': 0, 'small': 8, 'large': 20, 'medium': 14})
     js("() => { Traffic.setCrowd('large'); }")
-    ok('the choice is kept', js("() => localStorage.getItem('nullovation-city:crowds')") == 'large')
+    ok('the choice is kept with the city, so it travels in the data file', js("() => DB.city.crowd") == 'large')
     js("() => { Traffic.setCrowd('medium'); Traffic.reset(); }")
     talk = set(); stand_max = 0
     for k in range(20):
@@ -176,7 +176,7 @@ with sync_playwright() as p:
     pg.screenshot(path=str(SH / 'people-variety.png'))
     # a bigger city gets more of everything
     js("() => MapView.resizeWorld(1)"); pg.wait_for_timeout(800)
-    st = js("() => Traffic.stats()"); n = js("() => WORLD.N")
+    st = js("() => Traffic.stats()"); n = js("() => WORLD.NU === WORLD.NV ? WORLD.NU : 0")
     base = round(20 * n * n / 25)
     ok(f'growing the map to {n} by {n} scales the traffic, the crowds staying under the ceiling of 150 ({st})', n == 7 and st['cars'] + st['buses'] + st['drones'] == round(16 * n * n / 25) and st['people'] - st['extras'] == base and st['people'] <= 150 and st['bikes'] == round(2 * n * n / 25))
     b.close()

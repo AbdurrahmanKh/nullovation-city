@@ -6,85 +6,200 @@
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
-    <div class="new-row">
-      <button id="btnNew" class="btn btn-accent" type="button"><span id="plusIcon" aria-hidden="true"></span>New project</button>
-      <div id="newWrap" hidden>
-        <label class="sr-only" for="newName">New project name</label>
-        <div class="new-name">
-          <input id="newName" class="field" type="text" dir="auto" maxlength="80" placeholder="Project name" autocomplete="off">
-          <button id="newNext" class="btn btn-accent btn-small" type="button">Next</button>
-        </div>
-        <p class="hint" style="margin-top:6px">Name it, pick its building, then plant it on the map.</p>
-      </div>
-    </div>
-
-    <div class="find">
-      <label class="sr-only" for="search">Search projects</label>
-      <input id="search" class="field" type="search" dir="auto" placeholder="Search projects" autocomplete="off">
-      <p id="count" class="count" aria-live="polite"></p>
-    </div>
-
-    <section class="sb-sec" aria-label="This week">
-      <button id="btnRecap" class="week-card" type="button" title="Open this week's snapshot, and every week before it"></button>
-    </section>
-    <section id="sbUrgent" class="sb-sec" aria-label="Urgent projects" hidden>
-      <h2 class="sb-h">Urgent</h2>
-      <div id="urgentList" class="urgent-list"></div>
-    </section>
-    <section id="sbDue" class="sb-sec" aria-label="Due this week" hidden>
-      <h2 class="sb-h">Due this week</h2>
-      <ul id="dueList" class="due-list"></ul>
-    </section>
-    <div class="grow"></div>
-    <div class="mapsize">
-      <span>Map: <b id="mapSize">5 by 5 plots</b></span>
-      <span class="mapsize-btns">
-        <button id="btnGrow" class="btn btn-small" type="button" title="Add a ring of plots around the city">Grow</button>
-        <button id="btnShrink" class="btn btn-small" type="button" title="Remove the outer ring when it is empty">Shrink</button>
-      </span>
-    </div>
+    <!-- something wrong with saving shows here, over the lists and over Settings alike -->
     <div id="alerts" class="sb-alerts" aria-live="polite">
       <p id="saveAlert" class="save-alert" hidden></p>
       <div id="fileAlert" class="save-alert" hidden></div>
+      <div id="backupAlert" class="save-alert" hidden></div>
     </div>
-    <details id="foldTools" class="sb-fold">
-      <summary>Tools</summary>
-      <div class="tools">
-        <button id="btnBrief" class="btn" type="button" title="Copies a text summary of every project for a Claude chat">Copy status brief</button>
-        <button id="btnPalette" class="btn" type="button" title="The city's 32 colors as a PNG, for image tools that take a forced palette">Download palette</button>
-        <div class="tool-crowds">
-          <label class="lbl" for="optCrowds">Crowds round busy buildings</label>
-          <select id="optCrowds" class="field"><option value="none">None</option><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select>
-        </div>
-        <div class="tool-folders">
-          <label class="check"><input id="optExplorer" type="checkbox" class="cb"> Folder links open in File Explorer</label>
-          <p class="note">Windows only, after a one-time setup on this PC. <button id="btnFolderSetup" class="linkish" type="button">Get the setup</button></p>
-        </div>
-      </div>
-    </details>
-    <details id="foldData" class="sb-fold">
-      <summary>Backup and data file</summary>
-      <div class="data">
-        <div class="data-btns">
-          <button id="btnExport" class="btn" type="button">Export backup</button>
-          <button id="btnImport" class="btn" type="button">Import backup</button>
-        </div>
-        <input id="fileImport" type="file" accept="application/json,.json" hidden>
-        <div id="fileBox" class="file-box"></div>
-        <p id="saveStatus" class="save-status">Saved in this browser.</p>
-      </div>
-    </details>
 
-    <section class="help" aria-label="Controls">
-      <h2>Controls</h2>
-      <dl>
-        <dt>Move</dt><dd>Arrow keys, WASD, or drag the ground</dd>
-        <dt>Zoom</dt><dd>Scroll or pinch</dd>
-        <dt>Status</dt><dd>Click a building</dd>
-        <dt>Hop</dt><dd>Q and E: previous or next building</dd>
-        <dt>Rearrange</dt><dd>Hold a building, then drag it to another plot</dd>
-      </dl>
-    </section>
+    <div id="sbLists" class="sb-lists">
+      <div class="new-row">
+        <button id="btnNew" class="btn btn-accent" type="button"><span id="plusIcon" aria-hidden="true"></span>New project</button>
+        <div id="newWrap" hidden>
+          <label class="sr-only" for="newName">New project name</label>
+          <div class="new-name">
+            <input id="newName" class="field" type="text" dir="auto" maxlength="80" placeholder="Project name" autocomplete="off">
+            <button id="newNext" class="btn btn-accent btn-small" type="button">Next</button>
+          </div>
+          <p class="hint" style="margin-top:6px">Name it, pick its building, then plant it on the map.</p>
+        </div>
+      </div>
+
+      <div class="find">
+        <label class="sr-only" for="search">Search projects</label>
+        <input id="search" class="field" type="search" dir="auto" placeholder="Search projects" autocomplete="off">
+        <p id="count" class="count" aria-live="polite"></p>
+      </div>
+
+      <section class="sb-sec" aria-label="This week">
+        <button id="btnRecap" class="week-card" type="button" title="Open this week's snapshot, and every week before it"></button>
+        <div id="briefRow" class="brief-row">
+          <button id="btnBrief" class="btn btn-small" type="button" title="Copies a text summary of every project for a Claude chat">Copy status brief</button>
+        </div>
+      </section>
+      <section id="sbUrgent" class="sb-sec" aria-label="Urgent projects" hidden>
+        <h2 class="sb-h">Urgent</h2>
+        <div id="urgentList" class="urgent-list"></div>
+      </section>
+      <section id="sbDue" class="sb-sec" aria-label="Due this week" hidden>
+        <h2 class="sb-h">Due this week</h2>
+        <ul id="dueList" class="due-list"></ul>
+      </section>
+      <div class="grow"></div>
+      <button id="btnOpenSettings" class="btn sb-settings" type="button" title="Settings (comma key)"><span id="sbGearIcon" aria-hidden="true"></span>Settings</button>
+    </div>
+
+    <div id="settings" class="settings" hidden>
+      <header class="set-head">
+        <button id="setBack" class="icon-btn" type="button" aria-label="Back to the lists" title="Back to the lists"></button>
+        <h2 class="set-title">Settings</h2>
+        <button id="setHelpBtn" class="icon-btn set-help-btn" type="button" aria-label="Controls" title="Controls" aria-expanded="false" aria-controls="setHelp"></button>
+      </header>
+      <section id="setHelp" class="help" aria-label="Controls" hidden>
+        <h2>Controls</h2>
+        <dl>
+          <dt>Move</dt><dd>Arrow keys, WASD, or drag the ground</dd>
+          <dt>Zoom</dt><dd>Scroll or pinch</dd>
+          <dt>Status</dt><dd>Click a building</dd>
+          <dt>Hop</dt><dd>Q and E: previous or next building</dd>
+          <dt>Settings</dt><dd>The comma key opens and closes them</dd>
+          <dt>Back</dt><dd>Esc closes one layer at a time</dd>
+        </dl>
+      </section>
+      <div id="setTabs" class="set-tabs" role="tablist" aria-label="Settings"></div>
+      <div id="setBody" class="set-body">
+
+        <div class="set-page" data-tab="city" role="tabpanel" hidden>
+          <section class="set-group">
+            <h3 class="set-h">Map</h3>
+            <div class="set-line"><span>Map: <b id="mapSize">5 by 5 plots</b></span><button id="btnEditCity" class="btn btn-small" type="button">Edit City</button></div>
+            <p class="note">Add or take off lines of plots, pick each park, and move buildings.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Street props</h3>
+            <label class="check set-row" data-set="props"><input id="optProps" type="checkbox" class="cb"> Street props</label>
+            <div class="set-sub">
+              <label class="check set-row" data-set="busstop"><input id="optBusstop" type="checkbox" class="cb"> Bus stops</label>
+              <label class="check set-row" data-set="vending"><input id="optVending" type="checkbox" class="cb"> Vending machines</label>
+              <label class="check set-row" data-set="billboard"><input id="optBillboard" type="checkbox" class="cb"> Holo billboards</label>
+              <label class="check set-row" data-set="bin"><input id="optBin" type="checkbox" class="cb"> Bins</label>
+            </div>
+            <div class="set-row set-slider" data-set="amount"><label class="lbl" for="optAmount">How many</label><input id="optAmount" type="range"><output id="optAmountOut" for="optAmount"></output></div>
+            <div class="set-row set-line" data-set="deal"><span class="note">Where they stand, by the same rules</span><button id="btnDeal" class="btn btn-small" type="button">Deal again</button></div>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="life" role="tabpanel" hidden>
+          <section class="set-group">
+            <label class="check set-row" data-set="traffic"><input id="optTraffic" type="checkbox" class="cb"> Traffic</label>
+            <p class="note">Everything that moves. The Traffic button on the map turns it on and off too.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Who is out</h3>
+            <label class="check set-row" data-set="cars"><input id="optCars" type="checkbox" class="cb"> Cars</label>
+            <label class="check set-row" data-set="buses"><input id="optBuses" type="checkbox" class="cb"> Buses</label>
+            <label class="check set-row" data-set="drones"><input id="optDrones" type="checkbox" class="cb"> Drones</label>
+            <label class="check set-row" data-set="cyclists"><input id="optCyclists" type="checkbox" class="cb"> Cyclists</label>
+            <label class="check set-row" data-set="walkers"><input id="optWalkers" type="checkbox" class="cb"> Walkers</label>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">How many</h3>
+            <div class="set-row set-slider" data-set="street"><label class="lbl" for="optStreet">Street traffic</label><input id="optStreet" type="range"><output id="optStreetOut" for="optStreet"></output></div>
+            <p class="note">Cars, buses and drones.</p>
+            <div class="set-row set-slider" data-set="walk"><label class="lbl" for="optWalk">Walkers</label><input id="optWalk" type="range"><output id="optWalkOut" for="optWalk"></output></div>
+            <p class="note">People and cyclists, up to 150 people in the whole city.</p>
+          </section>
+          <section class="set-group">
+            <div class="set-row tool-crowds" data-set="crowd">
+              <label class="lbl" for="optCrowds">Crowds round busy buildings</label>
+              <select id="optCrowds" class="field"><option value="none">None</option><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select>
+            </div>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="look" role="tabpanel" hidden>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="light">Time of day</h3>
+            <div id="optLight" class="set-choices" role="group" aria-label="Time of day"></div>
+            <div class="set-row set-times" data-set="hours">
+              <label class="lbl" for="optNight">Night starts</label><input id="optNight" class="field" type="time">
+              <label class="lbl" for="optDay">Day starts</label><input id="optDay" class="field" type="time">
+            </div>
+            <p class="note">Auto's hours. Dusk and dawn blend over the 90 minutes before each.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="bubbles">Bubbles</h3>
+            <div id="optBubbles" class="set-choices" role="group" aria-label="Bubbles"></div>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="motion">Motion</h3>
+            <div id="optMotion" class="set-choices" role="group" aria-label="Motion"></div>
+            <p id="motionNote" class="note"></p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Postcard</h3>
+            <label class="check set-row" data-set="caption"><input id="optCaption" type="checkbox" class="cb"> Caption with the date</label>
+            <div id="optCardSize" class="set-choices set-row" data-set="cardSize" role="group" aria-label="Postcard size"></div>
+          </section>
+          <section class="set-group">
+            <button id="btnPalette" class="btn btn-small" type="button" title="The city's 32 colors as a PNG, for image tools that take a forced palette">Download palette</button>
+            <p class="note">The city's 32 colors as a PNG, for image tools that take a forced palette.</p>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="projects" role="tabpanel" hidden>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="rest">Rest days</h3>
+            <div id="optRest" class="set-days" role="group" aria-label="Rest days"></div>
+            <p class="note">Days that do not count for One task per N days or Work until finished. Due dates count every day.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="away">Away until</h3>
+            <div class="set-line"><input id="optAway" class="field" type="date" aria-label="Away until"><button id="btnAwayClear" class="btn btn-small" type="button">Clear</button></div>
+            <p class="note">No yellow or red from urgency systems until that day, and from that day they count from it. Due dates still count.</p>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="saving" role="tabpanel" hidden>
+          <section class="set-group">
+            <h3 class="set-h">The data file</h3>
+            <div id="fileBox" class="file-box"></div>
+            <p id="saveStatus" class="save-status">Saved in this browser.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Daily backups</h3>
+            <div id="backupBox" class="file-box"></div>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Backup</h3>
+            <div class="data-btns">
+              <button id="btnExport" class="btn btn-small" type="button">Export backup</button>
+              <button id="btnImport" class="btn btn-small" type="button">Import backup</button>
+            </div>
+            <input id="fileImport" type="file" accept="application/json,.json" hidden>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Storage use</h3>
+            <div id="storageBox" class="storage-box"></div>
+          </section>
+        </div>
+
+        <div class="set-page" data-tab="links" role="tabpanel" hidden>
+          <section class="set-group tool-folders">
+            <label class="check set-row" data-set="explorer"><input id="optExplorer" type="checkbox" class="cb"> Folder links open in File Explorer</label>
+            <p class="note">Windows only, after a one-time setup on this PC. <button id="btnFolderSetup" class="linkish" type="button">Get the setup</button></p>
+            <div class="set-line"><button id="btnFolderTest" class="btn btn-small" type="button">Test folder links</button></div>
+            <p class="note">Opens C:\Windows through a folder link. If nothing opens, the setup has not run on this PC.</p>
+          </section>
+        </div>
+
+        <div class="set-foot">
+          <button id="btnTabReset" class="btn btn-small" type="button">Reset to defaults</button>
+          <button id="btnResetAll" class="btn btn-small btn-danger" type="button">Reset all settings</button>
+        </div>
+      </div>
+    </div>
   </aside>
 
   <main id="mapWrap">
@@ -93,10 +208,22 @@
       <div id="bubble" class="bubble" role="dialog" aria-label="Project status" hidden></div>
       <button id="enterBtn" class="btn btn-accent enter" type="button" hidden><span id="doorIcon" aria-hidden="true"></span>Enter</button>
       <div id="tip" class="tip" hidden></div>
+      <div id="editArrows" class="edit-arrows" hidden></div>
     </div>
     <div id="banner" class="banner" role="status" hidden>
       <span>Plant <b id="bannerName" dir="auto"></b>: aim at a free plot, then click.</span>
       <button id="bannerCancel" class="btn btn-quiet" type="button">Cancel</button>
+    </div>
+    <div id="editBar" class="banner edit-bar" role="region" aria-label="Edit City" hidden>
+      <div class="edit-text">
+        <b>Edit City</b> <span id="editSize" class="edit-size"></span>
+        <span class="edit-hint">Arrows add or take off a line. Click a park for its next kind. Drag a building to move it.</span>
+      </div>
+      <span class="mapsize-btns">
+        <button id="btnGrow" class="btn btn-small" type="button" title="Add a ring of plots around the city">Grow</button>
+        <button id="btnShrink" class="btn btn-small" type="button" title="Remove the outer ring when it is empty">Shrink</button>
+      </span>
+      <button id="btnEditDone" class="btn btn-accent btn-small" type="button">Done</button>
     </div>
     <div class="keyhint" aria-hidden="true"><kbd>Q</kbd><kbd>E</kbd><span>previous or next building</span></div>
     <div class="map-tools">
@@ -109,6 +236,7 @@
         <output id="zoomLevel" aria-live="polite">2x</output>
         <button id="zoomIn" class="icon-btn" type="button" aria-label="Zoom in"></button>
       </div>
+      <button id="btnSettings" class="btn btn-gear" type="button" aria-label="Settings" title="Settings (comma key)"><span id="gearIcon" aria-hidden="true"></span></button>
     </div>
     <button id="menuToggle" class="btn menu-toggle" type="button" aria-controls="menu" aria-expanded="false">Menu</button>
   </main>

@@ -1,6 +1,6 @@
 import datetime, pathlib
 from playwright.sync_api import sync_playwright
-from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY
+from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY, open_settings, close_settings
 
 errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
@@ -90,19 +90,18 @@ with sync_playwright() as p:
     ok('C3 Copy the week copies it as text', c.startswith('# Nullovation City, week of ') and 'Finished:' in c and 'Notes:' in c)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
 
-    # A1 and D1: the brief and the palette live in a Tools collapsible, closed at first
-    ok('A1 and D1 the brief and the palette are tucked away', not pg.is_visible('#btnBrief') and not pg.is_visible('#btnPalette'))
-    pg.click('#foldTools summary'); pg.wait_for_timeout(150)
-    ok('A1 and D1 Tools opens to show them', pg.is_visible('#btnBrief') and pg.is_visible('#btnPalette'))
+    # A1: the status brief, with its Open in Claude, sits with the week, outside Settings; the palette is in Settings
+    ok('A1 the status brief and its Open in Claude sit with the week, outside Settings', pg.is_visible('#btnBrief') and pg.is_visible('#btnBriefClaude') and not pg.is_visible('#btnPalette'))
     pg.click('#btnBrief'); pg.wait_for_timeout(150)
     ok('A1 the status brief still copies every project', clip().startswith('# Nullovation City status'))
-    # D2: backup tools collapse; the saved line lives inside; outside only when something is wrong
-    ok('D2 backup tools and the saved line are inside the collapsible', not pg.is_visible('#btnExport') and not pg.is_visible('#saveStatus'))
-    ok('D2 nothing shows outside while all is well', not pg.is_visible('#saveAlert') and not pg.is_visible('#fileAlert'))
+    # D2: backup tools and the saved line live in Settings, Saving; the side bar shows only what is wrong
+    ok('D2 backup tools and the saved line are in Settings, out of the lists', not pg.is_visible('#btnExport') and not pg.is_visible('#saveStatus'))
+    ok('D2 nothing shows in the side bar while all is well', not pg.is_visible('#saveAlert') and not pg.is_visible('#fileAlert') and not pg.is_visible('#backupAlert'))
     js("() => Menu.setSaveStatus ? Menu.setSaveStatus(false) : null")
-    ok('D2 a saving problem shows outside the collapsible', pg.is_visible('#saveAlert') or not js("() => !!Menu.setSaveStatus"))
+    ok('D2 a saving problem shows in the side bar', pg.is_visible('#saveAlert') or not js("() => !!Menu.setSaveStatus"))
     js("() => Menu.setSaveStatus && Menu.setSaveStatus(true)")
-    pg.click('#foldData summary'); pg.wait_for_timeout(150)
+    open_settings(pg, 'saving')
+    ok('D2 Settings, Saving, holds the data file, Export, Import and the saved line', all(pg.is_visible(s) for s in ('#fileBox', '#btnExport', '#btnImport', '#saveStatus')))
     pg.click('text=Keep a data file'); pg.wait_for_timeout(1200)
     ok('D2 the data file shows its name', pg.text_content('#fileBox .file-path .fp-name') == 'nullovation-city-data.json')
     pg.click('#fileBox >> text=Add its folder'); pg.wait_for_timeout(100)
@@ -110,12 +109,21 @@ with sync_playwright() as p:
     dir_ = pg.text_content('#fileBox .fp-dir')
     ok(f'D2 the typed folder shows in gray before the name ({dir_})', dir_ == 'C:\\Users\\Abdurrahman\\Documents\\' and
        js("() => getComputedStyle(document.querySelector('.fp-dir')).color !== getComputedStyle(document.querySelector('.fp-name')).color"))
-    # D3: map size and controls stay visible
-    ok('D3 map size and controls stay visible', pg.is_visible('#btnGrow') and pg.is_visible('.help'))
+    # D3: the map's size in Settings, City; the controls guide behind the ? in Settings' header; the palette in Look
+    open_settings(pg, 'city')
+    ok('D3 the map size shows in Settings, City', pg.is_visible('#mapSize') and pg.text_content('#mapSize') == '5 by 5 plots' and pg.is_visible('#btnEditCity'))
+    ok('D3 the controls guide waits behind the ?', not pg.is_visible('#setHelp'))
+    pg.click('#setHelpBtn'); pg.wait_for_timeout(100)
+    ok('D3 the ? shows the controls, and leaves moving buildings to the bar in Edit City', pg.is_visible('#setHelp') and 'Move' in pg.text_content('#setHelp') and 'Rearrange' not in pg.text_content('#setHelp'))
+    open_settings(pg, 'look')
+    ok('D1 the palette is in Settings, Look', pg.is_visible('#btnPalette'))
+    open_settings(pg, 'saving')
     pg.screenshot(path=str(SH / 'sb-final.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 1000})
-    # the collapsibles remember being open
+    # Settings opens again on the tab it was left on
     pg.reload(); pg.wait_for_timeout(1800)
-    ok('the collapsibles remember being open', js("() => document.querySelector('#foldTools').open && document.querySelector('#foldData').open"))
+    ok('after a reload the side bar shows the lists', pg.is_visible('#btnRecap') and not pg.is_visible('#settings'))
+    pg.click('#btnOpenSettings'); pg.wait_for_timeout(200)
+    ok('Settings opens again on the tab it was left on', js("() => Settings.tab()") == 'saving' and pg.is_visible('#fileBox'))
     ok('the folder is remembered too', pg.text_content('#fileBox .fp-dir') == 'C:\\Users\\Abdurrahman\\Documents\\' if pg.locator('#fileBox .fp-dir').count() else True)
     b.close()
 # F1: the order chosen for the side bar, checked on a fresh page with something red and something due
@@ -126,8 +134,8 @@ with sync_playwright() as p2:
     q.goto(FILE); q.wait_for_timeout(1800)
     import datetime as _dt
     q.evaluate("() => { const p = DB.projects.find(p => p.name.startsWith('Garden')); p.todos[0].due = '" + (_dt.date.today() + _dt.timedelta(days=1)).isoformat() + "'; changed(p); Menu.refresh(); }")
-    tops = q.evaluate("""() => ['#btnNew', '#search', '#btnRecap', '#sbUrgent', '#sbDue', '#btnGrow', '#foldTools', '#foldData', '.help']
+    tops = q.evaluate("""() => ['#btnNew', '#search', '#btnRecap', '#btnBrief', '#sbUrgent', '#sbDue', '#btnOpenSettings']
       .map(s => { const e = document.querySelector(s); return e && !e.hidden ? e.getBoundingClientRect().top : null; })""")
-    ok('F1 top to bottom: new, search, the week, urgent, due, map size, tools, backup, controls', all(x is not None for x in tops) and tops == sorted(tops))
+    ok('F1 top to bottom: new, search, the week with the status brief, urgent, due, and Settings at the bottom', all(x is not None for x in tops) and tops == sorted(tops))
     b2.close()
 print(errors or 'no console errors')

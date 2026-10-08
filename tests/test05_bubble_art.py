@@ -1,7 +1,7 @@
 import json, pathlib, io
 from playwright.sync_api import sync_playwright
 from PIL import Image
-from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY
+from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY, open_settings, close_settings
 
 errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
@@ -26,7 +26,7 @@ with sync_playwright() as p:
     ok(f'bubble shows only the update time ({meta})', 'Updated 30 days ago' in meta and 'Lights' not in meta)
     ok('menu has no lights note', 'Lights' not in page.text_content('#count'))
     page.evaluate("() => MapView.deselect()")
-    page.click('#foldTools summary'); page.click('#btnBrief'); page.wait_for_timeout(150)
+    page.click('#btnBrief'); page.wait_for_timeout(150)
     ok('status brief has no lights line', 'Lights' not in page.evaluate("() => navigator.clipboard.readText()"))
     ok('no lights-off code paths left', page.evaluate("() => typeof isStale === 'undefined' && typeof STALE_DAYS === 'undefined'"))
 
@@ -52,7 +52,8 @@ with sync_playwright() as p:
     ok(f'upload notes the trim ({toast})', 'Trimmed empty margins' in toast and 'top' in toast and 'left' not in toast and '8 frames' in toast)
     page.screenshot(path=str(SHOTS / '50-art-live-edit.png'))
 
-    # the palette lives in the side menu now; the building downloads from under its picture
+    # the palette lives in Settings, Look; the building downloads from under its picture
+    open_settings(page, 'look')
     with page.expect_download() as dl:
         page.click('#btnPalette')
     pal = Image.open(io.BytesIO(pathlib.Path(dl.value.path()).read_bytes())).convert('RGB')

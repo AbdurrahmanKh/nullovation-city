@@ -2,7 +2,7 @@ const MapView = (() => {
   const { S, MARGIN, TW, TH, PITCH } = WORLD;
   const HW = TW / 2, HH = TH / 2;
   const SLAB = 14;
-  let N = 0, TILES = 0, WX0 = 0, WX1 = 0, WY0 = 0, WY1 = 0;   // set by applyWorld() from WORLD.N
+  let NU = 0, NV = 0, OU = 0, OV = 0, TI = 0, TJ = 0, WX0 = 0, WX1 = 0, WY0 = 0, WY1 = 0;   // set by applyWorld() from WORLD
 
   let canvas, ctx, wrap;
   let dpr = 1, vw = 1, vh = 1;               // canvas size in device pixels
@@ -41,8 +41,10 @@ const MapView = (() => {
   /* ---------- the streets' fixed choices, shared by the ground and the traffic on it ---------- */
   const seed = (...k) => mulberry32(k.reduce((h, v) => (Math.imul(h ^ (v + 0x9e37), 0x85ebca6b) + 0x27d4eb2f) >>> 0, 17));
   const pick = (r, weights) => { let x = r() * weights.reduce((s, w) => s + w[1], 0); for (const [v, w] of weights) { if ((x -= w) < 0) return v; } return weights[0][0]; };
-  /* At each end of a street segment: a zebra crossing, a stop line, or nothing. */
-  const crossMark = (li, ri, along, e) => pick(seed(li, ri, along ? 1 : 2, e, 7), [['zebra', 55], ['stop', 30], ['none', 15]]);
+  /* At each end of a street segment: a zebra crossing, a stop line, or nothing. A segment along i runs beside lot li
+     on the u axis, across road ri on the v axis; along j the other way round. Dealt by the city's plot, so a mark
+     stays where it is when the map grows. */
+  const crossMark = (li, ri, along, e) => pick(seed(li + (along ? OU : OV), ri + (along ? OV : OU), along ? 1 : 2, e, 7), [['zebra', 55], ['stop', 30], ['none', 15]]);
 
   /* ---------- street props: fixed per block side, like the street details ---------- */
   /* A block's four sides, each measured from its own corner going round clockwise: the north-east side from the top
@@ -67,23 +69,31 @@ const MapView = (() => {
     return back ? TURNED[front] : front;
   }
   let propCache = { key: '', list: [] };
+  const mod = (x, m) => ((x % m) + m) % m;
   /* Bus stops follow a fixed pattern; a vending machine stands mid-block; a holo billboard by the corner, just past
      where a zebra lands; a bin on a building's two front sides, where people walk in. At most two to a side, kept
-     apart. Every draw is taken whatever the block holds, so planting a building only adds or takes away its bins. */
+     apart. Every draw is taken whatever the block holds, so planting a building only adds or takes away its bins.
+     Each side is dealt by the city's plot, so the props stay with their blocks when the map grows.
+     The amount scales how many: each prop has its own draw, so a higher amount only adds props and a lower one only
+     takes some away, and none moves. Bus stops keep the pattern up to today's amount, and above it some stand off the
+     pattern too. Deal again lays them out anew by the same rules. A kind turned off is only taken away. */
   function propPlan() {
-    const built = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v));
-    const key = N + ':' + [...built].sort().join(';');
+    const c = DB.city, built = new Set(DB.projects.map(p => p.plot.u + ',' + p.plot.v));
+    const key = [NU, NV, OU, OV, c.props, c.busstop, c.vending, c.billboard, c.bin, c.amount, c.deal].join(':') + ':' + [...built].sort().join(';');
     if (propCache.key === key) return propCache.list;
-    const list = [];
-    for (let u = 0; u < N; u++) for (let v = 0; v < N; v++) {
+    const list = [], amt = c.amount, deal = c.deal;
+    const pat = deal ? (r => [1 + Math.floor(r() * 4), 1 + Math.floor(r() * 4), 1 + Math.floor(r() * 4), Math.floor(r() * 5)])(mulberry32(deal * 7919 + 13)) : [3, 5, 7, 0];
+    if (c.props) for (let u = 0; u < NU; u++) for (let v = 0; v < NV; v++) {
+      const U = u + OU, V = v + OV;
       const a0 = MARGIN + u * PITCH, b0 = MARGIN + v * PITCH, a1 = a0 + S, b1 = b0 + S;
       PROP_SIDES.forEach((sd, k) => {
-        const r = seed(u, v, k, 61), d = Array.from({ length: 6 }, () => r());
+        const r = deal ? seed(U, V, k, 61, deal) : seed(U, V, k, 61), d = Array.from({ length: 6 }, () => r());
+        const e = (deal ? seed(U, V, k, 62, deal) : seed(U, V, k, 62))();
         const want = [];
-        if ((u * 3 + v * 5 + k * 7) % 5 === 0) want.push(['busstop', 1.2 + d[0] * 1.6]);
-        if (built.has(u + ',' + v) && !sd.back && d[1] < 0.6) want.push(['bin', 0.9 + d[2] * 2.2]);
-        if (d[3] < 0.2) want.push(['vending', 1.5 + d[4]]);
-        if (d[5] < 0.15) want.push(['billboard', 0.62]);
+        if (mod(U * pat[0] + V * pat[1] + k * pat[2] + pat[3], 5) === 0 ? e < Math.min(1, amt) : e < (amt - 1) * 0.25) want.push(['busstop', 1.2 + d[0] * 1.6]);
+        if (built.has(u + ',' + v) && !sd.back && d[1] < 0.6 * amt) want.push(['bin', 0.9 + d[2] * 2.2]);
+        if (d[3] < 0.2 * amt) want.push(['vending', 1.5 + d[4]]);
+        if (d[5] < 0.15 * amt) want.push(['billboard', 0.62]);
         const placed = [];
         for (const [kind, a] of want) {
           if (placed.length >= 2) break;
@@ -91,6 +101,7 @@ const MapView = (() => {
           placed.push({ kind, a });
         }
         for (const { kind, a } of placed) {
+          if (!c[kind]) continue;
           const [i, j] = sd.at(a0, b0, a1, b1, a, sd.off);
           list.push({ kind, u, v, side: sd.name, a, i, j, back: sd.back, mirror: propFaces(kind, sd.back) !== sd.name });
         }
@@ -102,41 +113,53 @@ const MapView = (() => {
 
   /* ---------- static art ---------- */
   /* The ground: a street grid. Every lot is a block wrapped in sidewalks, the gaps between lots
-     are two-lane streets, a ring road runs round the city, and empty lots are grass. */
+     are two-lane streets, a ring road runs round the city, and empty lots are grass. Every detail is dealt by the
+     city's plot or tile, never by its place on the grid, so it stays put when a line or a ring is added. */
   function buildWorld() {
     const w = WX1 - WX0, hgt = WY1 - WY0 + 2;
     const [c, g] = mkCanvas(w, hgt);
     const ox = -WX0;
     const pt = (i, j) => { const [x, y] = tileToWorld(i, j); return [ox + x, y]; };
     const Q = (i0, j0, i1, j1, col) => fillPoly(g, [pt(i0, j0), pt(i1, j0), pt(i1, j1), pt(i0, j1)], col);
-    const left = [0, TILES * HH], bottom = [ox, TILES * TH], right = [w, TILES * HH];
+    const left = [0, TJ * HH], bottom = [ox + (TI - TJ) * HW, (TI + TJ) * HH], right = [w, TI * HH];
     fillPoly(g, [left, bottom, [bottom[0], bottom[1] + SLAB], [left[0], left[1] + SLAB]], worldColor('slabL'));
     fillPoly(g, [bottom, right, [right[0], right[1] + SLAB], [bottom[0], bottom[1] + SLAB]], worldColor('slabR'));
     g.fillStyle = worldColor('strata');
-    const steps = (TILES * HW) / 2;
-    for (let k = 0; k < steps; k++) { g.fillRect(2 * k, left[1] + 6 + k, 2, 1); g.fillRect(ox + 2 * k, bottom[1] + 5 - k, 2, 1); }
+    const stepsL = (TI * HW) / 2, stepsR = (TJ * HW) / 2;
+    for (let k = 0; k < stepsL; k++) g.fillRect(2 * k, left[1] + 6 + k, 2, 1);
+    for (let k = 0; k < stepsR; k++) g.fillRect(bottom[0] + 2 * k, bottom[1] + 5 - k, 2, 1);
 
-    const lots = [], roads = [[0, MARGIN]];
-    for (let u = 0; u < N; u++) {
-      const l0 = MARGIN + u * PITCH;
-      lots.push([l0, l0 + S]);
-      roads.push(u < N - 1 ? [l0 + S, l0 + PITCH] : [l0 + S, TILES]);
-    }
+    /* lots and roads along each axis: i runs over u, j over v */
+    const axis = (n, span) => {
+      const lots = [], roads = [[0, MARGIN]];
+      for (let k = 0; k < n; k++) {
+        const l0 = MARGIN + k * PITCH;
+        lots.push([l0, l0 + S]);
+        roads.push(k < n - 1 ? [l0 + S, l0 + PITCH] : [l0 + S, span]);
+      }
+      return { lots, roads };
+    };
+    const I = axis(NU, TI), J = axis(NV, TJ);
     const SW = 0.3, PX = 1 / 16;               // sidewalk width, and one pixel in tile units
     const C = k => worldColor(k);
-    Q(0, 0, TILES, TILES, C('road'));                     // asphalt everywhere, then everything on top of it
+    Q(0, 0, TI, TJ, C('road'));                           // asphalt everywhere, then everything on top of it
     const px = (i, j, col) => { const [x, y] = pt(i, j); g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), 1, 1); };
     const ellipse = (ci, cj, r, col, n = 20) => fillPoly(g, Array.from({ length: n }, (_, k) => pt(ci + r * Math.cos(k / n * 2 * Math.PI), cj + r * Math.sin(k / n * 2 * Math.PI))), col);
-    { const r = seed(1); for (let n = 0; n < TILES * TILES * 9; n++) px(r() * TILES, r() * TILES, r() < 0.6 ? C('roadDk') : C('roadLt')); }   // a faint grain
-    const outer = ri => ri === 0 || ri === roads.length - 1;
-    for (let li = 0; li < lots.length; li++) {
-      const [l0, l1] = lots[li];
-      for (let ri = 0; ri < roads.length; ri++) {
-        const [r0, r1] = roads[ri];
-        for (const along of [true, false]) {    // a street segment: along i (j across the road) or along j
+    for (let i = 0; i < TI; i++) for (let j = 0; j < TJ; j++) {        // a faint grain, dealt by the city's tile
+      const r = seed(i + OU * PITCH, j + OV * PITCH, 5);
+      for (let n = 0; n < 9; n++) px(i + r(), j + r(), r() < 0.6 ? C('roadDk') : C('roadLt'));
+    }
+    for (const along of [true, false]) {        // a street segment: along i (j across the road) or along j
+      const lotsA = along ? I.lots : J.lots, roadsA = along ? J.roads : I.roads;
+      const oL = along ? OU : OV, oR = along ? OV : OU;
+      for (let li = 0; li < lotsA.length; li++) {
+        const [l0, l1] = lotsA[li];
+        for (let ri = 0; ri < roadsA.length; ri++) {
+          const [r0, r1] = roadsA[ri];
+          const outer = ri === 0 || ri === roadsA.length - 1;
           const q = (a0, a1, c0, c1, col) => along ? Q(a0, c0, a1, c1, col) : Q(c0, a0, c1, a1, col);
           const P = (a, c) => along ? [a, c] : [c, a];
-          const r = seed(li, ri, along ? 1 : 2);
+          const r = seed(li + oL, ri + oR, along ? 1 : 2);
           const in0 = r0 + SW, in1 = r1 - SW, mid = (r0 + r1) / 2;
           /* wear: a repaired patch, a crack, a manhole, a drain at the curb */
           if (r() < 0.4) {
@@ -159,10 +182,13 @@ const MapView = (() => {
             q(a, a + 0.16, c0, c0 + 0.07, C('drain'));
             for (let k = 1; k < 4; k++) q(a + k * 0.04, a + k * 0.04 + PX, c0 + PX, c0 + 0.07 - PX, C('roadLt'));
           }
-          /* markings: each street its own; the ring road is always the avenue with a double line */
-          const kind = outer(ri) ? 'double' : pick(r, [['dash', 45], ['double', 18], ['none', 17], ['arrows', 20]]);
+          /* markings: each street its own; the ring road is always the avenue with a double line. The ring road deals
+             its own marking too, unused, so a street that stops or starts being the ring keeps its sidewalks. */
+          const own = pick(r, [['dash', 45], ['double', 18], ['none', 17], ['arrows', 20]]);
+          const dashes = own === 'dash' || own === 'arrows' ? (() => { const step = 0.55 + r() * 0.35; return { step, len: step * (0.4 + r() * 0.2), phase: r() * step }; })() : null;
+          const kind = outer ? 'double' : own;
           if (kind === 'dash' || kind === 'arrows') {
-            const step = 0.55 + r() * 0.35, len = step * (0.4 + r() * 0.2), phase = r() * step;
+            const { step, len, phase } = dashes;
             for (let k = l0 + 0.62 + phase; k < l1 - 0.62; k += step) q(k, Math.min(k + len, l1 - 0.62), mid - PX / 2, mid + PX / 2, C('dash'));
           } else if (kind === 'double') {
             q(l0 + 0.5, l1 - 0.5, mid - PX * 1.5, mid - PX / 2, C('dash'));
@@ -206,17 +232,18 @@ const MapView = (() => {
         }
       }
     }
-    for (let ai = 0; ai < roads.length; ai++) for (let bi = 0; bi < roads.length; bi++) {   // crossings: corners, and each its own middle
-      const [a0, a1] = roads[ai], [b0, b1] = roads[bi];
+    for (let ai = 0; ai < I.roads.length; ai++) for (let bi = 0; bi < J.roads.length; bi++) {   // crossings: corners, and each its own middle
+      const [a0, a1] = I.roads[ai], [b0, b1] = J.roads[bi];
       for (const [i0, i1] of [[a0, a0 + SW], [a1 - SW, a1]]) for (const [j0, j1] of [[b0, b0 + SW], [b1 - SW, b1]]) Q(i0, j0, i1, j1, C('walk'));
       const ci = (a0 + a1) / 2, cj = (b0 + b1) / 2, rr = Math.min(a1 - a0, b1 - b0) / 2 - SW;
-      const r = seed(ai, bi, 91);
-      const kind = outer(ai) || outer(bi) ? pick(r, [['plain', 70], ['manhole', 30]]) : pick(r, [['plain', 50], ['manhole', 22], ['island', 12], ['box', 16]]);
+      const r = seed(ai + OU, bi + OV, 91);
+      const ring = ai === 0 || ai === I.roads.length - 1 || bi === 0 || bi === J.roads.length - 1;
+      const kind = ring ? pick(r, [['plain', 70], ['manhole', 30]]) : pick(r, [['plain', 50], ['manhole', 22], ['island', 12], ['box', 16]]);
       if (kind === 'manhole') { ellipse(ci + 0.15, cj - 0.1, 0.11, C('manhole')); ellipse(ci + 0.15, cj - 0.1, 0.075, C('manholeHi')); ellipse(ci + 0.15, cj - 0.1, 0.05, C('manhole')); }
       else if (kind === 'island') {                                // a small roundabout: a curb ring, grass, and a painted circle round it
         ellipse(ci, cj, rr * 0.72, C('paint'), 28); ellipse(ci, cj, rr * 0.72 - PX, C('road'), 28);
         ellipse(ci, cj, rr * 0.42, C('curb'), 24); ellipse(ci, cj, rr * 0.42 - PX, C('island'), 24);
-        const rs = seed(ai, bi, 92);
+        const rs = seed(ai + OU, bi + OV, 92);
         for (let n = 0; n < 6; n++) { const t = rs() * Math.PI * 2, d = rs() * rr * 0.28; px(ci + d * Math.cos(t), cj + d * Math.sin(t), C('vergeDk')); }
       } else if (kind === 'box') {                                 // a yellow box junction: keep clear
         const d = rr * 0.62, col = C('dash');
@@ -225,17 +252,18 @@ const MapView = (() => {
         for (let s = 0; s <= 1; s += PX / (4 * d)) { px(ci - d + 2 * d * s, cj - d + 2 * d * s, col); px(ci - d + 2 * d * s, cj + d - 2 * d * s, col); }
       }
     }
-    const rnd = mulberry32(99);
-    for (const [a0, a1] of lots) for (const [b0, b1] of lots) {      // empty lots are grass until a building is planted
+    I.lots.forEach(([a0, a1], u) => J.lots.forEach(([b0, b1], v) => {   // empty lots are grass until a building is planted
+      const rnd = seed(u + OU, v + OV, 99);
       Q(a0, b0, a1, b1, Light.mixHex('#D4F2DE', '#1D302C'));
       for (let n = 0; n < 70; n++) {
         const [x, y] = pt(a0 + 0.1 + rnd() * (a1 - a0 - 0.2), b0 + 0.1 + rnd() * (b1 - b0 - 0.2));
         g.fillStyle = rnd() < 0.8 ? Light.mixHex('#A9E2BE', '#26423A') : Light.mixHex('#FFFFFF', '#2F5046');
         g.fillRect(Math.round(x), Math.round(y), 1, 1);
       }
-    }
+    }));
     g.fillStyle = worldColor('rim');
-    for (let k = 0; k < steps; k++) { g.fillRect(2 * k, left[1] + k - 1, 2, 1); g.fillRect(ox + 2 * k, bottom[1] - k - 1, 2, 1); }
+    for (let k = 0; k < stepsL; k++) g.fillRect(2 * k, left[1] + k - 1, 2, 1);
+    for (let k = 0; k < stepsR; k++) g.fillRect(bottom[0] + 2 * k, bottom[1] - k - 1, 2, 1);
     return c;
   }
   function buildRings() {
@@ -317,34 +345,46 @@ const MapView = (() => {
     }
     if (g.flip) ctx.restore();
   }
-  /* Empty lots are little parks, one of a few scenes picked by the lot's position. */
+  /* Empty lots are little parks, one of a few scenes picked by the city's plot (U, V). */
   const lotPlan = new Map();
   function mixHash(u, v) {
     let h = (Math.imul(u + 1, 374761393) + Math.imul(v + 1, 668265263)) | 0;
     h = Math.imul(h ^ (h >>> 13), 1274126177);
     return (h ^ (h >>> 16)) >>> 0;
   }
-  /* Scenes are shuffled by a hash, then nudged so no lot repeats its neighbour above or to the left. */
-  function lotVariant(u, v) {
-    const key = u + ',' + v;
+  /* Scenes are shuffled by a hash, then nudged so no park repeats a neighbour. Round the city's origin each plot checks
+     the neighbours nearer the origin: from (0, 0) outward the one above and the one to the left, as before, and in the
+     other three quarters the mirror of that. So every two neighbours are checked once, and a plot's scene depends only
+     on its place in the city, never on where the map's edge is. */
+  function lotVariant(U, V) {
+    const key = U + ',' + V;
     if (lotPlan.has(key)) return lotPlan.get(key);
-    const n = LOTS.length;
-    let k = mixHash(u, v) % n;
-    const up = v > 0 ? lotVariant(u, v - 1) : -1, left = u > 0 ? lotVariant(u - 1, v) : -1;
-    for (let tries = 0; tries < n && (k === up || k === left); tries++) k = (k + 1) % n;
+    const n = LOTS.length, near = [];
+    if (U >= 0 && V >= 0) { if (V > 0) near.push(lotVariant(U, V - 1)); if (U > 0) near.push(lotVariant(U - 1, V)); }
+    else if (U < 0 && V >= 0) { near.push(lotVariant(U + 1, V)); if (V > 0) near.push(lotVariant(U, V - 1)); }
+    else if (U < 0) near.push(lotVariant(U + 1, V), lotVariant(U, V + 1));
+    else { near.push(lotVariant(U, V + 1)); if (U > 0) near.push(lotVariant(U - 1, V)); }
+    let k = mixHash(U, V) % n;
+    for (let tries = 0; tries < n && near.includes(k); tries++) k = (k + 1) % n;
     lotPlan.set(key, k);
     return k;
   }
+  /* A park's scene: the one picked for it in Edit City, or else the one dealt by its place. */
+  function lotIndex(u, v) {
+    const U = u + OU, V = v + OV, pick = DB.city.parks[U + ',' + V], at = pick ? LOTS.findIndex(l => l.id === pick) : -1;
+    return at >= 0 ? at : lotVariant(U, V);
+  }
+  const lotFlip = (u, v) => mod((u + OU) * 7 + (v + OV) * 13, 3) === 1;   // mirror some of them, for variety
   function lotScene(u, v) {
     if (typeof LOTS === 'undefined' || !LOTS.length) return null;
-    return Art.get('lot:' + LOTS[lotVariant(u, v)].id);
+    return Art.get('lot:' + LOTS[lotIndex(u, v)].id);
   }
   function drawLot(u, v) {
     const art = lotScene(u, v);
     if (!art) return;
     const [X, Y] = plotTop(u, v);
     const s = PLOT.W / art.w, dh = art.h * s;
-    const flip = ((u * 7 + v * 13) % 3) === 1;               // mirror some of them, for variety
+    const flip = lotFlip(u, v);
     if (flip) { ctx.save(); ctx.translate(2 * X, 0); ctx.scale(-1, 1); }
     drawArt(art, X - 64, Y + 64 - dh, PLOT.W, dh);
     if (flip) ctx.restore();
@@ -494,9 +534,9 @@ const MapView = (() => {
     const moving = typeof Traffic !== 'undefined' && Traffic.active();
     if (moving) Traffic.drawGround(ctx);
     const plots = [];
-    for (let d = 0; d <= 2 * (N - 1); d++) for (let u = 0; u < N; u++) {
+    for (let d = 0; d <= NU + NV - 2; d++) for (let u = 0; u < NU; u++) {
       const v = d - u;
-      if (v < 0 || v >= N) continue;
+      if (v < 0 || v >= NV) continue;
       const [X, Y] = plotTop(u, v), p = lay.get(u + ',' + v);
       const a0 = MARGIN + u * PITCH, b0 = MARGIN + v * PITCH;
       plots.push({ plot: true, u, v, a0, a1: a0 + S, b0, b1: b0 + S, key: a0 + b0 + S,
@@ -517,6 +557,7 @@ const MapView = (() => {
     const isTarget = slots && T && T.u === u && T.v === v;
     if (!p) {
       drawLot(u, v);
+      if (editing && editHover && editHover.u === u && editHover.v === v && !clean) { drawRing(rings.free, X, Y); drawRing(rings.freeRing, X, Y); }
       if (!slots) return;
       if (isTarget && mode.name === 'place') {
         drawRing(rings.target, X, Y); drawRing(rings.targetRing, X, Y);
@@ -637,7 +678,7 @@ const MapView = (() => {
     const g = blockGeom(p, u, v);
     const tw = [...text].reduce((w, ch) => w + GLYPH[ch][0].length, 0) + text.length - 1;
     const w = Math.max(9, tw + 6), hh = 11, k = idHash(p.id);
-    const bob = Math.round(Math.sin(t / (1500 + (k % 420)) + (k % 628) / 100));
+    const bob = Motion.still() ? 0 : Math.round(Math.sin(t / (1500 + (k % 420)) + (k % 628) / 100));
     return { p, color, count, text, tw, x: Math.round(g.X - w / 2), y: Math.round(g.top) - 6 - hh + bob, w, h: hh, bob };
   }
   function eachBubble(fn) {
@@ -711,25 +752,26 @@ const MapView = (() => {
       dirty = true;
     }
     let animating = false;
+    const still = Motion.still();
     if (t - lastBobCheck > 90) {
       lastBobCheck = t;
       const key = bubbleKey();
       if (key !== lastBobKey) { lastBobKey = key; dirty = true; }
     }
-    if (lastBobKey) more = true;
+    if (lastBobKey && !still) more = true;
     if (typeof Traffic !== 'undefined' && Traffic.active()) { if (Traffic.step(t)) dirty = true; more = true; }
     if (planting) {
       dirty = true; more = true;
       if (t - planting.t0 >= planting.dur) { const done = planting.then; planting = null; if (done) setTimeout(done, 0); }
     }
-    if (typeof LOTS !== 'undefined') for (const l of LOTS) {
+    if (typeof LOTS !== 'undefined' && !still) for (const l of LOTS) {
       const a = Art.get('lot:' + l.id);
       if (!a || !a.animated) continue;
       animating = true;
       const i = Art.indexAt(a, t);
       if (animIdx.get('lot:' + l.id) !== i) { animIdx.set('lot:' + l.id, i); dirty = true; }
     }
-    for (const p of DB.projects) {
+    if (!still) for (const p of DB.projects) {
       const a = artFor(p).art;
       if (!a || !a.animated) continue;
       animating = true;
@@ -737,9 +779,11 @@ const MapView = (() => {
       if (animIdx.get(p.id) !== i) { animIdx.set(p.id, i); dirty = true; }
     }
     if (animating) more = true;
-    if (dirty) { draw(); dirty = false; Bubble.position(); }
+    if (dirty && Motion.saver() && t - lastPaint < 32) more = true;   // Saver: the next frame draws it
+    else if (dirty) { draw(); dirty = false; lastPaint = t; paints++; Bubble.position(); if (editing) placeArrows(); }
     if (more) kick(); else lastT = 0;
   }
+  let lastPaint = 0, paints = 0;
 
   /* ---------- camera ---------- */
   function updateZoomLabel() {
@@ -866,7 +910,7 @@ const MapView = (() => {
     const [wx, wy] = cssToWorld(cx, cy);
     const [i, j] = worldToTile(wx, wy + PLOT.RAISE);
     const u = Math.round((i - MARGIN - S / 2) / PITCH), v = Math.round((j - MARGIN - S / 2) / PITCH);
-    if (u < 0 || v < 0 || u >= N || v >= N) return null;
+    if (u < 0 || v < 0 || u >= NU || v >= NV) return null;
     const ci = MARGIN + u * PITCH + S / 2, cj = MARGIN + v * PITCH + S / 2;
     if (Math.abs(i - ci) > PITCH / 2 + 0.5 || Math.abs(j - cj) > PITCH / 2 + 0.5) return null;
     return { u, v };
@@ -886,9 +930,14 @@ const MapView = (() => {
     return true;
   }
   async function startPlace(name, generic) {
+    setEditing(false);
     if (!freePlots().length) {
-      if (WORLD.N >= WORLD.MAX_N) { toast('Every plot is taken, and the map is at its largest. Delete a project to free one up.', 'error'); return false; }
-      const ok = await Confirm.ask({ title: 'Every plot is taken', body: 'Add a ring of plots around the city? The map grows from ' + WORLD.N + ' by ' + WORLD.N + ' to ' + (WORLD.N + 2) + ' by ' + (WORLD.N + 2) + ' plots.', confirm: 'Add a ring' });
+      if (!canResize(1)) {
+        if (WORLD.NU < WORLD.MAX_N || WORLD.NV < WORLD.MAX_N) toast('Every plot is taken. Add a line of plots in Edit City, under Settings, then plant it.', 'error');
+        else toast('Every plot is taken, and the map is at its largest. Delete a project to free one up.', 'error');
+        return false;
+      }
+      const ok = await Confirm.ask({ title: 'Every plot is taken', body: 'Add a ring of plots around the city? The map grows from ' + WORLD.NU + ' by ' + WORLD.NV + ' to ' + (WORLD.NU + 2) + ' by ' + (WORLD.NV + 2) + ' plots.', confirm: 'Add a ring' });
       if (!ok || !resizeWorld(1)) return false;
     }
     deselect();
@@ -939,6 +988,7 @@ const MapView = (() => {
       changed(null, { touch: false });       // moving a building is not work on the project
     }
     invalidate(); Bubble.position();
+    if (editing) editUi();
   }
   function cancelMode() {
     if (mode.name === 'place') { endPlace(); return true; }
@@ -964,6 +1014,16 @@ const MapView = (() => {
       return;
     }
     if (mode.name === 'move') return;
+    if (editing) {
+      const hit = hitProject(x, y), t = hit ? null : plotNear(x, y), park = t && !projectAt(t.u, t.v) ? t : null;
+      if (!same(park, editHover)) { editHover = park; invalidate(); }
+      canvas.classList.toggle('over-building', !!park);
+      canvas.classList.toggle('edit-grab', !!hit);
+      if (park) showTip(parkName(LOTS[lotIndex(park.u, park.v)].id) + ': click for the next kind', x, y);
+      else if (hit) showTip(hit.name + ': drag to move', x, y);
+      else hideTip();
+      return;
+    }
     const hit = hitProject(x, y);
     const id = hit ? hit.id : null;
     if (id !== hoverId) { hoverId = id; invalidate(); }
@@ -984,7 +1044,7 @@ const MapView = (() => {
     if (pointers.size > 2) return;
     const hit = mode.name === 'place' ? null : hitProject(x, y);
     gesture = { type: 'maybe', id: e.pointerId, sx: x, sy: y, lx: x, ly: y, hit, hold: null };
-    if (hit && mode.name === 'idle') gesture.hold = setTimeout(() => beginMove(hit, x, y), 380);
+    if (hit && mode.name === 'idle' && !editing) gesture.hold = setTimeout(() => beginMove(hit, x, y), 380);
   }
   function onMove(e) {
     const [x, y] = local(e);
@@ -994,8 +1054,9 @@ const MapView = (() => {
     const dx = x - gesture.lx, dy = y - gesture.ly;
     gesture.lx = x; gesture.ly = y;
     if (gesture.type === 'maybe' && Math.hypot(x - gesture.sx, y - gesture.sy) > 5) {
-      clearTimeout(gesture.hold); gesture.type = 'pan';
-      canvas.classList.add('panning'); hideTip();
+      clearTimeout(gesture.hold);
+      if (editing && gesture.hit && mode.name === 'idle') beginMove(gesture.hit, gesture.sx, gesture.sy);
+      else { gesture.type = 'pan'; canvas.classList.add('panning'); hideTip(); }
     }
     if (gesture.type === 'pan') {
       cam.x -= (dx * dpr) / cam.z; cam.y -= (dy * dpr) / cam.z;
@@ -1020,6 +1081,11 @@ const MapView = (() => {
     else if (g.type === 'move') finishMove(true);
   }
   function click(x, y, hit) {
+    if (editing) {
+      const t = hit ? null : plotNear(x, y);
+      if (t && !projectAt(t.u, t.v)) cyclePark(t.u, t.v);
+      return;
+    }
     if (mode.name === 'place') {
       const t = plotNear(x, y);
       if (t && !projectAt(t.u, t.v)) placeAt(t);
@@ -1067,24 +1133,121 @@ const MapView = (() => {
   const typing = e => { const t = e.target; return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)); };
 
   function applyWorld() {
-    N = WORLD.N; TILES = WORLD.TILES;
-    WX0 = -TILES * HW; WX1 = TILES * HW; WY0 = 0; WY1 = TILES * TH + SLAB;
+    NU = WORLD.NU; NV = WORLD.NV; OU = WORLD.OU; OV = WORLD.OV; TI = WORLD.TI; TJ = WORLD.TJ;
+    WX0 = -TJ * HW; WX1 = TI * HW; WY0 = 0; WY1 = (TI + TJ) * HH + SLAB;
     worldCanvas = buildWorld();
   }
-  const outerRingEmpty = () => !DB.projects.some(p => p.plot.u === 0 || p.plot.v === 0 || p.plot.u === WORLD.N - 1 || p.plot.v === WORLD.N - 1);
-  /* Adds (dir 1) or removes (dir -1) one ring of plots around the city. The view stays on the same buildings. */
-  function resizeWorld(dir) {
-    const n = WORLD.N + 2 * dir;
-    if (n < WORLD.MIN_N || n > WORLD.MAX_N) return false;
-    if (dir < 0 && !outerRingEmpty()) return false;
+  /* The map's four sides, named like a block's: the north-east side is the line v = 0 (top right on screen), the
+     south-east u = NU - 1, the south-west v = NV - 1, and the north-west u = 0. A line added on the north-west or
+     north-east side moves the grid's start, so the plots there shift by one and the city's origin by one back. */
+  const SIDES = ['ne', 'se', 'sw', 'nw'];
+  const lineOf = side => side === 'nw' ? (p => p.u === 0) : side === 'se' ? (p => p.u === WORLD.NU - 1) : side === 'ne' ? (p => p.v === 0) : (p => p.v === WORLD.NV - 1);
+  const lineEmpty = side => !DB.projects.some(p => lineOf(side)(p.plot));
+  const outerRingEmpty = () => SIDES.every(lineEmpty);
+  const fits = n => n >= WORLD.MIN_N && n <= WORLD.MAX_N;
+  /* A ring fits when both sides stay within 5 to 11; taking one off also needs the ring empty. */
+  const canResize = dir => fits(WORLD.NU + 2 * dir) && fits(WORLD.NV + 2 * dir) && (dir > 0 || outerRingEmpty());
+  const canLine = (side, dir) => fits((side === 'nw' || side === 'se' ? WORLD.NU : WORLD.NV) + dir) && (dir > 0 || lineEmpty(side));
+  /* Moves the grid: du and dv plots added before it on each axis, and the new size. The view stays on the same
+     buildings, and everything dealt by place stays with them. */
+  function reshape(du, dv, nu, nv) {
     cancelMode();
-    for (const p of DB.projects) p.plot = { u: p.plot.u + dir, v: p.plot.v + dir };
-    setWorldSize(n); DB.world = { size: n };
-    cam.y += dir * PITCH * TH;
+    for (const p of DB.projects) p.plot = { u: p.plot.u + du, v: p.plot.v + dv };
+    setWorld({ nu, nv, ou: WORLD.OU - du, ov: WORLD.OV - dv }); DB.world = worldState();
+    cam.x += (du - dv) * PITCH * HW; cam.y += (du + dv) * PITCH * HH;
     applyWorld(); clampCam();
     persistNow(); invalidate(); Menu.refresh(); Bubble.position();
+    if (typeof Settings !== 'undefined') Settings.refresh();
+    if (editing) editUi();
     return true;
   }
+  /* Adds (dir 1) or removes (dir -1) one ring of plots around the city. */
+  function resizeWorld(dir) {
+    if (!canResize(dir)) return false;
+    return reshape(dir, dir, WORLD.NU + 2 * dir, WORLD.NV + 2 * dir);
+  }
+  /* Adds (dir 1) or takes off (dir -1) one line of plots on one side of the city. */
+  function addLine(side, dir) {
+    if (!SIDES.includes(side) || !canLine(side, dir)) return false;
+    const du = side === 'nw' ? dir : 0, dv = side === 'ne' ? dir : 0;
+    return reshape(du, dv, WORLD.NU + (side === 'nw' || side === 'se' ? dir : 0), WORLD.NV + (side === 'ne' || side === 'sw' ? dir : 0));
+  }
+  /* ---------- Edit City: lines, rings, parks and buildings, from the City tab of Settings ---------- */
+  let editing = false, editHover = null;
+  const SIDE_NAMES = { ne: 'north-east', se: 'south-east', sw: 'south-west', nw: 'north-west' };
+  const SIDE_TURN = { nw: 0, ne: 90, se: 180, sw: 270 };            // the arrow icon points north-west
+  const parkName = id => (id.charAt(0).toUpperCase() + id.slice(1)).replace(/-/g, ' ');
+  function setEditing(on) {
+    on = !!on;
+    if (on === editing) return false;
+    if (on) { cancelMode(); deselect(); hideTip(); }
+    else { if (mode.name === 'move') { if (gesture) { clearTimeout(gesture.hold); gesture = null; } finishMove(false); } editHover = null; hideTip(); }
+    editing = on;
+    $('#editBar').hidden = !on; $('#editArrows').hidden = !on;
+    canvas.classList.toggle('editing', on);
+    canvas.classList.remove('edit-grab', 'over-building');
+    if (on) { buildArrows(); frameCity(); editUi(); }
+    invalidate();
+    if (typeof Settings !== 'undefined') Settings.refresh();
+    return true;
+  }
+  /* Opening Edit City frames the whole map, its four arrow pairs included, between its bar and the map's buttons. */
+  function frameCity() {
+    const pad = 3 * PITCH * HW, top = 130 * dpr, bottom = 80 * dpr;
+    const w = WX1 - WX0 + 2 * pad, hh = WY1 - WY0 + 2 * pad;
+    const fit = Math.min(vw * 0.94 / w, (vh - top - bottom) * 0.94 / hh);
+    const L = zoomLevels(), z = L.filter(x => x <= fit).pop() || L[0];
+    cam.z = z;
+    cam.x = (WX0 + WX1) / 2;
+    cam.y = (WY0 + WY1) / 2 + (vh / 2 - (top + (vh - top - bottom) / 2)) / z;
+    anim.glide = null; anim.zoom = null;
+    clampCam(); updateZoomLabel(); saveUiSoon();
+  }
+  /* Each side: an arrow out that adds a line, and an arrow in that takes off the outer line; the arrow in shows only
+     when that line is empty and the city is longer than 5 plots that way, and the arrow out while it is under 11. */
+  function buildArrows() {
+    const box = $('#editArrows');
+    box.replaceChildren(...SIDES.map(side => h('div', { class: 'edit-side', 'data-side': side },
+      [1, -1].map(dir => h('button', { class: 'btn edit-arrow', type: 'button', 'data-dir': dir > 0 ? 'out' : 'in',
+        'aria-label': dir > 0 ? 'Add a line on the ' + SIDE_NAMES[side] + ' side' : 'Take off the ' + SIDE_NAMES[side] + ' line',
+        title: dir > 0 ? 'Add a line on the ' + SIDE_NAMES[side] + ' side' : 'Take off the ' + SIDE_NAMES[side] + ' line',
+        onclick: () => { addLine(side, dir); },
+      }, h('span', { class: 'edit-arrow-ic', style: 'transform: rotate(' + ((SIDE_TURN[side] + (dir > 0 ? 0 : 180)) % 360) + 'deg)', html: iconSvg('arrow', 16) }))))));
+  }
+  function editUi() {
+    if (!editing) return;
+    $('#editSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
+    $('#btnGrow').disabled = !canResize(1);
+    $('#btnShrink').disabled = !fits(WORLD.NU - 2) || !fits(WORLD.NV - 2);
+    for (const el of $$('#editArrows .edit-side')) {
+      const side = el.dataset.side;
+      el.querySelector('[data-dir="out"]').hidden = !canLine(side, 1);
+      el.querySelector('[data-dir="in"]').hidden = !canLine(side, -1);
+    }
+    placeArrows();
+  }
+  /* The arrows sit just outside the middle of each side, and follow the map as it pans and zooms. A city bigger than
+     the view keeps them at its edge, between the bar and the map's buttons, so every side stays in reach. */
+  function placeArrows() {
+    if (!editing) return;
+    const at = { nw: [-1.6, TJ / 2], ne: [TI / 2, -1.6], se: [TI + 2.2, TJ / 2], sw: [TI / 2, TJ + 2.2] };
+    const bar = $('#editBar'), W = wrap.clientWidth, H = wrap.clientHeight;
+    const top = bar.offsetTop + bar.offsetHeight + 34, bottom = H - 84;
+    for (const el of $$('#editArrows .edit-side')) {
+      let [cx, cy] = worldToCss(...tileToWorld(...at[el.dataset.side]));
+      const half = el.offsetWidth / 2 + 8;
+      cx = clamp(cx, half, W - half); cy = clamp(cy, top, Math.max(top, bottom));
+      el.style.transform = `translate(${Math.round(cx)}px, ${Math.round(cy)}px) translate(-50%, -50%)`;
+    }
+  }
+  /* A click on a park deals its next kind. Back at the kind its place deals, the pick is dropped. */
+  function cyclePark(u, v) {
+    const U = u + OU, V = v + OV, next = LOTS[(lotIndex(u, v) + 1) % LOTS.length].id;
+    if (next === LOTS[lotVariant(U, V)].id) delete DB.city.parks[U + ',' + V]; else DB.city.parks[U + ',' + V] = next;
+    persistSoon(); invalidate();
+    const t = $('#tip'); if (t && !t.hidden) t.textContent = parkName(next) + ': click for the next kind';
+  }
+
   /* Q and E (or [ and ]) step through buildings in map order: top to bottom, then left to right. */
   function hop(dir) {
     const list = DB.projects.filter(matchesFilter).sort((a, b) =>
@@ -1094,23 +1257,30 @@ const MapView = (() => {
     i = i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length;
     select(list[i].id);
   }
-  /* Saves the current view as a PNG, without selection marks, with a small caption. */
+  /* The postcard's options, on this computer: the caption with the date, and the size, as on screen or doubled. */
+  const CARD_KEY = 'nullovation-city:postcard', CARD_DEFAULT = { caption: true, size: 'screen' };
+  let card = (() => { try { const v = JSON.parse(localStorage.getItem(CARD_KEY) || 'null'); return v && typeof v === 'object' ? { caption: v.caption !== false, size: v.size === 'double' ? 'double' : 'screen' } : { ...CARD_DEFAULT }; } catch (e) { return { ...CARD_DEFAULT }; } })();
+  function setCard(o) {
+    card = Object.assign({}, card, o);
+    try { if (card.caption === CARD_DEFAULT.caption && card.size === CARD_DEFAULT.size) localStorage.removeItem(CARD_KEY); else localStorage.setItem(CARD_KEY, JSON.stringify(card)); } catch (e) { /* this visit only */ }
+  }
+  /* Saves the current view as a PNG, without selection marks, with a small caption. Doubled, the same view is drawn
+     at twice the scale on a canvas twice the size. */
   async function postcard() {
     try { await document.fonts.load('600 16px "Readex Pro"'); } catch (e) { /* fall back to any font */ }
-    clean = true; draw(); clean = false;
+    const k = card.size === 'double' ? 2 : 1;
     const out = document.createElement('canvas');
-    out.width = vw; out.height = vh;
+    out.width = vw * k; out.height = vh * k;
     const g = out.getContext('2d');
-    g.drawImage(canvas, 0, 0);
+    const saved = { ctx, vw, vh, z: cam.z };
+    ctx = g; vw = out.width; vh = out.height; cam.z = saved.z * k; clean = true;
+    try { draw(); } finally {
+      ctx = saved.ctx; vw = saved.vw; vh = saved.vh; cam.z = saved.z; clean = false;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
     invalidate();
-    const u = dpr, fs = Math.round(15 * u), pad = Math.round(14 * u), padIn = Math.round(9 * u), bw = Math.max(2, Math.round(2 * u));
-    const text = 'Nullovation City, ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-    g.font = `600 ${fs}px "Readex Pro", system-ui, sans-serif`;
-    const tw = Math.ceil(g.measureText(text).width);
-    const boxW = tw + padIn * 2, boxH = fs + padIn * 2, x = pad, y = vh - pad - boxH;
-    g.fillStyle = '#6B6388'; g.fillRect(x - bw, y - bw, boxW + bw * 2, boxH + bw * 2);
-    g.fillStyle = '#221D33'; g.fillRect(x, y, boxW, boxH);
-    g.fillStyle = '#ECE8F6'; g.textBaseline = 'middle'; g.fillText(text, x + padIn, y + boxH / 2 + Math.round(u));
+    if (card.caption) caption(g, out.width, out.height, dpr * k);
     out.toBlob(blob => {
       if (!blob) { toast('The postcard could not be made. Try again.', 'error'); return; }
       const a = h('a', { href: URL.createObjectURL(blob), download: 'nullovation-city-' + ymd() + '.png' });
@@ -1118,6 +1288,16 @@ const MapView = (() => {
       setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
       toast('Postcard saved as a PNG.');
     }, 'image/png');
+  }
+  function caption(g, vw, vh, u) {
+    const fs = Math.round(15 * u), pad = Math.round(14 * u), padIn = Math.round(9 * u), bw = Math.max(2, Math.round(2 * u));
+    const text = 'Nullovation City, ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    g.font = `600 ${fs}px "Readex Pro", system-ui, sans-serif`;
+    const tw = Math.ceil(g.measureText(text).width);
+    const boxW = tw + padIn * 2, boxH = fs + padIn * 2, x = pad, y = vh - pad - boxH;
+    g.fillStyle = '#6B6388'; g.fillRect(x - bw, y - bw, boxW + bw * 2, boxH + bw * 2);
+    g.fillStyle = '#221D33'; g.fillRect(x, y, boxW, boxH);
+    g.fillStyle = '#ECE8F6'; g.textBaseline = 'middle'; g.fillText(text, x + padIn, y + boxH / 2 + Math.round(u));
   }
 
   function init() {
@@ -1154,7 +1334,7 @@ const MapView = (() => {
       $('#btnLight').title = 'Time of day: choose Auto, Day, Dusk, or Night';
     };
     $('#btnLight').addEventListener('click', () => dropUp($('#btnLight'), LIGHTS, Light.mode, v => {
-      Light.setMode(v); lightUi();
+      Light.setMode(v); lightUi(); Settings.refresh();
       toast(v === 'auto' ? 'The city follows your clock: day, dusk, night, and dawn.' : 'The city stays at ' + v + '.');
     }));
     Light.onChange(lightUi);
@@ -1166,7 +1346,7 @@ const MapView = (() => {
       $('#btnBubbles').title = 'Bubbles: ' + { all: 'red and yellow urgency', red: 'red urgency only', tasks: 'open tasks in every project', none: 'hidden' }[bubbleMode] + '. Click to choose.';
     };
     $('#btnBubbles').addEventListener('click', () => dropUp($('#btnBubbles'), BUBBLES, bubbleMode, v => {
-      setBubbleMode(v); bubUi();
+      setBubbleMode(v); bubUi(); Settings.refresh();
       toast({ all: 'Showing red and yellow bubbles.', red: 'Showing red bubbles only.', tasks: 'Showing open tasks in every project.', none: 'Bubbles are hidden.' }[v]);
     }));
     bubUi();
@@ -1176,8 +1356,12 @@ const MapView = (() => {
       $('#btnTraffic').setAttribute('aria-pressed', String(Traffic.isOn()));
       $('#btnTraffic').title = Traffic.isOn() ? 'Cars and people are out. Click to clear the streets.' : 'The streets are empty. Click to bring the traffic back.';
     };
-    $('#btnTraffic').addEventListener('click', () => { Traffic.setOn(!Traffic.isOn()); trafficUi(); invalidate(); kick(); });
+    $('#btnTraffic').addEventListener('click', () => { Traffic.setOn(!Traffic.isOn()); trafficUi(); invalidate(); kick(); Settings.refresh(); });
     trafficUi();
+    syncBar = () => { lightUi(); bubUi(); trafficUi(); };
+    LIGHT_OPTIONS = LIGHTS; BUBBLE_OPTIONS = BUBBLES;
+    $('#gearIcon').innerHTML = iconSvg('gear', 16);
+    $('#btnSettings').addEventListener('click', () => Settings.toggle());
     $('#zoomIn').addEventListener('click', () => zoomStep(1));
     $('#zoomOut').addEventListener('click', () => zoomStep(-1));
     window.addEventListener('keydown', e => {
@@ -1185,7 +1369,7 @@ const MapView = (() => {
       if (typing(e) || FullView.isOpen() || Confirm.isOpen() || Panel.isOpen()) return;
       if (e.code === 'KeyQ' || e.code === 'BracketLeft' || e.code === 'KeyE' || e.code === 'BracketRight') {
         e.preventDefault();
-        if (!e.repeat && mode.name === 'idle') hop(e.code === 'KeyQ' || e.code === 'BracketLeft' ? -1 : 1);
+        if (!e.repeat && mode.name === 'idle' && !editing) hop(e.code === 'KeyQ' || e.code === 'BracketLeft' ? -1 : 1);
         return;
       }
       const d = keyDir(e);
@@ -1196,6 +1380,7 @@ const MapView = (() => {
     window.addEventListener('blur', () => keys.clear());
   }
 
+  let syncBar = () => {}, LIGHT_OPTIONS = [], BUBBLE_OPTIONS = [];
   function anchors(id) {
     const p = getProject(id); if (!p) return null;
     let u = p.plot.u, v = p.plot.v;
@@ -1210,7 +1395,7 @@ const MapView = (() => {
 
   return {
     init, invalidate, frameAll, setCam, select, deselect, glideTo, startPlace, cancelMode, anchors, blockPreview,
-    resizeWorld, outerRingEmpty, hop, postcard, applyWorld, blockPng,
+    resizeWorld, outerRingEmpty, canResize, addLine, canLine, lineEmpty, hop, postcard, applyWorld, blockPng,
     moving: () => mode.name === 'move',
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
     previewScale, profileScene, glideBeside,
@@ -1218,7 +1403,13 @@ const MapView = (() => {
     crossMark, layout: () => displayLayout(), tileToWorld,
     props: () => propPlan(), propsDrawn: () => lastProps,
     _depthOrder: sprites => depthSort([], sprites),                // for the tests: figures among themselves, back to front
-    lotInfo: (u, v) => (typeof LOTS !== 'undefined' && LOTS.length ? { id: LOTS[lotVariant(u, v)].id, flip: ((u * 7 + v * 13) % 3) === 1 } : null),
+    lotInfo: (u, v) => (typeof LOTS !== 'undefined' && LOTS.length ? { id: LOTS[lotIndex(u, v)].id, flip: lotFlip(u, v) } : null),
+    /* for the tests: a fingerprint of the ground's pixels in a box round a plot, in world pixels from its top corner */
+    _groundHash: (u, v, x0, y0, w, hh) => {
+      const [X, Y] = plotTop(u, v), d = worldCanvas.getContext('2d').getImageData(Math.round(X + x0 - WX0), Math.round(Y + y0 - WY0), w, hh).data;
+      let x = 2166136261; for (let k = 0; k < d.length; k++) x = Math.imul(x ^ d[k], 16777619);
+      return x >>> 0;
+    },
     kick: () => kick(),
     thumb: p => {                                          // a still, full building, for the side bar
       let c;
@@ -1230,5 +1421,9 @@ const MapView = (() => {
     dropCache: id => { bcache.delete(id); flat.delete(id); },
     plotCss: (u, v) => { const [X, Y] = plotTop(u, v); return worldToCss(X, Y + 32); },
     camState: () => ({ x: cam.x, y: cam.y, z: cam.z, dpr }),
+    _paints: () => paints,                                  // for the tests: how many times the map has been drawn
+    editing: () => editing, setEditing, cyclePark,
+    syncBar: () => syncBar(), setBubbleMode, lightOptions: () => LIGHT_OPTIONS, bubbleOptions: () => BUBBLE_OPTIONS,
+    card: () => ({ ...card }), setCard, CARD_DEFAULT,
   };
 })();

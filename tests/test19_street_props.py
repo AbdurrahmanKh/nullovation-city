@@ -69,7 +69,7 @@ with sync_playwright() as p:
 
     # planting a building adds bins on its own block only; everything else stays as it was
     diff = js("""() => { const key = q => [q.u, q.v, q.side, q.kind, q.a.toFixed(4)].join(), before = MapView.props().map(key);
-      const free = []; for (let u = 0; u < WORLD.N; u++) for (let v = 0; v < WORLD.N; v++) if (!DB.projects.some(p => p.plot.u === u && p.plot.v === v)) free.push([u, v]);
+      const free = []; for (let u = 0; u < WORLD.NU; u++) for (let v = 0; v < WORLD.NV; v++) if (!DB.projects.some(p => p.plot.u === u && p.plot.v === v)) free.push([u, v]);
       const best = free.map(([u, v]) => { DB.projects.push({ plot: { u, v } }); const after = MapView.props().map(key); DB.projects.pop(); return { u, v, after }; })
         .find(x => x.after.length > before.length);
       MapView.props();
@@ -98,7 +98,7 @@ with sync_playwright() as p:
 
     # a bus pauses at a bus stop on its side of the street, then drives on; on the far side it drives past
     PROBE = """far => { const st = Traffic._state(), P = WORLD.PITCH, C = r => r * P + WORLD.GAP / 2;
-      const s = MapView.props().find(q => q.kind === 'busstop' && q.u > 0 && q.v > 0 && q.u < WORLD.N - 1 && q.v < WORLD.N - 1);
+      const s = MapView.props().find(q => q.kind === 'busstop' && q.u > 0 && q.v > 0 && q.u < WORLD.NU - 1 && q.v < WORLD.NV - 1);
       const bus = st.cars.find(c => c.type === 'bus');
       if (!s || !bus) return null;
       const e = { ne: ['i+', s.u, s.v, s.i - C(s.u)], sw: ['i-', s.u + 1, s.v + 1, C(s.u + 1) - s.i],

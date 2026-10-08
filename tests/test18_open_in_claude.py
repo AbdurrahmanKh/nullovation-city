@@ -159,8 +159,7 @@ with sync_playwright() as p:
     js("() => FullView.close()"); pg.wait_for_timeout(300)
 
     # the side bar: the status brief of every project
-    js("() => { const d = document.querySelector('#foldTools'); d.open = true; }"); pg.wait_for_timeout(200)
-    ok('Open in Claude sits beside Copy status brief', pg.is_visible('#btnBriefClaude'))
+    ok('Open in Claude sits beside Copy status brief, with the week', pg.is_visible('#btnBriefClaude'))
     pg.click('#btnBriefClaude'); pg.wait_for_timeout(250)
     chat, cowork, code = js(ITEMS)
     ok('the status brief fills in a new chat', q_of(chat) == proj("statusBrief()") and q_of(chat).startswith('# Nullovation City status'))
