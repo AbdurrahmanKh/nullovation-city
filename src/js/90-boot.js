@@ -36,6 +36,7 @@
   })();
   DataFile.init();
   Backups.init();
+  ClaudeWork.init();
 
   /* Esc backs out of one layer at a time. The full view always closes on Esc. Edit City ends before Settings closes. */
   window.addEventListener('keydown', e => {

@@ -657,36 +657,57 @@ const MapView = (() => {
     red: { edge: '#5A1030', fill: '#E0356F', hi: '#FF7FA6', ink: '#FFFFFF' },
     yellow: { edge: '#6A4A08', fill: '#FFD23F', hi: '#FFF0A0', ink: '#3A2A06' },
     grey: { edge: '#7A7394', fill: '#F4F1F8', hi: '#FFFFFF', ink: '#2B2542' },        // the tasks view: near white
+    claude: { edge: '#5C2416', fill: '#D9775A', hi: '#F5B39A', ink: '#FFF6EE' },      // Claude Code working, or waiting for you
+    done: { edge: '#0F4D3C', fill: '#3CC795', hi: '#A4F0D2', ink: '#FFFFFF' },        // Claude Code finished: your turn
+    failed: { edge: '#3E3656', fill: '#9C93B8', hi: '#D6D0E6', ink: '#FFFFFF' },      // Claude Code stopped on an error
   };
   const GLYPH = {
     '0': ['111', '101', '101', '101', '111'], '1': ['010', '110', '010', '010', '111'], '2': ['111', '001', '111', '100', '111'],
     '3': ['111', '001', '111', '001', '111'], '4': ['101', '101', '111', '001', '001'], '5': ['111', '100', '111', '001', '111'],
     '6': ['111', '100', '111', '101', '111'], '7': ['111', '001', '010', '010', '010'], '8': ['111', '101', '111', '101', '111'],
-    '9': ['111', '101', '111', '001', '111'], '!': ['1', '1', '1', '0', '1'],
+    '9': ['111', '101', '111', '001', '111'], '!': ['1', '1', '1', '0', '1'], '?': ['111', '001', '011', '000', '010'],
   };
+  /* Claude's spark, turning between two frames while it works; a tick when it has finished; a cross when it stopped. */
+  const SPARK = [['0001000', '0101010', '0011100', '1111111', '0011100', '0101010', '0001000'],
+    ['1000001', '0101010', '0011100', '0111110', '0011100', '0101010', '1000001']];
+  const TICK = ['00001', '00011', '10110', '11100', '01000'], CROSS = ['10001', '01010', '00100', '01010', '10001'];
   const idHash = id => { let x = 0; for (const c of id) x = (x * 31 + c.charCodeAt(0)) | 0; return Math.abs(x); };
-  /* One building's bubble: just above its top, bobbing a pixel, slowly, out of step with its neighbours. */
-  function bubbleFor(p, u, v, wall, t) {
-    let color, count, text;
+  /* A building's bubbles: just above its top, bobbing a pixel, slowly, out of step with its neighbours. The urgency
+     bubble (or the open tasks), then Claude Code's beside it, the pair centred over the building. */
+  function bubblesFor(p, u, v, wall, t) {
+    const out = [];
     if (bubbleMode === 'tasks') {                                   // every project: how many tasks are still open
-      count = p.todos.filter(x => !x.done).length; color = 'grey'; text = String(Math.min(count, 99));
-    } else {
+      const count = p.todos.filter(x => !x.done).length;
+      out.push({ kind: 'urgency', color: 'grey', count, text: String(Math.min(count, 99)) });
+    } else if (bubbleMode !== 'none') {
       const urg = urgencyOf(p, wall);
-      if (!urg.color || bubbleMode === 'none' || (bubbleMode === 'red' && urg.color !== 'red')) return null;
-      color = urg.color; count = urg.count; text = urg.count <= 1 ? '!' : String(Math.min(urg.count, 99));
+      if (urg.color && !(bubbleMode === 'red' && urg.color !== 'red')) out.push({ kind: 'urgency', color: urg.color, count: urg.count, text: urg.count <= 1 ? '!' : String(Math.min(urg.count, 99)) });
     }
-    const g = blockGeom(p, u, v);
-    const tw = [...text].reduce((w, ch) => w + GLYPH[ch][0].length, 0) + text.length - 1;
-    const w = Math.max(9, tw + 6), hh = 11, k = idHash(p.id);
+    const cs = bubbleMode !== 'none' && typeof ClaudeWork !== 'undefined' ? ClaudeWork.statusOf(p) : null;
+    if (cs) {
+      const n = cs.count > 1 ? String(Math.min(cs.count, 9)) : '';
+      const frame = cs.state === 'working' && !Motion.still() ? Math.floor(t / 320) % 2 : 0;
+      out.push(cs.state === 'done' ? { kind: 'claude', state: 'done', color: 'done', count: cs.count, icon: TICK, text: n, frame: 0 }
+        : cs.state === 'failed' ? { kind: 'claude', state: 'failed', color: 'failed', count: cs.count, icon: CROSS, text: n, frame: 0 }
+        : { kind: 'claude', state: cs.state, color: 'claude', count: cs.count, icon: SPARK[frame], text: cs.state === 'waiting' ? '?' : n, frame });
+    }
+    if (!out.length) return out;
+    const g = blockGeom(p, u, v), hh = 11, k = idHash(p.id);
     const bob = Motion.still() ? 0 : Math.round(Math.sin(t / (1500 + (k % 420)) + (k % 628) / 100));
-    return { p, color, count, text, tw, x: Math.round(g.X - w / 2), y: Math.round(g.top) - 6 - hh + bob, w, h: hh, bob };
+    for (const b of out) {
+      b.tw = b.text ? [...b.text].reduce((w, ch) => w + GLYPH[ch][0].length, 0) + b.text.length - 1 : 0;
+      const iw = b.icon ? b.icon[0].length : 0;
+      b.w = Math.max(9, iw + (iw && b.tw ? 1 : 0) + b.tw + 6);
+    }
+    let x = Math.round(g.X - (out.reduce((a, b) => a + b.w, 0) + 2 * (out.length - 1)) / 2);
+    for (const b of out) { Object.assign(b, { p, x, y: Math.round(g.top) - 6 - hh + bob, h: hh, bob }); x += b.w + 2; }
+    return out;
   }
   function eachBubble(fn) {
     const wall = Date.now(), t = performance.now();
     for (const [key, p] of displayLayout().entries()) {
       const [u, v] = key.split(',').map(Number);
-      const b = bubbleFor(p, u, v, wall, t);
-      if (b && fn(b) === true) return b;
+      for (const b of bubblesFor(p, u, v, wall, t)) if (fn(b) === true) return b;
     }
     return null;
   }
@@ -702,7 +723,13 @@ const MapView = (() => {
     ctx.fillStyle = c.hi;
     ctx.fillRect(x + 2, y + 1, w - 4, 1);
     ctx.fillStyle = c.ink;
-    let cx = x + Math.floor((w - b.tw) / 2);
+    const iw = b.icon ? b.icon[0].length : 0;
+    let cx = x + Math.floor((w - (iw + (iw && b.tw ? 1 : 0) + b.tw)) / 2);
+    if (b.icon) {
+      const iy = y + Math.floor((hh - b.icon.length) / 2);
+      for (let r = 0; r < b.icon.length; r++) for (let q = 0; q < iw; q++) if (b.icon[r][q] === '1') ctx.fillRect(cx + q, iy + r, 1, 1);
+      cx += iw + 1;
+    }
     for (const ch of b.text) {
       const gl = GLYPH[ch];
       for (let r = 0; r < 5; r++) for (let q = 0; q < gl[r].length; q++) if (gl[r][q] === '1') ctx.fillRect(cx + q, y + 3 + r, 1, 1);
@@ -712,7 +739,7 @@ const MapView = (() => {
   /* A cheap signature of every visible bubble, so the map redraws only when one bobs or changes. */
   function bubbleKey() {
     let key = '';
-    eachBubble(b => { key += b.p.id + b.color + b.count + b.bob + ';'; });
+    eachBubble(b => { key += b.p.id + b.color + b.count + b.bob + (b.frame || 0) + b.text + ';'; });
     return key;
   }
   function setBubbleMode(mode) {
@@ -1424,7 +1451,7 @@ const MapView = (() => {
     moving: () => mode.name === 'move',
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
     previewScale, profileScene, glideBeside,
-    bubbleMode: () => bubbleMode, bubbleAt: id => eachBubble(b => b.p.id === id),
+    bubbleMode: () => bubbleMode, bubbleAt: id => eachBubble(b => b.p.id === id && b.kind !== 'claude'), claudeBubbleAt: id => eachBubble(b => b.p.id === id && b.kind === 'claude'),
     crossMark, layout: () => displayLayout(), tileToWorld,
     props: () => propPlan(), propsDrawn: () => lastProps,
     _depthOrder: sprites => depthSort([], sprites),                // for the tests: figures among themselves, back to front

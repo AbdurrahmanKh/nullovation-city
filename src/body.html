@@ -11,6 +11,7 @@
       <p id="saveAlert" class="save-alert" hidden></p>
       <div id="fileAlert" class="save-alert" hidden></div>
       <div id="backupAlert" class="save-alert" hidden></div>
+      <div id="claudeAlert" class="save-alert" hidden></div>
     </div>
 
     <div id="sbLists" class="sb-lists">
@@ -193,6 +194,12 @@
             <p class="note">Windows only, after a one-time setup on this PC. <button id="btnFolderSetup" class="linkish" type="button">Get the setup</button></p>
             <div class="set-line"><button id="btnFolderTest" class="btn btn-small" type="button">Test folder links</button></div>
             <p class="note">Opens C:\Windows through a folder link. If nothing opens, the setup has not run on this PC.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Claude Code at work</h3>
+            <p class="note">A bubble over a building while Claude Code works in one of its folders: a turning spark while it works, a ? when it needs you, a tick when it has finished. In the terminal, VS Code, and the Claude app's Code tab.</p>
+            <div id="claudeBox" class="file-box"></div>
+            <p class="note">A one-time setup on this PC adds the hooks to Claude Code: <button id="btnClaudeSetup" class="linkish" type="button">Get the setup</button>, then double-click the file it saved and pick the folder for Claude Code to write to. Python must be installed.</p>
           </section>
         </div>
 

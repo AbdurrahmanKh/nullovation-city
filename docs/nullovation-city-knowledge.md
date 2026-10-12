@@ -1,6 +1,6 @@
 # Nullovation City: everything to know
 
-State as of version 0.1.27 (October 2026). The tool file is about 1.7 MB.
+State as of version 0.1.30 (October 2026). The tool file is about 1.7 MB.
 
 ## 1. What it is
 
@@ -118,7 +118,7 @@ Click a building for a small card:
 
 ### The side bar
 
-- **Top:** the logo, with the version in very small text under it. Saving that is paused or has failed (the browser, the data file, the daily backups) shows just under it with its fix, over the lists and Settings alike.
+- **Top:** the logo, with the version in very small text under it. Saving that is paused or has failed (the browser, the data file, the daily backups) shows just under it with its fix, over the lists and Settings alike, and so does a Claude folder that is paused or missing.
 - **Lists:** New project, which you plant on a free plot; search, which reads names, descriptions, tasks, milestones, notes, and the links' labels and addresses (addresses since 0.1.27); This week (the weekly recap), with Copy status brief, a summary of every project for a Claude chat, and Open in Claude beside it; Urgent; and Due this week.
 - **Settings:** a button at the foot of the side bar turns the side bar into Settings (below).
 
@@ -145,7 +145,7 @@ The side bar turns into Settings, and back with its arrow, so the map stays in v
   - Before the away date no system turns a building yellow or red; from that day every system counts from its start. Due dates count every day, rest or away.
 - **Saving:** the data file; daily backups; Export and Import; and storage use: how much of about 5 MB the projects and settings take in this browser, with a bar and a warning near the limit, and what the building art and the rest take.
   - Daily backups (Chrome and Edge): a folder picked once. The first time the city is open each day, before the day's changes, it saves `nullovation-city-daily-YYYY-MM-DD.json` there and keeps the newest 14. Only files with that name are counted and pruned, so exported backups in the same folder are never touched. One tab writes, the one the data file uses. Paused or failed shows under the logo too, with Allow or Pick the folder again.
-- **Links:** folder links in File Explorer, Get the setup, and Test folder links, which opens C:\Windows through a folder link.
+- **Links:** folder links in File Explorer, Get the setup, and Test folder links, which opens C:\Windows through a folder link; and since 0.1.28 Claude Code at work (above).
 - **Where each setting lives:** what the city is like travels in the data file and every backup: crowds, who is out, the sliders, street props, Deal again, the parks picked, Auto's hours, rest days and away until. How this computer shows it stays in this browser: the Traffic, Bubbles and Time of day buttons, the camera, folder links, the data file, the daily backups' folder, motion and the postcard.
 
 ### Edit City (0.1.24)
@@ -183,6 +183,29 @@ Beside every copy for Claude sits Open in Claude, wearing the Claude icon (the c
 
 Nothing is sent by itself: Claude shows the text and waits. The text also goes on the clipboard, for a computer without the app. The app fills in about 14,000 characters, so a text over 13,500 opens Claude empty and stays on the clipboard to paste. The more menu also has Builder card in a Claude chat. Esc closes the menu before anything else.
 
+### Claude Code at work (0.1.28)
+
+A bubble over a building while Claude Code works in one of its folders, in the terminal, VS Code, JetBrains, or the Claude app's Code tab. Claude Code on the web (cloud sessions) does not read the user settings, so it shows nothing.
+- **How it works:** hooks in Claude Code's user settings (`~/.claude/settings.json`, read by every local Claude Code) run `nullovation-city-status.py` at set moments. It writes one JSON file per session into a folder; the city reads that folder every 3 seconds while its tab shows (File System Access, read only, Chrome and Edge), and never writes to it.
+- **The bubbles:** beside the urgency bubble (or the Tasks count), the pair centred over the building.
+  - Working: coral, with Claude's spark turning between two frames.
+  - Waiting for you (a permission, a question, or an MCP form): coral with a ?.
+  - Finished, your turn: green with a tick. It shows until you open the building's status card, or for 12 hours.
+  - Failed on an API error: grey lavender with a cross, the same way.
+  - Several sessions on one building show their count; the most pressing state wins: waiting, working, failed, finished.
+  - No bubbles hides them, and so does the postcard; Motion on Still holds the spark still. A click on one selects its building, like the others.
+- **How long:** working goes quiet after 20 minutes without an event (an interrupt with Esc tells the hooks nothing), waiting after 8 hours, and idle sessions show nothing. An ended session shows nothing either, unless it finished and then closed (its last reply is kept, since a new prompt clears it): then it keeps its tick until you look, like any finish (0.1.29).
+- **The status card:** a line under the urgency: "Claude Code is working: <task>. Started 12 minutes ago.", "needs you", "finished" or "stopped on an error", and for a finish the start of Claude's reply. The task is the title of the copy from the city that started the session, else the first line of the latest prompt. Opening the card counts as seeing a finish, kept in this browser.
+- **Which building:** the project whose folder link holds the session's working folder, the deepest when several do, in any case or slash, and from WSL (`/mnt/c/...`) or Git Bash (`/c/...`); a file link counts by its folder. Failing that, the project named on the "Project:" line of a copy from the city. A session no building claims, closed ones included (0.1.29), is listed in Settings, Links, to link its folder.
+- **The setup:** `nullovation-claude-status.py`, from Settings, Links, Get the setup, embedded in the tool like the folder links setup (also `src/setup/` in the repo). Run once: a double-click, when .py files open with Python. With no arguments it asks which folder Claude Code should write to (since 0.1.30), installs, and waits for Enter before its window closes (`--no-pause` skips that); `--help` shows the usage.
+  - The folder (0.1.30): a double-click opens a folder picker (tkinter; without it, a typed path, Enter keeping the shown one), starting at the folder already set, else `~/Nullovation City/Claude`. Cancel changes nothing. Running it again moves the hooks to the folder picked. `--install --folder PATH` names it without asking, and `--install` alone keeps the folder already set. Chrome cannot open folders inside AppData.
+  - It copies itself to `~/.claude/hooks/nullovation-city-status.py`, makes the folder, leaves `README-nullovation-city.txt` in it saying what it is for (0.1.30), and on Windows puts the folder's path on the clipboard for the city's picker.
+  - It adds 10 hooks: SessionStart, UserPromptSubmit and PostToolUse (working), PreToolUse on AskUserQuestion, PermissionRequest, and Notification on permission_prompt or elicitation_dialog (waiting), Notification on idle_prompt (idle, ending work that never reported its end), Stop (done), StopFailure (failed), SessionEnd (ended).
+  - Each runs Python with no shell (`command` is the Python that ran the install, `args` the script, `hook`, the state and the folder), in the background (`async`), so it never slows Claude down. It prints nothing, so Claude reads nothing from it, and never blocks or changes anything.
+  - It keeps every other setting and hook, saves the old file as `settings.json.nullovation-backup`, replaces its own hooks rather than doubling them, and refuses a settings file that is not valid JSON. `--uninstall` takes its hooks out; `--status` lists the sessions.
+- **A session file** (`<session id>.json`): `app` and `kind` (`claude-session`), `session`, `state` (working, waiting, done, failed, idle, ended), `event`, `cwd`, `project` and `task` (from a copy), `ask` (the latest prompt's first line), `reply` (the start of the last reply), `entry` (Claude Code's entry point, kept but not shown), and `at`, `since` and `started` in milliseconds. A hook never overwrites a later event, swaps the file in whole, and notes failures in `hook-errors.log` in the folder. A new session clears files older than 3 days.
+- **Settings, Links, Claude Code at work:** Connect the Claude folder; then the folder, when Claude Code was last heard from and what is working or waiting now, sessions no building claims, and Stop. Watching an empty folder with no README from the setup, it warns that Claude Code does not write there (0.1.30): the hooks and the city must name the same folder, and until 0.1.30 the setup picked its own without asking. Paused (the browser holding the folder back after a restart) or a missing folder shows under the logo too, with Allow them or Pick it again. Reset to defaults leaves the connection alone.
+
 ### Data, storage, and backups
 
 - A browser with nothing saved starts a new city with one project: Nullovation City, on the city hall.
@@ -209,8 +232,9 @@ Nothing is sent by itself: Claude shows the text and waits. The text also goes o
 | `nullovation-city:postcard` | The postcard's caption and size, when not the default |
 | `nullovation-city:settings` | Settings' tab and the place on each page |
 | `nullovation-city:fileWriter` | Which tab writes the data file |
+| `nullovation-city:claudeSeen` | Claude Code sessions whose finish you have seen, by session |
 | `nullovation-city:ui` | Interface state |
-| `nullovation-city:art`, `:dataFile`, `:dataFolder` | Art and data file storage; the daily backups' folder is the `backupDir` handle in IndexedDB |
+| `nullovation-city:art`, `:dataFile`, `:dataFolder` | Art and data file storage; the daily backups' folder is the `backupDir` handle in IndexedDB, and the Claude folder the `claudeDir` handle |
 
 ### Folder links in File Explorer
 
@@ -242,6 +266,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
   - `src/buildings/`: the shipped building and lot animations and stills, with `meta.json` (id, title, footprint, width, height, frames) and `lots.json`.
   - `src/fonts/`: the five Pixelify Sans and Readex Pro files the build embeds, with their licenses.
   - `src/setup/nullovation-folder-links.ps1`: the folder links setup, embedded in the tool.
+  - `src/setup/nullovation-claude-status.py`: the Claude Code at work setup and hook script, embedded in the tool.
 - `art/`: the art pipeline (section 4). Nothing in it ships until it is installed into `src/buildings/`.
 - `tests/`: the passes; `testkit.py` for their shared paths, fixtures and test city; and `run_tests.py`, which builds, then runs every pass in order with one line per pass: `python3 tests/run_tests.py [9 16 ...]`.
 - `tools/pack.py`: writes the source archive, and applies one back over a folder (section 8).
@@ -262,10 +287,10 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 | `16-backups.js` | Daily backups: the folder, the day's copy, keeping the newest 14 |
 | `20-model.js` | The world grid and its place in the city, the city's settings, projects, tasks, milestones, urgency with rest days and away until, plan and tasks loading, Copy for Claude texts |
 | `25-generics.js` | Made by the build in memory, never on disk: the generic buildings and lots from `src/buildings` |
-| `26-extra.js` | Made by the build in memory, never on disk: `APP_VERSION` and the folder links setup |
+| `26-extra.js` | Made by the build in memory, never on disk: `APP_VERSION`, the folder links setup and the Claude Code at work setup |
 | `30-pixel.js` | The city palette, the light (day, dusk, night, Auto's hours), motion, pixel icons, and the art loader |
 | `35-gif.js` | The tool's GIF decoder |
-| `40-map.js` | The map: geometry, streets, parks, the street props' plan and drawing, depth sorting, zoom, bubbles, drop-ups, the bar's buttons, lines and rings, Edit City, the postcard |
+| `40-map.js` | The map: geometry, streets, parks, the street props' plan and drawing, depth sorting, zoom, bubbles (urgency and Claude Code's), drop-ups, the bar's buttons, lines and rings, Edit City, the postcard |
 | `45-traffic.js` | Cars, buses and their stops, drones, people, busyness, crowds, headlights |
 | `50-bubble.js` | The status bubble |
 | `60-fullview.js` | The project view: tasks, milestones, notes, links, panels, local paths |
@@ -273,6 +298,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 | `64-wheel.js` | The shortcut wheel a right-click on a building, or F, opens, with its Enter |
 | `65-recap.js` | The weekly recap and the status brief |
 | `67-claude.js` | Open in Claude: its menu, and the `claude://` links it builds |
+| `68-claudework.js` | Claude Code at work: the Claude folder, reading the session files, which project each belongs to, the card's line, and its part of Settings, Links |
 | `70-menu.js` | The side bar's lists, Export and Import |
 | `72-settings.js` | Settings: the panel, its tabs, dots and resets, and storage use |
 | `90-boot.js` | Start-up, Esc backing out one layer at a time, and the comma key |
@@ -300,7 +326,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 - concatenates the modules, CSS, and body;
 - embeds the fonts;
 - makes `25-generics.js` in memory from `src/buildings/meta.json`, `lots.json`, `props.json` and the GIFs and prop PNGs (`prop-<id>-front.png` and `-back.png`); it refuses a prop whose `faces` in `props.json` is not `se` or `sw`;
-- makes `26-extra.js` in memory with `APP_VERSION` from `src/VERSION` and the setup script;
+- makes `26-extra.js` in memory with `APP_VERSION` from `src/VERSION` and the two setup scripts (`FOLDER_SETUP_PS1`, `CLAUDE_SETUP_PY`);
 - writes nothing into `src/`;
 - replaces `{{VERSION}}` in the body;
 - writes one self-contained HTML file: `index.html` at the root, unless given a path;
@@ -309,7 +335,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 
 ### Tests
 
-There are 21 passes and 691 checks, all passing at 0.1.27. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
+There are 22 passes and 764 checks, all passing at 0.1.30. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
 - **test02_map:** zoom and the map.
 - **test04_seed_data:** the data version (3), the map and the city's settings in the data file, Grow and Shrink in Edit City, and the real start: a browser with nothing saved gets one project, Nullovation City.
 - **test05_bubble_art and test08_bubble_tasks:** the status bubble.
@@ -329,6 +355,7 @@ There are 21 passes and 691 checks, all passing at 0.1.27. `python3 tests/run_te
 - **test20_settings:** the panel: its three ways in and Esc, the six tabs, today's controls in their new places, the bar and Settings in step, no toast for a change while actions keep theirs, the dots, Reset to defaults and Reset all settings, reopening at the same tab and place, and the gear on a narrow window. It saves every tab, `tests/shots/200-settings-*.png`.
 - **test21_city_settings:** the settings: who is out and both sliders, the 150 ceiling on 11 by 11, the crowds; street props by kind, How many (none moving) and Deal again; Auto's hours; Still and Saver; the postcard's caption and size; rest days and away until against fixed dates; Test folder links; daily backups in a folder held in memory (the day's copy, the newest 14, exported backups untouched, paused and Allow); storage use; and what a backup carries, imported into a fresh browser, with older backups bringing defaults.
 - **test23_links:** the link icons and the icon an address picks, old Task and Design links picking again, the About with the description first, Copy task, the Claude icon on Open in Claude, the add panel (address over label, wider, Add to shortcuts on), the warning past 8 while adding and editing, the Shortcut switch, dragging a link by its grip and the arrow keys, copies without the About, and the wheel: its shortcuts in order and at most 8, the empty middle, its places in view without overlaps, closing by click, Esc and a click elsewhere, the arrow keys, the empty wheel, and none on a park or in Edit City. Since 0.1.27 also the suggested labels and `addressKey`, the same address twice, pasting an address (and not text, nor into a field), Undo for a deleted link, search by address, and on the wheel: Enter (the button and the key), the bubble and the wheel closing each other, F, hopping on from the wheel, the arrows leaving the map still, three-word labels whole and apart with 1 to 8 shortcuts, staying in view at the map's corner, and the controls guide. It saves `tests/shots/230-*.png` to `236-*.png`.
+- **test24_claude_work:** the setup script run as Claude Code would, in a home folder made for the test: install (a hook per event and state, in the background, as Python with no shell, every other setting and hook kept, the old file saved, twice changes nothing, a broken settings file refused, `--folder`), every hook event's state (the copy's project and task, the ask, the reply, idle only ending work, a later event never overwritten, a bad event or session id), the 3-day clearing, `--status` and `--uninstall`. Then the city with a Claude folder held in memory: Get the setup and the embedded copy, connecting, a bubble without a reload and the spark turning, which building each session lands on (case and slashes, WSL, the deepest folder, a file link, the Project line, none), counts, waiting, quiet after 20 minutes, ended and idle, the tick beside a red bubble, the card's lines and seeing a finish, failed, No bubbles, Tasks, Still, seen after a reload, paused and Allow, a missing folder, Reset and Stop. It saves `tests/shots/240-*.png` to `244-*.png`.
 - **test22_edit_city:** lines on every side and rings, on and off again, keeping every park, crossing mark, prop, building and the ground's pixels in place; rectangles from 5 to 11; a line with a building on it staying; park picks kept by place; and Edit City itself: the arrows and when they show, framing the city and keeping the arrows in reach on 11 by 11, cycling a park, dragging a building, Grow and Shrink, and the ways out. It saves `tests/shots/220-*.png` to `224-*.png`.
 
 Every browser pass but test14_data_file starts from the test city in `tests/testkit.py`, written into the browser before the page first loads: the starter project as it was at 0.1.16, plus a made-up second project, Garden planner, on the research lab. So the passes do not depend on what a new city starts with. It is written once per tab and never on a reload. test14_data_file needs no projects and goes without it: with an init script in its browser context, its two-tab checks failed about one run in three.
@@ -802,6 +829,23 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
     - Undo restores a deleted link to its place, after Done too, and never doubles one that Esc already brought back.
     - With the wheel open, the map ignores the arrow keys and WASD; until 0.1.27 the arrows moved the map under the wheel as they moved between its shortcuts.
 
+- **Connecting to local Claude (9 October 2026, Abdurrahman's task "Design in details, connecting to local Claude" in Nullovation City Hall, Quick Wins). The plan went to `wizard-rounds/2026-10-09-local-claude-round1.json`, one folder up from the source; its first piece, Claude Code at work, is built at 0.1.28 (section 2).**
+  - **Asked for:** design in detail what Open in Claude can do to make work faster, not cosmetics; and a building that looks like it is working while Claude works on it, until Claude finishes, with a solution for Claude, Cowork, Claude Code and Claude Code in the terminal; then pick the simplest thing and build it alone.
+  - **What each surface allows (checked in Anthropic's docs, 9 October 2026):**
+    - Claude Code, in the terminal, VS Code, JetBrains and the Claude app's Code tab, reads hooks from `~/.claude/settings.json`; cloud sessions do not. Stop fires when Claude finishes a reply but not on an interrupt; StopFailure on an API error; PermissionRequest and the permission_prompt notification when it waits for you.
+    - Cowork and chat are merging into one Claude (announced 16 September 2026, rolling out over weeks). Plugin hooks are documented to load in Cowork and to be ignored in Chat; Cowork's remote sessions run on Anthropic's servers.
+    - A chat can reach this PC only through a local MCP server Claude chooses to call.
+    - The desktop app's links prefill only, never send: `claude://claude.ai/new`, `claude://claude.ai/chat/<id>`, `claude://claude.ai/project/<id>`, `claude://code/new` (`q` or `prompt`, the first `folder`) and `claude://cowork/new` (`q`, `folder` and `file`, repeated); a folder in a link asks for confirmation every time. Claude Code's own `claude-cli://open?q=&cwd=` opens a terminal (Windows Terminal first), with `q` up to 5,000 characters. No documented link resumes a session.
+  - **The pick:** Claude Code's hooks, the only surface with a signal that is always right, covering three of the four surfaces with one setup; the folder, the matching and the bubble are what the others would reuse.
+  - **Reasoned while building:**
+    - The hooks write files and the city reads them, rather than a local server: nothing keeps running, and the city already reads folders.
+    - Python with no shell (exec form), from the Python that ran the install: no quoting of Windows paths, the same under Git Bash or PowerShell. In the background, so Claude never waits for them.
+    - Working goes quiet after 20 minutes without an event, since an interrupt reports nothing; the idle notice, about a minute after Claude stops, ends a stretch of work that never reported its end.
+    - A finish shows until you open the card, since "Claude finished" is news until you have seen it; working shows all the time it lasts.
+    - The Claude bubble sits beside the urgency bubble, never over it, and hides with No bubbles like the rest.
+    - The folder is `~/Nullovation City/Claude`, not under AppData, which Chrome will not open.
+    - The card's line takes the copy's task title, kept for the session, so a short follow-up such as "yes" does not replace it.
+
 ## 7. Open items
 
 - Leaders: build the leader card this month. The seven leaders are picked through a wizard round, then their portraits are made (6 generations a try).
@@ -809,6 +853,8 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
 - Dirt on red: decided, and delayed (section 6, Status).
 - The month's list: all six PixelLab tests are done, so the bulk work can start.
 - Links, later: press, move, release on the wheel (section 6, Links, round 1).
+- Connecting to local Claude, round 1 (`wizard-rounds/2026-10-09-local-claude-round1.json`): how a building looks while Claude works (A1), tracking Cowork (B1) and chats (B2), and six ideas to make Open in Claude faster (C1).
+- Claude Code at work: on 9 October 2026 the setup ran on Abdurrahman's PC, and a fresh terminal session wrote its note (prompt, reply, ended), so the hooks work. A session already open before the setup wrote nothing. That first session ran in the folder above the repo, so a link to the repo did not match it; linking `D:\Storage\Work\_Projects\Nullovation-City` covers the repo and everything beside it. On 12 October the city watched `Nullovation City data\Claude-Hooks` beside the data file, which Abdurrahman picked, while the hooks wrote to the folder the setup had made by itself; he wants Claude-Hooks used, so 0.1.30's setup asks for the folder and he runs it again to pick Claude-Hooks. Whether `claude://cowork/new` still works after Cowork merged into Claude is untested.
 - Settings, later: the leader speech bubbles switch, a bin for deleted projects, Open in Claude options, desktop notifications, and interface size (section 6, Settings and Edit City).
 - Cars yielding inside crossings, the 7 by 7 speed check, and the handheld's palette: skipped for now.
 - Later: the leader figure on the map, a leader crew, and a spoken voice.

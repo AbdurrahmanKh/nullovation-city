@@ -690,6 +690,18 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
 .b-urg.yellow, .urg-why.yellow { color: #FFE38A; }
 .urg-why.calm { color: var(--ink-soft); }
 .b-urg-dot { flex: none; width: 10px; height: 10px; margin-top: 3px; background: currentColor; box-shadow: 0 0 0 2px rgba(0, 0, 0, .45); }
+/* Claude Code at work, in the status card: the same shape as the urgency line, in the bubble's own colors */
+.b-claude { margin: 6px 0 2px; }
+.b-claude-line { display: flex; align-items: flex-start; gap: 8px; margin: 0; font-size: 13px; line-height: 1.4; font-weight: 600; color: #F5B39A; }
+.b-claude.done .b-claude-line { color: #8EEBC6; }
+.b-claude.failed .b-claude-line { color: #D6D0E6; }
+.b-claude-dot { flex: none; width: 10px; height: 10px; margin-top: 3px; background: currentColor; box-shadow: 0 0 0 2px rgba(0, 0, 0, .45); }
+.b-claude.working .b-claude-dot { animation: claude-pulse 1.3s steps(2, jump-none) infinite; }
+@keyframes claude-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .b-claude.working .b-claude-dot { animation: none; } }
+.b-claude-when { font-weight: 400; opacity: .8; }
+.b-claude-said { margin: 2px 0 0 18px; font-size: 12px; line-height: 1.4; opacity: .85; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.claude-lost { margin: 0 0 4px; padding-left: 18px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .b-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .b-actions .btn { margin: 0; }
 .b-worked { background: #3A2F12; color: #FFE38A; }

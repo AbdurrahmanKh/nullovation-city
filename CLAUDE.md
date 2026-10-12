@@ -8,7 +8,7 @@ The file imported above is the knowledge file: features, code, data, art, skills
 
 ## Where things go
 
-- `src/`: everything the page is built from, and nothing else: `VERSION`, `body.html`, `style.css`, the modules in `src/js/`, the shipped buildings and lots in `src/buildings/`, the fonts, and the folder links setup in `src/setup/`.
+- `src/`: everything the page is built from, and nothing else: `VERSION`, `body.html`, `style.css`, the modules in `src/js/`, the shipped buildings and lots in `src/buildings/`, the fonts, and the setups for folder links and Claude Code at work in `src/setup/`.
 - `art/`: how the buildings are drawn. `art/kit/` is the 256 px kit, `art/buildings/` has one script per building, `art/lots/` the park lots, `art/props/` the street props, `art/canon/` the original 128 px designs, `art/sources/` the stills a script starts from, and `art/projects/` the art for Abdurrahman's own projects, which git leaves out. Scripts render into `art/out/`.
 - `tests/`: the passes, `tests/testkit.py` and `tests/run_tests.py`. `tools/`: `tools/pack.py`.
 - The root keeps `build.py`, `index.html` (the page it builds), the docs and the config. New files go in their folder, never the root.
@@ -24,7 +24,7 @@ The file imported above is the knowledge file: features, code, data, art, skills
 
 - Build: `python3 build.py` writes the page to `index.html` at the root. The repo keeps it and GitHub Pages serves it, so rebuild it with every change; test17 fails when it is older than the source.
 - Test: `python3 tests/run_tests.py` builds, then runs every pass in order and prints one line per pass. `python3 tests/run_tests.py 9 16` runs only those. Logs go to `tests/data/logs/`, screenshots to `tests/shots/`.
-- The passes are named by number and topic, from `tests/test02_map.py` to `tests/test22_edit_city.py`. `tests/testkit.py` holds their shared paths, draws the files they upload, and sets up the test city every browser pass starts from, so the passes do not depend on what a new city starts with.
+- The passes are named by number and topic, from `tests/test02_map.py` to `tests/test24_claude_work.py`. `tests/testkit.py` holds their shared paths, draws the files they upload, and sets up the test city every browser pass starts from, so the passes do not depend on what a new city starts with.
 
 ## Every change to the tool
 

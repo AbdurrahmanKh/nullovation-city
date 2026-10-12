@@ -165,6 +165,10 @@ const Settings = (() => {
       document.body.append(a); a.click(); a.remove();
       toast('Opening C:\\Windows through a folder link. If nothing opens, the setup has not run on this PC.');
     });
+    $('#btnClaudeSetup').addEventListener('click', () => {
+      downloadBlob(new Blob([CLAUDE_SETUP_PY], { type: 'text/x-python' }), 'nullovation-claude-status.py');
+      toast('Saved nullovation-claude-status.py. Double-click it and pick a folder, then connect that same folder here.');
+    });
     /* Resets */
     $('#btnTabReset').addEventListener('click', () => resetTab(ui.tab));
     $('#btnResetAll').addEventListener('click', async () => {

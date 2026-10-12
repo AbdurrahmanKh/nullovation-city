@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.1.30 (2026-10-12)
+
+From the second test on the PC: the hooks wrote to the folder the setup made by itself, `Nullovation City\Claude` in the user folder, while the city watched Claude-Hooks, the folder Abdurrahman picked, so nothing ever showed.
+- The setup asks: a double-click opens a folder picker, starting at the folder already set, and the hooks write to the folder picked. Running it again moves them; Cancel changes nothing. `--install` alone keeps the folder already set instead of going back to the default.
+- The setup leaves `README-nullovation-city.txt` in the folder, saying what the folder is for.
+- Settings, Links warns when the city watches an empty folder with no README in it: Claude Code does not write there, so double-click the setup again and pick it.
+- Tests: test24 checks the question, keeping the folder, the README, and the warning.
+
+## 0.1.29 (2026-10-09)
+
+From the first test on the PC: a Claude Code session in the terminal finished and closed within half a minute, and the city showed nothing.
+- A session that finished and then closed keeps its green tick until you open the building's card, as a finish does; closed in the middle of work, it still shows nothing.
+- Settings, Links lists a closed session too when no building claims its folder, so a folder that is not linked shows up there.
+- Tests: test24 checks both.
+
+## 0.1.28 (2026-10-09)
+
+The first piece of "Design in details, connecting to local Claude" (Nullovation City Hall, Quick Wins): knowing when Claude Code is at work.
+- Claude Code at work: a bubble over a building while Claude Code works in one of its folders, beside its urgency bubble.
+  - A coral bubble with Claude's spark, turning while it works; a ? when it waits for you (a permission or a question); a green tick when it has finished; a cross when it stopped on an API error. Several sessions on one building show their count.
+  - The status card says so in a line under the urgency: what Claude Code works on (the copy's task, or the first line of the prompt), since when, and for a finished session the start of its reply. Looking at the card counts as seeing a finish, so its tick goes.
+  - Working goes quiet after 20 minutes without a word (an interrupt with Esc tells the hooks nothing), waiting after 8 hours, and a finish you never looked at after 12.
+  - A session belongs to the project whose folder link holds its working folder, the deepest when several do, in any case or slash and from WSL; a file link counts by its folder. Failing that, the "Project:" line of a copy from the city places it.
+  - No bubbles hides them, like the others, and so does the postcard; Still holds the spark still.
+- The setup, `nullovation-claude-status.py`, from Settings, Links, Get the setup: a double-click (or `python nullovation-claude-status.py --install`) adds background hooks to Claude Code's user settings, which the terminal, VS Code, JetBrains and the Claude app's Code tab all read, and makes `Nullovation City\Claude` in the user folder for the session files. It keeps every other setting, saves the old file beside it, never doubles its hooks, and `--uninstall` takes them out. The hooks print nothing and block nothing.
+- Settings, Links, Claude Code at work: Connect the Claude folder, what it last heard, and any session no building claims, to link its folder. Paused or a missing folder shows under the logo with its fix, like the data file.
+- Tests: the new test24 runs the script as Claude Code would (install, uninstall, every hook event) and checks the city reading the folder.
+
 ## 0.1.27 (2026-10-08)
 
 From the links round (Nullovation City Links, Round 1):
