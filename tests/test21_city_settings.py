@@ -236,7 +236,7 @@ with sync_playwright() as p:
     data = json.loads(pathlib.Path(dl.value.path()).read_text(encoding='utf-8'))
     (DATA / 'backup-v3-settings.json').write_text(json.dumps(data), encoding='utf-8')
     cityk = sorted(data['city'].keys())
-    ok(f'a backup carries the city\'s settings ({len(cityk)} of them)', cityk == sorted(js("() => Object.keys(CITY_DEFAULTS)") + ['parks'])
+    ok(f'a backup carries the city\'s settings, the days away and the parks picked ({len(cityk)} of them)', cityk == sorted(js("() => Object.keys(CITY_DEFAULTS)") + ['awaySpans', 'parks'])
        and data['city']['crowd'] == 'large' and data['city']['night'] == '21:00' and data['city']['deal'] == 1 and data['city']['rest'] == [0, 5, 6])
     ok('and nothing of this computer: no light, bubbles, traffic, motion, postcard or folder links', not any(k in json.dumps(data['city']) for k in ('"light"', '"bubbles"', '"traffic"', '"motion"', '"caption"', '"explorer"'))
        and set(data.keys()) == {'app', 'version', 'exportedAt', 'world', 'city', 'projects'})

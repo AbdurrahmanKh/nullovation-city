@@ -389,6 +389,13 @@ const MapView = (() => {
     drawArt(art, X - 64, Y + 64 - dh, PLOT.W, dh);
     if (flip) ctx.restore();
   }
+  /* A small canvas drawn at half size, like the props: sharp at every zoom. Garbage uses it. */
+  const halfArt = new WeakMap();
+  function drawHalf(c, x, y) {
+    let a = halfArt.get(c);
+    if (!a) { a = { w: c.width, h: c.height, base: c, frames: [] }; halfArt.set(c, a); }
+    drawArt(a, x, y, c.width / 2, c.height / 2, 0);
+  }
   function drawRing(r, X, Y) { ctx.drawImage(r.canvas, X - r.cx, Y + 32 - r.cy); }
   /* The props on screen, as figures for the depth sort: each stands on the middle of its bottom row, at half size like
      the buildings, and a mirrored one turns round that point. People walk through them, in front or behind by depth. */
@@ -533,6 +540,8 @@ const MapView = (() => {
     const T = mode.target;
     const moving = typeof Traffic !== 'undefined' && Traffic.active();
     if (moving) Traffic.drawGround(ctx);
+    const junk = typeof Garbage !== 'undefined';                   // garbage lies flat: with the ground, or on its plot
+    if (junk) { Garbage.prepare(clean ? null : { x0: cam.x - vw / (2 * z), x1: cam.x + vw / (2 * z), y0: cam.y - vh / (2 * z), y1: cam.y + vh / (2 * z) }); Garbage.drawGround(ctx); }
     const plots = [];
     for (let d = 0; d <= NU + NV - 2; d++) for (let u = 0; u < NU; u++) {
       const v = d - u;
@@ -542,9 +551,9 @@ const MapView = (() => {
       plots.push({ plot: true, u, v, a0, a1: a0 + S, b0, b1: b0 + S, key: a0 + b0 + S,
         box: { x0: X - 64, x1: X + 64, y0: p ? blockGeom(p, u, v).top : Y - 30, y1: Y + 66 } });
     }
-    const items = (moving ? Traffic.items() : []).concat(propItems());
+    const items = (moving ? Traffic.items() : []).concat(propItems(), junk ? Garbage.items() : []);
     for (const it of items.length ? depthSort(plots, items) : plots) {
-      if (it.plot) drawPlot(it.u, it.v, lay, slots, T); else it.draw(ctx);
+      if (it.plot) { drawPlot(it.u, it.v, lay, slots, T); if (junk) Garbage.drawOnPlot(ctx, it.u, it.v); } else it.draw(ctx);
     }
     if (moving) Traffic.drawAir(ctx);
     if (!noBubbles) drawUrgency();
@@ -787,6 +796,7 @@ const MapView = (() => {
     }
     if (lastBobKey && !still) more = true;
     if (typeof Traffic !== 'undefined' && Traffic.active()) { if (Traffic.step(t)) dirty = true; more = true; }
+    if (typeof Garbage !== 'undefined') { if (Garbage.step(t)) dirty = true; if (Garbage.busy() && !still) more = true; }
     if (planting) {
       dirty = true; more = true;
       if (t - planting.t0 >= planting.dur) { const done = planting.then; planting = null; if (done) setTimeout(done, 0); }
@@ -1452,7 +1462,7 @@ const MapView = (() => {
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
     previewScale, profileScene, glideBeside,
     bubbleMode: () => bubbleMode, bubbleAt: id => eachBubble(b => b.p.id === id && b.kind !== 'claude'), claudeBubbleAt: id => eachBubble(b => b.p.id === id && b.kind === 'claude'),
-    crossMark, layout: () => displayLayout(), tileToWorld,
+    crossMark, layout: () => displayLayout(), tileToWorld, drawHalf,
     props: () => propPlan(), propsDrawn: () => lastProps,
     _depthOrder: sprites => depthSort([], sprites),                // for the tests: figures among themselves, back to front
     lotInfo: (u, v) => (typeof LOTS !== 'undefined' && LOTS.length ? { id: LOTS[lotIndex(u, v)].id, flip: lotFlip(u, v) } : null),

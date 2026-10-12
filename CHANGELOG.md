@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.31 (2026-10-12)
+
+The garbage system, designed in the garbage round (`wizard-rounds/2026-10-12-garbage-round1.json`) and two previews: a city you leave alone fills with litter, and a hover truck clears it once you are back on it.
+- One piece of garbage per point, round the building that earned it:
+  - One task per N days: yellow (one period missed) 5; red (two periods) 10, and 10 more for each period after.
+  - Work until finished: red (no task finished for a day) 10, and 10 more for each day after. Its yellow, a task finished today, adds nothing.
+  - Each overdue task: 5 for each day late.
+- Rest days pause the urgency points, not the late ones. Away pauses both: no building is yellow or red, and a late task does not grow on the days away. The city now records the days you set away, `city.awaySpans` in the data file.
+- One ceiling for the whole city, 500 pieces; over it, every building's share shrinks in proportion.
+- Where: the building's front strip and sidewalks first, then the gutters, the nearest park and the sidewalks across the street, then piling up. Each piece has a fixed spot and kind (paper, sticky notes, cans, bags), dealt by the building's place, so it stays put between visits. Loose papers hop in the wind now and then.
+- Cleanup: any drop calls a hover garbage truck. It drives in from the map's edge at one end of the street, drops 3 of its crew who spread round the block and sweep, the pieces go with a sparkle, and it leaves by the other end. At most 3 trucks out at once. With Traffic off the garbage goes with the sparkle alone; on Still it just goes; what changed while the city was closed shows as it is on load.
+- Shows on the map and the postcard; not in the status card, the recap, the status brief or Edit City.
+- Settings, Look, Garbage: on by default, kept on this computer. Off, the city looks clean.
+- Tests: the new test25 checks the points, the ceiling, the spots, the truck and its crew, the switch, and where garbage shows.
 ## 0.1.30 (2026-10-12)
 
 From the second test on the PC: the hooks wrote to the folder the setup made by itself, `Nullovation City\Claude` in the user folder, while the city watched Claude-Hooks, the folder Abdurrahman picked, so nothing ever showed.

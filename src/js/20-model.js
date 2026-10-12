@@ -88,6 +88,7 @@ function sanitizeCity(raw, crowdFallback = null) {
     else if (k === 'rest') out[k] = Array.isArray(v) ? [...new Set(v.filter(x => Number.isInteger(x) && x >= 0 && x <= 6))].sort() : [];
     else if (k === 'away') out[k] = parseYmd(v) != null ? v : '';
   }
+  out.awaySpans = Array.isArray(r.awaySpans) ? r.awaySpans.filter(x => Array.isArray(x) && x.length === 2 && x.every(d => parseYmd(d) != null) && x[0] < x[1]).slice(-12).map(x => [x[0], x[1]]) : [];
   out.parks = {};
   if (r.parks && typeof r.parks === 'object') for (const [k, v] of Object.entries(r.parks)) if (/^-?\d+,-?\d+$/.test(k) && typeof v === 'string') out.parks[k] = v.slice(0, 60);
   return out;
@@ -435,6 +436,15 @@ function countedMs(from, to) {
     d = next.getTime();
   }
   return n;
+}
+/* The days you were away, as [from, back) spans, the last 12: a late task's garbage does not grow on them. Setting away
+   opens a span from today, changing the date moves its end, and Clear ends it today. */
+function noteAway(next, now = Date.now()) {
+  const c = DB.city, spans = c.awaySpans || (c.awaySpans = []), today = ymd(now), last = spans[spans.length - 1];
+  const open = !!last && last[0] <= today && today < last[1];
+  if (next && next > today) { if (open) last[1] = next; else spans.push([today, next]); }
+  else if (open) { if (last[0] === today) spans.pop(); else last[1] = today; }
+  while (spans.length > 12) spans.shift();
 }
 /* Away: until that day no urgency system turns a building yellow or red. */
 const awayNow = (now = Date.now()) => { const back = DB.city ? parseYmd(DB.city.away) : null; return back != null && startOfDay(now) < back; };

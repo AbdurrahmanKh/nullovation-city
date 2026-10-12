@@ -1,12 +1,12 @@
 # Nullovation City: everything to know
 
-State as of version 0.1.30 (October 2026). The tool file is about 1.7 MB.
+State as of version 0.1.31 (October 2026). The tool file is about 1.8 MB.
 
 ## 1. What it is
 
 Nullovation City is Abdurrahman's personal project tracker, drawn as an isometric pixel-art city. Every project is one building: click it for a quick status bubble, or step inside for everything else. It is one self-contained HTML file that runs offline in the browser, with everything stored locally. It holds his real projects, around 13 of them.
 
-A building is a company that is always alive, whatever the project's status. Buildings never show progress or stage; the bubbles carry status.
+A building is a company that is always alive, whatever the project's status. Buildings never show progress or stage; the bubbles carry status. Since 0.1.31 a neglected building gathers garbage round it, on the ground, never on the building.
 
 What Abdurrahman keeps:
 - The tool: `index.html` at the root of the repo, which GitHub Pages also serves. A chat delivers it as `nullovation-city.html`.
@@ -84,6 +84,26 @@ Due dates also count: tasks due soon or overdue jump to the top of the status bu
 
 Settings, Projects, pauses the systems, never the due dates: rest days are weekdays that do not count for either system, and away until a date keeps every system quiet until that day, from which each counts afresh. Red and yellow bubbles float over buildings that need attention, showing a count, or "!" for a single item. The side bar's Urgent section lists red projects.
 
+### Garbage (0.1.31)
+
+A city you leave alone fills with litter, and a hover truck clears it once you are back on it. Visuals only: garbage never shows in the status card, the recap or the status brief.
+- **The points, one piece of garbage each, round the building that earned them:**
+  - One task per N days: yellow (one period missed) 5; red (two periods) 10, and 10 more for each period after: 20 at three, 30 at four.
+  - Work until finished: red (no task finished for a day) 10, and 10 more for each day after. Its yellow, a task finished in the last 24 hours, adds nothing.
+  - Each overdue task: 5 for each day late, from the day after its due date: 2 days 10, a week 35, a month 150.
+  - Due within 2 days but not yet late adds nothing, though its bubble is red.
+- **Rest days and away:** rest days pause the urgency points, not the late ones. Away pauses both: no building is yellow or red, so their garbage goes, and a late task keeps what it had on the day you set away, growing again from the day you are back. The city records the days away as `city.awaySpans`.
+- **The ceiling:** 500 pieces for the whole city, none per building. Over it, every building's share shrinks in proportion, the leftovers going to the largest remainders.
+- **Where:** first the building's front strip (lifted onto its plot) and front sidewalks, then its back sidewalks, the gutters of the streets beside it, the nearest park, and the sidewalks across the street, then piling up on its own ground; 640 spots a building. Litter gathers in clusters, by corners and curbs. Each spot and its kind is dealt by the building's place in the city, so garbage stays put between visits and moves with its building.
+- **The pieces:** drawn in code at double detail and shown at half size, like the props: loose paper and wrappers, sticky notes, cans and bottles with a cyan glint (which brightens at night, as the neon does), and dark, white and lying trash bags. Night colors come from the tool's palette, with no glow of their own. Now and then a loose paper hops a few pixels in the wind, never far from its spot.
+- **Cleanup:** any drop calls a hover garbage truck, a partial one too.
+  - It drives in from the map's edge at one end of the street on the block's south-east or south-west side (dealt by its place), faster the further it comes (3 to 7 tiles a second), and stops by the block.
+  - Three of its crew, in coral with yellow caps and brooms, walk the sidewalk to spots of their own round the block and sweep for about 3.4 seconds; the pieces go with a sparkle, nearest first, and those spilled far away go when the crew are back. The truck leaves by the other end.
+  - At most 3 trucks out at once; the rest wait their turn. The truck hovers with a shadow under it, bobs a pixel, and shows headlights or tail lights at night.
+  - Traffic off: garbage goes with the sparkle alone. Motion on Still: it just goes. What changed while the city was closed shows as it is on load, with no truck. A ticked task, a moved building or a new day shows within a second.
+- **Where it shows:** the map, the postcard, and the picture at the top of the project view, which is the map's own drawing of the building in its street. Edit City hides it.
+- **The switch:** Settings, Look, Garbage, on by default and kept on this computer. Off, the city looks clean and no truck comes.
+
 ### The status bubble
 
 Click a building for a small card:
@@ -138,15 +158,16 @@ The side bar turns into Settings, and back with its arrow, so the map stays in v
   - Deal again lays the props out anew by the same rules, kept until dealt again.
   - At today's amount with no new deal, the plan is today's.
 - **Life:** Traffic; who is out: cars, buses, drones, cyclists, walkers; two sliders from a quarter to twice today's counts, Street traffic (cars, buses and drones) and Walkers (people and cyclists); and Crowds round busy buildings. Walkers kept in takes the crowds too; with bus stops off, the buses drive past.
-- **Look:** Time of day; Auto's hours, when night starts (19:00) and day starts (06:30), with dusk and dawn blending over the 90 minutes before each; Bubbles; Motion; Postcard, the caption on or off, as on screen or doubled; and Download palette.
+- **Look:** Time of day; Auto's hours, when night starts (19:00) and day starts (06:30), with dusk and dawn blending over the 90 minutes before each; Bubbles; Garbage (0.1.31), on or off; Motion; Postcard, the caption on or off, as on screen or doubled; and Download palette.
   - Motion: Full; Saver, at most 30 frames a second; or Still: no traffic, every building and park on its first frame, and bubbles that do not bob. Until one is chosen it follows the system: Still when the system asks for reduced motion.
 - **Projects:** rest days, picked by weekday from Saturday, and away until a date (with Clear).
   - Rest days count for neither One task per N days nor Work until finished; a building's reason says so.
   - Before the away date no system turns a building yellow or red; from that day every system counts from its start. Due dates count every day, rest or away.
+  - Away also stops a late task's garbage growing (0.1.31): the city keeps the days away, from the day it is set to the day you are back, and Clear ends them today.
 - **Saving:** the data file; daily backups; Export and Import; and storage use: how much of about 5 MB the projects and settings take in this browser, with a bar and a warning near the limit, and what the building art and the rest take.
   - Daily backups (Chrome and Edge): a folder picked once. The first time the city is open each day, before the day's changes, it saves `nullovation-city-daily-YYYY-MM-DD.json` there and keeps the newest 14. Only files with that name are counted and pruned, so exported backups in the same folder are never touched. One tab writes, the one the data file uses. Paused or failed shows under the logo too, with Allow or Pick the folder again.
 - **Links:** folder links in File Explorer, Get the setup, and Test folder links, which opens C:\Windows through a folder link; and since 0.1.28 Claude Code at work (above).
-- **Where each setting lives:** what the city is like travels in the data file and every backup: crowds, who is out, the sliders, street props, Deal again, the parks picked, Auto's hours, rest days and away until. How this computer shows it stays in this browser: the Traffic, Bubbles and Time of day buttons, the camera, folder links, the data file, the daily backups' folder, motion and the postcard.
+- **Where each setting lives:** what the city is like travels in the data file and every backup: crowds, who is out, the sliders, street props, Deal again, the parks picked, Auto's hours, rest days, and away until with the days away. How this computer shows it stays in this browser: the Traffic, Bubbles and Time of day buttons, the camera, folder links, the data file, the daily backups' folder, motion, the garbage switch and the postcard.
 
 ### Edit City (0.1.24)
 
@@ -230,6 +251,7 @@ A bubble over a building while Claude Code works in one of its folders, in the t
 | `nullovation-city:explorerLinks` | Folder links setting |
 | `nullovation-city:motion` | Motion, when chosen |
 | `nullovation-city:postcard` | The postcard's caption and size, when not the default |
+| `nullovation-city:garbage` | Garbage on or off |
 | `nullovation-city:settings` | Settings' tab and the place on each page |
 | `nullovation-city:fileWriter` | Which tab writes the data file |
 | `nullovation-city:claudeSeen` | Claude Code sessions whose finish you have seen, by session |
@@ -292,6 +314,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 | `35-gif.js` | The tool's GIF decoder |
 | `40-map.js` | The map: geometry, streets, parks, the street props' plan and drawing, depth sorting, zoom, bubbles (urgency and Claude Code's), drop-ups, the bar's buttons, lines and rings, Edit City, the postcard |
 | `45-traffic.js` | Cars, buses and their stops, drones, people, busyness, crowds, headlights |
+| `47-garbage.js` | Garbage: the points, the ceiling, the spots, the pieces drawn in code, the wind, the truck and its crew, the sparkle, the switch |
 | `50-bubble.js` | The status bubble |
 | `60-fullview.js` | The project view: tasks, milestones, notes, links, panels, local paths |
 | `62-picker.js` | The building picker |
@@ -307,7 +330,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 
 - **Database:** `{ app: 'nullovation-city', version: 3, world: { nu, nv, ou, ov }, city, projects: [] }`.
   - `world`: the map is `nu` plots along u (down to the right on screen) by `nv` along v (down to the left), and its plot (u, v) is the city's plot (u + ou, v + ov). Before version 3 it was `{ size }`, square, at the city's origin, and older data still reads that way.
-  - `city`: the city's settings, which travel with it: `crowd`; `cars`, `buses`, `drones`, `cyclists`, `walkers`; `street` and `walk` (0.25 to 2); `props`, `busstop`, `vending`, `billboard`, `bin`, `amount` (0.25 to 2) and `deal`; `night` and `day` (HH:MM); `rest` (weekdays, 0 for Sunday) and `away` (YYYY-MM-DD); and `parks`, the kinds picked in Edit City, by the city's plot as `"U,V"`. Defaults are `CITY_DEFAULTS` in `20-model.js`.
+  - `city`: the city's settings, which travel with it: `crowd`; `cars`, `buses`, `drones`, `cyclists`, `walkers`; `street` and `walk` (0.25 to 2); `props`, `busstop`, `vending`, `billboard`, `bin`, `amount` (0.25 to 2) and `deal`; `night` and `day` (HH:MM); `rest` (weekdays, 0 for Sunday) and `away` (YYYY-MM-DD); `awaySpans`, the days away as `[from, back]` pairs of YYYY-MM-DD, the last 12, which a late task's garbage does not grow on (0.1.31); and `parks`, the kinds picked in Edit City, by the city's plot as `"U,V"`. Defaults are `CITY_DEFAULTS` in `20-model.js`.
 - **Project:**
   - identity: `id`, `name`, `description`, `deadline`, `progressOverride`;
   - content: `todos`, `links`, `milestones`, `notes`;
@@ -335,7 +358,7 @@ The root keeps only `build.py`, the docs and the config; everything else sits in
 
 ### Tests
 
-There are 22 passes and 764 checks, all passing at 0.1.30. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
+There are 23 passes and 837 checks, all passing at 0.1.31. `python3 tests/run_tests.py` runs them all, and `python3 tests/run_tests.py 9 16` runs passes by number. Each browser pass runs Chrome through Playwright, prints PASS or FAIL lines and console errors, and can run alone, for example `python3 tests/test09_urgency.py`. The coverage:
 - **test02_map:** zoom and the map.
 - **test04_seed_data:** the data version (3), the map and the city's settings in the data file, Grow and Shrink in Edit City, and the real start: a browser with nothing saved gets one project, Nullovation City.
 - **test05_bubble_art and test08_bubble_tasks:** the status bubble.
@@ -357,6 +380,7 @@ There are 22 passes and 764 checks, all passing at 0.1.30. `python3 tests/run_te
 - **test23_links:** the link icons and the icon an address picks, old Task and Design links picking again, the About with the description first, Copy task, the Claude icon on Open in Claude, the add panel (address over label, wider, Add to shortcuts on), the warning past 8 while adding and editing, the Shortcut switch, dragging a link by its grip and the arrow keys, copies without the About, and the wheel: its shortcuts in order and at most 8, the empty middle, its places in view without overlaps, closing by click, Esc and a click elsewhere, the arrow keys, the empty wheel, and none on a park or in Edit City. Since 0.1.27 also the suggested labels and `addressKey`, the same address twice, pasting an address (and not text, nor into a field), Undo for a deleted link, search by address, and on the wheel: Enter (the button and the key), the bubble and the wheel closing each other, F, hopping on from the wheel, the arrows leaving the map still, three-word labels whole and apart with 1 to 8 shortcuts, staying in view at the map's corner, and the controls guide. It saves `tests/shots/230-*.png` to `236-*.png`.
 - **test24_claude_work:** the setup script run as Claude Code would, in a home folder made for the test: install (a hook per event and state, in the background, as Python with no shell, every other setting and hook kept, the old file saved, twice changes nothing, a broken settings file refused, `--folder`), every hook event's state (the copy's project and task, the ask, the reply, idle only ending work, a later event never overwritten, a bad event or session id), the 3-day clearing, `--status` and `--uninstall`. Then the city with a Claude folder held in memory: Get the setup and the embedded copy, connecting, a bubble without a reload and the spark turning, which building each session lands on (case and slashes, WSL, the deepest folder, a file link, the Project line, none), counts, waiting, quiet after 20 minutes, ended and idle, the tick beside a red bubble, the card's lines and seeing a finish, failed, No bubbles, Tasks, Still, seen after a reload, paused and Allow, a missing folder, Reset and Stop. It saves `tests/shots/240-*.png` to `244-*.png`.
 - **test22_edit_city:** lines on every side and rings, on and off again, keeping every park, crossing mark, prop, building and the ground's pixels in place; rectangles from 5 to 11; a line with a building on it staying; park picks kept by place; and Edit City itself: the arrows and when they show, framing the city and keeping the arrows in reach on 11 by 11, cycling a park, dragging a building, Grow and Shrink, and the ways out. It saves `tests/shots/220-*.png` to `224-*.png`.
+- **test25_garbage:** the points (pace yellow and red by period, work until finished by day and its yellow adding nothing, late tasks by day, both together, rest days, away, and the days away with their spans set, moved and cleared in Settings, saved and read with care); the ceiling and its shares; the 640 spots, their kinds, the front strip first, the lift onto the plot, the park, and the same after a reload; drawn by day and by night, the can's glint at night; the switch (kept, with a dot, clean pixels, after a reload, Reset); the postcard with and without, and the project view's picture; nothing in the status card or the brief; Edit City; Still; the truck from the map's edge with a crew of three spread round the block, the sparkle, a partial drop, at most 3 trucks, Traffic off; the city's own garbage on load with no truck, and ticking a task off. It saves `tests/shots/250-*.png` to `254-*.png`.
 
 Every browser pass but test14_data_file starts from the test city in `tests/testkit.py`, written into the browser before the page first loads: the starter project as it was at 0.1.16, plus a made-up second project, Garden planner, on the research lab. So the passes do not depend on what a new city starts with. It is written once per tab and never on a reload. test14_data_file needs no projects and goes without it: with an init script in its browser context, its two-tab checks failed about one run in three.
 
@@ -696,7 +720,7 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
 
 ## 6. Decisions (settled)
 
-- **Status (changed 5 October 2026):** buildings show one status: dirt while their project's urgency is red. The build is delayed, including how the dirt is drawn and how it clears, so until it ships no building shows status, progress or stage, and bubbles carry status. Section 1 and the builder skill still say buildings never show status; update both when the dirt ships.
+- **Status (changed 5 October 2026, then 12 October 2026):** buildings show no status, progress or stage, and bubbles carry status. Dirt on red, decided on 5 October and delayed, was dropped on 12 October for the garbage system (below), which lies on the ground round a building, never on it.
 - **Art fidelity:** refining keeps the original design, size, and proportions, and adds detail and character. All 12 generics are now ported from their originals at 256 px.
 - **Lots:** every lot is its own design, not a grey tile ring.
 - **Versioning:** the tool started at 0.1.0. Every small fix or UI change bumps the patch (0.1.1, 0.1.2, and so on), and 1.0.0 waits for production. The version shows in very small text under the side bar logo.
@@ -846,11 +870,39 @@ The drone port, picked from the held buildings (bus depot, drone port, apartment
     - The folder is `~/Nullovation City/Claude`, not under AppData, which Chrome will not open.
     - The card's line takes the copy's task title, kept for the session, so a short follow-up such as "yes" does not replace it.
 
+- **Garbage system (12 October 2026, `wizard-rounds/2026-10-12-garbage-round1.json`, one folder up from the source, answered the same day, then two previews). Built at 0.1.31; section 2, Garbage.**
+  - **Asked for:** a visual punishment for ignoring the city, tied to urgency: a building whose urgency bubble shows a number or "!" adds garbage, red more, and each overdue task more each day. A setting turns the garbage view off.
+  - **The points, as settled at the build:** yellow 5; red 10, and 10 more for each period past the first red one; each overdue task 5 for each day late. They came in three steps: first 1 for yellow, 5 for red, and 5 for a late task plus 1 a day after; after the first preview, yellow 5 and red 10; at the build, 5 a day late and 10 more per extra period. The building's urgency points come only from its system's own yellow or red; due dates count only through the late-task rule, so nothing counts twice.
+  - **Rules:**
+    - Garbage replaces the dirt on red (R1); see Status, above.
+    - A late task's garbage keeps growing on rest days and stops growing while away; what it has stays (R2). While away no building is yellow or red, so their garbage goes too.
+    - No ceiling per building or per task: one ceiling on the city's total, "ridiculously high, to the point of being annoying", reached only when the city is forgotten. One fixed task can take away 30 pieces or so, so cleaning up shows quickly (R3).
+  - **Look:**
+    - At its building, on its plot and sidewalk, spilling into the street and the nearest park past a set size (L1).
+    - Street trash in the city's colors (L2), one piece per point, with no piles or steps (L3).
+    - Pieces: loose paper and wrappers, crumpled sticky notes, cans and bottles with a cyan glint that stays lit at night, and trash bags (L4).
+    - All drawn in code (L5).
+    - Litter blowing in the wind, and a sparkle after cleaning (L6).
+    - Dropped: overflowing bins, heaps, glowing goo, boxes, robot scrap, dead holo screens, glitch cubes, weeds (L4); flies, stink lines, people stepping round piles, smaller crowds, a city haze (L6). Later: a trash critter. Goo went with a note that garbage must still show at night: it does, without a glow.
+  - **Cleanup (C1):** a hover garbage truck drives to the building, its crew gets out and works a few seconds, and the building's garbage goes, the pieces spilled far away too, without the crew walking to them. After the first preview: 3 of the crew, spread round the block at random; the truck comes from the map's edge at one end of the street and always leaves by an end, in any size of city, and drives faster since it comes from far.
+  - **Where it shows (W1, W2):** the map and the postcard. Not in the status card: that line belongs to the Garbage Man, Abdurrahman's feature still to be asked about, which shows it for the city, not per project. Not in the weekly recap, the status brief (garbage is visuals only), or Edit City; a city total in the side bar later. The switch is in Settings, Look, kept on this computer.
+  - **Reasoned, not asked:**
+    - The ceiling is 500 pieces, to tune on screen: five buildings red three periods in and five tasks two weeks late make 450. Over it, every building's share shrinks in proportion.
+    - Work until finished counts its period as a day: red after a day with no task finished, 10, then 10 more a day. Its yellow means a task was finished in the last 24 hours, so it adds nothing.
+    - Away keeps only the day you come back, so the build records the days away, `city.awaySpans`: setting away opens a span from today, changing the date moves its end, and Clear ends it today (or drops it the same day). A late task does not grow from the day after you set away up to the day you are back, so it keeps what it had.
+    - Each piece has a fixed spot and kind, dealt by its building's place and its number, like the street props, so garbage stays put between visits.
+    - Any drop calls the truck, a partial one too (red to yellow takes 5), and so does going away; one truck per building, at most 3 on the streets at once, the rest waiting their turn. Its crew are drawn like the people; each takes the waiting pieces nearest it, and the far ones go when all are back.
+    - The street is the block's south-east or south-west one, dealt by its place. Its cruising speed is its distance to the stop over 4.5 seconds, kept between 3 and 7 tiles a second.
+    - Pieces lie flat, so they skip the depth sort: those off a plot are drawn with the ground, those on a plot (a building's front strip, a park) right after it. 500 pieces cost nothing measurable.
+    - With Traffic off, garbage goes with the sparkle alone; with Motion on Still it just goes. Changes made while the city was closed show as they are on load, with no truck.
+    - The garbage switch and Edit City hide the trucks too. The postcard carries the garbage, since it redraws the scene and leaves out only the bubbles.
+    - The project view's picture shows the garbage and the truck too: it is the map's own drawing, traffic included, pointed at a small canvas.
+
 ## 7. Open items
 
 - Leaders: build the leader card this month. The seven leaders are picked through a wizard round, then their portraits are made (6 generations a try).
 - Abdurrahman names the projects that get the new buildings (bus depot, drone port, apartment block, cafe, library). The drone port is finished; the other four have their designs picked and wait until he says (20 generations each).
-- Dirt on red: decided, and delayed (section 6, Status).
+- Garbage: ask Abdurrahman about the Garbage Man, his feature that will show the garbage line for the city, before building that line. Later: a city total in the side bar, and a trash critter (section 6, Garbage system).
 - The month's list: all six PixelLab tests are done, so the bulk work can start.
 - Links, later: press, move, release on the wheel (section 6, Links, round 1).
 - Connecting to local Claude, round 1 (`wizard-rounds/2026-10-09-local-claude-round1.json`): how a building looks while Claude works (A1), tracking Cowork (B1) and chats (B2), and six ideas to make Open in Claude faster (C1).

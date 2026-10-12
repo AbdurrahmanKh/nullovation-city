@@ -16,6 +16,7 @@
   Bubble.init();
   MapView.init();
   Settings.init();
+  Garbage.refresh();                                       // the garbage already lying there, with no truck
   Menu.refresh();                                          // the side bar's tiny buildings need the map's ground art
 
   const ui = Store.loadUi();
