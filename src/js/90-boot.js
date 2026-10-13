@@ -17,6 +17,7 @@
   MapView.init();
   Settings.init();
   Garbage.refresh();                                       // the garbage already lying there, with no truck
+  Gus.init();                                              // the Garbage Man, and his first word of the day
   Menu.refresh();                                          // the side bar's tiny buildings need the map's ground art
 
   const ui = Store.loadUi();

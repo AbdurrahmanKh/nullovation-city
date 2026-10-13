@@ -101,6 +101,7 @@ const Menu = (() => {
   function refresh() {
     if (!countEl) return;
     renderUrgent(); renderDue(); renderWeek();
+    if (typeof Gus !== 'undefined') Gus.render();
     $('#mapSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
     const total = DB.projects.length;
     countEl.replaceChildren();

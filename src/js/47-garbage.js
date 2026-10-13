@@ -11,9 +11,9 @@
 const Garbage = (() => {
   const KEY = 'nullovation-city:garbage';                     // the switch, on this computer
   let on = (() => { try { return localStorage.getItem(KEY) !== '0'; } catch (e) { return true; } })();
-  const CEILING = 500, spacing = 1;
+  const CEILING = 1000, spacing = 1;
   const LIFT = 3;                                             // a building's plot stands this many pixels above the street
-  const MAX_SPOTS = 640;
+  const MAX_SPOTS = 1000;                                    // so one forgotten building can carry the whole ceiling
   const subs = [], forced = new Map();                        // forced: counts the tests set, by project id
 
   /* ---------- the points ---------- */
@@ -47,13 +47,19 @@ const Garbage = (() => {
     }
     return Math.max(0, days);
   }
+  /* What a building owes, part by part: its urgency system's points, urgent when red and needing attention when
+     yellow, and each late task's. The Garbage Man reads this. */
+  function breakdown(p, now = Date.now()) {
+    const sys = systemPoints(p, now), late = [];
+    for (const t of p.todos) { if (t.done) continue; const d = lateDays(t, now); if (d) late.push({ t, days: d, pts: 5 * d }); }
+    const level = sys ? (urgencyOf(p, now).system === 'red' ? 'urgent' : 'attention') : null;
+    return { sys, level, late, n: sys + late.reduce((a, l) => a + l.pts, 0) };
+  }
   function rulesOf(p, now = Date.now()) {
-    const sys = systemPoints(p, now), parts = [];
-    if (sys) parts.push((urgencyOf(p, now).system === 'red' ? 'red ' : 'yellow ') + sys);
-    let late = 0, lateN = 0;
-    for (const t of p.todos) { if (t.done) continue; const d = lateDays(t, now); if (d) { late += 5 * d; lateN++; } }
-    if (lateN) parts.push(plural(lateN, 'late task', 'late tasks') + ' ' + late);
-    return { n: sys + late, why: parts.join(', ') };
+    const b = breakdown(p, now), parts = [];
+    if (b.sys) parts.push((b.level === 'urgent' ? 'red ' : 'yellow ') + b.sys);
+    if (b.late.length) parts.push(plural(b.late.length, 'late task', 'late tasks') + ' ' + (b.n - b.sys));
+    return { n: b.n, why: parts.join(', ') };
   }
   const wanted = p => Math.max(0, Math.round(forced.has(p.id) ? forced.get(p.id) : rulesOf(p).n));
   /* Every building's pieces after the ceiling: shares shrink in proportion, the leftovers going to the largest remainders. */
@@ -264,7 +270,7 @@ const Garbage = (() => {
     const p = getProject(id), set = doomed.get(id);
     if (!p || !set || !set.has(n)) return;
     set.delete(n);
-    if (!set.size) doomed.delete(id);
+    if (!set.size) { doomed.delete(id); for (const f of subs) f(); }   // a building's last waiting piece went
     const s = spotsFor(p)[n], off = drift.get(id + ':' + n) || [0, 0];
     if (withSparkle && s) sparkles.push({ x: s.x + off[0], y: s.y - s.lift + off[1], i: s.i, j: s.j, t0: t + Math.random() * 120 });
   }
@@ -527,7 +533,8 @@ const Garbage = (() => {
   }, 1000);
   return {
     isOn: () => on, setOn, items, prepare, drawGround, drawOnPlot, step, busy, refresh, rulesOf, CEILING,
-    shownOf: id => shown.get(id) || 0, waitingOf: id => (doomed.get(id) || new Set()).size, totals: () => ({ ...lastTargets }),
+    shownOf: id => shown.get(id) || 0, waitingOf: id => (doomed.get(id) || new Set()).size, totals: () => ({ ...lastTargets }), breakdown,
+    onMap: () => [...shown.values()].reduce((a, n) => a + n, 0) + [...doomed.values()].reduce((a, d) => a + d.size, 0),
     trucks: () => jobs.filter(j => j.phase !== 'gone').length, queued: () => queue.length, onChange: f => subs.push(f),
     /* for the tests: counts set by hand, the spots, the drawn art, and what is on the map now */
     _test: { force: (id, n) => { if (n == null) forced.delete(id); else forced.set(id, n); refresh(); }, spots: id => spotsFor(getProject(id)),

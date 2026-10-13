@@ -91,13 +91,13 @@ with sync_playwright() as p:
     close_settings(pg)
 
     # ---------- the ceiling ----------
-    force(hall, 400); force(lab, 200)
+    force(hall, 800); force(lab, 400)
     t = js("() => Garbage.totals()")
-    ok(f'over the ceiling of {js("() => Garbage.CEILING")}: 600 pieces asked, 500 shown ({t})', t['total'] == 600 and t['shown'] == 500)
+    ok(f'over the ceiling of {js("() => Garbage.CEILING")}: 1,200 pieces asked, 1,000 shown ({t})', js("() => Garbage.CEILING") == 1000 and t['total'] == 1200 and t['shown'] == 1000)
     sh = js(f"() => [Garbage.shownOf('{hall}'), Garbage.shownOf('{lab}')]")
-    ok(f'every building\'s share shrinks in proportion: 333 and 167 ({sh})', sh == [333, 167])
-    force(lab, 0); force(hall, 2000)
-    ok('one building alone can take the whole ceiling', js(f"() => Garbage.shownOf('{hall}')") == 500)
+    ok(f'every building\'s share shrinks in proportion: 667 and 333 ({sh})', sh == [667, 333])
+    force(lab, 0); force(hall, 3000)
+    ok('one building alone can take the whole ceiling', js(f"() => Garbage.shownOf('{hall}')") == 1000)
     force(hall, 100); force(lab, 50)
     ok('under it, every building shows what it asks', js(f"() => [Garbage.shownOf('{hall}'), Garbage.shownOf('{lab}')]") == [100, 50])
 
@@ -106,7 +106,7 @@ with sync_playwright() as p:
     plot = js(f"() => getProject('{hall}').plot")
     a0, b0 = W['M'] + plot['u'] * W['P'], W['M'] + plot['v'] * W['P']; a1, b1 = a0 + W['S'], b0 + W['S']
     spots = js(f"() => Garbage._test.spots('{hall}').map(s => [s.i, s.j, s.kind, s.lift])")
-    ok(f'640 fixed spots a building, so even a forgotten one has room ({len(spots)})', len(spots) == 640)
+    ok(f'1,000 fixed spots a building, so one forgotten building can carry the whole ceiling ({len(spots)})', len(spots) == 1000)
     ok('all four kinds: paper, sticky notes, cans and bags', {s[2] for s in spots} == {'paper', 'note', 'can', 'bag'})
     ok('every spot on the map', all(0.15 <= s[0] <= W['TI'] - 0.15 and 0.15 <= s[1] <= W['TJ'] - 0.15 for s in spots))
     first = spots[:15]

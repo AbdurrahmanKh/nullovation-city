@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.32 (2026-10-13)
+
+Gus Grimsby, the Garbage Man, designed over three wizard rounds (Garbage Man, rounds 1 to 3): the cleanup crew's grumpy but fair chief, who tells you what to fix.
+- He lives in the side bar, between This week and Urgent, while the city has garbage: his face, his last line, one report line ("2 projects need your urgent attention, 1 project needs your attention. You have 4 overdue tasks. Let's clean them up."), the task to start with ("Start with Draw the beds, in Garden planner." or "Start with any task in Home budget."), and every building with garbage, most first ("Garden planner: urgent, 2 overdue tasks"). A click on a building goes to it.
+  - Urgent: two or more periods behind its pace, or Work until finished with no task finished for a day. Needs attention: one period behind. Overdue: past its due date.
+  - The task to start with is the one that clears the most; a late task also puts its project back on pace.
+- He speaks up by himself in a speech bubble at the map's top left, with the same line under his face: the first open of the day with garbage in it ("You're back. 3 tasks between this city and clean streets. Start with Save a plan as a file." and two more), past 50 pieces ("The city is getting dirty! We should do something about it."), past 200 ("The city is filthy! This is unacceptable!"), and when the last piece goes ("Clean streets. Don't get used to it." and two more), before he steps away. Each alarm speaks once as the total climbs past it, at most once a day, and only the worst one passed speaks. The bubble closes with its button or by itself after 14 seconds.
+- He never mentions pieces, only tasks. The Garbage switch sends him away with the garbage.
+- Until his portrait is made, a faceless stand-in drawn in code takes its place: his yellow cap with the truck's teal badge, grey walrus mustache, coral overalls with a gold band, and a broom.
+- The garbage ceiling is 1,000 pieces (was 500), and a building has 1,000 spots, so one forgotten building can carry it all. 1,000 pieces cost nothing measurable.
+- Tests: the new test26 checks Gus; test25 checks the new ceiling.
+
 ## 0.1.31 (2026-10-12)
 
 The garbage system, designed in the garbage round (`wizard-rounds/2026-10-12-garbage-round1.json`) and two previews: a city you leave alone fills with litter, and a hover truck clears it once you are back on it.
