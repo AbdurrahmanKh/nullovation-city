@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.33 (2026-10-13)
+
+From Abdurrahman's notes on Gus Grimsby:
+- A [-] at the top right of his part of the side bar shrinks him to his face alone, with a coral ! on it, between This week and Urgent. A click on the face opens him again. He stays shrunk until then, kept on this computer; his speech bubble over the map still shows.
+- He no longer says which projects are urgent or need attention, since the map's bubbles show it. The report line keeps only the overdue tasks ("You have 4 overdue tasks. Let's clean them up."), and the rows drop "urgent" and "needs attention": "Garden planner: 2 overdue tasks", and "Home budget: finish any task" for a building behind its pace with no late task.
+- Tests: test26 checks the [-], the small face and opening it again, and the new report and rows.
+
 ## 0.1.32 (2026-10-13)
 
 Gus Grimsby, the Garbage Man, designed over three wizard rounds (Garbage Man, rounds 1 to 3): the cleanup crew's grumpy but fair chief, who tells you what to fix.

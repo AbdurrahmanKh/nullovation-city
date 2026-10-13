@@ -1,12 +1,15 @@
 /* Gus Grimsby, the Garbage Man: chief of the city's cleanup crew, grumpy but fair. He lives in the side bar beside This
-   week and Urgent while the city has garbage, with a report in one line, the task to start with, and every building
-   with garbage, most first; a click on one goes to it. He speaks up by himself four times: the first time the city is
-   opened each day with garbage in it, when the garbage passes 50 pieces and again 200 (each once as it climbs past,
-   at most once a day), and when the last piece goes, just before he steps away. His words show in a speech bubble at
-   the map's top left, and under his face in the side bar. He never mentions pieces, only tasks. The Garbage switch
+   week and Urgent while the city has garbage, with his overdue tasks in one line, the task to start with, and every
+   building with garbage, most first; a click on one goes to it. He leaves urgent and needs attention to the map's
+   bubbles. His [-] shrinks him to his face with a ! on it, kept on this computer until a click opens him again. He
+   speaks up by himself four times: the first time the city is opened each day with garbage in it, when the garbage
+   passes 50 pieces and again 200 (each once as it climbs past, at most once a day), and when the last piece goes,
+   just before he steps away. His words show in a speech bubble at the map's top left, and under his face in the side
+   bar. He never mentions pieces, only tasks. The Garbage switch
    sends him away with the garbage. Until his portrait is made, a faceless stand-in in his colors takes its place. */
 const Gus = (() => {
   const KEY = 'nullovation-city:gus';                          // the days he last spoke, on this computer
+  const MIN_KEY = 'nullovation-city:gusMin';                   // shrunk to his face, on this computer
   const MARKS = [[200, 'filthy'], [50, 'dirty']];              // the worst first
   const SAY_MS = 14000;                                         // a speech bubble stays this long unless closed first
   const LINES = {
@@ -19,6 +22,7 @@ const Gus = (() => {
   };
   let days = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
   const saveDays = () => { try { localStorage.setItem(KEY, JSON.stringify(days)); } catch (e) { /* this visit only */ } };
+  let minimized = (() => { try { return localStorage.getItem(MIN_KEY) === '1'; } catch (e) { return false; } })();
   let line = '', sayTimer = 0, saying = false, lastTotal = null, lastOnMap = null, started = false, sayMs = SAY_MS;
   const armed = {};
 
@@ -27,7 +31,6 @@ const Gus = (() => {
     const rows = [];
     for (const p of DB.projects) { const b = Garbage.breakdown(p, now); if (b.n > 0) rows.push({ p, b }); }
     rows.sort((a, b) => b.b.n - a.b.n || a.p.name.localeCompare(b.p.name));
-    const urgent = rows.filter(r => r.b.level === 'urgent').length, attention = rows.filter(r => r.b.level === 'attention').length;
     const overdue = rows.reduce((s, r) => s + r.b.late.length, 0);
     /* The tasks between the city and clean streets: every late task, and one in each project behind its pace with no late
        task of its own (finishing any of its tasks puts it back on pace, a late one included). */
@@ -38,28 +41,15 @@ const Gus = (() => {
       for (const l of b.late) if (!fix || l.pts + b.sys > fix.v) fix = { v: l.pts + b.sys, p, t: l.t };
       if (b.sys && !b.late.length && (!fix || b.sys > fix.v)) fix = { v: b.sys, p, t: null };
     }
-    return { rows, urgent, attention, overdue, tasks, fix };
+    return { rows, overdue, tasks, fix };
   }
-  function reportLine(r) {
-    const lead = [];
-    if (r.urgent) lead.push(plural(r.urgent, 'project needs', 'projects need') + ' your urgent attention');
-    if (r.attention) lead.push(plural(r.attention, 'project needs', 'projects need') + ' your attention');
-    const out = [];
-    if (lead.length) out.push(lead.join(', ') + '.');
-    if (r.overdue) out.push('You have ' + plural(r.overdue, 'overdue task', 'overdue tasks') + '.');
-    if (!out.length) return '';
-    out.push(r.urgent + r.attention + r.overdue > 1 ? "Let's clean them up." : "Let's clean it up.");
-    return out.join(' ');
-  }
+  /* The overdue tasks only: which projects are urgent or need attention, the map's bubbles already show. */
+  const reportLine = r => (r.overdue ? 'You have ' + plural(r.overdue, 'overdue task', 'overdue tasks') + '. ' + (r.overdue > 1 ? "Let's clean them up." : "Let's clean it up.") : '');
   const short = (s, n = 60) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s);
   const taskName = fix => (fix.t ? short(fix.t.text) : 'any task in ' + fix.p.name);
   const fixLine = r => (r.fix ? 'Start with ' + (r.fix.t ? short(r.fix.t.text) + ', in ' + r.fix.p.name : 'any task in ' + r.fix.p.name) + '.' : '');
-  function rowText({ b }) {
-    const bits = [];
-    if (b.level) bits.push(b.level === 'urgent' ? 'urgent' : 'needs attention');
-    if (b.late.length) bits.push(plural(b.late.length, 'overdue task', 'overdue tasks'));
-    return bits.join(', ');
-  }
+  /* A building behind its pace with no late task: finishing any of its tasks clears it. */
+  const rowText = ({ b }) => (b.late.length ? plural(b.late.length, 'overdue task', 'overdue tasks') : 'finish any task');
   /* A line with its blanks filled; a task that starts a sentence starts with a capital. */
   function fill(text, r) {
     const task = r.fix ? taskName(r.fix) : '';
@@ -115,7 +105,10 @@ const Gus = (() => {
     const show = Garbage.isOn() && (r.rows.length > 0 || onMap > 0 || saying);
     sec.hidden = !show;
     if (!show) return;
-    if (!$('#gusFace').firstChild) $('#gusFace').append(face(2));
+    if (!$('#gusFace').firstChild) { $('#gusFace').append(face(2)); $('#gusMiniFace').append(face(2)); }
+    sec.classList.toggle('min', minimized);
+    $('#gusFull').hidden = minimized; $('#gusMini').hidden = !minimized;
+    if (minimized) return;
     $('#gusLine').hidden = !line; $('#gusLine').textContent = line;
     const rl = reportLine(r);
     $('#gusReport').hidden = !rl; $('#gusReport').textContent = rl;
@@ -164,9 +157,20 @@ const Gus = (() => {
     render();
   }
 
+  /* ---------- shrunk to his face, and open again ---------- */
+  function minimize(on) {
+    minimized = on;
+    try { if (on) localStorage.setItem(MIN_KEY, '1'); else localStorage.removeItem(MIN_KEY); } catch (e) { /* this visit only */ }
+    render();
+    $(on ? '#gusMini' : '#gusMin').focus();
+  }
+
   function init() {
     $('#gusSayClose').innerHTML = iconSvg('close', 16);
     $('#gusSayClose').addEventListener('click', hush);
+    $('#gusMin').innerHTML = iconSvg('minus', 16);
+    $('#gusMin').addEventListener('click', () => minimize(true));
+    $('#gusMini').addEventListener('click', () => minimize(false));
     Garbage.onChange(changed);
     started = true;
     lastTotal = null; lastOnMap = null;
@@ -180,6 +184,6 @@ const Gus = (() => {
     }
     setInterval(render, 60000);                                // a new day or a late task's new day, quietly
   }
-  return { init, render, report, reportLine, fixLine, fill, LINES, hush, isSaying: () => saying, line: () => line,
+  return { init, render, report, reportLine, fixLine, fill, LINES, hush, minimize, isMinimized: () => minimized, isSaying: () => saying, line: () => line,
     _test: { sayMs: ms => { sayMs = ms; }, days: () => ({ ...days }), forget: () => { days = {}; saveDays(); } } };
 })();

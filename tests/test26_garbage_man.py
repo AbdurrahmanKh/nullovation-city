@@ -1,5 +1,6 @@
-"""Gus Grimsby, the Garbage Man: his place in the side bar and when he steps away, his report line in every case, the
-task to start with and the rows under it, a click going to a building, his lines with their blanks, the first open of
+"""Gus Grimsby, the Garbage Man: his place in the side bar and when he steps away, his report line in every case (overdue
+tasks only, never urgent or needs attention), the task to start with and the rows under it, his [-] shrinking him to his
+face with a ! and a click opening him again, a click going to a building, his lines with their blanks, the first open of
 the day, the alarms at 50 and 200 (once as the total climbs past, at most once a day, the worst only), the clean city,
 the speech bubble (where it sits, closing, going by itself), and the Garbage switch sending him away."""
 from playwright.sync_api import sync_playwright
@@ -48,17 +49,20 @@ with sync_playwright() as p:
     r = state([[HALL, None, [-2]]])
     ok(f'one late task: he shows up, "You have 1 overdue task. Let\'s clean it up." ({r["report"]})', r['shown'] and r['report'] == "You have 1 overdue task. Let's clean it up.")
     ok(f'the task to start with, and its row ({r["fix"]} | {r["rows"]})', r['fix'] == 'Start with Round 3: decide the block art loop, in Nullovation City.' and r['rows'] == ['Nullovation City: 1 overdue task'])
-    r = state([[LAB, ['pace', 2, 4.5], []]])
-    ok(f'one project two periods behind ({r["report"]} | {r["fix"]} | {r["rows"]})', r['report'] == "1 project needs your urgent attention. Let's clean it up."
-       and r['fix'] == 'Start with any task in Garden planner.' and r['rows'] == ['Garden planner: urgent'])
-    r = state([[HALL, ['pace', 3, 4], []], [LAB, ['pace', 2, 2.5], []], [None, ['pace', 1, 1.5], []]])
-    ok(f'three projects one period behind ({r["report"]} | {r["rows"]})', r['report'] == "3 projects need your attention. Let's clean them up." and all(x.endswith(': needs attention') for x in r['rows']) and len(r['rows']) == 3)
-    r = state([[LAB, ['finish', 1, 1.5], [-1, -3]]])
-    ok(f'work until finished with no task done for a day counts as urgent, with its late tasks ({r["report"]} | {r["rows"]})',
-       r['report'] == "1 project needs your urgent attention. You have 2 overdue tasks. Let's clean them up." and r['rows'] == ['Garden planner: urgent, 2 overdue tasks'])
-    r = state([[HALL, ['pace', 2, 4.5], [-1]], [LAB, ['pace', 1, 2.5], [-6, -2]], [None, ['pace', 3, 3.5], [-1]]])
-    ok(f'all three at once ({r["report"]})', r['report'] == "2 projects need your urgent attention, 1 project needs your attention. You have 4 overdue tasks. Let's clean them up.")
-    ok(f'the rows, the most garbage first ({r["rows"]})', r['rows'] == ['Garden planner: urgent, 2 overdue tasks', 'Nullovation City: urgent, 1 overdue task', 'Extra 1: needs attention, 1 overdue task'])
+    said = lambda r: ' '.join([r['report'], r['fix'], *r['rows']]).lower()
+    quiet = []                                                 # urgent and needs attention are the map's bubbles' to show
+    r = state([[LAB, ['pace', 2, 4.5], []]]); quiet.append(said(r))
+    ok(f'one project two periods behind: no report line, the task to start with, and its row says what clears it ({r["report"]} | {r["fix"]} | {r["rows"]})',
+       r['shown'] and r['report'] == '' and r['fix'] == 'Start with any task in Garden planner.' and r['rows'] == ['Garden planner: finish any task'])
+    r = state([[HALL, ['pace', 3, 4], []], [LAB, ['pace', 2, 2.5], []], [None, ['pace', 1, 1.5], []]]); quiet.append(said(r))
+    ok(f'three projects one period behind ({r["report"]} | {r["rows"]})', r['report'] == '' and all(x.endswith(': finish any task') for x in r['rows']) and len(r['rows']) == 3)
+    r = state([[LAB, ['finish', 1, 1.5], [-1, -3]]]); quiet.append(said(r))
+    ok(f'work until finished with no task done for a day, with its late tasks: only the late tasks ({r["report"]} | {r["rows"]})',
+       r['report'] == "You have 2 overdue tasks. Let's clean them up." and r['rows'] == ['Garden planner: 2 overdue tasks'])
+    r = state([[HALL, ['pace', 2, 4.5], [-1]], [LAB, ['pace', 1, 2.5], [-6, -2]], [None, ['pace', 3, 3.5], [-1]]]); quiet.append(said(r))
+    ok(f'all three at once ({r["report"]})', r['report'] == "You have 4 overdue tasks. Let's clean them up.")
+    ok(f'the rows, the most garbage first ({r["rows"]})', r['rows'] == ['Garden planner: 2 overdue tasks', 'Nullovation City: 1 overdue task', 'Extra 1: 1 overdue task'])
+    ok('he never says urgent or attention: the map\'s bubbles show those', not any(w in x for x in quiet for w in ('urgent', 'attention')))
     ok(f'the task to start with clears the most: the latest task, which also puts its project back on pace ({r["fix"]})', r['fix'] == 'Start with Draw the beds on a grid, in Garden planner.')
     rep = js("() => Gus.report()")
     ok(f'the tasks between the city and clean streets: every late task, a project behind with none counts one ({rep["tasks"]})', rep['tasks'] == 4)
@@ -90,16 +94,40 @@ with sync_playwright() as p:
     ok('a click on a row selects its building and opens its card', js("() => App.selectedId") == js("() => DB.projects.find(x => x.name === 'Garden planner').id") and pg.is_visible('#bubble'))
     js("() => MapView.deselect()")
 
+    # ---------- his [-]: shrunk to his face with a ! ----------
+    VIS = "() => ({ full: !!$('#gusFull').offsetParent, mini: !!$('#gusMini').offsetParent, badge: $('.gus-badge').textContent, min: Gus.isMinimized() })"
+    ok('open, his head has a [-] button and no small face', pg.is_visible('#gusMin') and js(VIS)['full'] and not js(VIS)['mini'] and js("() => $('#gusMin').title") == 'Minimize')
+    full_h = pg.locator('#sbGus').bounding_box()['height']
+    pg.click('#gusMin'); pg.wait_for_timeout(200)
+    v, mini = js(VIS), pg.locator('#gusMini').bounding_box()
+    ok(f'[-] shrinks him to his face with a ! on it, and nothing else ({v})', v['min'] and v['mini'] and not v['full'] and v['badge'] == '!' and pg.is_visible('.gus-badge'))
+    sec_h = pg.locator('#sbGus').bounding_box()['height']
+    ok(f'one small picture: {mini["width"]:.0f} by {mini["height"]:.0f}, the section {sec_h:.0f} px tall (was {full_h:.0f})', mini['width'] <= 64 and mini['height'] <= 60 and sec_h <= 64)
+    ok('the focus moves to his face', js("() => document.activeElement.id") == 'gusMini')
+    ok('still between This week and Urgent', js("() => { const s = [...document.querySelectorAll('#sbLists > section')].map(x => x.id || x.getAttribute('aria-label')); return s.indexOf('sbGus') === s.indexOf('This week') + 1; }"))
+    pg.locator('#sbGus').screenshot(path=str(SH / '262-gus-min.png'))
+    state([[HALL, None, [-2]], [LAB, None, [-1, -3]]])
+    ok('the report changing keeps him shrunk', js(VIS)['mini'] and not js(VIS)['full'])
+    pg.reload(); pg.wait_for_timeout(1500)
+    ok('shrunk is kept on this computer, after a reload', js(VIS)['mini'] and js("() => localStorage.getItem('nullovation-city:gusMin')") == '1')
+    pg.click('#gusMini'); pg.wait_for_timeout(200)
+    v = js(VIS)
+    ok(f'a click on his face opens him again, with his report ({v})', v['full'] and not v['mini'] and not v['min'] and js(READ)['report'] != '' and js("() => localStorage.getItem('nullovation-city:gusMin')") is None)
+    ok('and the focus moves to his [-]', js("() => document.activeElement.id") == 'gusMin')
+    js("() => Gus.minimize(true)")
+
     # ---------- the first open of the day ----------
     js("() => Gus._test.forget()")
     pg.reload(); pg.wait_for_timeout(1500)
     r = js(READ)
     ok(f'the first open of the day with garbage in it: he speaks ({r["say"]})', r['saying'] and r['say'] in [js(f"() => Gus.fill(Gus.LINES.open[{i}], Gus.report())") for i in range(3)])
-    ok('his words show under his face in the side bar too', r['line'] == r['say'])
+    ok('shrunk, his speech bubble still shows, and he stays shrunk in the side bar', r['saying'] and js(VIS)['mini'] and not js(VIS)['full'])
+    js("() => Gus.minimize(false)")
+    ok('his words show under his face in the side bar too', js(READ)['line'] == r['say'])
     box, wrap, menu = (pg.locator(s).bounding_box() for s in ('#gusSay', '#mapWrap', '#menu'))
     ok(f'the speech bubble sits at the map\'s top left, clear of the side bar ({box})', abs(box['x'] - wrap['x'] - 22) <= 2 and abs(box['y'] - wrap['y'] - 18) <= 2 and box['x'] >= menu['x'] + menu['width'])
     pg.screenshot(path=str(SH / '260-gus-says.png'))
-    pg.locator('#sbGus').screenshot(path=str(SH / '261-gus-side.png'))
+    js("() => document.activeElement.blur()"); pg.locator('#sbGus').screenshot(path=str(SH / '261-gus-side.png'))
     pg.click('#gusSayClose'); pg.wait_for_timeout(200)
     r = js(READ)
     ok('the close button sends the bubble away, his line stays in the side bar', not r['saying'] and r['line'])
