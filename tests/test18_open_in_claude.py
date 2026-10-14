@@ -1,6 +1,7 @@
 """Pass 18: Open in Claude. Beside every Copy for Claude sits Open in Claude, whose menu opens the Claude desktop app
 with the same text filled in: a new chat, a Cowork task with the project's local folders and files attached, or Claude
-Code in the project's first folder. The links are read as written, and a click is caught before it leaves the page."""
+Code in the project's first folder, or Claude Code in a terminal there through its claude-cli:// link. The links are read
+as written, and a click is caught before it leaves the page."""
 import urllib.parse
 from playwright.sync_api import sync_playwright
 from testkit import FILE, SHOTS, TEST_CITY
@@ -9,7 +10,7 @@ errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
 # catches claude:// links on their way out, in the capture phase, so the page's own click handlers still run
 CATCH = """() => { window.__opened = []; document.addEventListener('click', e => {
-  const a = e.target.closest && e.target.closest('a[href^="claude:"]');
+  const a = e.target.closest && e.target.closest('a[href^="claude:"], a[href^="claude-cli:"]');
   if (a) { e.preventDefault(); window.__opened.push(a.getAttribute('href')); } }, true); }"""
 ITEMS = """() => [...document.querySelectorAll('.oc-menu .oc-item')].map(e => ({ kind: e.dataset.kind, href: e.getAttribute('href'),
   note: e.querySelector('.oc-note').textContent, off: e.classList.contains('off') }))"""
@@ -51,9 +52,9 @@ with sync_playwright() as p:
     ok('Open in Claude sits beside Copy status and beside What is next', pg.is_visible('#pvStatusClaude') and pg.is_visible('#pvNextClaude'))
     pg.click('#pvStatusClaude'); pg.wait_for_timeout(250)
     items = js(ITEMS)
-    ok(f'its menu offers Chat, Cowork and Claude Code ({[i["kind"] for i in items]})', [i['kind'] for i in items] == ['chat', 'cowork', 'code'])
-    status = proj(f"projectStatus(DB.projects.find(p => p.id === '{gid}'))")
-    chat, cowork, code = items
+    ok(f'its menu offers Chat, Cowork, Claude Code and Terminal ({[i["kind"] for i in items]})', [i['kind'] for i in items] == ['chat', 'cowork', 'code', 'terminal'])
+    status = proj(f"projectStatusForClaude(DB.projects.find(p => p.id === '{gid}'))")
+    chat, cowork, code, term = items
     ok('Chat opens a new chat with the project status filled in', parse(chat['href'])[0] == 'claude://claude.ai/new' and q_of(chat) == status)
     cw = parse(cowork['href'])
     ok(f'Cowork attaches both folders and the file ({cowork["note"]})', cw[0] == 'claude://cowork/new' and cw[1].get('folder') == pl['folders'] and cw[1].get('file') == pl['files']
@@ -61,6 +62,12 @@ with sync_playwright() as p:
     ok('and its note shows whole', js("() => { const n = document.querySelector('.oc-item[data-kind=cowork] .oc-note'); return [n, ...n.children].every(e => e.scrollWidth <= e.clientWidth); }"))
     cd = parse(code['href'])
     ok(f'Claude Code opens in the first folder ({code["note"]})', cd[0] == 'claude://code/new' and cd[1].get('folder') == [pl['folders'][0]] and 'file' not in cd[1] and code['note'] == 'in Garden Planner')
+    td = parse(term['href'])
+    ok(f'Terminal opens Claude Code in a terminal in the first folder, filled in ({term["note"]})', td[0] == 'claude-cli://open' and td[1].get('cwd') == [pl['folders'][0]]
+       and td[1].get('q', [None])[0] == status and set(td[1]) == {'q', 'cwd'} and term['note'] == 'in Garden Planner' and not term['off'])
+    ok('and its line breaks travel as %0A', '%0A' in term['href'] and '\n' not in term['href'])
+    ok('the terminal icon is drawn', js("() => !!document.querySelector('.oc-item[data-kind=terminal] .ic svg rect')"))
+    pg.screenshot(path=str(SHOTS / 'oc-5-terminal.png'))
     box = js("() => { const r = document.querySelector('.oc-menu').getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; }")
     ok('the menu sits on the screen', box[0] >= 0 and box[1] <= box[2])
     ok('the first item takes the focus, and the arrow keys move it', js("() => document.activeElement.dataset.kind") == 'chat'
@@ -136,6 +143,7 @@ with sync_playwright() as p:
     full = proj(f"(() => {{ const p = DB.projects.find(p => p.id === '{gid}'); return milestoneForClaude(p, p.milestones[1]); }})()")
     ok(f'a text over the limit opens Claude empty instead of cut short ({len(full)} characters)', len(full) > 13500 and 'q' not in parse(items[0]['href'])[1]
        and parse(items[1]['href'])[1].get('folder') == pl['folders'])
+    ok('and Terminal, whose limit is 5,000, opens in the folder with nothing filled in', 'q' not in parse(items[3]['href'])[1] and parse(items[3]['href'])[1].get('cwd') == [pl['folders'][0]])
     pg.click('.oc-menu .oc-item[data-kind="chat"]'); pg.wait_for_timeout(400)
     ok('and puts the whole text on the clipboard, saying so', clip() == full and 'Too long to fill in' in (pg.text_content('#toast') or ''))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
@@ -151,9 +159,10 @@ with sync_playwright() as p:
     # a project with no local links
     js(f"() => FullView.open('{nid}')"); pg.wait_for_timeout(600)
     pg.click('#pvStatusClaude'); pg.wait_for_timeout(250)
-    chat, cowork, code = js(ITEMS)
+    chat, cowork, code, term = js(ITEMS)
     ok(f'without a folder link, Cowork opens with the text only ({cowork["note"]})', 'folder' not in parse(cowork['href'])[1] and cowork['note'] == 'no folder link')
     ok(f'and Claude Code waits for one ({code["note"]})', code['off'] and code['href'] is None and code['note'] == 'needs a folder link')
+    ok(f'and so does Terminal ({term["note"]})', term['off'] and term['href'] is None and term['note'] == 'needs a folder link')
     pg.screenshot(path=str(SHOTS / 'oc-3-no-folder.png'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
     js("() => FullView.close()"); pg.wait_for_timeout(300)
@@ -161,9 +170,9 @@ with sync_playwright() as p:
     # the side bar: the status brief of every project
     ok('Open in Claude sits beside Copy status brief, with the week', pg.is_visible('#btnBriefClaude'))
     pg.click('#btnBriefClaude'); pg.wait_for_timeout(250)
-    chat, cowork, code = js(ITEMS)
+    chat, cowork, code, term = js(ITEMS)
     ok('the status brief fills in a new chat', q_of(chat) == proj("statusBrief()") and q_of(chat).startswith('# Nullovation City status'))
-    ok('with no project, Claude Code has no folder to open', code['off'] and cowork['note'] == 'no project folder')
+    ok('with no project, Claude Code has no folder to open', code['off'] and term['off'] and cowork['note'] == 'no project folder')
     pg.screenshot(path=str(SHOTS / 'oc-4-brief-menu.png'))
     pg.mouse.click(900, 450); pg.wait_for_timeout(250)
     ok('a click elsewhere closes the menu', not pg.is_visible('.oc-menu'))

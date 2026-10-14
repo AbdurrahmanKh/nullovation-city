@@ -72,6 +72,8 @@ ok('a permission prompt means it waits for you', sess()['state'] == 'waiting')
 hook('working', {**base, 'hook_event_name': 'PostToolUse', 'tool_name': 'Bash'})
 hook('working', {**base, 'hook_event_name': 'UserPromptSubmit', 'prompt': 'yes, go on'})
 ok('a short follow-up keeps the copy\'s task and notes the latest ask', sess()['task'] == 'Water the beds on time' and sess()['ask'] == 'yes, go on')
+hook('working', {**base, 'hook_event_name': 'UserPromptSubmit', 'prompt': '<task-notification>\n<task-id>b1</task-id> finished\n</task-notification>'})
+ok('a turn Claude Code starts on its own keeps working, but replaces neither the ask nor the task', sess()['state'] == 'working' and sess()['ask'] == 'yes, go on' and sess()['task'] == 'Water the beds on time')
 hook('done', {**base, 'hook_event_name': 'Stop', 'stop_hook_active': False, 'last_assistant_message': 'Done: the reminders fire at 7.\n\nDetails follow.'})
 ok(f'finishing a reply means done, with the start of the reply ({sess().get("reply")})', sess()['state'] == 'done' and sess()['reply'] == 'Done: the reminders fire at 7.')
 hook('idle', {**base, 'hook_event_name': 'Notification', 'message': 'Claude is waiting for your input'})
@@ -99,10 +101,13 @@ r = run(SCRIPT, '--status')
 ok('--status lists the sessions', r.returncode == 0 and b'working' in r.stdout)
 r = run(SCRIPT, '--help')
 ok('--help shows how to use it, and changes nothing', r.returncode == 0 and b'double-click' in r.stdout)
+cfg0 = json.loads((home / '.claude' / 'nullovation-city.json').read_text(encoding='utf-8'))
 r = run(SCRIPT, '--uninstall')
 s3 = json.loads(settings.read_text(encoding='utf-8'))
+ok('the setup writes the folder down for the nullovation-city skill, with the summary and the inbox in it',
+   cfg0.get('folder') == str(folder.resolve()) and cfg0.get('summary') == str(folder.resolve() / 'city' / 'summary.json') and cfg0.get('inbox') == str(folder.resolve() / 'inbox'))
 ok('--uninstall takes out only its own hooks', r.returncode == 0 and not our_hooks(s3) and s3['model'] == 'opus'
-   and s3['hooks'] == mine['hooks'] and not installed.exists())
+   and s3['hooks'] == mine['hooks'] and not installed.exists() and not (home / '.claude' / 'nullovation-city.json').exists())
 settings.write_text('{ "model": "opus", }', encoding='utf-8')
 r = run(SCRIPT, '--install')
 ok('a settings file that is not valid JSON is left alone, and the install says why', r.returncode == 1 and settings.read_text(encoding='utf-8') == '{ "model": "opus", }' and b'could not be read' in r.stdout)
@@ -133,11 +138,29 @@ shutil.rmtree(home, ignore_errors=True)
 # ---------- part two: the city reading the folder ----------
 # a Claude folder held in memory: the files the hooks would write, by name
 FAKE = """
-window.__cf = new Map(); window.__cperm = 'granted'; window.__cgone = false; window.__ct = 1; window.__cmark = false;
+window.__cf = new Map(); window.__cperm = 'granted'; window.__cwperm = 'granted'; window.__cgone = false; window.__ct = 1; window.__cmark = false;
+window.__sub = new Map(); window.__dirs = new Set(); window.__writes = 0;
+const fail = n => { const e = new Error(n); e.name = n; throw e; };
+const subfile = path => ({ kind: 'file', name: path.split('/').pop(),
+  getFile: async () => { const f = window.__sub.get(path); if (!f) fail('NotFoundError'); return new File([f.text], path.split('/').pop(), { lastModified: f.t }); },
+  createWritable: async () => { if (window.__cwperm !== 'granted') fail('NotAllowedError'); let buf = '';
+    return { write: async d => { buf += d; }, close: async () => { window.__sub.set(path, { text: buf, t: Date.now() + (window.__ct++) }); window.__writes++; } }; } });
+const subdirOf = (path, o) => { if (!(o && o.create) && !window.__dirs.has(path) && ![...window.__sub.keys()].some(k => k.startsWith(path + '/'))) fail('NotFoundError');
+  if (o && o.create && window.__cwperm !== 'granted') fail('NotAllowedError'); window.__dirs.add(path); return subdir(path); };
+const subdir = prefix => ({ kind: 'directory', name: prefix.split('/').pop(),
+  getDirectoryHandle: async (n, o) => subdirOf(prefix + '/' + n, o),
+  getFileHandle: async (n, o) => { const path = prefix + '/' + n; if (!window.__sub.has(path)) { if (!(o && o.create)) fail('NotFoundError'); if (window.__cwperm !== 'granted') fail('NotAllowedError'); } return subfile(path); },
+  removeEntry: async n => { if (window.__cwperm !== 'granted') fail('NotAllowedError'); if (!window.__sub.has(prefix + '/' + n)) fail('NotFoundError'); window.__sub.delete(prefix + '/' + n); },
+  entries: async function* () { const ds = new Set();
+    for (const k of [...window.__sub.keys()]) { if (!k.startsWith(prefix + '/')) continue; const rest = k.slice(prefix.length + 1);
+      if (rest.includes('/')) { const d = rest.split('/')[0]; if (!ds.has(d)) { ds.add(d); yield [d, subdir(prefix + '/' + d)]; } } else yield [rest, subfile(k)]; } } });
+window.__subjson = path => { const f = window.__sub.get(path); return f ? JSON.parse(f.text) : null; };
 window.__put = (name, d) => window.__cf.set(name, { text: JSON.stringify(d), t: Date.now() + (window.__ct++) });
 const cfile = name => ({ kind: 'file', name, getFile: async () => { const f = window.__cf.get(name); if (!f) { const e = new Error('gone'); e.name = 'NotFoundError'; throw e; } return new File([f.text], name, { lastModified: f.t }); } });
 window.__cdir = { kind: 'directory', name: 'Claude',
-  queryPermission: async () => window.__cperm, requestPermission: async () => { window.__cperm = 'granted'; return 'granted'; },
+  queryPermission: async o => (o && o.mode === 'readwrite') ? window.__cwperm : window.__cperm,
+  requestPermission: async o => { if (o && o.mode === 'readwrite') window.__cwperm = window.__cwdeny ? 'denied' : 'granted'; if (!(o && o.mode === 'readwrite' && window.__cwdeny)) window.__cperm = 'granted'; return o && o.mode === 'readwrite' ? window.__cwperm : 'granted'; },
+  getDirectoryHandle: async (n, o) => subdirOf(n, o),
   entries: async function* () {
     if (window.__cgone) { const e = new Error('gone'); e.name = 'NotFoundError'; throw e; }
     if (window.__cperm !== 'granted') { const e = new Error('no'); e.name = 'NotAllowedError'; throw e; }
@@ -186,6 +209,28 @@ with sync_playwright() as p:
     pg.screenshot(path=str(SH / '245-settings-links-wrong-folder.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 900})
     js("() => { window.__cmark = true; }"); pg.wait_for_timeout(3600)
     ok('with the setup\'s README in it, the warning goes', not pg.is_visible('#claudeUnmarked'))
+
+    # Claude reads the city: city/summary.json, written by the city
+    summ = js("() => window.__subjson('city/summary.json')")
+    ok('connecting asks to write as well, and the city writes its summary for Claude at once', js("() => ClaudeWork.canWrite()") and summ is not None and summ['kind'] == 'city-summary')
+    g = next((p for p in summ['projects'] if p['name'] == 'Garden planner'), None)
+    ok(f'the summary holds every project, with its milestones, open tasks and their descriptions, done tasks, folders and urgency ({len(summ["projects"])} projects)',
+       len(summ['projects']) == 2 and g and any(ms['open'] and ms['open'][0]['task'] == 'Draw the beds on a grid' for ms in g['milestones'])
+       and g['folders'] == ['C:\\Users\\me\\garden'] and g['next'] == 'Draw the beds on a grid' and 'state' in g['urgency'])
+    raw = js("() => window.__sub.get('city/summary.json').text")
+    ok(f'and never the building art ({len(raw)} characters)', 'data:image' not in raw and 'dataUrl' not in raw)
+    js("() => { const p = DB.projects.find(p => p.name === 'Garden planner'); addTasks(p, [{ text: 'Mulch the beds', description: 'Before winter.', due: '' }], { id: p.milestones[0].id }); persistNow(); }")
+    pg.wait_for_timeout(2600)
+    summ = js("() => window.__subjson('city/summary.json')")
+    ok('a change in the city is in the summary a moment later', any(t['task'] == 'Mulch the beds' for p in summ['projects'] for ms in p['milestones'] for t in ms['open']))
+    ok('Settings says Claude can read the city', 'Claude can read the city: written' in pg.text_content('#claudeBox'))
+    js("() => { const get = Store.getHandle; Store.getHandle = async k => k === 'claudeDir' ? window.__cdir : get(k); window.__cwperm = 'prompt'; return ClaudeWork.init(); }"); pg.wait_for_timeout(500)
+    ok('connected with reading only, as before 0.1.35, Settings asks to let the city write', pg.is_visible('#claudeWrite') and 'Let it write' in pg.text_content('#claudeWrite'))
+    ok('and so does the side bar, under the logo', pg.is_visible('#claudeAlert') and 'Claude cannot read the city' in pg.text_content('#claudeAlert'))
+    before = js("() => window.__writes")
+    pg.click('#claudeWrite >> text=Let it write'); pg.wait_for_timeout(700)
+    ok('Let it write asks once, and the summary is written at once', js("() => ClaudeWork.canWrite()") and js("() => window.__writes") > before and not pg.is_visible('#claudeAlert'))
+    pg.screenshot(path=str(SH / '247-settings-links-claude-reads.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 900})
 
     def settle(ms=3600):
         pg.wait_for_timeout(ms)
@@ -274,6 +319,90 @@ with sync_playwright() as p:
     js(S('c1', 'done', 'C:\\Users\\me\\city', task='Fix the bubble', reply='Done again.'))
     settle()
     ok('a newer finish shows the tick again', cb(nc)['state'] == 'done')
+
+    # Tick it: the open task a city copy started, ticked from the finish line
+    js(S('t1', 'done', 'C:\\Users\\me\\city', task='Build the block art skill', project='Nullovation City', reply='The skill is built.'))
+    settle()
+    js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(800)
+    acts = pg.locator('#bubble .b-claude-acts')
+    ok(f'a finish from a city copy offers Tick it for its open task ({acts.count()})', acts.count() == 1 and pg.is_visible('#bubble .b-claude-tick'))
+    pg.screenshot(path=str(SH / '246-claude-tick-it.png'), clip=pg.query_selector('#bubble').bounding_box())
+    pg.click('#bubble .b-claude-tick'); pg.wait_for_timeout(500)
+    t1 = js(f"() => {{ const p = getProject('{nc}'), t = p.todos.find(x => x.text === 'Build the block art skill'); return {{ done: t.done, at: !!t.doneAt, worked: Date.now() - (p.urgency.lastWorked || 0) < 60000, act: p.activity[p.activity.length - 1].text }}; }}")
+    ok(f'Tick it ticks it off as a tick does: done, work for urgency, a line in Activity ({t1})', t1 == {'done': True, 'at': True, 'worked': True, 'act': 'Done: Build the block art skill'})
+    ok('and the button goes, since the task is done', pg.locator('#bubble .b-claude-tick').count() == 0 and 'Ticked off: Build the block art skill.' in pg.text_content('#toast'))
+    js("() => MapView.deselect()"); pg.wait_for_timeout(200)
+    js(S('t2', 'done', 'C:\\Users\\me\\city', task='Make block art for each project', project='Garden planner'))
+    js(S('t3', 'done', 'C:\\Users\\me\\city', task='A task the city does not have', project='Nullovation City'))
+    js(S('t4', 'working', 'C:\\Users\\me\\city', task='Try the project view for a week', project='Nullovation City'))
+    js(S('t5', 'done', 'C:\\Users\\me\\city', task='Round 3: decide the block art loop', project='Nullovation City'))
+    settle()
+    js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(800)
+    fin = [x.strip() for x in pg.locator('#bubble .b-claude-fin').all_text_contents()]
+    ok(f'with a session still working, a finished one\'s Tick it names its task; another project\'s copy and a missing task offer none ({fin})',
+       fin == ['Finished: Round 3: decide the block art loop'] and pg.locator('#bubble .b-claude-tick').count() == 1 and (pg.text_content('#bubble .b-claude-line') or '').startswith('Claude Code is working'))
+    js("() => MapView.deselect()"); pg.wait_for_timeout(200)
+    for k in ('t1', 't2', 't3', 't4', 't5'):
+        js(f"() => window.__cf.delete('{k}.json')")
+    js(S('t6', 'working', 'C:\\Users\\me\\city', ask='<task-notification> a background task finished'))
+    settle()
+    js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(600)
+    ok('a turn Claude Code starts on its own shows no <task-notification> as its ask', '<task-notification>' not in (pg.text_content('#bubble .b-claude') or '') and (pg.text_content('#bubble .b-claude-line') or '').startswith('Claude Code is working.'))
+    js("() => MapView.deselect()"); pg.wait_for_timeout(200)
+    js("() => window.__cf.delete('t6.json')"); settle()
+
+    # Claude updates the city: change files in inbox/
+    def drop(name, d):
+        js(f"() => window.__sub.set('inbox/{name}', {{ text: {json.dumps(json.dumps(d))}, t: Date.now() }})")
+    gp_state = lambda: js(f"() => {{ const p = getProject('{gp}'); return {{ todos: p.todos.map(t => t.text), notes: p.notes.map(n => n.title), links: p.links.map(l => l.url), ms: p.milestones.map(m => m.name) }}; }}")
+    st0 = gp_state()
+    drop('2026-10-14-0900-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'garden planner', 'summary': 'Reminders built',
+        'changes': [{'do': 'add-tasks', 'milestone': 'Launch', 'tasks': [{'text': 'Test the reminders on a phone', 'description': 'Both platforms.'}, {'text': 'Write the reminder copy', 'description': 'Short and kind.'}]},
+                    {'do': 'add-note', 'title': 'Reminder timing', 'text': 'They fire at 7, from the last watering.'},
+                    {'do': 'add-link', 'label': 'Reminders PR', 'url': 'https://github.com/me/garden/pull/12'}]})
+    settle()
+    st1 = gp_state()
+    launch = js(f"() => {{ const p = getProject('{gp}'), m = p.milestones.find(m => m.name === 'Launch'); return p.todos.filter(t => t.milestoneId === m.id).map(t => t.text); }}")
+    ok(f'adding tasks, a note and a link applies at once, in the milestone named, by the project\'s name in any case ({launch[-2:]})',
+       launch[-2:] == ['Test the reminders on a phone', 'Write the reminder copy'] and 'Reminder timing' in st1['notes'] and 'https://github.com/me/garden/pull/12' in st1['links'] and st1['ms'] == st0['ms'])
+    tst = pg.text_content('#toast') or ''
+    ok(f'with a toast and Undo ({tst})', tst.startswith('Claude added 2 tasks, a note and 1 link in Garden planner.') and 'Undo' in tst)
+    ok('the file moves to inbox/done, so nothing applies twice', js("() => window.__sub.has('inbox/done/2026-10-14-0900-garden.json') && !window.__sub.has('inbox/2026-10-14-0900-garden.json')"))
+    acts = js(f"() => getProject('{gp}').activity.slice(-6).map(e => e.text)")
+    ok(f'and Activity says what Claude did ({acts[-3:]})', 'Claude: Reminders built' in acts and 'Claude wrote a note: Reminder timing' in acts and 'Added todo: Write the reminder copy' in acts)
+    pg.click('#toast .toast-act'); pg.wait_for_timeout(400)
+    ok('Undo takes back exactly what Claude added', gp_state() == st0)
+
+    drop('2026-10-14-0910-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'Garden planner', 'summary': 'Plans save as files',
+        'changes': [{'do': 'done', 'task': 'Save a plan as a file'}, {'do': 'edit-description', 'task': 'Draw the beds on a grid', 'description': 'Drawn at 1:50. Left: labels.'},
+                    {'do': 'done', 'task': 'A task that is not there'}]})
+    drop('2026-10-14-0920-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'Garden planner',
+        'changes': [{'do': 'replace-plan', 'plan': {'description': 'A new About.', 'milestones': [{'name': 'Only one', 'tasks': [{'text': 'One task', 'description': 'x'}]}]}}]})
+    settle()
+    ok('ticking, a new description and a new plan wait in inbox/pending, untouched', js("() => window.__sub.has('inbox/pending/2026-10-14-0910-garden.json') && window.__sub.has('inbox/pending/2026-10-14-0920-garden.json')")
+       and gp_state() == st0 and not js(f"() => getProject('{gp}').todos.find(t => t.text === 'Save a plan as a file').done"))
+    ok(f'the building\'s Claude bubble asks with a ?, over a session working there ({cb(gp)})', cb(gp)['state'] == 'waiting' and cb(gp)['text'] == '?')
+    js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(800)
+    asks = pg.locator('#bubble .b-claude-asks')
+    first = asks.nth(0).text_content() if asks.count() else ''
+    ok(f'the status card lists each, with Apply and Dismiss ({asks.count()} | {first[:90]})', asks.count() == 2 and 'Claude asks first: Plans save as files' in first and 'Tick off: Save a plan as a file' in first
+       and 'New description for Draw the beds on a grid: Drawn at 1:50.' in first and '(not open in this project)' in first and 'Replace the plan: 1 milestone, 1 task' in asks.nth(1).text_content())
+    pg.screenshot(path=str(SH / '248-claude-asks-first.png'), clip=pg.query_selector('#bubble').bounding_box())
+    asks.nth(0).locator('.b-claude-apply').click(); pg.wait_for_timeout(700)
+    g = js(f"() => {{ const p = getProject('{gp}'); return {{ done: p.todos.find(t => t.text === 'Save a plan as a file').done, desc: p.todos.find(t => t.text === 'Draw the beds on a grid').description }}; }}")
+    ok(f'Apply ticks the task and writes the description, skipping what it cannot find ({g})', g == {'done': True, 'desc': 'Drawn at 1:50. Left: labels.'})
+    ok('and the entry is put away in inbox/done', js("() => !window.__sub.has('inbox/pending/2026-10-14-0910-garden.json') && window.__sub.has('inbox/done/2026-10-14-0910-garden.json')") and pg.locator('#bubble .b-claude-asks').count() == 1)
+    pg.locator('#bubble .b-claude-asks .b-claude-dismiss').click(); pg.wait_for_timeout(600)
+    ok('Dismiss puts it away without applying it', js("() => !window.__sub.has('inbox/pending/2026-10-14-0920-garden.json')") and pg.locator('#bubble .b-claude-asks').count() == 0
+       and js(f"() => getProject('{gp}').milestones.map(m => m.name)") == st0['ms'])
+    js("() => MapView.deselect()"); pg.wait_for_timeout(200)
+    drop('2026-10-14-0930-nowhere.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'A project the city has not', 'changes': [{'do': 'add-note', 'title': 'x', 'text': 'y'}]})
+    js("() => window.__sub.set('inbox/broken.json', { text: '{ not json', t: Date.now() })")
+    settle()
+    ok('a change for a project the city has not, and a file it cannot read, go to inbox/rejected with a message', js("() => window.__sub.has('inbox/rejected/2026-10-14-0930-nowhere.json') && window.__sub.has('inbox/rejected/broken.json') && ![...window.__sub.keys()].some(k => /^inbox\\/[^/]+$/.test(k))"))
+    ends = js(f"() => {{ const p = getProject('{gp}'); return [taskForClaude(p, p.todos[0]), noteForClaude(p, {{ title: 'T', text: 'x', at: Date.now() }}), milestoneForClaude(p, p.milestones[0]), projectStatusForClaude(p), statusBrief()].map(x => x.endsWith('\\n\\n' + REPORT_LINE)); }}")
+    ok(f'every copy for Claude ends asking it to send the city an update ({ends})', ends == [True] * 5 and js("() => REPORT_LINE") == 'When you finish, send Nullovation City an update with the nullovation-city skill.')
+    ok('but not the builder card, which is for the building', not js(f"() => builderCard(getProject('{gp}')).includes(REPORT_LINE)"))
     js(S('c2', 'failed', 'C:\\Users\\me\\city'))
     settle()
     ok('an error shows a cross, over a finish', cb(nc)['state'] == 'failed' and cb(nc)['color'] == 'failed')
@@ -282,6 +411,71 @@ with sync_playwright() as p:
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     c1 = js("() => window.__cf.get('c1.json').text")
     ok('seeing it again clears it again', cb(nc) is None)
+
+    # a finish in Activity, once per session and what it worked on
+    fins = js(f"() => getProject('{nc}').activity.filter(e => e.text.startsWith('Claude Code finished')).map(e => e.text)")
+    ok(f'a finish leaves a line in its project\'s Activity, once per session and task, however often it finishes ({fins.count("Claude Code finished: Fix the bubble")})',
+       fins.count('Claude Code finished: Fix the bubble') == 1 and 'Claude Code finished: Round 3: decide the block art loop' in fins)
+    before = js(f"() => {{ const p = getProject('{gp}'); return {{ up: p.updatedAt, worked: p.urgency.lastWorked, n: p.activity.length }}; }}")
+    js(S('f1', 'done', 'C:\\Users\\me\\garden', mins=5, task='Mulch the beds', reply='Mulched.'))
+    js(S('w1', 'waiting', 'C:\\Users\\me\\garden', task='Pick a mulch'))
+    settle()
+    f1 = js(f"""() => {{ const p = getProject('{gp}'), k = p.activity.findIndex(e => e.text === 'Claude Code finished: Mulch the beds'), e = p.activity[k];
+      return {{ found: k >= 0, ago: e ? Math.round((Date.now() - e.at) / 60000) : null, ordered: p.activity.every((x, i) => !i || p.activity[i - 1].at <= x.at), up: p.updatedAt, worked: p.urgency.lastWorked, n: p.activity.length }}; }}""")
+    ok(f'at the time it finished, in order, and not as work: urgency and Updated stay as they were ({f1})', f1['found'] and f1['ago'] == 5 and f1['ordered']
+       and f1['up'] == before['up'] and f1['worked'] == before['worked'] and f1['n'] == before['n'] + 1)
+    ok(f'the tab\'s title counts sessions waiting for you and finishes you have not seen ({pg.title()})', pg.title() == '(2) Nullovation City')
+    js(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
+    pg.locator('.pv button:has-text("Activity")').first.click()
+    pg.wait_for_timeout(400)
+    ok('the Activity panel shows it', 'Claude Code finished: Mulch the beds' in (pg.text_content('.pv-activity') or ''))
+    js("() => FullView.close()"); pg.wait_for_timeout(300)
+
+    # the tab's title counts what waits for you
+    ok(f'opening the project counts as seeing the finish: it leaves the count ({pg.title()})', pg.title() == '(1) Nullovation City')
+    drop_pending = {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'Garden planner', 'changes': [{'do': 'done', 'task': 'Draw the beds on a grid'}]}
+    js(f"() => window.__sub.set('inbox/2026-10-14-1000-garden.json', {{ text: {json.dumps(json.dumps(drop_pending))}, t: Date.now() }})")
+    settle()
+    ok(f'a change that asks first counts too ({pg.title()})', pg.title() == '(2) Nullovation City')
+    js("() => { window.__cf.delete('w1.json'); }")
+    js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(600)
+    pg.locator('#bubble .b-claude-asks .b-claude-dismiss').click(); pg.wait_for_timeout(500)
+    js("() => MapView.deselect()"); pg.wait_for_timeout(200)
+    settle()
+    ok(f'with nothing waiting, the title is the city\'s own ({pg.title()})', pg.title() == 'Nullovation City')
+
+    # Claude's drones: six fly in and work round the building while its session works
+    js("() => { Traffic.setOn(true); MapView.invalidate(); MapView.kick(); }"); pg.wait_for_timeout(1600)
+    crew = lambda: js(f"""() => {{ const key = [...MapView.layout()].find(([k, p]) => p.id === '{gp}')[0], [u, v] = key.split(',').map(Number),
+      ci = WORLD.MARGIN + u * WORLD.PITCH + WORLD.S / 2, cj = WORLD.MARGIN + v * WORLD.PITCH + WORLD.S / 2, cd = Traffic._state().cdrones;
+      return {{ n: cd.length, mine: cd.filter(d => d.plot === key && !d.leaving).length, leaving: cd.filter(d => d.leaving).length,
+        far: Math.max(0, ...cd.filter(d => d.there).map(d => Math.hypot(d.i - ci, d.j - cj))), there: cd.filter(d => d.there).length, dist: cd.map(d => Math.hypot(d.i - ci, d.j - cj)) }}; }}""")
+    c0 = crew()
+    ok(f'with Traffic on, six of Claude\'s drones set off for the building Claude Code works on ({c0["mine"]} of {c0["n"]})', c0['n'] == 6 and c0['mine'] == 6 and js("() => Traffic.stats().crew") == 6)
+    pg.wait_for_timeout(1500)
+    c1d = crew()
+    ok('and fly in towards it', sum(c1d['dist']) < sum(c0['dist']))
+    pg.wait_for_timeout(12000)
+    c2 = crew()
+    ok(f'once there, they work round it, close by ({c2["there"]} there, farthest {c2["far"]:.1f} tiles)', c2['there'] == 6 and c2['far'] <= 2.5)
+    alts = js("() => Traffic._state().cdrones.map(d => Math.round(d.altTo))")
+    ok(f'at different heights ({alts})', len(set(alts)) > 1 and all(24 <= a <= 96 for a in alts))
+    js("() => MapView.setCam({ x: 0, y: 160, z: 3 })"); pg.wait_for_timeout(300)
+    ga = js(f"() => MapView.anchors('{gp}')")
+    left = pg.query_selector('#mapWrap').bounding_box()['x']
+    pg.screenshot(path=str(SH / '249-claude-drones.png'), clip={'x': max(0, left + ga['topX'] - 260), 'y': max(0, ga['topY'] - 160), 'width': 520, 'height': 440})
+    js("() => { DB.city.drones = false; }"); pg.wait_for_timeout(1500)
+    ok('with drones off in the city\'s settings, they head home', crew()['mine'] == 0 and crew()['leaving'] == 6)
+    js("() => { DB.city.drones = true; }"); pg.wait_for_timeout(1500)
+    ok('and back on, six come again', crew()['mine'] == 6)
+    js("() => window.__cf.delete('a1.json')"); settle(); pg.wait_for_timeout(1200)
+    ok('when the session stops working, they fly off the map', crew()['mine'] == 0 and js("() => Traffic.stats().crew") == 0)
+    js("() => { for (const d of Traffic._state().cdrones) { d.i = d.to[0]; d.j = d.to[1]; d.hold = 0; } }"); pg.wait_for_timeout(600)
+    ok('and are gone once off it', crew()['n'] == 0)
+    js("() => { Traffic.setOn(false); MapView.invalidate(); }")
+    js(S('a1', 'working', 'C:\\Users\\me\\garden\\src', task='Water the beds on time'))
+    js("() => window.__cf.delete('f1.json')")
+    settle()
 
     # bubbles hidden, and the postcard
     js("() => MapView.setBubbleMode('none')"); pg.wait_for_timeout(300)
@@ -307,6 +501,8 @@ with sync_playwright() as p:
     nc_seen = js(f"() => ClaudeWork.statusOf(getProject('{nc}'))")
     ok('Allow reads it again and the alert goes', js("() => ClaudeWork.state()") == 'on' and not pg.is_visible('#claudeAlert') and st(gp)['state'] == 'working')
     ok('a finish you saw stays seen after a reload', nc_seen is None)
+    kept = js(f"() => getProject('{nc}').activity.filter(e => e.text === 'Claude Code finished: Fix the bubble').map(e => e.ref)")
+    ok(f'a finish\'s line survives a reload with its mark, and is not written twice ({len(kept)})', len(kept) == 1 and kept[0].startswith('claude:c1:'))
     js("() => { window.__cgone = true; }"); settle()
     ok('a folder that was moved or deleted says so, with Pick it again', js("() => ClaudeWork.state()") == 'failed' and 'Pick it again' in pg.text_content('#claudeAlert') and st(gp) is None)
     js("() => { window.__cgone = false; }")

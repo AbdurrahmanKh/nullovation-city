@@ -692,7 +692,7 @@ const MapView = (() => {
       const urg = urgencyOf(p, wall);
       if (urg.color && !(bubbleMode === 'red' && urg.color !== 'red')) out.push({ kind: 'urgency', color: urg.color, count: urg.count, text: urg.count <= 1 ? '!' : String(Math.min(urg.count, 99)) });
     }
-    const cs = bubbleMode !== 'none' && typeof ClaudeWork !== 'undefined' ? ClaudeWork.statusOf(p) : null;
+    const cs = bubbleMode !== 'none' && typeof ClaudeWork !== 'undefined' ? ClaudeWork.mapStatus(p) : null;
     if (cs) {
       const n = cs.count > 1 ? String(Math.min(cs.count, 9)) : '';
       const frame = cs.state === 'working' && !Motion.still() ? Math.floor(t / 320) % 2 : 0;

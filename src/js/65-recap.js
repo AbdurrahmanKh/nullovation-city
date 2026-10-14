@@ -137,7 +137,12 @@ function statusBrief(now = Date.now()) {
   L.push(plural(DB.projects.length, 'project', 'projects') + '.');
   const ordered = [...DB.projects].sort((a, b) => (a.plot.u + a.plot.v) - (b.plot.u + b.plot.v) || (a.plot.u - a.plot.v) - (b.plot.u - b.plot.v));
   for (const p of ordered) { L.push(''); L.push(projectStatus(p, now)); }
+  L.push('', REPORT_LINE);
   return L.join('\n');
+}
+/* One project's status for Claude: the status, then the line asking Claude to report back. */
+function projectStatusForClaude(p, now = Date.now()) {
+  return projectStatus(p, now) + '\n\n' + REPORT_LINE;
 }
 async function copyBrief() {
   const text = statusBrief();
@@ -153,7 +158,7 @@ async function copyText(text) {
   } catch (e) { return false; }
 }
 async function copyProjectStatus(p) {
-  if (await copyText(projectStatus(p))) toast('Status copied. Paste it into Claude.');
+  if (await copyText(projectStatusForClaude(p))) toast('Status copied. Paste it into Claude.');
   else toast('The browser blocked copying. Try again.', 'error');
 }
 function builderCard(p) {

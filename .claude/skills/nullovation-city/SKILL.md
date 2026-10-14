@@ -1,6 +1,6 @@
 ---
 name: nullovation-city
-description: Write tasks, or a whole plan, for a project in Nullovation City, the user's pixel-city project tracker, as a JSON file the tool loads with Load plan or tasks in the project view's more menu. Use this skill whenever the user says "create nullovation tasks", "nullovation tasks", "add this to nullovation", or "nullovation-city"; asks to build, plan, set up, or restructure a project for Nullovation City or for their city; or pastes a Nullovation City project export (app "nullovation-city", kind "project"). It decides from the request whether to write a few tasks or a whole plan. Do not use it for a project's building art or leader, which is nullovation-city-builder; for changes to the city tool's own code; for Asana tasks, which is create-asana-task; or for to-do lists that are not meant for the city.
+description: Write tasks, or a whole plan, for a project in Nullovation City, the user's pixel-city project tracker, as a JSON file the tool loads with Load plan or tasks in the project view's more menu, or send an update straight into the city's inbox from Claude Code. Use this skill whenever the user says "create nullovation tasks", "nullovation tasks", "add this to nullovation", "update the city", or "nullovation-city"; whenever a copy from the city ends with "When you finish, send Nullovation City an update"; asks to build, plan, set up, or restructure a project for Nullovation City or for their city; or pastes a Nullovation City project export (app "nullovation-city", kind "project"). It decides from the request whether to write a few tasks, a whole plan, or an update. Do not use it for a project's building art or leader, which is nullovation-city-builder; for changes to the city tool's own code; for Asana tasks, which is create-asana-task; or for to-do lists that are not meant for the city.
 ---
 
 # Nullovation City: tasks and plans
@@ -11,6 +11,8 @@ Nullovation City shows every project as a building. Inside, a project has an Abo
 - **A plan** sets up or restructures a whole project: its About, milestones, tasks, and ideas. Loading it replaces the project's About, milestones, and tasks, after a warning, and adds its ideas to the notes.
 
 Choose from the request. "Create nullovation tasks", "add this as a task", or anything about one or a few tasks means a tasks file. "Build", "plan", "set up", or "restructure the project" means a plan. When it is unclear, write a tasks file: it is the smaller change, and it never replaces anything.
+
+In Claude Code on the user's PC, the city can also take an **update** straight into its inbox, with nothing to load: see Sending an update straight to the city, below. Use it when a copy from the city ends with "When you finish, send Nullovation City an update", or when the user asks you to update the city.
 
 ## The rule: only what you know
 
@@ -109,6 +111,44 @@ Name the file after the project: `<project>-tasks.json` or `<project>-plan.json`
 ```
 python3 scripts/check_plan.py <the-file>
 ```
+
+## Sending an update straight to the city
+
+Every copy from the city (a task, a note, a milestone, a project's status, the status brief) ends with "When you finish, send Nullovation City an update with the nullovation-city skill." When the work is finished, or the user asks you to update the city, write one change file into the city's inbox. The city picks it up within a few seconds.
+
+**Find the city.** Read `~/.claude/nullovation-city.json` (on Windows, `%USERPROFILE%\.claude\nullovation-city.json`). It names `summary`, the city as it is now, and `inbox`, the folder to write to. If it is missing, look in `~/.claude/settings.json` for the hooks whose `args` hold `nullovation-city-status.py`: the folder is the fourth argument, the summary is `city/summary.json` in it, and the inbox is `inbox/` in it. If neither exists, or you cannot reach the user's files (as on claude.ai), write a tasks file or a plan as above instead, and say how to load it.
+
+**Read the summary first.** `summary.json` lists every project with its milestones, open tasks (with descriptions and due dates), done tasks, notes, links and folders. Use its names exactly: the city matches the project by name and a task by its title. If the work is not clearly about one project, or a task you mean is not in the summary, ask rather than guess.
+
+**What to send, only what you know.** The rule above holds here too.
+- `done`: a task the work finished. Only when it is really finished; the user approves it before it counts.
+- `add-note`: a short note on what was done, decided or found, when it is worth keeping. Its title says what it is about.
+- `add-tasks`: work that is left, only what the user asked for or agreed to, or what they said is still to do. Each task has a description written as above.
+- `edit-description`: a task's description brought up to date, such as what is done and what is left. The user approves it first.
+- `add-link`: a real address of something made, such as a document or a pull request.
+- `replace-plan`: a whole new plan, only when the user asked for one. The user approves it first.
+
+Adding tasks, notes and links applies at once, with an Undo; ticking tasks, editing descriptions and replacing the plan wait on the building for the user to apply. Send one file per update, for one project.
+
+```json
+{
+  "app": "nullovation-city",
+  "kind": "change",
+  "version": 1,
+  "project": "The project's name, exactly as in the summary",
+  "summary": "One line: what this update is about",
+  "changes": [
+    { "do": "done", "task": "The task's title, exactly" },
+    { "do": "add-note", "title": "A short title", "text": "What was done, decided or found" },
+    { "do": "add-tasks", "milestone": "Optional: a milestone's name; a new name makes a new milestone", "tasks": [{ "text": "Start with a verb", "description": "The description lines above", "due": "Optional, YYYY-MM-DD" }] },
+    { "do": "edit-description", "task": "The task's title, exactly", "description": "The whole new description" },
+    { "do": "add-link", "label": "Short name", "url": "https://...", "icon": "doc, code, github, claude, chat, folder, or web" },
+    { "do": "replace-plan", "plan": { "description": "The About", "milestones": [{ "name": "...", "tasks": [{ "text": "...", "description": "..." }] }], "ideas": [], "links": [] } }
+  ]
+}
+```
+
+Leave out the changes you have nothing for. Name the file `<YYYY-MM-DD-HHMM>-<project>.json`, write it into the inbox folder (make the folder if it is missing), and check it with `python3 scripts/check_plan.py <the-file>` when Python is available. Then tell the user in one line what you sent, and that adding applied at once while ticks and edits wait on the building.
 
 ## Hand it over
 

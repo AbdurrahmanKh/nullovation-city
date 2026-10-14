@@ -112,7 +112,8 @@ with sync_playwright() as p:
     pg.screenshot(path=str(SH / 'pv-8-activity.png'))
     pg.click('#pv .pv-about-btns >> text=Copy status'); pg.wait_for_timeout(150)
     st = pg.evaluate("() => navigator.clipboard.readText()")
-    ok('Copy status copies this project only', st.startswith('## Garden app') and 'Nullovation City' not in st)
+    rl = pg.evaluate("() => REPORT_LINE")      # every copy for Claude ends asking it to update Nullovation City (0.1.36)
+    ok('Copy status copies this project only', st.startswith('## Garden app') and st.endswith(rl) and 'Nullovation City' not in st.replace(rl, ''))
 
     # the more menu: builder, the builder card in a chat, export, delete; Esc peels layers one at a time
     pg.click('#pvMore'); pg.wait_for_timeout(100)

@@ -162,6 +162,9 @@ function ensureMilestones(p) {
   for (const t of loose) t.milestoneId = home.id;
   normalizeOrder(p);
 }
+/* Every copy for Claude ends with this line, so work started from the city reports back by itself (Even Better Claude
+   Connections, Round 1, A2: from the copy). The nullovation-city skill writes the change into the city's inbox. */
+const REPORT_LINE = 'When you finish, send Nullovation City an update with the nullovation-city skill.';
 /* One task as text for a Claude chat: what it is, and where it sits. */
 function taskForClaude(p, t, now = Date.now()) {
   const L = [];
@@ -176,13 +179,14 @@ function taskForClaude(p, t, now = Date.now()) {
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
+  L.push('', REPORT_LINE);
   return L.join('\n');
 }
 /* A note, ready to paste into a Claude chat. */
 function noteForClaude(p, n) {
   const title = n.title.trim() || (n.text.trim().split('\n')[0] || 'Untitled note').slice(0, 120);
   const body = n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join('\n').trim();
-  const L = ['# Note: ' + title, 'Project: ' + p.name, 'Written: ' + fmtStamp(n.at), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title)];
+  const L = ['# Note: ' + title, 'Project: ' + p.name, 'Written: ' + fmtStamp(n.at), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title), '', REPORT_LINE];
   return L.join('\n');
 }
 async function copyNote(p, n) {
@@ -203,6 +207,7 @@ function milestoneForClaude(p, m, now = Date.now()) {
     L.push((t.description || '').trim() || 'No description yet.');
   }
   if (done.length) { L.push('', '## Done'); for (const t of done) L.push('- ' + t.text); }
+  L.push('', REPORT_LINE);
   return L.join('\n');
 }
 async function copyMilestone(p, m) {
@@ -305,7 +310,7 @@ function sanitizeProjects(raw) {
         };
       })(),
       activity: (Array.isArray(r.activity) ? r.activity : []).filter(e => e && typeof e.at === 'number' && typeof e.text === 'string')
-        .map(e => ({ at: e.at, text: e.text.slice(0, 300) })).slice(-ACTIVITY_MAX),
+        .map(e => (typeof e.ref === 'string' && e.ref ? { at: e.at, text: e.text.slice(0, 300), ref: e.ref.slice(0, 200) } : { at: e.at, text: e.text.slice(0, 300) })).slice(-ACTIVITY_MAX),
       createdAt: typeof r.createdAt === 'number' ? r.createdAt : now,
       updatedAt: typeof r.updatedAt === 'number' ? r.updatedAt : now,
     });
@@ -341,6 +346,7 @@ function persistNow() {
   const ok = Store.save(DB);
   if (typeof Menu !== 'undefined') Menu.setSaveStatus(ok);
   if (typeof DataFile !== 'undefined') DataFile.writeSoon();
+  if (typeof ClaudeWork !== 'undefined') ClaudeWork.cityChanged();     // the summary Claude reads
   return ok;
 }
 /* The complete backup: the map, the city's settings, and every project with block art inlined. Used by export, the

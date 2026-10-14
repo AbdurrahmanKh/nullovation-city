@@ -19,7 +19,9 @@ stays on screen; --no-pause skips the wait. Running it again moves the hooks to 
 you downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as
 it was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles
 them. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot
-open folders inside AppData. It leaves README-nullovation-city.txt in the folder, which is how the city knows the
+open folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city
+skill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops
+changes for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the
 folder it watches is the one the hooks write to.
 
 The hooks never slow Claude down (they run in the background), never print anything Claude would read, and never
@@ -35,7 +37,7 @@ Each file is <session id>.json:
     reply    the start of Claude's last reply
     at, since, started   milliseconds since 1970: the last event, when this state began, when the session began
 """
-import json, os, pathlib, shutil, sys, time
+import json, os, pathlib, re, shutil, sys, time
 
 APP = 'nullovation-city'
 NAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours
@@ -71,6 +73,12 @@ def settings_path():
 
 def installed_path():
     return home() / '.claude' / 'hooks' / NAME
+
+
+def config_path():
+    """Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's
+    summary and inbox from any folder Claude Code works in."""
+    return home() / '.claude' / 'nullovation-city.json'
 
 
 def current_folder():
@@ -217,13 +225,16 @@ def hook(state, folder):
         entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')
         if entry:
             data['entry'] = entry
-        if event.get('hook_event_name') == 'UserPromptSubmit' and event.get('prompt'):
-            project, task = read_copy(event['prompt'])
+        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None
+        if prompt and re.match(r'\s*<[a-zA-Z][\w-]*[\s>]', prompt):
+            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice
+        if prompt:
+            project, task = read_copy(prompt)
             if project:
                 data['project'] = project
             if task:
                 data['task'] = task
-            data['ask'] = one_line(event['prompt'], 160)
+            data['ask'] = one_line(prompt, 160)
             data.pop('reply', None)
         if state == 'done' and event.get('last_assistant_message'):
             data['reply'] = one_line(event['last_assistant_message'], 240)
@@ -314,6 +325,11 @@ def install(folder):
             'To take the hooks out: python "' + str(script) + '" --uninstall\n', encoding='utf-8')
     except Exception:
         pass
+    try:
+        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),
+                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})
+    except Exception:
+        pass
     hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}
     hooks = strip_ours(hooks)
     for event, pairs in HOOKS.items():
@@ -360,6 +376,8 @@ def uninstall():
     script = installed_path()
     if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():
         script.unlink()
+    if config_path().exists():
+        config_path().unlink()
     print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')
     print('The folder of session files stays; delete it if you like.')
     return 0

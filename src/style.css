@@ -701,6 +701,14 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
 @media (prefers-reduced-motion: reduce) { .b-claude.working .b-claude-dot { animation: none; } }
 .b-claude-when { font-weight: 400; opacity: .8; }
 .b-claude-said { margin: 2px 0 0 18px; font-size: 12px; line-height: 1.4; opacity: .85; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.b-claude-acts { margin: 6px 0 0 18px; display: flex; align-items: center; gap: 8px; }
+.b-claude-fin { flex: 1; min-width: 0; font-size: 12px; line-height: 1.4; color: #8EEBC6; overflow-wrap: anywhere; }
+.b-claude-tick { background: #123F33; color: #8EEBC6; }
+.b-claude-asks .b-claude-line { color: #F5B39A; }
+.b-claude-list { margin: 4px 0 0 18px; padding-left: 16px; font-size: 12px; line-height: 1.45; color: var(--ink-soft, #CFC8E4); }
+.b-claude-list li { overflow-wrap: anywhere; }
+.b-claude-list li.off { opacity: .6; text-decoration: line-through; }
+.b-claude-apply { background: #5C2416; color: #FFE1D4; }
 .claude-lost { margin: 0 0 4px; padding-left: 18px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .b-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .b-actions .btn { margin: 0; }

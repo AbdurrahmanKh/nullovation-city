@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.1.37 (2026-10-14)
+
+New places to see Claude's work, and Open in Claude in the terminal (Even Better Claude Connections, Round 1, B3 and D1, the items marked Now):
+- Activity: a finish leaves "Claude Code finished: <task>" in its project's Activity, at the time it finished, once per session and task (the copy's task, or the prompt's first line without one). It makes the building busier for the week, as Activity does, but it is not work for urgency: only a tick is (B2). The tab that writes the data file writes it.
+- Claude's drones: while Claude Code works on a building, six coral drones fly in from the map's edge, settle, and work round it at different heights; when the work stops, they fly off. They follow Traffic, Still, and the city's drones setting.
+- The tab's title counts what waits for you: "(2) Nullovation City" while sessions need you, finished or stopped without you seeing it, or Claude's changes ask first.
+- Open in Claude has a fourth item, Terminal: Claude Code in a new terminal in the project's first folder, with the text filled in, through Claude Code's own claude-cli:// link. It fills in up to 5,000 characters (longer goes by clipboard), and works once Claude Code has had a prompt in a terminal on this computer.
+- Tests: test18 checks the Terminal item; test24 checks the Activity line, the title count and the drones.
+
+## 0.1.36 (2026-10-14)
+
+Claude updates the city (Even Better Claude Connections, Round 1, A1 and A2):
+- Claude drops a change file into `inbox/` in the Claude folder, and the city picks it up within a few seconds, with no Load plan or tasks. A change names the project by name (any case) and its tasks by title, and the file then moves to `inbox/done/`, so nothing applies twice.
+  - Applies at once, with a toast and Undo (6 seconds): adding tasks (into the milestone named, a new one if no milestone has that name, else the current one), adding a note, adding a link (not one the project already has). Activity says what Claude did.
+  - Asks first: ticking tasks, a new description for a task, replacing the plan. They wait in `inbox/pending/`; the building's Claude bubble shows a ?, and its status card lists each change with Apply and Dismiss. Apply skips what it cannot find, such as a task no longer open.
+  - A change for a project the city does not have, or a file it cannot read, goes to `inbox/rejected/` with a message. Done and rejected files are cleared after 14 days. One tab takes new files: the one that writes the data file.
+- Every copy for Claude (a task, a note, a milestone, a project's status, the status brief) ends with "When you finish, send Nullovation City an update with the nullovation-city skill." The builder card does not.
+- The nullovation-city skill sends updates: it finds the city's folder in `~/.claude/nullovation-city.json` (or the hooks in Claude Code's settings), reads the summary for exact names, and writes the change file; without the city's folder, it writes a tasks file or a plan as before. `check_plan.py` checks change files too. Reinstall the skill in the claude.ai plugin, so Claude Code has it in every folder.
+- Tests: test24 checks applying at once and Undo, asking first with Apply and Dismiss, rejected files, and the copy line.
+
+## 0.1.35 (2026-10-14)
+
+Claude reads the city (Even Better Claude Connections, Round 1, A3: a summary for Claude):
+- The city keeps `city/summary.json` in the Claude folder: every project with its description, folders, urgency, what is next, milestones with their open tasks (with descriptions and due dates) and done ones, notes and links. No building art, so it is about a tenth of the data file. It is rewritten a moment after every change, by the tab that writes the data file.
+- Connecting the Claude folder asks to let the city write there too. A folder connected before 0.1.35 keeps its bubbles and asks once: Let it write, in Settings, Links and under the logo.
+- The setup writes the folder down in `~/.claude/nullovation-city.json`, with the summary's and the inbox's paths, for the nullovation-city skill to find from any folder. Run the setup again once to write it.
+- Tests: test24 checks the note the setup writes, the summary, its update after a change, and asking to write.
+
+## 0.1.34 (2026-10-14)
+
+The first piece of "Even better Claude connections" (Nullovation City Hall, Quick Wins), from Even Better Claude Connections, Round 1 (B1):
+- Tick it: when a Claude Code session started from a city copy finishes, the status card's finish line offers Tick it for the task the copy named, while that task is still open. One click ticks it off as a tick does: done, work for urgency, a line in Activity, and the garbage it held goes.
+  - The task is found by its title in the copy's project; a copy from another project, or a task renamed or already done, offers nothing.
+  - With a session still working on the building, which takes the line, each finished task is named beside its Tick it.
+- A turn Claude Code starts on its own, such as a background task's notice, no longer shows as `<task-notification>`: the city leaves it out of the card, and the hook no longer records it as the latest ask (that part needs the setup run again).
+- Tests: test24 checks Tick it, the cases that offer none, and the tag prompts.
+
 ## 0.1.33 (2026-10-13)
 
 From Abdurrahman's notes on Gus Grimsby:

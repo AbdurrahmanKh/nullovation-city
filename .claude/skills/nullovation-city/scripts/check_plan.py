@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Checks a Nullovation City tasks file or plan before it is handed over.
+"""Checks a Nullovation City tasks file, plan, or change (an update for the city's inbox) before it is handed over.
 
 Errors are things the user would notice or the tool would drop: fix all of them.
 Warnings are judgment calls: read them and fix what applies.
 
-Usage: python3 check_plan.py <tasks-or-plan.json>
+Usage: python3 check_plan.py <tasks-plan-or-change.json>
 """
 import datetime, json, sys
 
@@ -37,6 +37,8 @@ def main(path):
 
     if data.get('kind') == 'tasks':
         return check_tasks(data, errors, warnings)
+    if data.get('kind') == 'change':
+        return check_change(data, errors, warnings)
     if data.get('app') != 'nullovation-city' or data.get('kind') != 'plan' or data.get('version') != 1:
         errors.append('the top level needs "app": "nullovation-city", "kind": "plan" or "tasks", "version": 1')
     p = data.get('project')
@@ -164,6 +166,48 @@ def check_tasks(data, errors, warnings):
     seen = {}
     n = sum(1 for j, t in enumerate(tasks) if check_task(t, f'task {j + 1}', errors, warnings, seen, 'this file'))
     return report(errors, warnings, f'{n} tasks' + (f' for the milestone "{ms}"' if ms else ', milestone picked when loading') + '.')
+
+
+CHANGES = {'done', 'add-note', 'add-tasks', 'edit-description', 'add-link', 'replace-plan'}
+
+
+def check_change(data, errors, warnings):
+    if data.get('app') != 'nullovation-city' or data.get('version') != 1:
+        errors.append('the top level needs "app": "nullovation-city", "kind": "change", "version": 1')
+    if not isinstance(data.get('project'), str) or not data['project'].strip():
+        errors.append('a change needs "project": the project name, exactly as in the city summary')
+    changes = data.get('changes')
+    if not isinstance(changes, list) or not changes:
+        errors.append('a change needs a non-empty "changes" list')
+        changes = []
+    kinds, seen = [], {}
+    for i, c in enumerate(changes):
+        where = f'change {i + 1}'
+        if not isinstance(c, dict) or c.get('do') not in CHANGES:
+            errors.append(f'{where}: "do" must be one of {sorted(CHANGES)}')
+            continue
+        do = c['do']
+        kinds.append(do)
+        if do in ('done', 'edit-description') and (not isinstance(c.get('task'), str) or not c['task'].strip()):
+            errors.append(f'{where} ({do}) needs "task": the task title, exactly as in the summary')
+        if do == 'edit-description' and (not isinstance(c.get('description'), str) or not c['description'].strip()):
+            errors.append(f'{where} (edit-description) needs the whole new "description"')
+        if do == 'add-note' and not (str(c.get('title') or '').strip() or str(c.get('text') or '').strip()):
+            errors.append(f'{where} (add-note) is empty')
+        if do == 'add-link' and (not isinstance(c.get('url'), str) or not c['url'].strip()):
+            errors.append(f'{where} (add-link) has no url')
+        if do == 'add-tasks':
+            tasks = c.get('tasks')
+            if not isinstance(tasks, list) or not tasks:
+                errors.append(f'{where} (add-tasks) needs a non-empty "tasks" list')
+            else:
+                for j, task in enumerate(tasks):
+                    check_task(task, f'{where}, task {j + 1}', errors, warnings, seen, where)
+        if do == 'replace-plan' and not isinstance(c.get('plan'), dict):
+            errors.append(f'{where} (replace-plan) needs a "plan" object with the About, milestones and tasks')
+    ask = [k for k in kinds if k in ('done', 'edit-description', 'replace-plan')]
+    return report(errors, warnings, f'{len(kinds)} changes for "{data.get("project")}": {", ".join(kinds) or "none"}.'
+                  + (f' {len(ask)} wait for the user to apply.' if ask else ' All apply at once, with Undo.'))
 
 
 def report(errors, warnings, summary):

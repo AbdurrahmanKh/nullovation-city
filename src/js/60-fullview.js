@@ -273,7 +273,7 @@ const FullView = (() => {
     box.append(h('div', { class: 'pv-about-btns' },
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => openSide('activity') }, iconEl('clock', 14), 'Activity'),
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this project\u2019s full status as text for a Claude chat', onclick: () => copyProjectStatus(p) }, iconEl('copy', 14), 'Copy status'),
-      OpenInClaude.button({ id: 'pvStatusClaude', text: () => projectStatus(p), project: p, quiet: true })));
+      OpenInClaude.button({ id: 'pvStatusClaude', text: () => projectStatusForClaude(p), project: p, quiet: true })));
     return box;
   }
   /* The current milestone and its next open task. Overdue shows in red with a !. */

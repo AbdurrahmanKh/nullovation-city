@@ -84,6 +84,7 @@ const Bubble = (() => {
     if (urg.color) kids.push(h('p', { class: 'b-urg ' + urg.color }, h('span', { class: 'b-urg-dot', 'aria-hidden': 'true' }),
       h('span', null, (urg.color === 'red' ? 'Red: ' : 'Yellow: ') + urg.reasons.join('. ') + '.')));
     if (typeof ClaudeWork !== 'undefined') kids.push(ClaudeWork.line(p));
+    if (typeof ClaudeInbox !== 'undefined') kids.push(...ClaudeInbox.cards(p));
     if (current && current.ms) kids.push(h('p', { class: 'b-ms' }, 'Milestone: ', h('bdi', null, current.ms.name)));
     if (visible.length) {
       const ul = h('ul', { class: 'b-todos', 'aria-label': 'Next todos' });

@@ -25,7 +25,7 @@ with sync_playwright() as p:
     pg.goto(FILE); pg.wait_for_timeout(2500)
     js = lambda code: pg.evaluate(code)
     st = js("() => Traffic.stats()")
-    ok(f'a lively city: 12 cars, 2 buses, 2 drones, 20 people roaming, a medium crowd of 14 round each busy building, and 2 cyclists ({st})', st == {'cars': 12, 'buses': 2, 'drones': 2, 'people': 48, 'extras': 28, 'bikes': 2})
+    ok(f'a lively city: 12 cars, 2 buses, 2 drones, 20 people roaming, a medium crowd of 14 round each busy building, and 2 cyclists, with none of Claude\'s drones while no Claude Code session works ({st})', st == {'cars': 12, 'buses': 2, 'drones': 2, 'crew': 0, 'people': 48, 'extras': 28, 'bikes': 2})
     ok('traffic is on by default, with its button beside Bubbles', js("() => Traffic.isOn()") and pg.text_content('#btnTraffic').strip() == 'Traffic')
     pos0 = js("() => Traffic._state().cars.map(c => [c.ri, c.rj, c.h, c.t])")
     ppl0 = js("() => Traffic._state().people.map(q => q.walked)")

@@ -1,4 +1,4 @@
-/* Traffic: cars, a small bus, and delivery drones on the streets, and people on the sidewalks.
+/* Traffic: cars, a small bus, and delivery drones on the streets, people on the sidewalks, and Claude's drones round a building it works on.
    Everything steps in whole map pixels, calmly. The city is busiest around the buildings you
    worked on recently, and a building left alone goes quiet around it. */
 const Traffic = (() => {
@@ -354,6 +354,58 @@ const Traffic = (() => {
     }
   }
 
+  /* ---------- Claude's drones: six fly in and work round a building while Claude Code works on it ---------- */
+  const CREW = 6;
+  let cdrones = [], lastCrew = -1e9;
+  const plotMid = (u, v) => [lotA0(u) + S() / 2, lotA0(v) + S() / 2];
+  function aroundPlot(u, v) {                                   // a point on a loose ring round the building
+    const [ci, cj] = plotMid(u, v), a = R() * Math.PI * 2, r = 1.2 + R() * 1.2;
+    return [ci + Math.cos(a) * r, cj + Math.sin(a) * r];
+  }
+  function mapEdge() {                                          // a point just past the map's edge, to come from and go to
+    const TI = WORLD.MARGIN * 2 + NU * WORLD.PITCH - WORLD.GAP, TJ = WORLD.MARGIN * 2 + NV * WORLD.PITCH - WORLD.GAP, k = R();
+    if (k < 0.25) return [-3, R() * TJ];
+    if (k < 0.5) return [TI + 3, R() * TJ];
+    if (k < 0.75) return [R() * TI, -3];
+    return [R() * TI, TJ + 3];
+  }
+  function workingPlots() {                                     // the plots whose Claude Code session is working now
+    const out = new Map();
+    if (!DB.city.drones || typeof ClaudeWork === 'undefined') return out;
+    for (const [k, p] of MapView.layout()) { const s = ClaudeWork.statusOf(p, true); if (s && s.sessions.some(x => x.state === 'working')) out.set(k, p); }
+    return out;
+  }
+  function crew(t) {                                            // once a second: send drones in, or home
+    if (t - lastCrew < 1000) return;
+    lastCrew = t;
+    const work = workingPlots();
+    for (const d of cdrones) if (!d.leaving && !work.has(d.plot)) { d.leaving = true; d.hold = R() * 0.8; d.to = mapEdge(); d.sp = 3 + R() * 0.6; d.altTo = 120 + Math.round(R() * 16); }
+    for (const k of work.keys()) {
+      const [u, v] = k.split(',').map(Number);
+      let n = cdrones.filter(d => d.plot === k && !d.leaving).length;
+      for (; n < CREW; n++) {
+        const [i, j] = mapEdge();
+        const alt = 120 + Math.round(R() * 16);                   // they come in high and settle to work
+        cdrones.push({ plot: k, u, v, i, j, to: aroundPlot(u, v), alt, altTo: alt, sp: 3 + R() * 0.6, hold: R() * 1.5, spin: R() * 5, leaving: false, there: false });
+      }
+    }
+  }
+  function updateCrew(dt) {
+    for (const d of cdrones) {
+      d.spin += dt;
+      d.alt += (d.altTo - d.alt) * Math.min(1, dt * 1.2);
+      if (d.hold > 0) { d.hold -= dt; continue; }
+      const [ti, tj] = d.to, di = ti - d.i, dj = tj - d.j, dist = Math.hypot(di, dj), step = d.sp * dt;
+      if (dist > step) { d.i += di / dist * step; d.j += dj / dist * step; continue; }
+      d.i = ti; d.j = tj;
+      if (d.leaving) { d.gone = true; continue; }
+      if (!d.there) { d.there = true; d.sp = 0.6 + R() * 0.4; d.altTo = 30 + Math.round(R() * 60); }
+      else d.altTo = Math.max(24, Math.min(96, d.altTo + Math.round((R() - 0.5) * 24)));
+      d.hold = 0.4 + R() * 1.1; d.to = aroundPlot(d.u, d.v);
+    }
+    if (cdrones.some(d => d.gone)) cdrones = cdrones.filter(d => !d.gone);
+  }
+
   /* ---------- the art: drawn in code, in the city palette, by day and by night ---------- */
   const CAR_COLORS = ['#F4A3C3', '#7FD6CE', '#B7A5F0', '#FFE38A', '#9CC7F3', '#FFFFFF', '#F29A74'];
   const HAIR = ['#2B2542', '#6E5446', '#FFE38A', '#9C7C6B'], SKIN = ['#FFB797', '#9C7C6B', '#F4D2B8'];
@@ -469,10 +521,11 @@ const Traffic = (() => {
       b: tone(BIKES[look.frame]), w: tone(WHEEL) };
     return paint(flip ? flipRows(rows) : rows, col, 7, 8, 1);
   }
-  function drone(frame) {
+  function drone(frame, worker) {                               // a delivery drone with its parcel, or one of Claude's: coral, with a warm light
     const [c, g] = mkCanvas(9, 8);
-    const col = { '#': tone('#7A7394'), '+': tone('#D6CEE2'), r: tone('#FFFFFF'), l: '#EE4C93', w: tone('#9C7C6B') };
-    const rows = [frame ? 'r.....r' : '.r...r.', '.#####.', '#+++++#', '.##l##.', '...w...', '..www..'];
+    const col = { '#': tone(worker ? '#A8584A' : '#7A7394'), '+': tone(worker ? '#F29A74' : '#D6CEE2'), r: tone('#FFFFFF'), l: worker ? '#FFE38A' : '#EE4C93', w: tone('#9C7C6B') };
+    const rows = worker ? [frame ? 'r.....r' : '.r...r.', '.#####.', '#+++++#', '.##l##.', '...l...']
+      : [frame ? 'r.....r' : '.r...r.', '.#####.', '#+++++#', '.##l##.', '...w...', '..www..'];
     rows.forEach((row, y) => [...row].forEach((ch, x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x + 1, y + 1, 1, 1); } }));
     return c;
   }
@@ -485,7 +538,7 @@ const Traffic = (() => {
       veh['bus' + h] = vehicle('bus', '#FFE38A', h);
       CAR_COLORS.forEach((col, n) => { veh['car' + n + h] = vehicle('car', col, h); });
     }
-    art = { veh, people: new Map(), drones: [drone(0), drone(1)] };
+    art = { veh, people: new Map(), drones: [drone(0), drone(1)], crew: [drone(0, true), drone(1, true)] };
     return art;
   }
   const cached = (key, make) => { const A = artSet(); if (!A.people.has(key)) A.people.set(key, make()); return A.people.get(key); };
@@ -574,13 +627,17 @@ const Traffic = (() => {
   function drawGround(g) {                                      // drone shadows, under everything else
     const toW = MapView.tileToWorld;
     g.fillStyle = 'rgba(43, 37, 66, 0.22)';
-    for (const d of drones) { const [x, y] = toW(d.i, d.j); g.fillRect(Math.round(x) - 2, Math.round(y), 5, 1); g.fillRect(Math.round(x) - 1, Math.round(y) + 1, 3, 1); }
+    for (const d of drones.concat(cdrones)) { const [x, y] = toW(d.i, d.j); g.fillRect(Math.round(x) - 2, Math.round(y), 5, 1); g.fillRect(Math.round(x) - 1, Math.round(y) + 1, 3, 1); }
   }
   function drawAir(g) {                                         // drones, over everything
     const A = artSet(), toW = MapView.tileToWorld;
     for (const d of drones) {
       const [x, y] = toW(d.i, d.j), bob = d.hold > 0 ? Math.round(Math.sin(d.spin * 1.7)) : 0;
       g.drawImage(A.drones[Math.floor(d.spin * 8) % 2], Math.round(x) - 4, Math.round(y) - d.alt - 4 + bob);
+    }
+    for (const d of cdrones) {
+      const [x, y] = toW(d.i, d.j), bob = d.hold > 0 ? Math.round(Math.sin(d.spin * 2.1)) : 0;
+      g.drawImage(A.crew[Math.floor(d.spin * 10) % 2], Math.round(x) - 4, Math.round(y) - Math.round(d.alt) - 4 + bob);
     }
   }
   function reset() {
@@ -590,6 +647,7 @@ const Traffic = (() => {
     cars = [];
     for (let k = 0; k < n.cars; k++) { const c = spawnCar('car'); if (c) cars.push(c); }
     for (let k = 0; k < n.buses; k++) { const c = spawnCar('bus'); if (c) cars.push(c); }
+    cdrones = []; lastCrew = -1e9;
     drones = Array.from({ length: n.drones }, () => { const [i, j] = droneTarget(); return { i, j, to: droneTarget(), alt: 64 + Math.round(R() * 16), sp: 0.7 + R() * 0.3, hold: 0, spin: R() * 5 }; });
     people = [];
     while (people.length < baseCount()) people.push(spawnPerson());
@@ -607,7 +665,7 @@ const Traffic = (() => {
     const dt = last ? Math.min(0.1, (t - last) / 1000) : 0;
     last = t;
     if (t - lastW > 5000) { refreshWeights(); lastW = t; }
-    updateCars(dt, t); updatePeople(dt, t); updateRiders(dt, t); updateDrones(dt);
+    updateCars(dt, t); updatePeople(dt, t); updateRiders(dt, t); updateDrones(dt); crew(t); updateCrew(dt);
     if (t - lastDraw >= 50) { lastDraw = t; return true; }
     return false;
   }
@@ -615,11 +673,11 @@ const Traffic = (() => {
     /* Still: nothing moves, whatever the button says */
     active: () => on && !Motion.still(), isOn: () => on, step, items, drawGround, drawAir, reset,
     setOn: v => { on = !!v; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { /* this visit only */ } last = 0; },
-    stats: () => ({ cars: cars.filter(c => c.type === 'car').length, buses: cars.filter(c => c.type === 'bus').length, drones: drones.length, people: people.length, extras: people.filter(q => q.home).length, bikes: riders.length }),
+    stats: () => ({ cars: cars.filter(c => c.type === 'car').length, buses: cars.filter(c => c.type === 'bus').length, drones: drones.length, crew: cdrones.filter(d => !d.leaving).length, people: people.length, extras: people.filter(q => q.home).length, bikes: riders.length }),
     busyness: p => busyness(p),
     crowd: () => DB.city.crowd,
     setCrowd: v => { if (!(v in CROWD_PER)) return; DB.city.crowd = v; persistSoon(); lastBalance = 0; },
-    _state: () => ({ cars, people, riders, drones, busy }),
+    _state: () => ({ cars, people, riders, drones, cdrones, busy }),
     /* for the tests: a look, and the sprite rows and canvases the map draws */
     _look: () => newLook(), _rows: (look, frame, back) => personRows(look, frame, back),
     _sprite: (look, frame, back, flip) => personArt(look, frame, back, flip),
