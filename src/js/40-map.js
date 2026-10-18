@@ -556,7 +556,7 @@ const MapView = (() => {
       if (it.plot) { drawPlot(it.u, it.v, lay, slots, T); if (junk) Garbage.drawOnPlot(ctx, it.u, it.v); } else it.draw(ctx);
     }
     if (moving) Traffic.drawAir(ctx);
-    if (!noBubbles) drawUrgency();
+    if (!noBubbles) { drawUrgency(); placeHoverLabel(); }
   }
 
   /* One plot: its park or its building, with its ring. */
@@ -669,7 +669,43 @@ const MapView = (() => {
     claude: { edge: '#5C2416', fill: '#D9775A', hi: '#F5B39A', ink: '#FFF6EE' },      // Claude Code working, or waiting for you
     done: { edge: '#0F4D3C', fill: '#3CC795', hi: '#A4F0D2', ink: '#FFFFFF' },        // Claude Code finished: your turn
     failed: { edge: '#3E3656', fill: '#9C93B8', hi: '#D6D0E6', ink: '#FFFFFF' },      // Claude Code stopped on an error
+    star: { edge: '#2E1A5C', fill: '#6E46C9', hi: '#A98BEE', ink: '#FFD23F' },        // the city's starred task: a gold star
   };
+  const STAR = ['0001000', '0011100', '1111111', '0111110', '0011100', '0110110', '0100010'];
+  /* Hovering a building (Tasks, Round 2, M1 to M3): after a short rest, its open tasks as a white bubble, and the
+     next task in one line under the bubbles. It shows in any Bubbles choice, No bubbles too, since you asked for it;
+     never in the postcard, on the selected building, or while planting, moving or in Edit City. */
+  const HOVER_MS = 250, HOVER_CHARS = 40;
+  let hoverShow = null, hoverTimer = 0, hoverGeo = null;
+  function hoverAllowed(id) {
+    return !!id && id === hoverShow && !editing && mode.name === 'idle' && id !== App.selectedId && !(typeof Wheel !== 'undefined' && Wheel.isOpen());
+  }
+  function armHover(id) {
+    clearTimeout(hoverTimer); hoverTimer = 0;
+    if (hoverShow) { hoverShow = null; hideHoverLabel(); invalidate(); }
+    if (id) hoverTimer = setTimeout(() => { hoverTimer = 0; hoverShow = id; invalidate(); }, HOVER_MS);
+  }
+  function hideHoverLabel() { const el = $('#hoverTask'); if (el) el.hidden = true; }
+  /* The label sits under the building's bubbles, centred on them; it follows the camera as the map is drawn. */
+  function placeHoverLabel() {
+    const el = $('#hoverTask'); if (!el) return;
+    const p = hoverAllowed(hoverShow) ? getProject(hoverShow) : null;
+    const t = p ? nextTask(p) : null;
+    if (!t || !hoverGeo || hoverGeo.id !== p.id) { el.hidden = true; return; }
+    const text = t.text.length > HOVER_CHARS ? t.text.slice(0, HOVER_CHARS - 1).trimEnd() + '…' : t.text;
+    const mark = isStarred(p, t) ? 'star' : isPinned(p, t) ? 'pin' : '';
+    const key = mark + '|' + text;
+    if (el.dataset.key !== key) {
+      el.dataset.key = key;
+      el.replaceChildren(...[mark ? iconEl(mark, 12) : null, h('span', { dir: 'auto' }, text)].filter(Boolean));
+      el.title = t.text;
+    }
+    el.dataset.id = p.id;
+    el.hidden = false;
+    const [cx, cy] = worldToCss(hoverGeo.x, hoverGeo.y);
+    const W = wrap.clientWidth, Hh = wrap.clientHeight, w = el.offsetWidth, hh = el.offsetHeight;
+    el.style.transform = `translate(${Math.round(clamp(cx - w / 2, 4, Math.max(4, W - w - 4)))}px, ${Math.round(clamp(cy + 4, 4, Math.max(4, Hh - hh - 4)))}px)`;
+  }
   const GLYPH = {
     '0': ['111', '101', '101', '101', '111'], '1': ['010', '110', '010', '010', '111'], '2': ['111', '001', '111', '100', '111'],
     '3': ['111', '001', '111', '001', '111'], '4': ['101', '101', '111', '001', '001'], '5': ['111', '100', '111', '001', '111'],
@@ -692,6 +728,7 @@ const MapView = (() => {
       const urg = urgencyOf(p, wall);
       if (urg.color && !(bubbleMode === 'red' && urg.color !== 'red')) out.push({ kind: 'urgency', color: urg.color, count: urg.count, text: urg.count <= 1 ? '!' : String(Math.min(urg.count, 99)) });
     }
+    if (bubbleMode !== 'none' && openTaskById(p, p.star)) out.push({ kind: 'star', color: 'star', count: 0, icon: STAR, text: '' });
     const cs = bubbleMode !== 'none' && typeof ClaudeWork !== 'undefined' ? ClaudeWork.mapStatus(p) : null;
     if (cs) {
       const n = cs.count > 1 ? String(Math.min(cs.count, 9)) : '';
@@ -700,16 +737,32 @@ const MapView = (() => {
         : cs.state === 'failed' ? { kind: 'claude', state: 'failed', color: 'failed', count: cs.count, icon: CROSS, text: n, frame: 0 }
         : { kind: 'claude', state: cs.state, color: 'claude', count: cs.count, icon: SPARK[frame], text: cs.state === 'waiting' ? '?' : n, frame });
     }
-    if (!out.length) return out;
+    const hov = hoverAllowed(p.id);
+    if (!out.length && !hov) return out;
     const g = blockGeom(p, u, v), hh = 11, k = idHash(p.id);
     const bob = Motion.still() ? 0 : Math.round(Math.sin(t / (1500 + (k % 420)) + (k % 628) / 100));
-    for (const b of out) {
+    const size = b => {
       b.tw = b.text ? [...b.text].reduce((w, ch) => w + GLYPH[ch][0].length, 0) + b.text.length - 1 : 0;
       const iw = b.icon ? b.icon[0].length : 0;
       b.w = Math.max(9, iw + (iw && b.tw ? 1 : 0) + b.tw + 6);
-    }
+    };
+    out.forEach(size);
+    const y = Math.round(g.top) - 6 - hh;
     let x = Math.round(g.X - (out.reduce((a, b) => a + b.w, 0) + 2 * (out.length - 1)) / 2);
-    for (const b of out) { Object.assign(b, { p, x, y: Math.round(g.top) - 6 - hh + bob, h: hh, bob }); x += b.w + 2; }
+    for (const b of out) { Object.assign(b, { p, x, y: y + bob, h: hh, bob }); x += b.w + 2; }
+    if (hov) {
+      /* The hover's white count joins on the left, so the bubbles already there stay where they are; the Tasks view
+         already shows the count, so there only the label is added. */
+      if (bubbleMode !== 'tasks') {
+        const count = p.todos.filter(q => !q.done).length;
+        const hb = { kind: 'hover', color: 'grey', count, text: String(Math.min(count, 99)) };
+        size(hb);
+        Object.assign(hb, { p, x: out.length ? out[0].x - 2 - hb.w : Math.round(g.X - hb.w / 2), y: y + bob, h: hh, bob });
+        out.unshift(hb);
+      }
+      const x0 = out[0].x, x1 = out[out.length - 1].x + out[out.length - 1].w;
+      hoverGeo = { id: p.id, x: (x0 + x1) / 2, y: y + hh + 2 };
+    }
     return out;
   }
   function eachBubble(fn) {
@@ -1064,7 +1117,7 @@ const MapView = (() => {
     }
     const hit = hitProject(x, y);
     const id = hit ? hit.id : null;
-    if (id !== hoverId) { hoverId = id; invalidate(); }
+    if (id !== hoverId) { hoverId = id; invalidate(); armHover(id); }
     canvas.classList.toggle('over-building', !!hit);
     if (hit && hit.id !== App.selectedId) showTip(hit.name, x, y); else hideTip();
   }
@@ -1081,6 +1134,7 @@ const MapView = (() => {
     if (pointers.size === 2) { beginPinch(); return; }
     if (pointers.size > 2) return;
     const hit = mode.name === 'place' ? null : hitProject(x, y);
+    armHover(null);                                          // a press ends the hover; letting go starts it again
     gesture = { type: 'maybe', id: e.pointerId, sx: x, sy: y, lx: x, ly: y, hit, hold: null };
     if (hit && mode.name === 'idle' && !editing) gesture.hold = setTimeout(() => beginMove(hit, x, y), 380);
   }
@@ -1117,6 +1171,10 @@ const MapView = (() => {
     if (e.type === 'pointercancel') { if (g.type === 'move') finishMove(false); return; }
     if (g.type === 'maybe') click(x, y, g.hit);
     else if (g.type === 'move') finishMove(true);
+    if (e.pointerType === 'mouse' && mode.name === 'idle' && !editing) {     // the building under the pointer now
+      const hit = hitProject(x, y);
+      hoverId = hit ? hit.id : null; invalidate(); armHover(hoverId);
+    }
   }
   function click(x, y, hit) {
     if (editing) {
@@ -1354,13 +1412,14 @@ const MapView = (() => {
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerup', onUp);
     canvas.addEventListener('pointercancel', onUp);
-    canvas.addEventListener('pointerleave', () => { if (!gesture && hoverId) { hoverId = null; invalidate(); } hideTip(); });
+    canvas.addEventListener('pointerleave', () => { if (!gesture && hoverId) { hoverId = null; invalidate(); } armHover(null); hideTip(); });
     wrap.addEventListener('wheel', onWheel, { passive: false }); // also over the bubble and Enter button
     /* Right-click on a building opens its shortcut wheel; not while planting, moving, or in Edit City. */
     canvas.addEventListener('contextmenu', e => {
       e.preventDefault();
       if (editing || mode.name !== 'idle') return;
       const [x, y] = local(e), hit = hitProject(x, y);
+      armHover(null);
       if (hit) { hideTip(); Wheel.open(hit, x, y); } else Wheel.close();
     });
     $('#camIcon').innerHTML = iconSvg('camera', 18);
@@ -1462,6 +1521,7 @@ const MapView = (() => {
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
     previewScale, profileScene, glideBeside,
     bubbleMode: () => bubbleMode, bubbleAt: id => eachBubble(b => b.p.id === id && b.kind !== 'claude'), claudeBubbleAt: id => eachBubble(b => b.p.id === id && b.kind === 'claude'),
+    _bubblesOf: id => { const out = []; eachBubble(b => { if (b.p.id === id) out.push({ kind: b.kind, color: b.color, text: b.text, x: b.x, y: b.y - b.bob, w: b.w }); }); return out; },   // for the tests
     crossMark, layout: () => displayLayout(), tileToWorld, drawHalf,
     props: () => propPlan(), propsDrawn: () => lastProps,
     _depthOrder: sprites => depthSort([], sprites),                // for the tests: figures among themselves, back to front

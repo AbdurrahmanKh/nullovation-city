@@ -220,6 +220,22 @@ select.field { appearance: none; -webkit-appearance: none; padding-right: 30px; 
 .b-task:hover, .b-task:focus-visible { text-decoration: underline; outline: none; }
 .b-copy { flex: none; width: 24px; height: 24px; padding: 0; margin-top: -1px; opacity: .75; }
 .b-copy:hover, .b-copy:focus-visible { opacity: 1; }
+/* pins and the city's star (Tasks, Round 2, M4 to M6): hollow until pressed, shown when the row is pointed at */
+.task-mark { flex: none; width: 24px; height: 24px; padding: 0; opacity: 0; color: var(--ink-soft); }
+.task-mark.on { opacity: 1; color: var(--ink); }
+li:hover > .task-mark, li:focus-within > .task-mark { opacity: .7; }
+li > .task-mark.on, .task-mark:hover, .task-mark:focus-visible { opacity: 1; }
+.pv-next-title { display: flex; align-items: center; gap: 4px; }
+.pv-next-title .pv-next-task { margin-right: 6px; }
+.pv-next-title .task-mark { opacity: .7; }
+.pv-next-title .task-mark.on { opacity: 1; }
+.b-todos li .task-mark { margin-top: -1px; }
+@media (hover: none) { .task-mark { opacity: .6; } }
+.pv-next-lbl { display: flex; align-items: center; }
+.pv-next-lbl .lbl { margin: 0; }
+.pv-pinned { display: inline-flex; align-items: center; gap: 4px; margin-left: 10px; font: 600 12px/1 var(--f-pixel); color: var(--ink-soft); }
+.pv-task-marks { gap: 10px; }
+.pv-mark.on { background: var(--hover); }
 .b-todos label { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; cursor: pointer; }
 .b-todos .ticked .txt { text-decoration: line-through; color: var(--muted); }
 .b-todos .slide-in { animation: slide-in .28s ease-out; }
@@ -240,6 +256,17 @@ select.field { appearance: none; -webkit-appearance: none; padding-right: 30px; 
   position: absolute; left: 0; top: 0;
   font-size: 17px; padding: 8px 14px 7px 11px;
 }
+
+/* hovering a building: its next task in one line, under its bubbles, in the Tasks view's near white */
+.hover-task {
+  position: absolute; left: 0; top: 0; pointer-events: none !important;
+  display: inline-flex; align-items: center; gap: 4px; max-width: 340px; padding: 2px 6px 1px;
+  font: 500 13px/1.25 var(--f-pixel); color: #2B2542; background: #F4F1F8;
+  box-shadow: 0 -2px 0 0 #7A7394, 0 2px 0 0 #7A7394, -2px 0 0 0 #7A7394, 2px 0 0 0 #7A7394;
+  white-space: nowrap; overflow: hidden;
+}
+.hover-task[hidden] { display: none; }
+.hover-task .ic { flex: none; color: #2B2542; }
 
 .tip {
   position: absolute; left: 0; top: 0; pointer-events: none !important;
@@ -1026,7 +1053,7 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.37</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.39</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1253,6 +1280,7 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
   <main id="mapWrap">
     <canvas id="map" aria-label="City map. Each building is a project." role="img"></canvas>
     <div id="overlay">
+      <div id="hoverTask" class="hover-task" aria-hidden="true" hidden></div>
       <div id="bubble" class="bubble" role="dialog" aria-label="Project status" hidden></div>
       <button id="enterBtn" class="btn btn-accent enter" type="button" hidden><span id="doorIcon" aria-hidden="true"></span>Enter</button>
       <div id="tip" class="tip" hidden></div>
@@ -1970,7 +1998,7 @@ function blankProject(o = {}) {
   const now = Date.now();
   return Object.assign({
     id: uid('p'), name: 'Untitled project', description: '',
-    deadline: '', progressOverride: null, todos: [], links: [], milestones: [], notes: [],
+    deadline: '', progressOverride: null, todos: [], links: [], milestones: [], notes: [], pin: '', star: '',
     plot: { u: 0, v: 0 }, art: { has: false, includesPlot: false }, generic: null, activity: [], flip: false,
     urgency: { system: 'none', days: 1, lastWorked: null, pickedAt: null },
     createdAt: now, updatedAt: now,
@@ -1988,8 +2016,45 @@ function groupsOf(p) {
 }
 /* The current milestone is the first group that still has open todos. */
 function currentGroup(p) { return groupsOf(p).find(g => g.ms && g.todos.some(t => !t.done)) || null; }
-/* What is next: the first open todo in the current milestone, in list order. */
-function nextTask(p) { const g = currentGroup(p); return g ? g.todos.find(t => !t.done) || null : null; }
+/* What is next: the pinned task, else the first open todo in the current milestone, in list order. */
+function nextTask(p) { const pin = pinnedTask(p); if (pin) return pin; const g = currentGroup(p); return g ? g.todos.find(t => !t.done) || null : null; }
+
+/* ---------- pins and the city's star (Tasks, Round 2, M4 to M6) ----------
+   A project can pin one open task: it comes first in What is next and the status card. One open task in the whole
+   city can wear the star, a bubble over its building; starring a task also pins it in its project, and the two are
+   separate after that. Both clear only when their task is ticked, deleted, or unpinned or unstarred (M5). They live
+   on the project as task ids (`pin`, `star`), so editing a task and undoing it with Esc never touches them. */
+const openTaskById = (p, id) => (id ? p.todos.find(t => t.id === id && !t.done) || null : null);
+function pinnedTask(p) { return openTaskById(p, p.pin); }
+function starredTask() {
+  for (const p of DB.projects) { const t = openTaskById(p, p.star); if (t) return { p, t }; }
+  return null;
+}
+const isPinned = (p, t) => !t.done && p.pin === t.id;
+const isStarred = (p, t) => !t.done && p.star === t.id;
+function setPin(p, t, on) {
+  p.pin = on && !t.done ? t.id : (p.pin === t.id ? '' : p.pin);
+  changed(p, { touch: false });                        // a pin is not work on the project
+}
+function setStar(p, t, on) {
+  const was = starredTask();
+  if (on && !t.done) {
+    for (const q of DB.projects) q.star = '';
+    p.star = t.id; p.pin = t.id;                          // starring pins it too (M6)
+    if (was && was.t !== t) toast('The star moved to ' + t.text + '.');
+  } else if (p.star === t.id) p.star = '';
+  changed(p, { touch: false });
+}
+/* A tick, a deletion or a new plan leaves a pin or the star on a task that is no longer open: they clear for good,
+   so reopening the task does not bring them back. Runs before every save. */
+function tidyMarks() {
+  let starSeen = false;
+  for (const p of DB.projects) {
+    if (p.pin && !openTaskById(p, p.pin)) p.pin = '';
+    if (p.star && (!openTaskById(p, p.star) || starSeen)) p.star = '';
+    if (p.star) starSeen = true;
+  }
+}
 /* Every todo lives in a milestone. Anything outside one moves into "To do", at the top. */
 function ensureMilestones(p) {
   const known = new Set(p.milestones.map(m => m.id));
@@ -2071,14 +2136,16 @@ function dueInfo(t, now = Date.now()) {
   if (diff > 1) return { text: 'Due ' + fmtDate(due), tone: diff <= DUE_SOON_DAYS ? 'soon' : '', diff };
   return { text: (-diff === 1 ? '1 day' : -diff + ' days') + ' overdue', tone: 'late', diff };
 }
-/* The bubble: todos due soon or overdue first (any milestone), then the current milestone in list order. */
+/* The bubble: the pinned task first, then todos due soon or overdue (any milestone), then the current milestone in
+   list order. A task being ticked off (in keep) holds its place until it slides away. */
 function bubbleTodos(p, n = BUBBLE_TODOS, keep = null) {
   const visible = t => !t.done || (keep && keep.has(t.id));
-  const urgent = p.todos.filter(t => visible(t) && t.due && dueInfo(t) && dueInfo(t).diff <= DUE_SOON_DAYS)
+  const pin = p.pin ? p.todos.find(t => t.id === p.pin && visible(t)) || null : null;
+  const urgent = p.todos.filter(t => t !== pin && visible(t) && t.due && dueInfo(t) && dueInfo(t).diff <= DUE_SOON_DAYS)
     .sort((a, b) => parseYmd(a.due) - parseYmd(b.due));
   const cur = currentGroup(p);
-  const rest = cur ? cur.todos.filter(t => visible(t) && !urgent.includes(t)) : [];
-  return { list: [...urgent, ...rest].slice(0, n), current: cur };
+  const rest = cur ? cur.todos.filter(t => t !== pin && visible(t) && !urgent.includes(t)) : [];
+  return { list: [...(pin ? [pin] : []), ...urgent, ...rest].slice(0, n), current: cur };
 }
 
 function seedProjects() {
@@ -2155,6 +2222,8 @@ function sanitizeProjects(raw) {
     normalizeOrder(p);
     ensureMilestones(p);
     backfillActivity(p);
+    p.pin = typeof r.pin === 'string' && openTaskById(p, r.pin) ? r.pin : '';
+    p.star = typeof r.star === 'string' && openTaskById(p, r.star) ? r.star : '';
     const u = r.plot && Number.isInteger(r.plot.u) ? r.plot.u : -1;
     const v = r.plot && Number.isInteger(r.plot.v) ? r.plot.v : -1;
     p.plot = (u >= 0 && v >= 0 && u < WORLD.NU && v < WORLD.NV && !taken.has(u + ',' + v)) ? { u, v } : null;
@@ -2175,12 +2244,15 @@ function sanitizeProjects(raw) {
     }
     kept.push(item);
   }
+  let starSeen = false;                                   // one star in the whole city: the first one read keeps it
+  for (const { p } of kept) { if (p.star && starSeen) p.star = ''; if (p.star) starSeen = true; }
   return kept;
 }
 
 /* ---------- saving ---------- */
 const persistSoon = debounce(persistNow, 300);
 function persistNow() {
+  tidyMarks();
   const ok = Store.save(DB);
   if (typeof Menu !== 'undefined') Menu.setSaveStatus(ok);
   if (typeof DataFile !== 'undefined') DataFile.writeSoon();
@@ -2443,7 +2515,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.37";
+const APP_VERSION = "0.1.39";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -2912,11 +2984,13 @@ const ICONS = {
   help: ['..####..', '.##..##.', '.....##.', '....##..', '...##...', '...##...', '........', '...##...', '...##...', '........'],
   walker: ['....##....', '....##....', '..........', '...####...', '..#.##.#..', '..#.##.#..', '....##....', '...#..#...', '...#..#...', '..##..##..'],
   disk: ['#########.', '#+#....#+#', '#+#....#+#', '#+######+#', '#++++++++#', '#+######+#', '#+#....#+#', '#+#....#+#', '#+######+#', '##########'],
+  pin: ['...####...', '..#++++#..', '..#++++#..', '..#++++#..', '.########.', '....##....', '....##....', '....##....', '....#.....', '....#.....'],
+  star: ['....##....', '...#++#...', '...#++#...', '####++####', '#++++++++#', '.#++++++#.', '..#++++#..', '.#++##++#.', '.#+#..#+#.', '.##....##.'],
   arrow: ['######....', '######....', '####......', '##.##.....', '##..##....', '##...##...', '......##..', '.......##.', '........##', '..........'],
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
 const ICON_NAMES = { doc: 'Doc', code: 'Code', github: 'GitHub', claude: 'Claude', chat: 'Chat', folder: 'Folder', web: 'Web' };
-const ICON_ACCENT = { claude: '#D97757' };             // Claude's spark keeps its own orange
+const ICON_ACCENT = { claude: '#D97757', star: '#FFD23F', pin: '#E0356F' };   // Claude's spark keeps its own orange; the star gold, the pin coral
 function iconSvg(name, size = 24, accent = ICON_ACCENT[name] || 'var(--accent)') {
   const rows = ICONS[name]; if (!rows) return '';
   const w = rows[0].length, ht = rows.length;
@@ -3744,7 +3818,7 @@ const MapView = (() => {
       if (it.plot) { drawPlot(it.u, it.v, lay, slots, T); if (junk) Garbage.drawOnPlot(ctx, it.u, it.v); } else it.draw(ctx);
     }
     if (moving) Traffic.drawAir(ctx);
-    if (!noBubbles) drawUrgency();
+    if (!noBubbles) { drawUrgency(); placeHoverLabel(); }
   }
 
   /* One plot: its park or its building, with its ring. */
@@ -3857,7 +3931,43 @@ const MapView = (() => {
     claude: { edge: '#5C2416', fill: '#D9775A', hi: '#F5B39A', ink: '#FFF6EE' },      // Claude Code working, or waiting for you
     done: { edge: '#0F4D3C', fill: '#3CC795', hi: '#A4F0D2', ink: '#FFFFFF' },        // Claude Code finished: your turn
     failed: { edge: '#3E3656', fill: '#9C93B8', hi: '#D6D0E6', ink: '#FFFFFF' },      // Claude Code stopped on an error
+    star: { edge: '#2E1A5C', fill: '#6E46C9', hi: '#A98BEE', ink: '#FFD23F' },        // the city's starred task: a gold star
   };
+  const STAR = ['0001000', '0011100', '1111111', '0111110', '0011100', '0110110', '0100010'];
+  /* Hovering a building (Tasks, Round 2, M1 to M3): after a short rest, its open tasks as a white bubble, and the
+     next task in one line under the bubbles. It shows in any Bubbles choice, No bubbles too, since you asked for it;
+     never in the postcard, on the selected building, or while planting, moving or in Edit City. */
+  const HOVER_MS = 250, HOVER_CHARS = 40;
+  let hoverShow = null, hoverTimer = 0, hoverGeo = null;
+  function hoverAllowed(id) {
+    return !!id && id === hoverShow && !editing && mode.name === 'idle' && id !== App.selectedId && !(typeof Wheel !== 'undefined' && Wheel.isOpen());
+  }
+  function armHover(id) {
+    clearTimeout(hoverTimer); hoverTimer = 0;
+    if (hoverShow) { hoverShow = null; hideHoverLabel(); invalidate(); }
+    if (id) hoverTimer = setTimeout(() => { hoverTimer = 0; hoverShow = id; invalidate(); }, HOVER_MS);
+  }
+  function hideHoverLabel() { const el = $('#hoverTask'); if (el) el.hidden = true; }
+  /* The label sits under the building's bubbles, centred on them; it follows the camera as the map is drawn. */
+  function placeHoverLabel() {
+    const el = $('#hoverTask'); if (!el) return;
+    const p = hoverAllowed(hoverShow) ? getProject(hoverShow) : null;
+    const t = p ? nextTask(p) : null;
+    if (!t || !hoverGeo || hoverGeo.id !== p.id) { el.hidden = true; return; }
+    const text = t.text.length > HOVER_CHARS ? t.text.slice(0, HOVER_CHARS - 1).trimEnd() + '…' : t.text;
+    const mark = isStarred(p, t) ? 'star' : isPinned(p, t) ? 'pin' : '';
+    const key = mark + '|' + text;
+    if (el.dataset.key !== key) {
+      el.dataset.key = key;
+      el.replaceChildren(...[mark ? iconEl(mark, 12) : null, h('span', { dir: 'auto' }, text)].filter(Boolean));
+      el.title = t.text;
+    }
+    el.dataset.id = p.id;
+    el.hidden = false;
+    const [cx, cy] = worldToCss(hoverGeo.x, hoverGeo.y);
+    const W = wrap.clientWidth, Hh = wrap.clientHeight, w = el.offsetWidth, hh = el.offsetHeight;
+    el.style.transform = `translate(${Math.round(clamp(cx - w / 2, 4, Math.max(4, W - w - 4)))}px, ${Math.round(clamp(cy + 4, 4, Math.max(4, Hh - hh - 4)))}px)`;
+  }
   const GLYPH = {
     '0': ['111', '101', '101', '101', '111'], '1': ['010', '110', '010', '010', '111'], '2': ['111', '001', '111', '100', '111'],
     '3': ['111', '001', '111', '001', '111'], '4': ['101', '101', '111', '001', '001'], '5': ['111', '100', '111', '001', '111'],
@@ -3880,6 +3990,7 @@ const MapView = (() => {
       const urg = urgencyOf(p, wall);
       if (urg.color && !(bubbleMode === 'red' && urg.color !== 'red')) out.push({ kind: 'urgency', color: urg.color, count: urg.count, text: urg.count <= 1 ? '!' : String(Math.min(urg.count, 99)) });
     }
+    if (bubbleMode !== 'none' && openTaskById(p, p.star)) out.push({ kind: 'star', color: 'star', count: 0, icon: STAR, text: '' });
     const cs = bubbleMode !== 'none' && typeof ClaudeWork !== 'undefined' ? ClaudeWork.mapStatus(p) : null;
     if (cs) {
       const n = cs.count > 1 ? String(Math.min(cs.count, 9)) : '';
@@ -3888,16 +3999,32 @@ const MapView = (() => {
         : cs.state === 'failed' ? { kind: 'claude', state: 'failed', color: 'failed', count: cs.count, icon: CROSS, text: n, frame: 0 }
         : { kind: 'claude', state: cs.state, color: 'claude', count: cs.count, icon: SPARK[frame], text: cs.state === 'waiting' ? '?' : n, frame });
     }
-    if (!out.length) return out;
+    const hov = hoverAllowed(p.id);
+    if (!out.length && !hov) return out;
     const g = blockGeom(p, u, v), hh = 11, k = idHash(p.id);
     const bob = Motion.still() ? 0 : Math.round(Math.sin(t / (1500 + (k % 420)) + (k % 628) / 100));
-    for (const b of out) {
+    const size = b => {
       b.tw = b.text ? [...b.text].reduce((w, ch) => w + GLYPH[ch][0].length, 0) + b.text.length - 1 : 0;
       const iw = b.icon ? b.icon[0].length : 0;
       b.w = Math.max(9, iw + (iw && b.tw ? 1 : 0) + b.tw + 6);
-    }
+    };
+    out.forEach(size);
+    const y = Math.round(g.top) - 6 - hh;
     let x = Math.round(g.X - (out.reduce((a, b) => a + b.w, 0) + 2 * (out.length - 1)) / 2);
-    for (const b of out) { Object.assign(b, { p, x, y: Math.round(g.top) - 6 - hh + bob, h: hh, bob }); x += b.w + 2; }
+    for (const b of out) { Object.assign(b, { p, x, y: y + bob, h: hh, bob }); x += b.w + 2; }
+    if (hov) {
+      /* The hover's white count joins on the left, so the bubbles already there stay where they are; the Tasks view
+         already shows the count, so there only the label is added. */
+      if (bubbleMode !== 'tasks') {
+        const count = p.todos.filter(q => !q.done).length;
+        const hb = { kind: 'hover', color: 'grey', count, text: String(Math.min(count, 99)) };
+        size(hb);
+        Object.assign(hb, { p, x: out.length ? out[0].x - 2 - hb.w : Math.round(g.X - hb.w / 2), y: y + bob, h: hh, bob });
+        out.unshift(hb);
+      }
+      const x0 = out[0].x, x1 = out[out.length - 1].x + out[out.length - 1].w;
+      hoverGeo = { id: p.id, x: (x0 + x1) / 2, y: y + hh + 2 };
+    }
     return out;
   }
   function eachBubble(fn) {
@@ -4252,7 +4379,7 @@ const MapView = (() => {
     }
     const hit = hitProject(x, y);
     const id = hit ? hit.id : null;
-    if (id !== hoverId) { hoverId = id; invalidate(); }
+    if (id !== hoverId) { hoverId = id; invalidate(); armHover(id); }
     canvas.classList.toggle('over-building', !!hit);
     if (hit && hit.id !== App.selectedId) showTip(hit.name, x, y); else hideTip();
   }
@@ -4269,6 +4396,7 @@ const MapView = (() => {
     if (pointers.size === 2) { beginPinch(); return; }
     if (pointers.size > 2) return;
     const hit = mode.name === 'place' ? null : hitProject(x, y);
+    armHover(null);                                          // a press ends the hover; letting go starts it again
     gesture = { type: 'maybe', id: e.pointerId, sx: x, sy: y, lx: x, ly: y, hit, hold: null };
     if (hit && mode.name === 'idle' && !editing) gesture.hold = setTimeout(() => beginMove(hit, x, y), 380);
   }
@@ -4305,6 +4433,10 @@ const MapView = (() => {
     if (e.type === 'pointercancel') { if (g.type === 'move') finishMove(false); return; }
     if (g.type === 'maybe') click(x, y, g.hit);
     else if (g.type === 'move') finishMove(true);
+    if (e.pointerType === 'mouse' && mode.name === 'idle' && !editing) {     // the building under the pointer now
+      const hit = hitProject(x, y);
+      hoverId = hit ? hit.id : null; invalidate(); armHover(hoverId);
+    }
   }
   function click(x, y, hit) {
     if (editing) {
@@ -4542,13 +4674,14 @@ const MapView = (() => {
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerup', onUp);
     canvas.addEventListener('pointercancel', onUp);
-    canvas.addEventListener('pointerleave', () => { if (!gesture && hoverId) { hoverId = null; invalidate(); } hideTip(); });
+    canvas.addEventListener('pointerleave', () => { if (!gesture && hoverId) { hoverId = null; invalidate(); } armHover(null); hideTip(); });
     wrap.addEventListener('wheel', onWheel, { passive: false }); // also over the bubble and Enter button
     /* Right-click on a building opens its shortcut wheel; not while planting, moving, or in Edit City. */
     canvas.addEventListener('contextmenu', e => {
       e.preventDefault();
       if (editing || mode.name !== 'idle') return;
       const [x, y] = local(e), hit = hitProject(x, y);
+      armHover(null);
       if (hit) { hideTip(); Wheel.open(hit, x, y); } else Wheel.close();
     });
     $('#camIcon').innerHTML = iconSvg('camera', 18);
@@ -4650,6 +4783,7 @@ const MapView = (() => {
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
     previewScale, profileScene, glideBeside,
     bubbleMode: () => bubbleMode, bubbleAt: id => eachBubble(b => b.p.id === id && b.kind !== 'claude'), claudeBubbleAt: id => eachBubble(b => b.p.id === id && b.kind === 'claude'),
+    _bubblesOf: id => { const out = []; eachBubble(b => { if (b.p.id === id) out.push({ kind: b.kind, color: b.color, text: b.text, x: b.x, y: b.y - b.bob, w: b.w }); }); return out; },   // for the tests
     crossMark, layout: () => displayLayout(), tileToWorld, drawHalf,
     props: () => propPlan(), propsDrawn: () => lastProps,
     _depthOrder: sprites => depthSort([], sprites),                // for the tests: figures among themselves, back to front
@@ -6112,6 +6246,31 @@ function dueChip(t) {
   const d = dueInfo(t);
   return d ? h('span', { class: 'due ' + (d.tone || '') }, d.text) : null;
 }
+/* The pin and the star for one open task (Tasks, Round 2, M4 and M6), as small icon buttons: a pressed one stays in
+   view, the others show while the row is pointed at or has the focus. After a change, the panels that show the task
+   redraw, and the focus comes back to the same button. */
+function markButtons(p, t, cls = '') {
+  if (t.done) return [];
+  const one = (kind, on, label, title, flip) => h('button', {
+    class: 'icon-btn task-mark mark-' + kind + (on ? ' on' : '') + (cls ? ' ' + cls : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
+    'aria-pressed': String(on), 'aria-label': label, title, html: iconSvg(kind, 14, on ? undefined : 'transparent'),
+    onclick: e => {
+      e.stopPropagation();
+      const scope = e.currentTarget.closest('[id]'), sid = scope ? scope.id : null;
+      flip();
+      if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
+      const back = sid && document.getElementById(sid), b = back && $(`[data-mark="${kind}"][data-task="${t.id}"]`, back);
+      if (b) b.focus();
+    },
+  });
+  const pin = isPinned(p, t), star = isStarred(p, t);
+  return [
+    one('pin', pin, (pin ? 'Unpin: ' : 'Pin as next: ') + t.text, pin ? 'Pinned: it comes first in What is next. Click to unpin.' : 'Pin it: it comes first in What is next and the status card',
+      () => setPin(p, t, !pin)),
+    one('star', star, (star ? 'Unstar: ' : 'Star for the city: ') + t.text, star ? 'Starred: its building wears the star. Click to unstar.' : 'Star it: the one task the whole city shows with a star, over its building',
+      () => setStar(p, t, !star)),
+  ];
+}
 function metaRow(p) {
   const bits = [];
   const dl = deadlineInfo(p.deadline);
@@ -6196,6 +6355,7 @@ const Bubble = (() => {
         li.append(
           h('input', { type: 'checkbox', class: 'cb', checked: t.done, 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
           h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t)),
+          ...(ticking.has(t.id) ? [] : markButtons(p, t, 'b-mark')),
           h('button', { class: 'icon-btn b-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));
         ul.append(li);
       }
@@ -6575,20 +6735,24 @@ const FullView = (() => {
       OpenInClaude.button({ id: 'pvStatusClaude', text: () => projectStatusForClaude(p), project: p, quiet: true })));
     return box;
   }
-  /* The current milestone and its next open task. Overdue shows in red with a !. */
+  /* The next task, pinned or the first open one in the current milestone, with its milestone. Overdue shows in red
+     with a !. A pinned task says so beside the label, and its pin unpins it here. */
   function whatIsNext(p) {
-    const box = h('div', { class: 'pv-next' }, h('span', { class: 'lbl' }, 'What is next'));
-    const t = nextTask(p);
+    const t = nextTask(p), pinned = !!(t && isPinned(p, t));
+    const box = h('div', { class: 'pv-next' }, h('span', { class: 'pv-next-lbl' }, h('span', { class: 'lbl' }, 'What is next'),
+      pinned ? h('span', { class: 'pv-pinned' }, iconEl('pin', 12), 'Pinned') : null));
     if (!t) {
       box.append(h('p', { class: 'fv-empty' }, p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
       return box;
     }
-    const g = currentGroup(p), ms = g.ms;
+    const g = groupsOf(p).find(x => x.ms && x.ms.id === t.milestoneId) || currentGroup(p), ms = g.ms;
     const d = dueInfo(t), late = d && d.tone === 'late';
     box.append(h('button', { class: 'pv-next-ms', type: 'button', title: 'Open this milestone', onclick: () => openMilestone(p, ms.id) },
       h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), h('span', { dir: 'auto' }, ms.name), h('span', { class: 'ms-count' }, countText(g))));
-    box.append(h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
-      late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
+    box.append(h('div', { class: 'pv-next-title' },
+      h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
+        late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)),
+      ...markButtons(p, t, 'next-mark')));
     box.append(h('div', { class: 'pv-next-row' },
       d ? h('span', { class: 'due ' + (d.tone || '') }, d.text) : h('span', { class: 'note' }, 'No due date'),
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
@@ -6692,10 +6856,10 @@ const FullView = (() => {
       changed(p); render();
       const again = $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     });
-    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb')) return; dragTask(e, p, li); });
+    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark')) return; dragTask(e, p, li); });
     const d = t.done ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
-      d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null].filter(Boolean));
+      d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark')].filter(Boolean));
     return li;
   }
   /* Up or down one place, crossing into the neighbouring milestone at an edge. */
@@ -6852,6 +7016,12 @@ const FullView = (() => {
         h('span', { class: 'lbl' }, 'Due'), due,
         h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
+      t.done ? null : h('div', { class: 'inline pv-task-marks' }, ...[
+        ['pin', isPinned(p, t), 'Pinned', 'Pin as next', 'Comes first in What is next and the status card', on => setPin(p, t, on)],
+        ['star', isStarred(p, t), 'Starred', 'Star for the city', 'The one task the whole city shows with a star, over its building; starring pins it too', on => setStar(p, t, on)],
+      ].map(([kind, on, yes, no, title, set]) => h('button', { class: 'btn btn-quiet btn-small pv-mark' + (on ? ' on' : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
+        'aria-pressed': String(on), title: on ? title + '. Click to take it off.' : title,
+        onclick: () => { set(!on); render(); const b = side && $(`[data-mark="${kind}"]`, side); if (b) b.focus(); } }, iconEl(kind, 14, on ? undefined : 'transparent'), on ? yes : no))),
       h('span', { class: 'lbl' }, 'Description'), desc,
       h('div', { class: 'pv-claude-row' },
         h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),

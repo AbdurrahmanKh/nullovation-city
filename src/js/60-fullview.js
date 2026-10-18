@@ -276,20 +276,24 @@ const FullView = (() => {
       OpenInClaude.button({ id: 'pvStatusClaude', text: () => projectStatusForClaude(p), project: p, quiet: true })));
     return box;
   }
-  /* The current milestone and its next open task. Overdue shows in red with a !. */
+  /* The next task, pinned or the first open one in the current milestone, with its milestone. Overdue shows in red
+     with a !. A pinned task says so beside the label, and its pin unpins it here. */
   function whatIsNext(p) {
-    const box = h('div', { class: 'pv-next' }, h('span', { class: 'lbl' }, 'What is next'));
-    const t = nextTask(p);
+    const t = nextTask(p), pinned = !!(t && isPinned(p, t));
+    const box = h('div', { class: 'pv-next' }, h('span', { class: 'pv-next-lbl' }, h('span', { class: 'lbl' }, 'What is next'),
+      pinned ? h('span', { class: 'pv-pinned' }, iconEl('pin', 12), 'Pinned') : null));
     if (!t) {
       box.append(h('p', { class: 'fv-empty' }, p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
       return box;
     }
-    const g = currentGroup(p), ms = g.ms;
+    const g = groupsOf(p).find(x => x.ms && x.ms.id === t.milestoneId) || currentGroup(p), ms = g.ms;
     const d = dueInfo(t), late = d && d.tone === 'late';
     box.append(h('button', { class: 'pv-next-ms', type: 'button', title: 'Open this milestone', onclick: () => openMilestone(p, ms.id) },
       h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), h('span', { dir: 'auto' }, ms.name), h('span', { class: 'ms-count' }, countText(g))));
-    box.append(h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
-      late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
+    box.append(h('div', { class: 'pv-next-title' },
+      h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
+        late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)),
+      ...markButtons(p, t, 'next-mark')));
     box.append(h('div', { class: 'pv-next-row' },
       d ? h('span', { class: 'due ' + (d.tone || '') }, d.text) : h('span', { class: 'note' }, 'No due date'),
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
@@ -393,10 +397,10 @@ const FullView = (() => {
       changed(p); render();
       const again = $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     });
-    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb')) return; dragTask(e, p, li); });
+    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark')) return; dragTask(e, p, li); });
     const d = t.done ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
-      d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null].filter(Boolean));
+      d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark')].filter(Boolean));
     return li;
   }
   /* Up or down one place, crossing into the neighbouring milestone at an edge. */
@@ -553,6 +557,12 @@ const FullView = (() => {
         h('span', { class: 'lbl' }, 'Due'), due,
         h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
+      t.done ? null : h('div', { class: 'inline pv-task-marks' }, ...[
+        ['pin', isPinned(p, t), 'Pinned', 'Pin as next', 'Comes first in What is next and the status card', on => setPin(p, t, on)],
+        ['star', isStarred(p, t), 'Starred', 'Star for the city', 'The one task the whole city shows with a star, over its building; starring pins it too', on => setStar(p, t, on)],
+      ].map(([kind, on, yes, no, title, set]) => h('button', { class: 'btn btn-quiet btn-small pv-mark' + (on ? ' on' : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
+        'aria-pressed': String(on), title: on ? title + '. Click to take it off.' : title,
+        onclick: () => { set(!on); render(); const b = side && $(`[data-mark="${kind}"]`, side); if (b) b.focus(); } }, iconEl(kind, 14, on ? undefined : 'transparent'), on ? yes : no))),
       h('span', { class: 'lbl' }, 'Description'), desc,
       h('div', { class: 'pv-claude-row' },
         h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),

@@ -206,6 +206,22 @@ select.field { appearance: none; -webkit-appearance: none; padding-right: 30px; 
 .b-task:hover, .b-task:focus-visible { text-decoration: underline; outline: none; }
 .b-copy { flex: none; width: 24px; height: 24px; padding: 0; margin-top: -1px; opacity: .75; }
 .b-copy:hover, .b-copy:focus-visible { opacity: 1; }
+/* pins and the city's star (Tasks, Round 2, M4 to M6): hollow until pressed, shown when the row is pointed at */
+.task-mark { flex: none; width: 24px; height: 24px; padding: 0; opacity: 0; color: var(--ink-soft); }
+.task-mark.on { opacity: 1; color: var(--ink); }
+li:hover > .task-mark, li:focus-within > .task-mark { opacity: .7; }
+li > .task-mark.on, .task-mark:hover, .task-mark:focus-visible { opacity: 1; }
+.pv-next-title { display: flex; align-items: center; gap: 4px; }
+.pv-next-title .pv-next-task { margin-right: 6px; }
+.pv-next-title .task-mark { opacity: .7; }
+.pv-next-title .task-mark.on { opacity: 1; }
+.b-todos li .task-mark { margin-top: -1px; }
+@media (hover: none) { .task-mark { opacity: .6; } }
+.pv-next-lbl { display: flex; align-items: center; }
+.pv-next-lbl .lbl { margin: 0; }
+.pv-pinned { display: inline-flex; align-items: center; gap: 4px; margin-left: 10px; font: 600 12px/1 var(--f-pixel); color: var(--ink-soft); }
+.pv-task-marks { gap: 10px; }
+.pv-mark.on { background: var(--hover); }
 .b-todos label { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; cursor: pointer; }
 .b-todos .ticked .txt { text-decoration: line-through; color: var(--muted); }
 .b-todos .slide-in { animation: slide-in .28s ease-out; }
@@ -226,6 +242,17 @@ select.field { appearance: none; -webkit-appearance: none; padding-right: 30px; 
   position: absolute; left: 0; top: 0;
   font-size: 17px; padding: 8px 14px 7px 11px;
 }
+
+/* hovering a building: its next task in one line, under its bubbles, in the Tasks view's near white */
+.hover-task {
+  position: absolute; left: 0; top: 0; pointer-events: none !important;
+  display: inline-flex; align-items: center; gap: 4px; max-width: 340px; padding: 2px 6px 1px;
+  font: 500 13px/1.25 var(--f-pixel); color: #2B2542; background: #F4F1F8;
+  box-shadow: 0 -2px 0 0 #7A7394, 0 2px 0 0 #7A7394, -2px 0 0 0 #7A7394, 2px 0 0 0 #7A7394;
+  white-space: nowrap; overflow: hidden;
+}
+.hover-task[hidden] { display: none; }
+.hover-task .ic { flex: none; color: #2B2542; }
 
 .tip {
   position: absolute; left: 0; top: 0; pointer-events: none !important;

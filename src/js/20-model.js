@@ -132,7 +132,7 @@ function blankProject(o = {}) {
   const now = Date.now();
   return Object.assign({
     id: uid('p'), name: 'Untitled project', description: '',
-    deadline: '', progressOverride: null, todos: [], links: [], milestones: [], notes: [],
+    deadline: '', progressOverride: null, todos: [], links: [], milestones: [], notes: [], pin: '', star: '',
     plot: { u: 0, v: 0 }, art: { has: false, includesPlot: false }, generic: null, activity: [], flip: false,
     urgency: { system: 'none', days: 1, lastWorked: null, pickedAt: null },
     createdAt: now, updatedAt: now,
@@ -150,8 +150,45 @@ function groupsOf(p) {
 }
 /* The current milestone is the first group that still has open todos. */
 function currentGroup(p) { return groupsOf(p).find(g => g.ms && g.todos.some(t => !t.done)) || null; }
-/* What is next: the first open todo in the current milestone, in list order. */
-function nextTask(p) { const g = currentGroup(p); return g ? g.todos.find(t => !t.done) || null : null; }
+/* What is next: the pinned task, else the first open todo in the current milestone, in list order. */
+function nextTask(p) { const pin = pinnedTask(p); if (pin) return pin; const g = currentGroup(p); return g ? g.todos.find(t => !t.done) || null : null; }
+
+/* ---------- pins and the city's star (Tasks, Round 2, M4 to M6) ----------
+   A project can pin one open task: it comes first in What is next and the status card. One open task in the whole
+   city can wear the star, a bubble over its building; starring a task also pins it in its project, and the two are
+   separate after that. Both clear only when their task is ticked, deleted, or unpinned or unstarred (M5). They live
+   on the project as task ids (`pin`, `star`), so editing a task and undoing it with Esc never touches them. */
+const openTaskById = (p, id) => (id ? p.todos.find(t => t.id === id && !t.done) || null : null);
+function pinnedTask(p) { return openTaskById(p, p.pin); }
+function starredTask() {
+  for (const p of DB.projects) { const t = openTaskById(p, p.star); if (t) return { p, t }; }
+  return null;
+}
+const isPinned = (p, t) => !t.done && p.pin === t.id;
+const isStarred = (p, t) => !t.done && p.star === t.id;
+function setPin(p, t, on) {
+  p.pin = on && !t.done ? t.id : (p.pin === t.id ? '' : p.pin);
+  changed(p, { touch: false });                        // a pin is not work on the project
+}
+function setStar(p, t, on) {
+  const was = starredTask();
+  if (on && !t.done) {
+    for (const q of DB.projects) q.star = '';
+    p.star = t.id; p.pin = t.id;                          // starring pins it too (M6)
+    if (was && was.t !== t) toast('The star moved to ' + t.text + '.');
+  } else if (p.star === t.id) p.star = '';
+  changed(p, { touch: false });
+}
+/* A tick, a deletion or a new plan leaves a pin or the star on a task that is no longer open: they clear for good,
+   so reopening the task does not bring them back. Runs before every save. */
+function tidyMarks() {
+  let starSeen = false;
+  for (const p of DB.projects) {
+    if (p.pin && !openTaskById(p, p.pin)) p.pin = '';
+    if (p.star && (!openTaskById(p, p.star) || starSeen)) p.star = '';
+    if (p.star) starSeen = true;
+  }
+}
 /* Every todo lives in a milestone. Anything outside one moves into "To do", at the top. */
 function ensureMilestones(p) {
   const known = new Set(p.milestones.map(m => m.id));
@@ -233,14 +270,16 @@ function dueInfo(t, now = Date.now()) {
   if (diff > 1) return { text: 'Due ' + fmtDate(due), tone: diff <= DUE_SOON_DAYS ? 'soon' : '', diff };
   return { text: (-diff === 1 ? '1 day' : -diff + ' days') + ' overdue', tone: 'late', diff };
 }
-/* The bubble: todos due soon or overdue first (any milestone), then the current milestone in list order. */
+/* The bubble: the pinned task first, then todos due soon or overdue (any milestone), then the current milestone in
+   list order. A task being ticked off (in keep) holds its place until it slides away. */
 function bubbleTodos(p, n = BUBBLE_TODOS, keep = null) {
   const visible = t => !t.done || (keep && keep.has(t.id));
-  const urgent = p.todos.filter(t => visible(t) && t.due && dueInfo(t) && dueInfo(t).diff <= DUE_SOON_DAYS)
+  const pin = p.pin ? p.todos.find(t => t.id === p.pin && visible(t)) || null : null;
+  const urgent = p.todos.filter(t => t !== pin && visible(t) && t.due && dueInfo(t) && dueInfo(t).diff <= DUE_SOON_DAYS)
     .sort((a, b) => parseYmd(a.due) - parseYmd(b.due));
   const cur = currentGroup(p);
-  const rest = cur ? cur.todos.filter(t => visible(t) && !urgent.includes(t)) : [];
-  return { list: [...urgent, ...rest].slice(0, n), current: cur };
+  const rest = cur ? cur.todos.filter(t => t !== pin && visible(t) && !urgent.includes(t)) : [];
+  return { list: [...(pin ? [pin] : []), ...urgent, ...rest].slice(0, n), current: cur };
 }
 
 function seedProjects() {
@@ -317,6 +356,8 @@ function sanitizeProjects(raw) {
     normalizeOrder(p);
     ensureMilestones(p);
     backfillActivity(p);
+    p.pin = typeof r.pin === 'string' && openTaskById(p, r.pin) ? r.pin : '';
+    p.star = typeof r.star === 'string' && openTaskById(p, r.star) ? r.star : '';
     const u = r.plot && Number.isInteger(r.plot.u) ? r.plot.u : -1;
     const v = r.plot && Number.isInteger(r.plot.v) ? r.plot.v : -1;
     p.plot = (u >= 0 && v >= 0 && u < WORLD.NU && v < WORLD.NV && !taken.has(u + ',' + v)) ? { u, v } : null;
@@ -337,12 +378,15 @@ function sanitizeProjects(raw) {
     }
     kept.push(item);
   }
+  let starSeen = false;                                   // one star in the whole city: the first one read keeps it
+  for (const { p } of kept) { if (p.star && starSeen) p.star = ''; if (p.star) starSeen = true; }
   return kept;
 }
 
 /* ---------- saving ---------- */
 const persistSoon = debounce(persistNow, 300);
 function persistNow() {
+  tidyMarks();
   const ok = Store.save(DB);
   if (typeof Menu !== 'undefined') Menu.setSaveStatus(ok);
   if (typeof DataFile !== 'undefined') DataFile.writeSoon();

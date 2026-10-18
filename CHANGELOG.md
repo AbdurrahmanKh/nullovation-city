@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.39 (2026-10-15)
+
+Tasks on the map, the first of the task ideas, built alone so it can be tried before the next (Tasks, Round 2, M1 to M6). 0.1.38, one skill for the city, was built in a chat and has not reached this repo; this build starts from 0.1.37.
+- Hovering a building: after a quarter of a second (M2), a white bubble with its open tasks joins its bubbles on the left, so the ones already there stay where they are, and its next task shows in one line under them, cut short past 40 characters (M1). In the Tasks view, which already shows the count, only the line is added. It shows with No bubbles too (M3), but not on the selected building, in Edit City, while planting or moving, or in the postcard.
+- Pins: a project can pin one open task as its next one, from the task's panel (Pin as next), a task row in the project view, a row in the status card, or What is next (M4). The pinned task comes first in What is next, the status card, the hover, the project's status and the summary for Claude. What is next says Pinned and names the pinned task's own milestone. A pin clears only when its task is ticked, deleted or unpinned, and reopening the task does not bring it back (M5).
+- The star: one open task in the whole city can wear the star, a purple bubble with a gold star over its building, beside the others; No bubbles and the postcard leave it out. Starring a task pins it in its project too, and the two are separate after that (M6). Starring another task moves the star, and a toast says where it went.
+- The pins and stars are small icon buttons, hollow until pressed, that show while their row is pointed at. They are not work: Updated and urgency stay as they were, and Esc in the task panel leaves them alone.
+- Data: a project keeps `pin` and `star`, each a task id or empty, so they travel in the data file, the daily backups and Export. Reading a city keeps one star at most.
+- Tests: test27_tasks_map, 60 checks.
+
 ## 0.1.37 (2026-10-14)
 
 New places to see Claude's work, and Open in Claude in the terminal (Even Better Claude Connections, Round 1, B3 and D1, the items marked Now):

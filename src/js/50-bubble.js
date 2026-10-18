@@ -11,6 +11,31 @@ function dueChip(t) {
   const d = dueInfo(t);
   return d ? h('span', { class: 'due ' + (d.tone || '') }, d.text) : null;
 }
+/* The pin and the star for one open task (Tasks, Round 2, M4 and M6), as small icon buttons: a pressed one stays in
+   view, the others show while the row is pointed at or has the focus. After a change, the panels that show the task
+   redraw, and the focus comes back to the same button. */
+function markButtons(p, t, cls = '') {
+  if (t.done) return [];
+  const one = (kind, on, label, title, flip) => h('button', {
+    class: 'icon-btn task-mark mark-' + kind + (on ? ' on' : '') + (cls ? ' ' + cls : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
+    'aria-pressed': String(on), 'aria-label': label, title, html: iconSvg(kind, 14, on ? undefined : 'transparent'),
+    onclick: e => {
+      e.stopPropagation();
+      const scope = e.currentTarget.closest('[id]'), sid = scope ? scope.id : null;
+      flip();
+      if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
+      const back = sid && document.getElementById(sid), b = back && $(`[data-mark="${kind}"][data-task="${t.id}"]`, back);
+      if (b) b.focus();
+    },
+  });
+  const pin = isPinned(p, t), star = isStarred(p, t);
+  return [
+    one('pin', pin, (pin ? 'Unpin: ' : 'Pin as next: ') + t.text, pin ? 'Pinned: it comes first in What is next. Click to unpin.' : 'Pin it: it comes first in What is next and the status card',
+      () => setPin(p, t, !pin)),
+    one('star', star, (star ? 'Unstar: ' : 'Star for the city: ') + t.text, star ? 'Starred: its building wears the star. Click to unstar.' : 'Star it: the one task the whole city shows with a star, over its building',
+      () => setStar(p, t, !star)),
+  ];
+}
 function metaRow(p) {
   const bits = [];
   const dl = deadlineInfo(p.deadline);
@@ -95,6 +120,7 @@ const Bubble = (() => {
         li.append(
           h('input', { type: 'checkbox', class: 'cb', checked: t.done, 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
           h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t)),
+          ...(ticking.has(t.id) ? [] : markButtons(p, t, 'b-mark')),
           h('button', { class: 'icon-btn b-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));
         ul.append(li);
       }
