@@ -32,7 +32,7 @@ The file imported above is the knowledge file: features, code, data, art, skills
 - Back every change with tests: run all passes, add checks for new behavior, and fix or explain every failure before calling the work done.
 - Look before presenting: open the screenshots of what changed, and for art, show side-by-side comparisons.
 - Keep `docs/nullovation-city-knowledge.md` true: the version line, features, code, decisions and open items.
-- Never branch, commit or push, and never add or change a remote: Abdurrahman does all of git himself. Work in the folder and leave the changes for him to commit. After every build, end with the push description: a one-line summary and a short description, each in its own code block, ready to paste into GitHub Desktop.
+- Never branch, commit or push, and never add or change a remote: Abdurrahman does all of git himself. Work in the folder and leave the changes for him to commit. After every build, end with the push description: a one-line summary and a short description, each in its own code block, ready to paste into GitHub Desktop. It says what changed in the tool, as anyone would write it in a repo's history: no test counts or check numbers.
 - Report briefly: what changed, the new version, and the test count.
 
 ## Moving between Claude Code and claude.ai chats

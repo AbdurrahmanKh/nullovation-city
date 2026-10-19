@@ -11,29 +11,29 @@ function dueChip(t) {
   const d = dueInfo(t);
   return d ? h('span', { class: 'due ' + (d.tone || '') }, d.text) : null;
 }
-/* The pin and the star for one open task (Tasks, Round 2, M4 and M6), as small icon buttons: a pressed one stays in
-   view, the others show while the row is pointed at or has the focus. After a change, the panels that show the task
-   redraw, and the focus comes back to the same button. */
-function markButtons(p, t, cls = '') {
+/* The pin for one open task (Tasks, Round 2, M4), as a small icon button: pressed, it stays in view; otherwise it
+   shows while the row is pointed at or has the focus. After a change, the panels that show the task redraw, and the
+   focus comes back to the same button. The star is set only in the task panel (0.1.40), so lists stay quiet. With
+   chip, as in What is next, a pressed pin says Pinned beside it (0.1.41). */
+function markButtons(p, t, cls = '', { chip = false } = {}) {
   if (t.done) return [];
   const one = (kind, on, label, title, flip) => h('button', {
-    class: 'icon-btn task-mark mark-' + kind + (on ? ' on' : '') + (cls ? ' ' + cls : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
-    'aria-pressed': String(on), 'aria-label': label, title, html: iconSvg(kind, 14, on ? undefined : 'transparent'),
+    class: 'icon-btn task-mark mark-' + kind + (on ? ' on' : '') + (chip ? ' mark-chip' : '') + (cls ? ' ' + cls : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
+    'aria-pressed': String(on), 'aria-label': label, title, html: iconSvg(kind, chip ? 12 : 14, on ? undefined : 'transparent') + (chip && on ? '<span>Pinned</span>' : ''),
     onclick: e => {
       e.stopPropagation();
       const scope = e.currentTarget.closest('[id]'), sid = scope ? scope.id : null;
       flip();
       if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
-      const back = sid && document.getElementById(sid), b = back && $(`[data-mark="${kind}"][data-task="${t.id}"]`, back);
+      const place = cls ? '.' + cls.split(' ')[0] : '', back = sid && document.getElementById(sid);   // the same place: a task's row and What is next share a pin
+      const b = back && ($(`[data-mark="${kind}"][data-task="${t.id}"]${place}`, back) || (place === '.next-mark' ? $(`[data-mark="${kind}"]${place}`, back) : null));   // What is next may show another task now
       if (b) b.focus();
     },
   });
-  const pin = isPinned(p, t), star = isStarred(p, t);
+  const pin = isPinned(p, t);
   return [
     one('pin', pin, (pin ? 'Unpin: ' : 'Pin as next: ') + t.text, pin ? 'Pinned: it comes first in What is next. Click to unpin.' : 'Pin it: it comes first in What is next and the status card',
       () => setPin(p, t, !pin)),
-    one('star', star, (star ? 'Unstar: ' : 'Star for the city: ') + t.text, star ? 'Starred: its building wears the star. Click to unstar.' : 'Star it: the one task the whole city shows with a star, over its building',
-      () => setStar(p, t, !star)),
   ];
 }
 function metaRow(p) {

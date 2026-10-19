@@ -135,10 +135,13 @@ with sync_playwright() as p:
     ok('M5 ticking the starred task takes the star off the map', 'star' not in kinds(gp) and proj(gp)['star'] == '')
     ev(f"() => {{ const p = getProject('{gp}'), t = {task(gp, 'Add plant icons')}; t.done = false; t.doneAt = null; changed(p); }}")
 
-    # ---------- pins and the star in the status card (M4) ----------
+    # ---------- the star's own color (0.1.40) ----------
+    ok('A1 A2 the star is gold again, as at 0.1.39', ev("() => ICON_ACCENT.star") == '#FFD23F')
+
+    # ---------- pins in the status card (M4); the star is set only in the task panel (0.1.40) ----------
     pg.mouse.click(*over); pg.wait_for_timeout(600)
     rows = lambda: pg.eval_on_selector_all('#bubble .b-todos li', 'els => els.map(e => e.querySelector(".b-task").textContent.trim())')
-    ok('every open row in the card has a pin and a star', pg.locator('#bubble .b-todos li .mark-pin').count() == 3 and pg.locator('#bubble .b-todos li .mark-star').count() == 3)
+    ok('every open row in the card has a pin, and no star', pg.locator('#bubble .b-todos li .mark-pin').count() == 3 and pg.locator('#bubble .mark-star').count() == 0)
     ok('they stay out of sight until the row is pointed at', ev("() => getComputedStyle(document.querySelector('#bubble .b-todos li .mark-pin')).opacity") == '0')
     save_row = pg.locator('#bubble .b-todos li', has_text='Save a plan as a file')
     save_row.hover(); pg.wait_for_timeout(100)
@@ -149,22 +152,69 @@ with sync_playwright() as p:
     ok('a pressed pin stays in view, and says so', pg.get_attribute('#bubble .b-todos li >> nth=0 >> .mark-pin', 'aria-pressed') == 'true'
        and ev("() => getComputedStyle(document.querySelector('#bubble .b-todos li .mark-pin')).opacity") == '1')
     ok('the focus stays on the pin', ev("() => document.activeElement && document.activeElement.dataset.mark") == 'pin')
-    pg.locator('#bubble .b-todos li', has_text='Draw the beds on a grid').locator('.mark-star').click(); pg.wait_for_timeout(250)
-    ok('a star in the card stars the task, and pins it', proj(gp)['star'] == proj(gp)['pin'] == tid(gp, 'Draw the beds on a grid') and 'star' in kinds(gp))
     pg.screenshot(path=str(SHOTS / '273-card-marks.png'), clip=pg.query_selector('#bubble').bounding_box())
+    ev(f"() => setStar(getProject('{gp}'), {task(gp, 'Draw the beds on a grid')}, true)"); pg.wait_for_timeout(250)
+    ok('the card still has no star once a task in it is starred', pg.locator('#bubble .mark-star').count() == 0 and proj(gp)['star'] == proj(gp)['pin'] == tid(gp, 'Draw the beds on a grid'))
+
+    # ---------- the starred task in the side bar (0.1.40) ----------
+    card = '#sbStar .star-card'
+    ok('the side bar shows the starred task', pg.is_visible(card) and pg.text_content('#sbStar .star-text').strip() == 'Draw the beds on a grid')
+    ok('with its project and its building', pg.text_content('#sbStar .star-proj').strip() == 'Garden planner' and pg.locator('#sbStar .star-thumb canvas.thumb').count() == 1)
+    ok('it says Starred, with the star', pg.text_content('#sbStar .star-top').strip() == 'Starred' and pg.locator('#sbStar .star-top svg').count() == 1)
+    ok('A2 the card is purple with a gold edge', ev("() => { const c = getComputedStyle(document.querySelector('#sbStar .star-card')); return [c.backgroundColor, c.boxShadow.startsWith('rgb(255, 210, 63) 0px 0px 0px 2px')]; }") == ['rgb(58, 39, 102)', True])
+    order = ev("() => ['#search', '#btnStar', '#btnRecap'].map(s => document.querySelector(s).getBoundingClientRect().top)")
+    ok(f'it sits under search, over This week {order}', order[0] < order[1] < order[2])
+    pg.screenshot(path=str(SHOTS / '275-side-star.png'), clip=pg.query_selector('#sbStar').bounding_box())
+    ev(f"() => setStar(getProject('{nc}'), getProject('{nc}').todos.find(t => !t.done), true)"); pg.wait_for_timeout(200)
+    ok('it follows the star when it moves', pg.text_content('#sbStar .star-proj').strip() == 'Nullovation City')
+    ev(f"() => setStar(getProject('{nc}'), starredTask().t, false)"); pg.wait_for_timeout(200)
+    ok('unstarred, the side bar lets it go', not pg.is_visible('#sbStar'))
+    ev(f"() => setStar(getProject('{gp}'), {task(gp, 'Draw the beds on a grid')}, true)"); pg.wait_for_timeout(200)
+    pg.click(card); pg.wait_for_timeout(900)
+    ok('a click on it opens the task, in its project', ev("() => FullView.isOpen()") and pg.text_content('#pvTitle').strip() == 'Garden planner'
+       and pg.locator('#pvSide #pvTaskDesc').count() == 1 and pg.input_value('#pvSide #pvTaskTitle') == 'Draw the beds on a grid')
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
 
     # ---------- the project view (M4): rows, What is next, the task panel ----------
-    pg.click('#enterBtn'); pg.wait_for_timeout(900)
-    ok('What is next shows the pinned task, and says it is pinned', pg.text_content('#pvNextTask').strip() == 'Draw the beds on a grid' and pg.is_visible('.pv-pinned'))
-    ok('its pin and star sit beside it, pressed', pg.get_attribute('.pv-next-title .mark-pin', 'aria-pressed') == 'true' and pg.get_attribute('.pv-next-title .mark-star', 'aria-pressed') == 'true')
+    ok('Esc closes the task, leaving its project open', ev("() => FullView.isOpen()") and pg.locator('#pvSide #pvTaskDesc').count() == 0)
+    pin_chip = '.pv-next-head .pv-next-marks .mark-pin'
+    ok('What is next shows the pinned task, and its pin says Pinned at the top right', pg.text_content('#pvNextTask').strip() == 'Draw the beds on a grid'
+       and pg.get_attribute(pin_chip, 'aria-pressed') == 'true' and (pg.text_content(pin_chip) or '').strip() == 'Pinned')
+    ok('A3 a starred task says Starred beside the pin, as a mark, not a button', (pg.text_content('.pv-next-marks .pv-starred') or '').strip() == 'Starred'
+       and pg.locator('.pv-next .mark-star').count() == 0)
+    st = ev("() => { const c = getComputedStyle(document.querySelector('.pv-next')); return [document.querySelector('.pv-next').classList.contains('starred'), c.backgroundColor, c.boxShadow]; }")
+    ok(f'A2 while its task wears the star, What is next is purple with a gold edge {st[:2]}', st[0] and st[1] == 'rgb(58, 39, 102)' and 'rgb(255, 210, 63)' in st[2])
+    pg.screenshot(path=str(SHOTS / '276-next-starred.png'), clip=pg.query_selector('.pv-next').bounding_box())
+    ok('no row in the project view has a star button', pg.locator('#pv .mark-star').count() == 0 and pg.locator('li.task .mark-pin').count() > 0)
     pg.locator('li.task', has_text='Publish the app').locator('.mark-pin').click(); pg.wait_for_timeout(300)
     ok('M4 a pin on a task row pins it', proj(gp)['pin'] == tid(gp, 'Publish the app') and pg.text_content('#pvNextTask').strip() == 'Publish the app')
     ok('What is next names the pinned task’s own milestone', 'Launch' in pg.text_content('.pv-next-ms'))
     ok('a pin click neither opens the task nor drags the row', pg.locator('#pvSide #pvTaskDesc').count() == 0)
     ok('the star stays on its task: the two are separate', proj(gp)['star'] == tid(gp, 'Draw the beds on a grid'))
     pg.screenshot(path=str(SHOTS / '274-next-pinned.png'), clip=pg.query_selector('.pv-next').bounding_box())
-    pg.click('.pv-next-title .mark-pin'); pg.wait_for_timeout(300)
-    ok('M4 the pin in What is next unpins it', proj(gp)['pin'] == '' and not pg.is_visible('.pv-pinned') and pg.text_content('#pvNextTask').strip() == 'Draw the beds on a grid')
+    bg = ev("() => [getComputedStyle(document.querySelector('.pv-next')).backgroundColor, getComputedStyle(document.querySelector('#pv')).backgroundColor]")
+    ok(f'unstarred, What is next has its own shade, not the star\'s {bg}', bg[0] not in ('rgba(0, 0, 0, 0)', bg[1], 'rgb(58, 39, 102)') and pg.locator('.pv-next-marks .pv-starred').count() == 0)
+    pg.click(pin_chip); pg.wait_for_timeout(300)
+    ok('M4 the pin in What is next unpins it, and turns back into a plain pin', proj(gp)['pin'] == '' and pg.get_attribute(pin_chip, 'aria-pressed') == 'false'
+       and (pg.text_content(pin_chip) or '').strip() == '' and pg.text_content('#pvNextTask').strip() == 'Draw the beds on a grid')
+    foc = ev("() => { const a = document.activeElement; return a ? [a.tagName, a.className, a.id] : null; }")
+    ok(f'the focus stays on the pin {foc}', ev("() => document.activeElement && document.activeElement.matches('.pv-next-marks .mark-pin')"))
+
+    # ---------- What is next, layout B (A3): the due date beside the milestone, nothing without one ----------
+    order = ev("() => [...document.querySelector('.pv-next').children].map(e => e.className.split(' ')[0] || e.id)")
+    ok(f'A3 the label and marks, the milestone line, the task, then the actions {order}', order[:4] == ['pv-next-head', 'pv-next-msrow', 'pv-next-task', 'pv-next-row'])
+    nxt = task(gp, 'Draw the beds on a grid')
+    ok('no due date: nothing says so', 'No due date' not in pg.text_content('.pv-next') and pg.locator('.pv-next-due').count() == 0)
+    for days, want in ((4, 'Due ' + ev("() => new Date(Date.now() + 4 * 864e5).toLocaleDateString('en-GB', { weekday: 'short' })") + ' '), (1, 'Due tomorrow'), (-2, '2 days overdue')):
+        ev(f"() => {{ const p = getProject('{gp}'); {nxt}.due = ymd(Date.now() + {days} * 864e5); changed(p); FullView.render(); }}"); pg.wait_for_timeout(250)
+        due = (pg.text_content('.pv-next-msrow .pv-next-due') or '').strip()
+        right = ev("() => { const r = document.querySelector('.pv-next-msrow').getBoundingClientRect(), d = document.querySelector('.pv-next-due').getBoundingClientRect(); return Math.abs(r.right - d.right) < 2; }")
+        ok(f'a due date in {days} days sits at the right of the milestone line: {due}', due.startswith(want) and right)
+    ok('overdue, the chip is red and the task has its !', 'late' in pg.get_attribute('.pv-next-due', 'class') and pg.locator('.pv-next-task.late .pv-late-mark').count() == 1)
+    one_row = ev("() => { const b = [...document.querySelectorAll('.pv-next-row > *')].map(e => e.getBoundingClientRect().top); return b.length === 2 && Math.abs(b[0] - b[1]) < 2; }")
+    ok('Copy task and Open in Claude share one row', one_row)
+    pg.screenshot(path=str(SHOTS / '277-next-overdue.png'), clip=pg.query_selector('.pv-next').bounding_box())
+    ev(f"() => {{ const p = getProject('{gp}'); {nxt}.due = null; changed(p); FullView.render(); }}"); pg.wait_for_timeout(250)
     pg.click('li.task:has-text("Add plant icons") .task-title'); pg.wait_for_timeout(500)
     pin_btn, star_btn = '#pvSide .pv-mark[data-mark="pin"]', '#pvSide .pv-mark[data-mark="star"]'
     ok('M4 the task panel has Pin as next and Star for the city', (pg.text_content(pin_btn) or '').strip() == 'Pin as next' and (pg.text_content(star_btn) or '').strip() == 'Star for the city')
@@ -172,10 +222,18 @@ with sync_playwright() as p:
     ok('Pin as next pins it, and turns into Pinned', proj(gp)['pin'] == tid(gp, 'Add plant icons') and (pg.text_content(pin_btn) or '').strip() == 'Pinned' and pg.get_attribute(pin_btn, 'aria-pressed') == 'true')
     pg.click(star_btn); pg.wait_for_timeout(250)
     ok('Star for the city moves the star here', proj(gp)['star'] == tid(gp, 'Add plant icons') and (pg.text_content(star_btn) or '').strip() == 'Starred')
+    ok('and the side bar shows it', pg.text_content('#sbStar .star-text').strip() == 'Add plant icons')
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     ok('Esc, which undoes the task’s edits, leaves the pin and the star alone', proj(gp)['pin'] == proj(gp)['star'] == tid(gp, 'Add plant icons'))
     pg.locator('li.task', has_text='Add plant icons').locator('.cb').check(); pg.wait_for_timeout(400)
     ok('a done task has no pin or star buttons', pg.locator('li.task.done', has_text='Add plant icons').locator('.task-mark').count() == 0)
     ok('M5 and ticking it in the list clears both', proj(gp)['pin'] == '' and proj(gp)['star'] == '')
+    ok('done, it leaves the side bar', not pg.is_visible('#sbStar'))
+    ev(f"() => setStar(getProject('{gp}'), {task(gp, 'Save a plan as a file')}, true)"); pg.wait_for_timeout(200)
+    pg.locator('li.task:has-text("Save a plan as a file") .task-title').click(); pg.wait_for_timeout(500)
+    pg.click(star_btn); pg.wait_for_timeout(250)
+    ok('Starred in the task panel unstars it, and the side bar lets it go', proj(gp)['star'] == '' and (pg.text_content(star_btn) or '').strip() == 'Star for the city' and not pg.is_visible('#sbStar'))
+    ev(f"() => {{ const p = getProject('{gp}'); setStar(p, {task(gp, 'Save a plan as a file')}, true); p.todos.splice(p.todos.indexOf({task(gp, 'Save a plan as a file')}), 1); changed(p); }}"); pg.wait_for_timeout(200)
+    ok('deleting the starred task takes it out of the side bar', not pg.is_visible('#sbStar'))
     b.close()
 print(errors or 'no console errors')

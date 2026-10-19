@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.41 (2026-10-19)
+
+The star and What is next, from a round of mockups (Star and What is next, Round 1):
+- A1: the star bubble on the map is a gold star on purple again, as at 0.1.39. 0.1.40's cyan was a misreading of the request.
+- A2: while the next task wears the star, What is next turns purple with a gold edge, and says Starred at its top right. The side bar's starred card takes the same purple and gold, and the star icon is gold everywhere again.
+- A3, layout B: What is next is the label with the pin at its top right (a pressed pin says Pinned), the task's milestone with the due date as a chip at the right of its line ("Due Fri 23 Oct", "Due tomorrow", "2 days overdue"), the task in larger type, then Copy task and Open in Claude on one row. Without a due date nothing shows: "No due date" is gone.
+- A pin click in What is next keeps the focus there, even when the next task changes; it used to jump to the task's row in the list.
+- Removed leftover styles from What is next's old field, and the star mark the 0.1.40 box used.
+- Tests: test27_tasks_map, now 85 checks: the gold star, the starred box and card colors, the layout's order, no due date showing nothing, the due chip's text and place for 4 days, tomorrow and overdue, one row of actions, and the pin chip.
+
+## 0.1.40 (2026-10-18)
+
+The star, after trying 0.1.39:
+- The star has its own color, neon cyan, which nothing else in the tool uses: on the map a cyan star on a night blue bubble (it was gold on purple), and the same cyan everywhere else it shows.
+- The star is set only in the task's panel (Star for the city / Starred). The status card's rows, the project view's rows and What is next keep only the pin. What is next shows a cyan star mark beside a starred task.
+- The side bar shows the starred task under search, until it is unstarred, ticked or deleted: its building, Starred, the task and its project. A click opens the task in its project.
+- What is next is a widget of its own, a shade lighter than the project view with an edge round it. The old What is next field's leftover styles are gone.
+- Tests: test27_tasks_map, now 76 checks: no star in the card or the rows, the star mark, What is next's color, the side bar card (what it shows, its place, following the star, a click opening the task, going when unstarred, ticked or deleted), and the star's color.
+
 ## 0.1.39 (2026-10-15)
 
 Tasks on the map, the first of the task ideas, built alone so it can be tried before the next (Tasks, Round 2, M1 to M6). 0.1.38, one skill for the city, was built in a chat and has not reached this repo; this build starts from 0.1.37.

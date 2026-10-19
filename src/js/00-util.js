@@ -79,6 +79,7 @@ function relAgo(ts, now = Date.now()) {
   if (days < 45) return days + ' days ago';
   return 'on ' + fmtDate(ts);
 }
+const weekdayOf = s => new Date(parseYmd(s)).toLocaleDateString('en-GB', { weekday: 'short' });   // 'Fri', for a YYYY-MM-DD
 function parseYmd(s) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
   if (!m) return null;

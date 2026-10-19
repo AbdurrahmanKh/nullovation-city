@@ -276,26 +276,29 @@ const FullView = (() => {
       OpenInClaude.button({ id: 'pvStatusClaude', text: () => projectStatusForClaude(p), project: p, quiet: true })));
     return box;
   }
-  /* The next task, pinned or the first open one in the current milestone, with its milestone. Overdue shows in red
-     with a !. A pinned task says so beside the label, and its pin unpins it here. */
+  /* The next task, pinned or the first open one in the current milestone (Star and What is next, A3, layout B): the
+     label with the pin and, while the task wears the star, Starred at its right; the task's own milestone with the
+     due date at the right of its line, and nothing when there is none; the task, red with a ! when overdue; then Copy
+     task and Open in Claude on one row. A starred task turns the box purple with a gold edge (A2). */
   function whatIsNext(p) {
-    const t = nextTask(p), pinned = !!(t && isPinned(p, t));
-    const box = h('div', { class: 'pv-next' }, h('span', { class: 'pv-next-lbl' }, h('span', { class: 'lbl' }, 'What is next'),
-      pinned ? h('span', { class: 'pv-pinned' }, iconEl('pin', 12), 'Pinned') : null));
+    const t = nextTask(p), starred = !!(t && isStarred(p, t));
+    const marks = h('span', { class: 'pv-next-marks' });
+    const box = h('div', { class: 'pv-next' + (starred ? ' starred' : '') }, h('div', { class: 'pv-next-head' }, h('span', { class: 'pv-next-lbl' }, 'What is next'), marks));
     if (!t) {
       box.append(h('p', { class: 'fv-empty' }, p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
       return box;
     }
+    marks.append(...markButtons(p, t, 'next-mark', { chip: true }),
+      ...(starred ? [h('span', { class: 'pv-starred', title: 'Starred for the city: set it in the task' }, iconEl('star', 12), 'Starred')] : []));
     const g = groupsOf(p).find(x => x.ms && x.ms.id === t.milestoneId) || currentGroup(p), ms = g.ms;
     const d = dueInfo(t), late = d && d.tone === 'late';
-    box.append(h('button', { class: 'pv-next-ms', type: 'button', title: 'Open this milestone', onclick: () => openMilestone(p, ms.id) },
-      h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), h('span', { dir: 'auto' }, ms.name), h('span', { class: 'ms-count' }, countText(g))));
-    box.append(h('div', { class: 'pv-next-title' },
-      h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
-        late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)),
-      ...markButtons(p, t, 'next-mark')));
+    box.append(h('div', { class: 'pv-next-msrow' },
+      h('button', { class: 'pv-next-ms', type: 'button', title: 'Open this milestone', onclick: () => openMilestone(p, ms.id) },
+        h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), h('span', { dir: 'auto' }, ms.name), h('span', { class: 'ms-count' }, countText(g))),
+      d ? h('span', { class: 'due pv-next-due ' + (d.tone || ''), title: t.due }, d.diff > 1 ? 'Due ' + weekdayOf(t.due) + ' ' + fmtDate(parseYmd(t.due)) : d.text) : null));
+    box.append(h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
+      late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
     box.append(h('div', { class: 'pv-next-row' },
-      d ? h('span', { class: 'due ' + (d.tone || '') }, d.text) : h('span', { class: 'note' }, 'No due date'),
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
       OpenInClaude.button({ id: 'pvNextClaude', text: () => taskForClaude(p, t), project: p, quiet: true })));
     const others = p.todos.filter(x => !x.done && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;

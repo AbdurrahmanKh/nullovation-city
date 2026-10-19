@@ -469,7 +469,7 @@ const ICONS = {
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
 const ICON_NAMES = { doc: 'Doc', code: 'Code', github: 'GitHub', claude: 'Claude', chat: 'Chat', folder: 'Folder', web: 'Web' };
-const ICON_ACCENT = { claude: '#D97757', star: '#FFD23F', pin: '#E0356F' };   // Claude's spark keeps its own orange; the star gold, the pin coral
+const ICON_ACCENT = { claude: '#D97757', star: '#FFD23F', pin: '#E0356F' };   // Claude's spark keeps its own orange; the star gold (Star and What is next, A2); the pin coral
 function iconSvg(name, size = 24, accent = ICON_ACCENT[name] || 'var(--accent)') {
   const rows = ICONS[name]; if (!rows) return '';
   const w = rows[0].length, ht = rows.length;

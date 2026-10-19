@@ -669,7 +669,7 @@ const MapView = (() => {
     claude: { edge: '#5C2416', fill: '#D9775A', hi: '#F5B39A', ink: '#FFF6EE' },      // Claude Code working, or waiting for you
     done: { edge: '#0F4D3C', fill: '#3CC795', hi: '#A4F0D2', ink: '#FFFFFF' },        // Claude Code finished: your turn
     failed: { edge: '#3E3656', fill: '#9C93B8', hi: '#D6D0E6', ink: '#FFFFFF' },      // Claude Code stopped on an error
-    star: { edge: '#2E1A5C', fill: '#6E46C9', hi: '#A98BEE', ink: '#FFD23F' },        // the city's starred task: a gold star
+    star: { edge: '#2E1A5C', fill: '#6E46C9', hi: '#A98BEE', ink: '#FFD23F' },        // the city's starred task: a gold star on purple (Star and What is next, A1)
   };
   const STAR = ['0001000', '0011100', '1111111', '0111110', '0011100', '0110110', '0100010'];
   /* Hovering a building (Tasks, Round 2, M1 to M3): after a short rest, its open tasks as a white bubble, and the

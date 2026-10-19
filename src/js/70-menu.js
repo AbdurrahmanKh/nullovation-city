@@ -88,6 +88,24 @@ const Menu = (() => {
       h('button', { class: 'icon-btn due-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }))),
       ...(items.length > shown.length ? [h('li', { class: 'due-more' }, 'and ' + (items.length - shown.length) + ' more')] : []));
   }
+  /* The city's starred task (0.1.40): its building, the task and its project, a shortcut to the task. It shows
+     until the task is unstarred, ticked or deleted. */
+  function renderStar() {
+    const sec = $('#sbStar'), btn = $('#btnStar');
+    if (!sec) return;
+    const s = starredTask();
+    sec.hidden = !s;
+    if (!s) { btn.replaceChildren(); btn.onclick = null; return; }
+    const { p, t } = s;
+    btn.onclick = () => { closeDrawer(); FullView.openTask(p.id, t.id); };
+    btn.setAttribute('aria-label', 'Starred: ' + t.text + ', in ' + p.name + '. Open the task.');
+    btn.replaceChildren(
+      h('span', { class: 'star-thumb', 'aria-hidden': 'true' }, MapView.thumb(p)),
+      h('span', { class: 'star-body' },
+        h('span', { class: 'star-top' }, iconEl('star', 14), h('span', { class: 'sb-h' }, 'Starred')),
+        h('span', { class: 'star-text', dir: 'auto', title: t.text }, t.text),
+        h('span', { class: 'star-proj', dir: 'auto' }, p.name)));
+  }
   /* This week in numbers; the card opens the week. */
   function renderWeek() {
     const btn = $('#btnRecap');
@@ -100,7 +118,7 @@ const Menu = (() => {
   }
   function refresh() {
     if (!countEl) return;
-    renderUrgent(); renderDue(); renderWeek();
+    renderStar(); renderUrgent(); renderDue(); renderWeek();
     if (typeof Gus !== 'undefined') Gus.render();
     $('#mapSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
     const total = DB.projects.length;
