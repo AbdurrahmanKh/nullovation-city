@@ -62,7 +62,10 @@
         <ul id="dueList" class="due-list"></ul>
       </section>
       <div class="grow"></div>
-      <button id="btnOpenSettings" class="btn sb-settings" type="button" title="Settings (comma key)"><span id="sbGearIcon" aria-hidden="true"></span>Settings</button>
+      <div class="sb-foot">
+        <button id="btnOpenReports" class="btn sb-settings" type="button" title="Reports (R)"><span id="sbChartIcon" aria-hidden="true"></span>Reports</button>
+        <button id="btnOpenSettings" class="btn sb-settings" type="button" title="Settings (comma key)"><span id="sbGearIcon" aria-hidden="true"></span>Settings</button>
+      </div>
     </div>
 
     <div id="settings" class="settings" hidden>
@@ -81,6 +84,7 @@
           <dt>Shortcuts</dt><dd>Right-click a building, or F with one selected</dd>
           <dt>Step inside</dt><dd>Enter, with a building selected</dd>
           <dt>Add a task</dt><dd>T, anywhere; /project names the building</dd>
+          <dt>Reports</dt><dd>R opens and closes them</dd>
           <dt>Settings</dt><dd>The comma key opens and closes them</dd>
           <dt>Back</dt><dd>Esc closes one layer at a time</dd>
         </dl>
@@ -228,6 +232,16 @@
         </div>
       </div>
     </div>
+
+    <div id="reports" class="settings reports" hidden>
+      <header class="set-head">
+        <button id="rpBack" class="icon-btn" type="button" aria-label="Back to the lists" title="Back to the lists"></button>
+        <h2 class="set-title rp-title">Reports</h2>
+      </header>
+      <section id="pxCard" class="gus px-card" aria-label="Proxima Pace, Productivity Inspector"></section>
+      <div id="rpTabs" class="set-tabs rp-tabs" role="tablist" aria-label="Reports"></div>
+      <div id="rpBody" class="set-body"></div>
+    </div>
   </aside>
 
   <main id="mapWrap">
@@ -243,6 +257,12 @@
       <span id="gusSayFace" class="gus-face" aria-hidden="true"></span>
       <span class="gus-say-body"><span class="gus-name"><b>Gus Grimsby</b><span>Garbage Man</span></span><span id="gusSayText" class="gus-say-text"></span></span>
       <button id="gusSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
+    </div>
+    <div id="pxSay" class="gus-say px-say" role="status" aria-live="polite" hidden>
+      <span id="pxSayFace" class="gus-face px-face" aria-hidden="true"></span>
+      <span class="gus-say-body"><span class="gus-name px-name"><b>Proxima Pace</b><span>Productivity Inspector</span></span><span id="pxSayText" class="gus-say-text"></span>
+        <span class="px-say-actions"><button id="pxSayRead" class="btn btn-small px-read" type="button">Read</button></span></span>
+      <button id="pxSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
     </div>
     <div id="banner" class="banner" role="status" hidden>
       <span>Plant <b id="bannerName" dir="auto"></b>: aim at a free plot, then click.</span>

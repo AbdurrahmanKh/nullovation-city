@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.1.45 (2026-10-19)
+
+Proxima Pace, Productivity Inspector, V1 of the fourth task idea, designed in Productivity Inspector, Rounds 1 and 2.
+- Her card at the top of Reports, above the tabs (J1): her face, name and title, her latest line, and her three reports as tiles, Daily, Weekly and Monthly, with the period each is on. A report not read yet has a sky-blue dot, and so does the Reports button.
+- Her reports (L1), in a panel with her line first: tasks finished against the period before, the streak against the longest, milestones finished, and what the coming day, week or month holds. The weekly and monthly add each building's tasks finished, the busiest building, buildings with nothing finished, and the overdue task to close first; the monthly adds repeats kept up and notes written. A task, building or milestone in a report opens it.
+- Her facts (L2): a milestone one task from done, next week with nothing due, and a repeat ticked 3 or more weeks running.
+- How they arrive (J3): the daily report, on yesterday, waits in Reports. The weekly and monthly reports she brings herself on the first open after their week or month ends, in a speech bubble at the map's top left with Read, which opens the report. Each is said once. She never speaks with Gus: she waits for him, and says hers again if he cuts in. She waits while a report is open.
+- Her voice and lines (V1, V2), word for word as approved; the same report always gets the same line.
+- Her face, until her portrait is made: a stand-in drawn in code in Sky crew colors (N2), sky blue with white, with a ponytail, an earpiece with a side mic, and a stopwatch.
+- Nothing new in the city's data: what was read and said is kept in this browser.
+- Tests: test30_inspector, 62 checks.
+
+## 0.1.44 (2026-10-19)
+
+After trying 0.1.43, Abdurrahman found the Review tab useless: the side bar is dull for it and has no way to fix a task, and the city is where tasks are managed. The look back is already in Weeks.
+- The Review tab is gone, with its three steps and everything on its task rows (Done, Dead, Next week and its days, Unpick). Reports keeps Weeks and Records, in two tabs with their names.
+- A browser that last left Reports on Review opens it on Weeks.
+- The Reports button's tip says Reports (R).
+- Tests: test29_reports, now 71 checks: two tabs and no review left in the tool, and the old Review tab opening on Weeks.
+
+## 0.1.43 (2026-10-19)
+
+Reports and the weekly review, the fourth of the task ideas (Tasks, Round 2, P1 to P3, V2 to V4), built before the third at Abdurrahman's call. The productivity inspector (V1), who will run the review, waits for his own wizard round.
+- Reports (P1): a Reports button beside Settings at the foot of the side bar, or R, turns the side bar into Reports, as it does into Settings, with the map in view; the back arrow, Esc or R again bring the lists back. Opening one of Reports and Settings closes the other. Three tabs: Weeks, Records and Review. The controls guide names R.
+- Weeks (P2): tasks finished each week, a bar for each of the last 12 Saturday-to-Friday weeks, this week's hatched as so far, with this week's count, the 12 weeks' total and the average a week. Under it, By project: each building's tasks finished for a week or a month, the most first, with arrows back to the first one with a tick; a bar picks its week. A row shows the building on the map.
+- Records (P2, P3): the streak, days in a row with a task finished, with what today does for it and the longest with its days; rest days and days away never break it, and a tick on one counts. The busiest building of the month with its picture, and each earlier month's, ties shared. Milestones finished, newest first, with their dates and projects; 8 show, then Show all; a click opens the project.
+- Every count is of ticks: Activity's Done lines, less those a Reopened line took back, so a repeat counts each time it is ticked; a done task whose Done line the log no longer keeps counts on the day it was finished.
+- The review, in three steps. Look back: the week before next week, in numbers and by project, with its milestones and the streak, and Open the week for the recap. Close (V2): every overdue task, the latest first, then any project's other open tasks. Pick (V4): what next week already holds, then each project's open tasks.
+- On every task in the review: Done ticks it (a repeat moves on); Dead deletes it (V3), and it never counts; Next week shows the coming week's days, Saturday first, and a day gives it that due date, so Due this week, urgency and garbage follow it. Done and Dead have Undo; a task the review picked can be unpicked, back to the date it had. Picking is not work. Finish the review sums up what it did.
+- Next week is the coming Saturday-to-Friday week, or on a Saturday the one starting that day.
+- Nothing new in the data: the review keeps its steps in memory, and Reports keep their tab and Week or Month in this browser.
+- Tests: test29_reports, 111 checks.
+
 ## 0.1.42 (2026-10-19)
 
 Recurring tasks and one-line adding, the second of the task ideas (Tasks, Round 2, R1 to R4, O1, O2).

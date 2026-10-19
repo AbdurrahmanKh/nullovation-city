@@ -1080,6 +1080,110 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .gus-say-close { flex: none; width: 28px; height: 28px; padding: 0; }
 @media (prefers-reduced-motion: reduce) { .gus-say { transition: none; } }
 
+/* ---------- Reports (0.1.43): the side bar turns into them, as into Settings ---------- */
+.sb-foot { display: flex; flex-wrap: wrap; gap: 6px; }
+.sb-foot .sb-settings { align-self: auto; }
+.rp-tabs { grid-template-columns: repeat(2, 1fr); }
+.rp-tab { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.rp-tab[aria-selected="true"] { --rp-ic: #fff; }
+.rp-tab .set-tab-name { position: static; width: auto; height: auto; overflow: visible; clip: auto; font: 400 13.5px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
+.rp-page { gap: 16px; }
+.rp-group { gap: 10px; }
+.rp-sum { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-soft); }
+.rp-sum b { color: var(--ink); font-weight: 600; }
+/* tasks finished each week: twelve bars, this week's hatched, the one shown by project with a gold count */
+.rp-chart { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; align-items: end; height: 100px; padding: 0 2px; border-bottom: 2px solid var(--edge); }
+.rp-bar { display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; height: 100%; min-width: 0; margin: 0; padding: 0; background: none; border: 0; color: var(--ink); cursor: pointer; }
+.rp-bar b { font: 400 11px/1 var(--f-pixel); text-align: center; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.rp-bar i { display: block; background: var(--accent); box-shadow: inset 0 2px 0 0 #FF9CC8; }
+.rp-bar.now i { background: repeating-linear-gradient(135deg, var(--accent) 0 3px, #9E2F68 3px 5px); }
+.rp-bar:hover i { background: #FF6FAA; }
+.rp-bar[aria-pressed="true"] i { background: #FFD23F; box-shadow: inset 0 2px 0 0 #FFF0A8; }
+.rp-bar[aria-pressed="true"] b { color: #FFD23F; }
+.rp-bar:focus-visible { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.rp-axis { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-top: -4px; padding: 0 2px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.rp-nav { display: flex; align-items: center; gap: 6px; }
+.rp-nav .icon-btn { width: 28px; height: 28px; margin: 2px; box-shadow: var(--px-edge); }
+.rp-nav .icon-btn:disabled { opacity: .35; }
+.rp-when { flex: 1; text-align: center; font: 400 13.5px/1.25 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); }
+.rp-rows, .rp-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.rp-rows { gap: 4px; }
+.rp-row { display: flex; align-items: center; gap: 8px; width: calc(100% - 4px); margin: 2px; padding: 4px 8px 4px 4px; background: var(--field); border: 0; box-shadow: var(--px-edge); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.rp-row:hover, .rp-row:focus-visible { background: var(--hover); outline: none; }
+.rp-thumb { flex: none; display: grid; place-items: end center; width: 34px; height: 34px; }
+.rp-thumb canvas.thumb { width: 34px; height: auto; max-height: 34px; object-fit: contain; image-rendering: auto; }
+.rp-row-body { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.rp-row-top { display: flex; align-items: baseline; gap: 8px; }
+.rp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 600; }
+.rp-n { flex: none; font: 400 14px/1 var(--f-pixel); font-variant-numeric: tabular-nums; color: var(--ink); }
+.rp-meter { display: block; height: 4px; background: var(--line); }
+.rp-meter i { display: block; height: 100%; background: var(--teal); }
+.rp-empty { margin: 0; font-size: 13px; color: var(--muted); }
+/* records: the streak, the busiest building, milestones */
+.rp-streak { display: flex; align-items: center; gap: 12px; margin: 2px; padding: 10px 12px; background: var(--field); box-shadow: var(--px-edge); }
+.rp-streak > .ic { flex: none; }
+.rp-streak-body { display: grid; gap: 3px; font-size: 12.5px; color: var(--ink-soft); }
+.rp-big { font: 400 24px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); }
+.rp-line { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-soft); }
+.rp-line b { color: var(--ink); font-weight: 600; }
+.rp-busy { display: flex; align-items: center; gap: 10px; margin: 2px; padding: 8px 10px 8px 6px; background: var(--field); box-shadow: 0 0 0 2px #FFD23F, 0 0 0 4px #0A0812; }
+.rp-busy-art { flex: none; display: grid; place-items: end center; width: 58px; height: 58px; }
+.rp-busy-art canvas.thumb { width: 58px; height: auto; max-height: 58px; object-fit: contain; image-rendering: auto; }
+.rp-busy-body { min-width: 0; display: grid; gap: 3px; font-size: 12.5px; color: var(--ink-soft); }
+.rp-busy-name { font-size: 14.5px; line-height: 1.3; color: #FFD23F; overflow-wrap: anywhere; }
+.rp-list { gap: 5px; }
+.rp-list li { display: flex; align-items: baseline; gap: 8px; font-size: 13px; line-height: 1.35; }
+.rp-date { flex: none; min-width: 54px; font-size: 12px; color: var(--muted); }
+.rp-what { flex: 1; min-width: 0; color: var(--ink); text-align: left; overflow-wrap: anywhere; }
+button.rp-what { font-size: 13px; color: var(--ink); text-decoration: none; }
+button.rp-what:hover, button.rp-what:focus-visible { text-decoration: underline; outline: none; }
+.rp-proj { display: block; font-size: 12px; color: var(--muted); }
+.rp-more { justify-self: start; }
+
+/* ---------- Proxima Pace, Productivity Inspector (0.1.45): her card at the top of Reports, her reports, her bubble.
+   Sky crew: sky blue with white, where Gus is rust and peach ---------- */
+.px-face { background: #1F3550; box-shadow: 0 0 0 2px #3F6E9C; }
+.px-name b { color: #8FD0F7; }
+.px-card { display: grid; gap: 0; margin: 2px; }
+.px-line { box-shadow: inset 2px 0 0 #8FD0F7; }
+.px-reports { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.px-report-row { position: relative; display: grid; gap: 3px; width: calc(100% - 4px); height: 100%; margin: 2px; padding: 6px 6px 5px; background: var(--paper); border: 0;
+  box-shadow: var(--px-edge); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.px-report-row:hover, .px-report-row:focus-visible { background: var(--hover); outline: none; }
+.px-report-row:focus-visible { box-shadow: 0 0 0 2px #8FD0F7, 0 0 0 4px #0A0812; }
+.px-report-kind { font: 400 13px/1.1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
+.px-report-when { font-size: 11px; line-height: 1.25; color: var(--muted); }
+.px-dot { display: none; position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; background: #8FD0F7; box-shadow: 0 0 0 2px #0A0812; }
+.px-report-row.new .px-dot { display: block; }
+.px-report-row.new .px-report-kind { color: #8FD0F7; }
+/* the Reports button, while a report waits unread */
+#btnOpenReports { position: relative; }
+#btnOpenReports.has-news::after { content: ''; position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; background: #8FD0F7; box-shadow: 0 0 0 2px #0A0812; }
+/* a report, in a panel */
+.px-report { display: grid; gap: 4px; margin-top: 12px; }
+.px-says { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; background: var(--field); box-shadow: var(--px-edge); margin: 2px 2px 6px; }
+.px-says-body { display: grid; gap: 4px; min-width: 0; }
+.px-quote { margin: 0; font-size: 15px; line-height: 1.4; color: var(--ink); }
+.px-when { margin: 0 0 4px; font: 400 15px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: #8FD0F7; }
+.px-sec { padding: 10px 0 2px; border-top: 2px solid var(--line); }
+.px-sec h4 { margin: 0 0 6px; font: 400 13.5px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink-soft); }
+.px-sec p { margin: 0 0 4px; font-size: 14.5px; line-height: 1.45; }
+.px-sec p b { font: 400 17px/1 var(--f-pixel); color: var(--ink); }
+.px-none { color: var(--muted); }
+.px-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.px-list li { display: flex; align-items: baseline; gap: 10px; font-size: 14px; line-height: 1.4; }
+.px-list .recap-day { min-width: 68px; width: auto; }
+.px-link { min-width: 0; padding: 0; background: none; border: 0; color: var(--ink); font: inherit; text-align: start; overflow-wrap: anywhere; cursor: pointer; }
+.px-link:hover, .px-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; outline: none; }
+.px-proj { margin-left: auto; flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--muted); }
+.px-n { margin-left: auto; font: 400 15px/1 var(--f-pixel); font-variant-numeric: tabular-nums; }
+.px-facts li { padding-left: 10px; box-shadow: inset 2px 0 0 #8FD0F7; }
+/* her bubble over the map, where Gus's shows */
+.px-say::before { border-right-color: #8FD0F7; }
+.px-say { box-shadow: 0 -2px 0 0 #8FD0F7, 0 2px 0 0 #8FD0F7, -2px 0 0 0 #8FD0F7, 2px 0 0 0 #8FD0F7, var(--px-drop-sm); }
+.px-say-actions { display: flex; gap: 6px; margin-top: 4px; }
+.px-read { padding: 4px 12px 3px; }
+
 </style>
 </head>
 <body>
@@ -1087,7 +1191,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.42</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.45</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1147,7 +1251,10 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
         <ul id="dueList" class="due-list"></ul>
       </section>
       <div class="grow"></div>
-      <button id="btnOpenSettings" class="btn sb-settings" type="button" title="Settings (comma key)"><span id="sbGearIcon" aria-hidden="true"></span>Settings</button>
+      <div class="sb-foot">
+        <button id="btnOpenReports" class="btn sb-settings" type="button" title="Reports (R)"><span id="sbChartIcon" aria-hidden="true"></span>Reports</button>
+        <button id="btnOpenSettings" class="btn sb-settings" type="button" title="Settings (comma key)"><span id="sbGearIcon" aria-hidden="true"></span>Settings</button>
+      </div>
     </div>
 
     <div id="settings" class="settings" hidden>
@@ -1166,6 +1273,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
           <dt>Shortcuts</dt><dd>Right-click a building, or F with one selected</dd>
           <dt>Step inside</dt><dd>Enter, with a building selected</dd>
           <dt>Add a task</dt><dd>T, anywhere; /project names the building</dd>
+          <dt>Reports</dt><dd>R opens and closes them</dd>
           <dt>Settings</dt><dd>The comma key opens and closes them</dd>
           <dt>Back</dt><dd>Esc closes one layer at a time</dd>
         </dl>
@@ -1313,6 +1421,16 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
         </div>
       </div>
     </div>
+
+    <div id="reports" class="settings reports" hidden>
+      <header class="set-head">
+        <button id="rpBack" class="icon-btn" type="button" aria-label="Back to the lists" title="Back to the lists"></button>
+        <h2 class="set-title rp-title">Reports</h2>
+      </header>
+      <section id="pxCard" class="gus px-card" aria-label="Proxima Pace, Productivity Inspector"></section>
+      <div id="rpTabs" class="set-tabs rp-tabs" role="tablist" aria-label="Reports"></div>
+      <div id="rpBody" class="set-body"></div>
+    </div>
   </aside>
 
   <main id="mapWrap">
@@ -1328,6 +1446,12 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
       <span id="gusSayFace" class="gus-face" aria-hidden="true"></span>
       <span class="gus-say-body"><span class="gus-name"><b>Gus Grimsby</b><span>Garbage Man</span></span><span id="gusSayText" class="gus-say-text"></span></span>
       <button id="gusSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
+    </div>
+    <div id="pxSay" class="gus-say px-say" role="status" aria-live="polite" hidden>
+      <span id="pxSayFace" class="gus-face px-face" aria-hidden="true"></span>
+      <span class="gus-say-body"><span class="gus-name px-name"><b>Proxima Pace</b><span>Productivity Inspector</span></span><span id="pxSayText" class="gus-say-text"></span>
+        <span class="px-say-actions"><button id="pxSayRead" class="btn btn-small px-read" type="button">Read</button></span></span>
+      <button id="pxSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
     </div>
     <div id="banner" class="banner" role="status" hidden>
       <span>Plant <b id="bannerName" dir="auto"></b>: aim at a free plot, then click.</span>
@@ -2827,7 +2951,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.42";
+const APP_VERSION = "0.1.45";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -3299,11 +3423,14 @@ const ICONS = {
   pin: ['...####...', '..#++++#..', '..#++++#..', '..#++++#..', '.########.', '....##....', '....##....', '....##....', '....#.....', '....#.....'],
   star: ['....##....', '...#++#...', '...#++#...', '####++####', '#++++++++#', '.#++++++#.', '..#++++#..', '.#++##++#.', '.#+#..#+#.', '.##....##.'],
   repeat: ['......#...', '......##..', '.########.', '#.....##..', '#.....#...', '...#.....#', '..##.....#', '.########.', '..##......', '...#......'],
+  chart: ['.......##.', '.......#+#', '....##.#+#', '....#+##+#', '.##.#+##+#', '.#+##+##+#', '.#+##+##+#', '.#+##+##+#', '##########', '..........'],
+  trophy: ['.########.', '##++++++##', '#.#++++#.#', '#.#++++#.#', '.##++++##.', '...#++#...', '....##....', '....##....', '..######..', '..######..'],
+  flame: ['....#.....', '....##....', '...#++#...', '...#++#.#.', '..#+++###.', '.#++++++#.', '.#++oo++#.', '.#+oooo+#.', '..#+oo+#..', '...####...'],
   arrow: ['######....', '######....', '####......', '##.##.....', '##..##....', '##...##...', '......##..', '.......##.', '........##', '..........'],
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
 const ICON_NAMES = { doc: 'Doc', code: 'Code', github: 'GitHub', claude: 'Claude', chat: 'Chat', folder: 'Folder', web: 'Web' };
-const ICON_ACCENT = { claude: '#D97757', star: '#FFD23F', pin: '#E0356F' };   // Claude's spark keeps its own orange; the star gold (Star and What is next, A2); the pin coral
+const ICON_ACCENT = { claude: '#D97757', star: '#FFD23F', pin: '#E0356F', flame: '#FF8A3D' };   // Claude's spark keeps its own orange; the star gold (Star and What is next, A2); the pin coral; the streak's flame orange
 function iconSvg(name, size = 24, accent = ICON_ACCENT[name] || 'var(--accent)') {
   const rows = ICONS[name]; if (!rows) return '';
   const w = rows[0].length, ht = rows.length;
@@ -6480,6 +6607,7 @@ const Gus = (() => {
   /* ---------- speaking ---------- */
   function say(text) {
     line = text; saying = true;
+    if (typeof Proxima !== 'undefined') Proxima.yieldToGus();   // never both at once: she says hers after him
     const box = $('#gusSay');
     $('#gusSayText').textContent = text;
     if (!$('#gusSayFace').firstChild) $('#gusSayFace').append(face(2));
@@ -9325,6 +9453,8 @@ const Menu = (() => {
     if (!countEl) return;
     renderStar(); renderUrgent(); renderDue(); renderWeek();
     if (typeof Gus !== 'undefined') Gus.render();
+    if (typeof Reports !== 'undefined') Reports.refresh();
+    if (typeof Proxima !== 'undefined') Proxima.renderDot();
     $('#mapSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
     const total = DB.projects.length;
     countEl.replaceChildren();
@@ -9490,6 +9620,7 @@ const Settings = (() => {
   const isOpen = () => !$('#settings').hidden;
   function open(tab) {
     if (tab) ui.tab = tab;
+    if (typeof Reports !== 'undefined') Reports.close(false);   // the two share the side bar
     Menu.toggleDrawer(true);
     $('#sbLists').hidden = true; $('#settings').hidden = false;
     $('#menu').classList.add('in-settings');
@@ -9498,14 +9629,14 @@ const Settings = (() => {
     saveUi();
     const btn = $('#setTabs [aria-selected="true"]'); if (btn) btn.focus({ preventScroll: true });
   }
-  function close() {
+  function close(refocus = true) {
     if (!isOpen()) return false;
     MapView.setEditing(false);
     rememberScroll();
     $('#settings').hidden = true; $('#sbLists').hidden = false;
     $('#menu').classList.remove('in-settings');
     saveUi();
-    $('#btnOpenSettings').focus({ preventScroll: true });
+    if (refocus) $('#btnOpenSettings').focus({ preventScroll: true });
     return true;
   }
   const toggle = () => { if (isOpen()) close(); else open(); };
@@ -9703,6 +9834,587 @@ const Settings = (() => {
   return { init, open, close, toggle, isOpen, refresh, showTab, tab: () => ui.tab, resetTab, set, changed: changedFromDefault, storageUsed: () => StorageUse.used() };
 })();
 
+/* Reports, from the fourth of the task ideas (Tasks, Round 2, P1 to P3). The side bar turns into Reports as it does into
+   Settings, with two tabs:
+   - Weeks: tasks finished each week for the last 12 weeks, and by project for a week or a month;
+   - Records: the streak and its longest, the busiest building of each month, and milestones finished with their dates.
+   Every count is of ticks: Activity's Done lines, so a repeat counts each time it is ticked. The weekly review (V2 to V4),
+   built at 0.1.43 as a third tab, was taken out at 0.1.44: tasks are managed in the city, not in the side bar. */
+
+/* ---------- the counts ---------- */
+const REPORT_WEEKS = 12;
+/* Every tick in the city, oldest first: { at, day, p, text }. The Done lines in each project's Activity, less those a
+   Reopened line took back; a done task whose Done line the log no longer holds (it keeps 400 lines) counts on the day
+   it was finished. */
+function taskTicks(projects = DB.projects, now = Date.now()) {
+  const same = (a, b) => a.slice(0, 290) === b.slice(0, 290);          // Activity cuts a line at 300 characters
+  const out = [];
+  for (const p of projects) {
+    const got = [];
+    for (const e of [...(p.activity || [])].sort((a, b) => a.at - b.at)) {
+      if (e.text.startsWith('Done: ')) got.push({ at: e.at, text: e.text.slice(6) });
+      else if (e.text.startsWith('Reopened: ')) {
+        const s = e.text.slice(10);
+        for (let i = got.length - 1; i >= 0; i--) if (same(got[i].text, s)) { got.splice(i, 1); break; }
+      }
+    }
+    for (const t of p.todos) {
+      if (!t.done || typeof t.doneAt !== 'number') continue;
+      if (!got.some(e => same(e.text, String(t.text)) && Math.abs(e.at - t.doneAt) < 36 * HOUR)) got.push({ at: t.doneAt, text: String(t.text) });
+    }
+    for (const e of got) if (e.at <= now) out.push({ at: e.at, day: ymd(e.at), p, text: e.text });
+  }
+  return out.sort((a, b) => a.at - b.at);
+}
+const monthStartOf = ts => { const d = new Date(ts); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); };
+const addMonths = (ts, n) => { const d = new Date(ts); return new Date(d.getFullYear(), d.getMonth() + n, 1).getTime(); };
+const monthLabel = (ts, withYear = true) => new Date(ts).toLocaleDateString('en-GB', withYear ? { month: 'long', year: 'numeric' } : { month: 'long' });
+const dayMonth = ts => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+/* Tasks finished in each of the last n weeks, Saturday to Friday, oldest first; the last one is this week so far. */
+function weeklyTicks(ticks, n = REPORT_WEEKS, now = Date.now()) {
+  const cur = weekStartOf(now);
+  return Array.from({ length: n }, (_, k) => {
+    const start = addDays(cur, -7 * (n - 1 - k)), end = addDays(start, 7);
+    return { start, n: ticks.filter(e => e.at >= start && e.at < end).length, current: start === cur };
+  });
+}
+/* Tasks finished by project between two moments, the most first. */
+function ticksByProject(ticks, from, to) {
+  const m = new Map();
+  for (const e of ticks) if (e.at >= from && e.at < to) m.set(e.p, (m.get(e.p) || 0) + 1);
+  return [...m.entries()].map(([p, n]) => ({ p, n })).sort((a, b) => b.n - a.n || a.p.name.localeCompare(b.p.name));
+}
+/* The streak: days in a row with a task finished (P2). Rest days and days away never break it (P3): one with no tick
+   is passed over, one with a tick counts. Today does not break it before its first tick either. */
+function streakOf(ticks, now = Date.now(), city = DB.city || {}) {
+  const days = new Set(ticks.map(e => e.day)), today = ymd(now);
+  const rest = new Set(city.rest || []), spans = city.awaySpans || [];
+  const off = s => rest.has(new Date(parseYmd(s)).getDay()) || spans.some(([f, b]) => f <= s && s < b);
+  let n = 0, from = null, to = null, best = { n: 0, from: null, to: null };
+  const first = [...days].sort()[0];
+  if (first) for (let d = parseYmd(first); ymd(d) <= today; d = addDays(d, 1)) {
+    const s = ymd(d);
+    if (days.has(s)) { if (!n) from = s; n++; to = s; if (n > best.n) best = { n, from, to }; }
+    else if (!off(s) && s !== today) { n = 0; from = to = null; }
+  }
+  return { n, from, to, today: days.has(today), off: off(today), best };
+}
+/* The busiest building of each month, by its ticks: this month first, then each earlier month with a tick, at most n.
+   Buildings tied at the top share it. */
+function busiestByMonth(ticks, n = 12, now = Date.now()) {
+  const out = [], cur = monthStartOf(now);
+  if (!ticks.length) return [{ start: cur, top: [], n: 0 }];
+  for (let m = cur, first = monthStartOf(ticks[0].at); m >= first && out.length < n; m = addMonths(m, -1)) {
+    const rows = ticksByProject(ticks, m, addMonths(m, 1));
+    if (!rows.length && m !== cur) continue;
+    out.push({ start: m, top: rows.filter(r => r.n === rows[0].n), n: rows.length ? rows[0].n : 0 });
+  }
+  return out;
+}
+/* Milestones finished, newest first: every task in them done, on the day the last one was. A milestone with a repeat
+   in it never finishes. */
+function milestonesFinished(projects = DB.projects) {
+  const out = [];
+  for (const p of projects) for (const m of p.milestones) {
+    const ts = p.todos.filter(t => t.milestoneId === m.id);
+    if (!ts.length || !ts.every(t => t.done)) continue;
+    const at = Math.max(...ts.map(t => t.doneAt || 0));
+    if (at > 0) out.push({ p, m, at });
+  }
+  return out.sort((a, b) => b.at - a.at);
+}
+
+const Reports = (() => {
+  const UI_KEY = 'nullovation-city:reports';
+  const TABS = [{ id: 'weeks', label: 'Weeks', icon: 'chart' }, { id: 'records', label: 'Records', icon: 'trophy' }];
+  let ui = (() => { try { const v = JSON.parse(localStorage.getItem(UI_KEY) || 'null'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+  if (!TABS.some(t => t.id === ui.tab)) ui.tab = 'weeks';
+  if (ui.period !== 'month') ui.period = 'week';
+  const saveUi = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({ tab: ui.tab, period: ui.period })); } catch (e) { /* this visit only */ } };
+  let at = null;                                           // the week or month By project shows; null is the current one
+  const MILESTONES_SHOWN = 8;
+  let allMilestones = false;
+
+  const isOpen = () => !!$('#reports') && !$('#reports').hidden;
+  function open(tab) {
+    if (tab && TABS.some(t => t.id === tab)) ui.tab = tab;
+    if (typeof Settings !== 'undefined') Settings.close(false);
+    Menu.toggleDrawer(true);
+    $('#sbLists').hidden = true; $('#reports').hidden = false;
+    $('#menu').classList.add('in-reports');
+    $('#menu').scrollTop = 0;
+    render();
+    saveUi();
+    const btn = $('#rpTabs [aria-selected="true"]'); if (btn) btn.focus({ preventScroll: true });
+  }
+  function close(refocus = true) {
+    if (!isOpen()) return false;
+    $('#reports').hidden = true;
+    if (!$('#settings') || $('#settings').hidden) $('#sbLists').hidden = false;
+    $('#menu').classList.remove('in-reports');
+    if (refocus) $('#btnOpenReports').focus({ preventScroll: true });
+    return true;
+  }
+  const toggle = () => { if (isOpen()) close(); else open(); };
+  function showTab(id) {
+    if (id === ui.tab) return;
+    ui.tab = id; saveUi();
+    $('#menu').scrollTop = 0;
+    render();
+  }
+
+  /* ---------- drawing ---------- */
+  /* Redraws the open tab, keeping the focus on the control that had it and the side bar where it was. */
+  function render() {
+    if (!isOpen()) return;
+    const a = document.activeElement, key = a && $('#reports').contains(a) ? a.dataset.k : null, top = $('#menu').scrollTop;
+    const place = key ? $$('#reports [data-k]').indexOf(a) : -1;
+    for (const b of $$('#rpTabs .set-tab')) { const on = b.dataset.tab === ui.tab; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }
+    const now = Date.now(), ticks = taskTicks(DB.projects, now);
+    const page = ui.tab === 'weeks' ? weeksPage(ticks, now) : recordsPage(ticks, now);
+    $('#rpBody').replaceChildren(h('div', { class: 'set-page rp-page', 'data-tab': ui.tab, role: 'tabpanel', 'aria-label': TABS.find(t => t.id === ui.tab).label }, page));
+    if (typeof Proxima !== 'undefined') Proxima.renderCard();    // the Productivity Inspector, at the top
+    $('#menu').scrollTop = top;
+    if (key) {                                             // the same control, or the one now in its place when it went
+      const all = $$('#reports [data-k]'), b = $(`#reports [data-k="${CSS.escape(key)}"]`) || all[Math.min(place, all.length - 1)];
+      if (b) b.focus({ preventScroll: true });
+    }
+  }
+  /* From the map: another change in the city redraws the open tab. */
+  function refresh() { if (isOpen()) render(); }
+  const group = (title, ...kids) => h('section', { class: 'set-group rp-group' }, h('h3', { class: 'set-h' }, title), ...kids);
+  const note = text => h('p', { class: 'note' }, text);
+  const thumb = p => h('span', { class: 'rp-thumb', 'aria-hidden': 'true' }, MapView.thumb(p));
+  const goTo = p => { Menu.closeDrawer(); MapView.select(p.id); };
+
+  /* Weeks: the last 12 weeks, then by project for a week or a month. */
+  function weeksPage(ticks, now) {
+    const weeks = weeklyTicks(ticks, REPORT_WEEKS, now), max = Math.max(1, ...weeks.map(w => w.n));
+    const total = weeks.reduce((s, w) => s + w.n, 0), cur = weeks[weeks.length - 1];
+    const span = period(ticks, now);
+    const sel = ui.period === 'week' ? span.from : null;
+    const chart = h('div', { class: 'rp-chart', role: 'group', 'aria-label': 'Tasks finished each week, the last 12 weeks' },
+      weeks.map(w => {
+        const words = weekLabel(w.start) + (w.current ? ', so far' : '') + ': ' + plural(w.n, 'task', 'tasks');
+        return h('button', { class: 'rp-bar' + (w.current ? ' now' : ''), type: 'button', 'data-k': 'bar' + w.start, 'data-week': String(w.start), 'aria-pressed': String(sel === w.start),
+          title: words + '. Show it by project.', 'aria-label': words, onclick: () => { ui.period = 'week'; at = w.start; saveUi(); render(); } },
+          h('b', null, w.n ? String(w.n) : ''), h('i', { style: 'height:' + (w.n ? Math.max(4, Math.round(w.n / max * 72)) : 2) + 'px' }));
+      }));
+    const axis = h('div', { class: 'rp-axis', 'aria-hidden': 'true' }, [0, 4, 8].map(k => h('span', { style: 'grid-column: ' + (k + 1) + ' / span 4' }, dayMonth(weeks[k].start))));
+    const rows = ticksByProject(ticks, span.from, span.to), top = Math.max(1, ...rows.map(r => r.n));
+    const kinds = [{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }];
+    return [
+      group('Tasks finished each week',
+        h('p', { id: 'rpWeeksSum', class: 'rp-sum' }, 'This week so far: ', h('b', null, String(cur.n)), '. The last 12 weeks: ', h('b', null, String(total)),
+          total ? ', about ' + (Math.round(total / REPORT_WEEKS * 10) / 10) + ' a week.' : '.'),
+        chart, axis,
+        note('Weeks run Saturday to Friday. Pick a week to see it by project.')),
+      group('By project',
+        h('div', { class: 'set-choices rp-kinds' }, kinds.map(k => h('button', { class: 'btn set-choice', type: 'button', 'data-k': 'kind-' + k.value, 'data-value': k.value,
+          'aria-pressed': String(ui.period === k.value), onclick: () => { if (ui.period === k.value) return; ui.period = k.value; at = null; saveUi(); render(); } }, k.label))),
+        h('div', { class: 'rp-nav' },
+          h('button', { class: 'icon-btn', type: 'button', 'data-k': 'prev', 'aria-label': 'The ' + ui.period + ' before', title: 'The ' + ui.period + ' before', html: iconSvg('caretR', 10),
+            style: 'transform: scaleX(-1)', disabled: !span.prev, onclick: () => { at = span.prev; render(); } }),
+          h('span', { id: 'rpPeriod', class: 'rp-when' }, span.label),
+          h('button', { class: 'icon-btn', type: 'button', 'data-k': 'next', 'aria-label': 'The ' + ui.period + ' after', title: 'The ' + ui.period + ' after', html: iconSvg('caretR', 10),
+            disabled: !span.next, onclick: () => { at = span.next; render(); } })),
+        rows.length ? h('ul', { id: 'rpByProject', class: 'rp-rows' }, rows.map(r => h('li', null,
+          h('button', { class: 'rp-row', type: 'button', 'data-k': 'proj-' + r.p.id, title: 'Show ' + r.p.name + ' on the map', onclick: () => goTo(r.p) },
+            thumb(r.p),
+            h('span', { class: 'rp-row-body' },
+              h('span', { class: 'rp-row-top' }, h('span', { class: 'rp-name', dir: 'auto' }, r.p.name), h('b', { class: 'rp-n' }, String(r.n))),
+              h('span', { class: 'rp-meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + Math.max(4, Math.round(r.n / top * 100)) + '%' }))))))) :
+          h('p', { id: 'rpByProject', class: 'rp-empty' }, 'No tasks finished ' + (span.current ? 'this ' + ui.period + ' yet.' : 'that ' + ui.period + '.'))),
+    ];
+  }
+  /* The week or month By project shows, with where the arrows lead: back to the first one with a tick, on to now. */
+  function period(ticks, now) {
+    const week = ui.period === 'week', curStart = week ? weekStartOf(now) : monthStartOf(now);
+    const firstAt = ticks.length ? ticks[0].at : now, first = Math.min(curStart, week ? weekStartOf(firstAt) : monthStartOf(firstAt));
+    const step = (ts, n) => week ? addDays(ts, 7 * n) : addMonths(ts, n);
+    let from = at == null ? curStart : clamp(week ? weekStartOf(at) : monthStartOf(at), first, curStart);
+    const current = from === curStart;
+    const label = week ? weekLabel(from, true) + (current ? ', this week' : '') : monthLabel(from) + (current ? ', this month' : '');
+    return { from, to: step(from, 1), label, current, prev: from > first ? step(from, -1) : null, next: from < curStart ? step(from, 1) : null };
+  }
+
+  /* Records: the streak, the busiest building of each month, and milestones finished. */
+  function recordsPage(ticks, now) {
+    const s = streakOf(ticks, now), span = (a, b) => a === b ? dayMonth(parseYmd(a)) : dayMonth(parseYmd(a)) + ' to ' + dayMonth(parseYmd(b));
+    const todayLine = s.today ? 'Today counts already.' : s.off ? 'Today is a day off, so it cannot break it.' : s.n ? 'Finish a task today to make it ' + plural(s.n + 1, 'day', 'days') + '.' : 'Finish a task today to start one.';
+    const months = busiestByMonth(ticks, 12, now), [cur, ...past] = months;
+    const ms = milestonesFinished(DB.projects), shown = allMilestones ? ms : ms.slice(0, MILESTONES_SHOWN);
+    const who = m => m.top.map(r => r.p.name).join(' and ');
+    return [
+      group('Streak',
+        h('div', { id: 'rpStreak', class: 'rp-streak' }, iconEl('flame', 30),
+          h('span', { class: 'rp-streak-body' }, h('b', { class: 'rp-big' }, plural(s.n, 'day', 'days')), h('span', null, 'in a row with a task finished'))),
+        h('p', { id: 'rpToday', class: 'rp-line' }, todayLine),
+        h('p', { id: 'rpLongest', class: 'rp-line' }, 'Longest: ', h('b', null, plural(s.best.n, 'day', 'days')), s.best.n ? ', ' + span(s.best.from, s.best.to) + '.' : '.'),
+        note('Rest days and days away never break it.')),
+      group('Busiest building of the month',
+        cur.top.length ? h('div', { id: 'rpBusiest', class: 'rp-busy' },
+          h('span', { class: 'rp-busy-art', 'aria-hidden': 'true' }, MapView.thumb(cur.top[0].p)),
+          h('span', { class: 'rp-busy-body' },
+            h('b', { class: 'rp-busy-name', dir: 'auto' }, who(cur)),
+            h('span', null, plural(cur.n, 'task', 'tasks') + ' finished in ' + monthLabel(cur.start, false) + (cur.top.length > 1 ? ' each' : '')))) :
+          h('p', { id: 'rpBusiest', class: 'rp-empty' }, 'No tasks finished in ' + monthLabel(cur.start, false) + ' yet.'),
+        past.length ? h('ul', { id: 'rpMonths', class: 'rp-list' }, past.map(m => h('li', null,
+          h('span', { class: 'rp-date' }, monthLabel(m.start, new Date(m.start).getFullYear() !== new Date(now).getFullYear())),
+          h('span', { class: 'rp-what', dir: 'auto' }, who(m)), h('b', { class: 'rp-n' }, String(m.n))))) : null),
+      group('Milestones finished',
+        ms.length ? h('ul', { id: 'rpMilestones', class: 'rp-list' }, shown.map(x => h('li', null,
+          h('span', { class: 'rp-date' }, fmtDate(x.at)),
+          h('button', { class: 'rp-what linkish', type: 'button', dir: 'auto', 'data-k': 'ms-' + x.m.id, title: 'Open ' + x.p.name, onclick: () => FullView.open(x.p.id) },
+            x.m.name, h('span', { class: 'rp-proj' }, x.p.name))))) : h('p', { id: 'rpMilestones', class: 'rp-empty' }, 'No milestone finished yet.'),
+        ms.length > MILESTONES_SHOWN ? h('button', { class: 'btn btn-quiet btn-small rp-more', type: 'button', 'data-k': 'ms-more', onclick: () => { allMilestones = !allMilestones; render(); } },
+          allMilestones ? 'Show fewer' : 'Show all ' + ms.length) : null),
+    ];
+  }
+
+  function init() {
+    $('#rpBack').innerHTML = iconSvg('back', 18);
+    $('#sbChartIcon').innerHTML = iconSvg('chart', 16);
+    $('#sbChartIcon').style.display = 'inline-flex';
+    $('#rpTabs').replaceChildren(...TABS.map(t => h('button', { class: 'set-tab rp-tab', type: 'button', role: 'tab', 'data-tab': t.id, 'aria-label': t.label, title: t.label,
+      onclick: () => showTab(t.id) }, h('span', { class: 'set-tab-ic', 'aria-hidden': 'true', html: iconSvg(t.icon, 18, 'var(--rp-ic, var(--accent))') }), h('span', { class: 'set-tab-name' }, t.label))));
+    $('#rpTabs').addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const k = TABS.findIndex(t => t.id === ui.tab);
+      showTab(TABS[(k + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length].id);
+      $('#rpTabs [aria-selected="true"]').focus();
+    });
+    $('#rpBack').addEventListener('click', () => close());
+    $('#btnOpenReports').addEventListener('click', () => open());
+    /* R opens and closes Reports, unless you are typing or a dialog is open, as the comma key does Settings. */
+    window.addEventListener('keydown', e => {
+      if (e.code !== 'KeyR' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      const t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (Confirm.isOpen() || Panel.isOpen()) return;
+      e.preventDefault();
+      toggle();
+    });
+  }
+  return { init, open, close, toggle, isOpen, refresh, render, showTab, tab: () => ui.tab, reset: () => { at = null; allMilestones = false; } };
+})();
+
+/* Proxima Pace, Productivity Inspector (Productivity Inspector, Rounds 1 and 2). A co-pilot who reads the city's
+   instruments and calls out the numbers: delighted in numbers, a bit energetic, caring mostly about productivity. She
+   lives at the top of Reports (J1) and writes three reports to read (J3): the daily one, on yesterday, waits there with
+   a dot on the Reports button until it is read; the weekly one, on the Saturday-to-Friday week just ended, and the
+   monthly one, on the month just ended, she brings herself on the first open after their period ends, in a speech
+   bubble with Read. She and Gus never speak at once: Gus first, then her. What each report holds is L1, her facts L2,
+   her lines V2, word for word. Every count is of ticks, as in Reports.
+   Her voice (V1), a compass for her lines: quick, bright and exact; short call-outs with a little cockpit talk (inbound,
+   logged, on deck, copy that); real numbers said precisely, an exclamation when a number is good; she opens with the
+   number and closes with the next thing to do. She never scolds or nags (Gus's job), mentions garbage, makes up or
+   rounds a number, praises with empty words, or crowds a report with more than it holds.
+   Until her portrait is made, a faceless stand-in in her colors, sky blue with white, takes its place. */
+
+/* ---------- her lines (V2), approved word for word ---------- */
+const PROXIMA_LINES = {
+  week: ['Weekly report inbound! {n} tasks landed this week.', "Copy that, week logged: {n} tasks done. Report's ready."],
+  week0: ['Quiet week: no tasks landed. Next week holds {due} due.'],
+  month: ['Monthly report on deck! {n} tasks in {month}.', "{month} is logged: {n} tasks, {m} milestones. Report's ready."],
+  day: ["Yesterday: {n} tasks landed. Today's flight plan: {due} due."],
+  one_left: ["{milestone} is one task from done: {task}. Let's land it!"],
+  empty_week: ["Next week's flight plan is empty. Nothing due yet."],
+  repeat_run: ['{repeat}: ticked {k} weeks running. Steady hands!'],
+};
+/* A line with its blanks filled; counts read in the singular when they are one. */
+function proximaFill(text, v) {
+  return text.replace('{n} tasks', () => plural(v.n, 'task', 'tasks')).replace('{m} milestones', () => plural(v.m, 'milestone', 'milestones'))
+    .replace('{k} weeks', () => plural(v.k, 'week', 'weeks')).replace(/\{(\w+)\}/g, (all, k) => (v[k] == null ? all : String(v[k])));
+}
+/* One line from a moment's list, the same one each time for the same report. */
+const proximaPick = (list, seed) => list[hashStr(seed) % list.length];
+
+/* ---------- her reports (L1, L2) ---------- */
+const PROXIMA_KINDS = ['daily', 'weekly', 'monthly'];
+/* The period a report is on, the one before it, and the one after it, which the report looks ahead to. */
+function proximaPeriod(kind, now = Date.now()) {
+  const today = startOfDay(now);
+  if (kind === 'daily') { const from = addDays(today, -1); return { kind, from, to: today, prev: addDays(from, -1), next: addDays(today, 1), key: ymd(from) }; }
+  if (kind === 'weekly') { const to = weekStartOf(now), from = addDays(to, -7); return { kind, from, to, prev: addDays(from, -7), next: addDays(to, 7), key: ymd(from) }; }
+  const to = monthStartOf(now), from = addMonths(to, -1);
+  return { kind, from, to, prev: addMonths(from, -1), next: addMonths(to, 1), key: ymd(from).slice(0, 7) };
+}
+const PROXIMA_WORDS = {
+  daily: { title: 'Daily report', short: 'Daily', before: 'the day before', ahead: 'Today', none: 'Nothing due today.' },
+  weekly: { title: 'Weekly report', short: 'Weekly', before: 'the week before', ahead: 'This week', none: 'Nothing due this week.' },
+  monthly: { title: 'Monthly report', short: 'Monthly', before: 'the month before', ahead: 'This month', none: 'Nothing due this month.' },
+};
+function proximaLabel(per, now = Date.now()) {
+  if (per.kind === 'daily') return weekdayOf(ymd(per.from)) + ' ' + dayMonth(per.from);
+  if (per.kind === 'weekly') return weekLabel(per.from);
+  return monthLabel(per.from, new Date(per.from).getFullYear() !== new Date(now).getFullYear());
+}
+/* The first thing the city recorded: a report on a period that ended before it has nothing to say. */
+function cityStartedAt() {
+  let min = Infinity;
+  for (const p of DB.projects) {
+    if (typeof p.createdAt === 'number') min = Math.min(min, p.createdAt);
+    for (const e of p.activity || []) min = Math.min(min, e.at);
+  }
+  return min;
+}
+const proximaRelevant = per => per.to > cityStartedAt();
+/* A tick of this task: Activity cuts a line at 300 characters, so the first 290 decide. */
+const sameTask = (e, t) => e.text.slice(0, 290) === String(t.text).slice(0, 290);
+/* Repeats ticked every week in a row, up to the last full week: weekly or more often only. */
+function repeatRuns(ticks, now = Date.now()) {
+  const out = [], end = weekStartOf(now);
+  for (const p of DB.projects) for (const t of p.todos) {
+    const r = t.repeat;
+    if (!r || !(r.every === 'week' || (r.every === 'day' && r.n <= 7))) continue;
+    const mine = ticks.filter(e => e.p === p && sameTask(e, t));
+    let k = 0;
+    for (let w = addDays(end, -7); k < 520; w = addDays(w, -7)) { if (!mine.some(e => e.at >= w && e.at < addDays(w, 7))) break; k++; }
+    if (k >= 3) out.push({ p, t, k });
+  }
+  return out.sort((a, b) => b.k - a.k || a.t.text.localeCompare(b.t.text));
+}
+/* Milestones one task from done: every other task in them done, and no repeat, which never finishes. */
+function milestonesOneLeft() {
+  const out = [];
+  for (const p of DB.projects) for (const m of p.milestones) {
+    const ts = p.todos.filter(t => t.milestoneId === m.id);
+    if (ts.length < 2 || ts.some(t => t.repeat)) continue;
+    const open = ts.filter(t => !t.done);
+    if (open.length === 1) out.push({ p, m, t: open[0] });
+  }
+  return out;
+}
+function proximaReport(kind, now = Date.now()) {
+  const per = proximaPeriod(kind, now), ticks = taskTicks(DB.projects, now), today = startOfDay(now);
+  const count = (a, b) => ticks.filter(e => e.at >= a && e.at < b).length;
+  const r = { kind, per, label: proximaLabel(per, now), n: count(per.from, per.to), before: count(per.prev, per.from), streak: streakOf(ticks, now) };
+  r.milestones = milestonesFinished(DB.projects).filter(x => x.at >= per.from && x.at < per.to).reverse();
+  /* what the coming day, week or month holds, from today on (what is late is under Overdue); a repeat waiting to come
+     back in it is due then too */
+  r.due = [];
+  const ahead = Math.max(per.to, today);
+  for (const p of DB.projects) for (const t of p.todos) { const d = parseYmd(t.due); if (!t.done && d != null && d >= ahead && d < per.next) r.due.push({ p, t }); }
+  r.due.sort((a, b) => parseYmd(a.t.due) - parseYmd(b.t.due) || a.p.name.localeCompare(b.p.name));
+  if (kind !== 'daily') {
+    r.buildings = ticksByProject(ticks, per.from, per.to);
+    r.busiest = r.buildings.filter(b => b.n === (r.buildings[0] || {}).n);
+    r.quiet = DB.projects.filter(p => openTasks(p, now).length && !r.buildings.some(b => b.p === p)).sort((a, b) => a.name.localeCompare(b.name));
+    r.overdue = [];
+    for (const p of DB.projects) for (const t of openTasks(p, now)) { const d = parseYmd(t.due); if (d != null && d < today) r.overdue.push({ p, t }); }
+    r.overdue.sort((a, b) => parseYmd(a.t.due) - parseYmd(b.t.due) || a.p.name.localeCompare(b.p.name));
+  }
+  if (kind === 'monthly') {
+    r.repeats = [];
+    for (const p of DB.projects) for (const t of p.todos) {
+      if (!t.repeat) continue;
+      const k = ticks.filter(e => e.p === p && sameTask(e, t) && e.at >= per.from && e.at < per.to).length;
+      if (k) r.repeats.push({ p, t, k });
+    }
+    r.repeats.sort((a, b) => b.k - a.k || a.t.text.localeCompare(b.t.text));
+    r.notes = DB.projects.flatMap(p => p.notes.filter(n => n.at >= per.from && n.at < per.to).map(n => ({ p, n }))).sort((a, b) => a.n.at - b.n.at);
+  }
+  /* her facts (L2): a milestone one task from done, next week with nothing due, a repeat kept up */
+  r.facts = milestonesOneLeft().slice(0, 5).map(x => proximaFill(PROXIMA_LINES.one_left[0], { milestone: x.m.name, task: x.t.text }));
+  if (kind === 'weekly' && !r.due.length) r.facts.push(PROXIMA_LINES.empty_week[0]);
+  if (kind !== 'daily') for (const x of repeatRuns(ticks, now).slice(0, 5)) r.facts.push(proximaFill(PROXIMA_LINES.repeat_run[0], { repeat: x.t.text, k: x.k }));
+  /* her first line */
+  const seed = kind + per.key, v = { n: r.n, due: r.due.length, m: r.milestones.length, month: monthLabel(per.from, false) };
+  r.line = proximaFill(kind === 'daily' ? PROXIMA_LINES.day[0] : kind === 'weekly' ? (r.n ? proximaPick(PROXIMA_LINES.week, seed) : PROXIMA_LINES.week0[0])
+    : (r.n ? proximaPick(PROXIMA_LINES.month, seed) : PROXIMA_LINES.month[1]), v);
+  return r;
+}
+
+const Proxima = (() => {
+  const KEY = 'nullovation-city:proxima';                 // what was read and what she said, on this computer
+  const SAY_MS = 14000;
+  let state = (() => { try { const v = JSON.parse(localStorage.getItem(KEY)); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+  if (!state.read || typeof state.read !== 'object') state.read = {};
+  if (!state.spoke || typeof state.spoke !== 'object') state.spoke = {};
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* this visit only */ } };
+  let queue = [], saying = null, sayTimer = 0, waitTimer = 0, sayMs = SAY_MS, started = false;
+
+  const periods = (now = Date.now()) => PROXIMA_KINDS.map(k => proximaPeriod(k, now)).filter(proximaRelevant);
+  const unread = per => state.read[per.kind] !== per.key;
+  const anyUnread = () => periods().some(unread);
+
+  /* ---------- her face: a faceless stand-in in her colors (black hair in a high ponytail with a sky-blue tie, a white
+     earpiece with a side mic, a sky-blue pilot shirt with a white collar and epaulettes, a stopwatch on a lanyard) ---------- */
+  const FACE = [
+    '..........oooooooo....oooo..',
+    '........oohhhhhhhhoo.ohhHHo.',
+    '.......ohhhhHHhhhhhhoohhhho.',
+    '......ohhhhhhhhhhhhhhBohhho.',
+    '......ohhhsssssssshhhhohhho.',
+    '.....ohhssssssssssshhhoohho.',
+    '.....ohhsssssssssssshho.ohho',
+    '....wohssssssssssssshho..oho',
+    '...wWwhssssssssssssshho...o.',
+    '...wWwoSssssssssssssSo......',
+    '....w.oSSsssssssssSSo.......',
+    '.....w.oSSSssssssSSo........',
+    '......wwWooSSSSSSoo.........',
+    '...........oSSSSo...........',
+    '......ooooowwSSwwooooo......',
+    '....oobbbbbwwwwwwbbbbboo....',
+    '...owwwbbbbbwwwwbbbbbwwwo...',
+    '..owwwbbbbbbllwwllbbbbwwwo..',
+    '..obbbbbbbbbblllbbbbbbbbbbo.',
+    '.obbbbbbbbbbbblbbbbbbbbbbbbo',
+    '.oBbbbbbbbbbbgggbbbbbbbbbbBo',
+    '.oBbbbbbbbbbgGwGgbbbbbbbbbBo',
+  ];
+  const COLORS = { o: '#22304A', h: '#2E2440', H: '#5A4C7A', s: '#F3CDA8', S: '#D9A57E', w: '#FFFFFF', W: '#BFD3E6',
+    b: '#8FD0F7', B: '#5BA6DE', l: '#2F6FB3', g: '#C9D2DF', G: '#8C97A8' };
+  let faceUrl = '';
+  function faceImg(scale = 2) {
+    if (!faceUrl) {
+      const [c, g] = mkCanvas(FACE[0].length, FACE.length);
+      FACE.forEach((row, y) => [...row].forEach((ch, x) => { if (COLORS[ch]) { g.fillStyle = COLORS[ch]; g.fillRect(x, y, 1, 1); } }));
+      faceUrl = c.toDataURL('image/png');
+    }
+    return h('img', { class: 'gus-sil', alt: '', src: faceUrl, width: FACE[0].length * scale, height: FACE.length * scale });
+  }
+  const face = () => h('span', { class: 'gus-face px-face', 'aria-hidden': 'true' }, faceImg(2));
+  const nameTag = () => h('span', { class: 'gus-name px-name' }, h('b', null, 'Proxima Pace'), h('span', null, 'Productivity Inspector'));
+
+  /* ---------- her card at the top of Reports (J1): her face, her latest line, and her three reports; Reports draws it
+     with its tabs, keeping the focus where it was ---------- */
+  function renderCard() {
+    const box = $('#pxCard');
+    if (!box) return;
+    const now = Date.now(), list = periods(now);
+    const lead = [...list].reverse().find(unread) || list[0];      // her line: the biggest report not read yet, else the daily one
+    const rows = list.map(per => {
+      const isNew = unread(per);
+      return h('li', null, h('button', { class: 'px-report-row' + (isNew ? ' new' : ''), type: 'button', 'data-k': 'px-' + per.kind, 'data-kind': per.kind,
+        title: 'Read the ' + PROXIMA_WORDS[per.kind].title.toLowerCase() + (isNew ? ', not read yet' : ''), onclick: () => openReport(per.kind) },
+        h('i', { class: 'px-dot', 'aria-hidden': 'true' }),
+        h('span', { class: 'px-report-kind' }, PROXIMA_WORDS[per.kind].short), h('span', { class: 'px-report-when' }, proximaLabel(per, now)),
+        isNew ? h('span', { class: 'sr-only' }, ', new') : null));
+    });
+    box.replaceChildren(
+      h('div', { class: 'gus-head px-head' }, face(), nameTag()),
+      h('p', { id: 'pxLine', class: 'gus-line px-line' }, lead ? proximaReport(lead.kind, now).line : 'Her first report comes tomorrow.'),
+      list.length ? h('ul', { id: 'pxReports', class: 'px-reports' }, rows) : null);
+  }
+  /* The Reports button wears a dot while a report waits unread. */
+  function renderDot() {
+    const b = $('#btnOpenReports');
+    if (!b) return;
+    const on = anyUnread();
+    b.classList.toggle('has-news', on);
+    b.title = on ? 'Reports (R). Proxima has a report for you.' : 'Reports (R)';
+  }
+  function refresh() { renderDot(); if (typeof Reports !== 'undefined') Reports.refresh(); }
+
+  /* ---------- a report, to read ---------- */
+  function openReport(kind) {
+    const now = Date.now(), r = proximaReport(kind, now), w = PROXIMA_WORDS[kind];
+    state.read[kind] = r.per.key;
+    if (kind !== 'daily') state.spoke[kind] = r.per.key;    // read before she brought it: she has nothing to bring
+    save();
+    queue = queue.filter(k => k !== kind);
+    if (saying && saying.kind === kind) hush(false);
+    const goP = p => () => { Panel.close(); Menu.closeDrawer(); MapView.select(p.id); };
+    const goT = (p, t) => () => { Panel.close(); FullView.openTask(p.id, t.id); };
+    const sec = (title, ...kids) => h('section', { class: 'px-sec' }, h('h4', null, title), ...kids);
+    const list = items => h('ul', { class: 'px-list' }, items);
+    const diff = r.n - r.before;
+    const vs = diff > 0 ? ', ' + diff + ' more than ' + w.before : diff < 0 ? ', ' + (-diff) + ' fewer than ' + w.before : ', the same as ' + w.before;
+    const s = r.streak;
+    const streakText = s.n ? plural(s.n, 'day', 'days') + (s.n >= s.best.n ? ', the longest.' : ', ' + (s.best.n - s.n) + ' short of the longest, ' + plural(s.best.n, 'day', 'days') + '.')
+      : 'None now. The longest: ' + plural(s.best.n, 'day', 'days') + '.';
+    const due = x => { const d = dueInfo(x.t, now); return h('span', { class: 'recap-day' + (d && d.tone ? ' ' + d.tone : '') }, weekdayOf(x.t.due) + ' ' + dayMonth(parseYmd(x.t.due))); };
+    const taskRow = (x, extra) => h('li', null, extra, h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goT(x.p, x.t) }, x.t.text), h('span', { class: 'px-proj', dir: 'auto' }, x.p.name));
+    const body = h('div', { class: 'px-report', 'data-kind': kind },
+      h('div', { class: 'px-says' }, face(), h('div', { class: 'px-says-body' }, nameTag(), h('p', { id: 'pxReportLine', class: 'px-quote' }, r.line))),
+      h('p', { class: 'px-when' }, r.label),
+      sec('Tasks finished', h('p', { id: 'pxFinished' }, h('b', null, String(r.n)), vs + '.')),
+      sec('Streak', h('p', { id: 'pxStreak' }, streakText)),
+      sec('Milestones finished', r.milestones.length ? list(r.milestones.map(x => h('li', null, h('span', { class: 'recap-day' }, fmtDate(x.at)),
+        h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: () => { Panel.close(); FullView.open(x.p.id); } }, x.m.name), h('span', { class: 'px-proj', dir: 'auto' }, x.p.name))))
+        : h('p', { class: 'px-none' }, 'None.')),
+      kind === 'daily' ? null : [
+        sec('By building', r.buildings.length ? list(r.buildings.map(b => h('li', null, h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goP(b.p) }, b.p.name), h('b', { class: 'px-n' }, String(b.n)))))
+          : h('p', { class: 'px-none' }, 'No tasks finished.')),
+        r.busiest.length ? sec('Busiest building', h('p', { id: 'pxBusiest' }, r.busiest.map(b => b.p.name).join(' and ') + ', ' + plural(r.busiest[0].n, 'task', 'tasks') + (r.busiest.length > 1 ? ' each.' : '.'))) : null,
+        r.quiet.length ? sec('Nothing finished', list(r.quiet.map(p => h('li', null, h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goP(p) }, p.name))))) : null,
+        sec('Overdue', r.overdue.length ? [h('p', { id: 'pxOverdue' }, plural(r.overdue.length, 'overdue task', 'overdue tasks') + '. Close this one first:'),
+          list([taskRow(r.overdue[0], h('span', { class: 'recap-day late' }, dueInfo(r.overdue[0].t, now).text))])] : h('p', { id: 'pxOverdue', class: 'px-none' }, 'Nothing overdue.')),
+      ],
+      kind === 'monthly' ? [
+        r.repeats.length ? sec('Repeats kept up', list(r.repeats.map(x => h('li', null, h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goT(x.p, x.t) }, x.t.text),
+          h('span', { class: 'px-proj' }, plural(x.k, 'time', 'times')))))) : null,
+        sec('Notes written', r.notes.length ? [h('p', null, plural(r.notes.length, 'note', 'notes') + '.'), list(r.notes.map(x => h('li', null, h('span', { class: 'recap-day' }, dayMonth(x.n.at)),
+          h('span', { dir: 'auto' }, noteLine(x.n).slice(0, 90)), h('span', { class: 'px-proj', dir: 'auto' }, x.p.name))))] : h('p', { class: 'px-none' }, 'None.')),
+      ] : null,
+      sec(w.ahead, r.due.length ? [h('p', null, plural(r.due.length, 'task', 'tasks') + ' due.'), list(r.due.map(x => taskRow(x, due(x))))] : h('p', { class: 'px-none' }, w.none)),
+      r.facts.length ? h('section', { class: 'px-sec px-facts' }, h('h4', null, 'From Proxima'), h('ul', { id: 'pxFacts', class: 'px-list' }, r.facts.map(f => h('li', { dir: 'auto' }, f)))) : null);
+    Panel.open(w.title, body);
+    refresh();
+    pump();                                                // the next one she has waits until this one is closed
+  }
+
+  /* ---------- speaking: the weekly and monthly reports, after Gus ---------- */
+  function check(now = Date.now()) {
+    if (!started) return;
+    for (const per of periods(now)) {
+      if (per.kind === 'daily' || state.spoke[per.kind] === per.key || queue.includes(per.kind) || (saying && saying.kind === per.kind)) continue;
+      queue.push(per.kind);
+    }
+    pump();
+  }
+  function pump() {
+    clearTimeout(waitTimer);
+    if (saying || !queue.length) return;
+    if ((typeof Gus !== 'undefined' && Gus.isSaying()) || Panel.isOpen() || Confirm.isOpen()) { waitTimer = setTimeout(pump, 500); return; }
+    const kind = queue.shift(), r = proximaReport(kind);
+    state.spoke[kind] = r.per.key; save();
+    say(r);
+  }
+  function say(r) {
+    saying = { kind: r.kind, key: r.per.key };
+    const box = $('#pxSay');
+    $('#pxSayText').textContent = r.line;
+    if (!$('#pxSayFace').firstChild) $('#pxSayFace').append(faceImg(2));
+    $('#pxSayRead').onclick = () => { hush(false); if (typeof Reports !== 'undefined') Reports.open(); openReport(r.kind); pump(); };
+    box.hidden = false;
+    requestAnimationFrame(() => box.classList.add('show'));
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(() => hush(), sayMs);
+  }
+  function hush(next = true) {
+    clearTimeout(sayTimer);
+    const box = $('#pxSay');
+    if (box) { box.classList.remove('show'); box.hidden = true; }
+    saying = null;
+    if (next) waitTimer = setTimeout(pump, 400);
+  }
+
+  /* Gus cuts in: her bubble goes, and she says it again once he is done. */
+  function yieldToGus() {
+    if (!saying) return;
+    const kind = saying.kind;
+    hush(false);
+    queue.unshift(kind);
+    pump();
+  }
+
+  function init() {
+    $('#pxSayClose').innerHTML = iconSvg('close', 16);
+    $('#pxSayClose').addEventListener('click', () => hush());
+    started = true;
+    renderDot();
+    check();
+    setInterval(() => { refresh(); check(); }, 60000);        // a new day, week or month while the city stays open
+  }
+  return { init, refresh, renderCard, renderDot, yieldToGus, openReport, check, hush, isSaying: () => !!saying, saying: () => saying && saying.kind, report: proximaReport,
+    _test: { sayMs: ms => { sayMs = ms; }, state: () => JSON.parse(JSON.stringify(state)), forget: () => { state = { read: {}, spoke: {} }; save(); queue = []; }, queue: () => [...queue] } };
+})();
+
 (function boot() {
   const saved = Store.load();
   /* Before version 3 the crowd size was kept in this browser; it moves into the city once, so nothing changes. */
@@ -9721,8 +10433,10 @@ const Settings = (() => {
   Bubble.init();
   MapView.init();
   Settings.init();
+  Reports.init();
   Garbage.refresh();                                       // the garbage already lying there, with no truck
   Gus.init();                                              // the Garbage Man, and his first word of the day
+  Proxima.init();                                          // the Productivity Inspector: a weekly or monthly report, after Gus
   Menu.refresh();                                          // the side bar's tiny buildings need the map's ground art
 
   const ui = Store.loadUi();
@@ -9757,6 +10471,7 @@ const Settings = (() => {
     if (MapView.setEditing(false)) return;
     if (MapView.deselect()) return;
     if (Settings.close()) return;
+    if (Reports.close()) return;
     Menu.closeDrawer();
   });
   /* The comma key opens and closes Settings, unless you are typing or a dialog is open. */

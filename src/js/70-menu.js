@@ -120,6 +120,8 @@ const Menu = (() => {
     if (!countEl) return;
     renderStar(); renderUrgent(); renderDue(); renderWeek();
     if (typeof Gus !== 'undefined') Gus.render();
+    if (typeof Reports !== 'undefined') Reports.refresh();
+    if (typeof Proxima !== 'undefined') Proxima.renderDot();
     $('#mapSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
     const total = DB.projects.length;
     countEl.replaceChildren();

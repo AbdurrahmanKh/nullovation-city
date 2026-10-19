@@ -16,8 +16,10 @@
   Bubble.init();
   MapView.init();
   Settings.init();
+  Reports.init();
   Garbage.refresh();                                       // the garbage already lying there, with no truck
   Gus.init();                                              // the Garbage Man, and his first word of the day
+  Proxima.init();                                          // the Productivity Inspector: a weekly or monthly report, after Gus
   Menu.refresh();                                          // the side bar's tiny buildings need the map's ground art
 
   const ui = Store.loadUi();
@@ -52,6 +54,7 @@
     if (MapView.setEditing(false)) return;
     if (MapView.deselect()) return;
     if (Settings.close()) return;
+    if (Reports.close()) return;
     Menu.closeDrawer();
   });
   /* The comma key opens and closes Settings, unless you are typing or a dialog is open. */

@@ -122,6 +122,7 @@ const Gus = (() => {
   /* ---------- speaking ---------- */
   function say(text) {
     line = text; saying = true;
+    if (typeof Proxima !== 'undefined') Proxima.yieldToGus();   // never both at once: she says hers after him
     const box = $('#gusSay');
     $('#gusSayText').textContent = text;
     if (!$('#gusSayFace').firstChild) $('#gusSayFace').append(face(2));
