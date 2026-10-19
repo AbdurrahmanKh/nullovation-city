@@ -94,6 +94,7 @@ function tickTask(p, t, { now = Date.now(), log = true } = {}) {
   markWorked(p, now);
   if (log) logActivity(p, 'Done: ' + t.text);
   if (typeof Celebrate !== 'undefined') Celebrate.ticked(p, t);     // its particles, and a party for a finished milestone
+  if (typeof Ghosts !== 'undefined') Ghosts.ticked(p, t);           // its ghost, if it haunts, rises and fades
   return was;
 }
 function untickTask(p, t, was = null, { log = true } = {}) {

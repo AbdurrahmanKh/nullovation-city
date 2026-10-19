@@ -26,6 +26,7 @@ const Settings = (() => {
     hours: { tab: 'look', get: () => [DB.city.night, DB.city.day], def: () => [CITY_DEFAULTS.night, CITY_DEFAULTS.day], set: v => { setCity('night', v[0]); setCity('day', v[1]); } },
     bubbles: { tab: 'look', get: () => MapView.bubbleMode(), def: () => 'all', set: v => { MapView.setBubbleMode(v); MapView.syncBar(); } },
     garbage: { tab: 'look', get: () => Garbage.isOn(), def: () => true, set: v => Garbage.setOn(v) },
+    ghosts: { tab: 'look', get: () => Ghosts.isOn(), def: () => true, set: v => Ghosts.setOn(v) },
     motion: { tab: 'look', get: () => Motion.mode(), def: () => Motion.dflt(), set: v => { Motion.set(v); MapView.invalidate(); MapView.kick(); } },
     caption: { tab: 'look', get: () => MapView.card().caption, def: () => MapView.CARD_DEFAULT.caption, set: v => MapView.setCard({ caption: v }) },
     cardSize: { tab: 'look', get: () => MapView.card().size, def: () => MapView.CARD_DEFAULT.size, set: v => MapView.setCard({ size: v }) },
@@ -150,6 +151,7 @@ const Settings = (() => {
     $('#optNight').addEventListener('change', hoursIn); $('#optDay').addEventListener('change', hoursIn);
     $('#optCaption').addEventListener('change', e => set('caption', e.target.checked));
     check('optGarbage', 'garbage');
+    check('optGhosts', 'ghosts');
     $('#btnPalette').addEventListener('click', () => paletteCanvas().toBlob(blob => {
       if (!blob) return;
       downloadBlob(blob, 'nullovation-city-palette.png');
@@ -186,7 +188,7 @@ const Settings = (() => {
   const TAB_RESET = {
     city: () => { for (const k of PROPS_KEYS) DEFS[k].set(DEFS[k].def()); },
     life: () => { DEFS.traffic.set(true); for (const k of LIFE) DEFS[k].set(DEFS[k].def()); },
-    look: () => { for (const k of ['light', 'hours', 'bubbles', 'garbage', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
+    look: () => { for (const k of ['light', 'hours', 'bubbles', 'garbage', 'ghosts', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
     projects: () => { DEFS.rest.set([]); DEFS.away.set(''); },
     links: () => DEFS.explorer.set(false),
   };
@@ -217,6 +219,7 @@ const Settings = (() => {
       + (Motion.dflt() === 'still' ? ' This computer asks for reduced motion, so Still is the default.' : '');
     $('#optCaption').checked = MapView.card().caption;
     $('#optGarbage').checked = Garbage.isOn();
+    $('#optGhosts').checked = Ghosts.isOn();
     choiceRow($('#optCardSize'), SIZES, MapView.card().size, v => set('cardSize', v));
     const dayFocus = $('#optRest').contains(document.activeElement) ? document.activeElement.dataset.day : null;
     $('#optRest').replaceChildren(...DAYS.map(([d, name]) => h('button', { class: 'btn set-day', type: 'button', 'aria-pressed': String(c.rest.includes(d)), 'data-day': d,

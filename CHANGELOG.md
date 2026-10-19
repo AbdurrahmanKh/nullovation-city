@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.47 (2026-10-20)
+
+Ghost tasks, the fifth of the task ideas (first named Tasks as cars), designed in Ghost Tasks, Round 1, and built ahead of the third at Abdurrahman's call.
+- Every overdue task, and the next task of each building behind its pace, creeps round its building's block as a ghost (C1, G1). Behind its pace means the buildings that make garbage through urgency, so the ghosts agree with the garbage and Gus's count. The next task is the one the status card puts first, the pinned one when there is one; a task both overdue and next is one ghost. At most 5 to a block, the most overdue first (G2); the rest come out as ghosts are ticked. Rest days and away pause the pace, never the due dates, and a repeat waiting for its next date never haunts.
+- A sheet ghost 9 px wide and 12 tall at 1x (L1, L3), drawn in code: a round head over a rippling hem, see-through white inside a glowing edge (L1a), with its eyes and edge in its building's bubble color, red or yellow, kept at night like the neon (L2). Its eyes look the way it goes. A faint dark ring keeps it clear on the sidewalk by day, and becomes a soft glow at night.
+- It goes round its block on the sidewalk (C3, M1) at about half walking speed, floating and bobbing; the people walk through it. It pauses now and then, lingers by its building's front, and at a corner stops and leans round before carrying on (X1). It never crosses a street. A ghost whose task starts to haunt comes out of its building's front; when the city opens they are already on their rounds.
+- A tick anywhere lays it to rest (M2): it rises a few pixels and fades out where it is, in about a second. One whose task stops haunting without a tick leaves the same way.
+- Resting the mouse on a ghost shows its task by the pointer (X1). A click opens its card (C4): its project, the task, its due chip (X1), Tick and Enter, while the ghost holds still. Tick ticks the task off with Undo, or moves a repeat on; Enter steps inside the building with the task open. Esc, a click elsewhere, or a building's status card closes it.
+- Ghosts in Settings, Look, on by default and kept on this computer (S1); Traffic and No bubbles leave them. Hidden on Motion Still and in Edit City; shown on the postcard and in the project view's picture (S2).
+- Nothing new in the city's data.
+- Tests: test32_ghosts, 71 checks.
+
 ## 0.1.46 (2026-10-20)
 
 Celebrations, the sixth of the task ideas, designed in Celebrations, Rounds 1 and 2, and built ahead of the third and fifth at Abdurrahman's call.

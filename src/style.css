@@ -255,6 +255,26 @@ li > .task-mark.on, .task-mark:hover, .task-mark:focus-visible { opacity: 1; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+/* a ghost task's card (Ghost Tasks, Round 1, C4): its project, the task, its due chip, Tick and Enter */
+.ghost-card {
+  position: absolute; left: 0; top: 0;
+  width: 248px; padding: 12px 12px 11px;
+  background: var(--paper);
+  box-shadow: var(--px-edge), var(--px-drop);
+}
+.ghost-card[hidden] { display: none; }
+.ghost-card::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--gc-glow, #FF4D86); }
+.ghost-card[data-color="yellow"] { --gc-glow: #FFD23F; }
+.gc-close { position: absolute; top: 7px; right: 6px; width: 24px; height: 24px; padding: 0; }
+.gc-project { margin: 0 28px 4px 0; font: 500 13px/1.25 var(--f-pixel); color: var(--ink-soft); overflow-wrap: anywhere; }
+.gc-task { margin: 0 0 8px; font: 600 16px/1.25 var(--f-pixel); overflow-wrap: anywhere; }
+.gc-due { margin: -2px 0 9px; }
+.gc-due .due { margin: 0; }
+.gc-actions { display: flex; gap: 8px; }
+.gc-actions .btn { margin: 0; display: inline-flex; align-items: center; gap: 6px; }
+.gc-tail { position: absolute; top: 100%; width: 18px; height: 9px; pointer-events: none; color: var(--edge); --ic-o: var(--paper); }
+.gc-tail svg { display: block; }
+
 .banner {
   position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 14px;

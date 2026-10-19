@@ -552,7 +552,8 @@ const MapView = (() => {
         box: { x0: X - 64, x1: X + 64, y0: p ? blockGeom(p, u, v).top : Y - 30, y1: Y + 66 } });
     }
     const party = typeof Celebrate !== 'undefined';               // a street party's lights, sorted with the figures
-    const items = (moving ? Traffic.items() : []).concat(propItems(), junk ? Garbage.items() : [], party ? Celebrate.items() : []);
+    const haunt = typeof Ghosts !== 'undefined';               // ghost tasks creeping round their blocks, sorted with the figures
+    const items = (moving ? Traffic.items() : []).concat(propItems(), junk ? Garbage.items() : [], party ? Celebrate.items() : [], haunt ? Ghosts.items() : []);
     for (const it of items.length ? depthSort(plots, items) : plots) {
       if (it.plot) { drawPlot(it.u, it.v, lay, slots, T); if (junk) Garbage.drawOnPlot(ctx, it.u, it.v); } else it.draw(ctx);
     }
@@ -856,6 +857,7 @@ const MapView = (() => {
     if (typeof Traffic !== 'undefined' && Traffic.active()) { if (Traffic.step(t)) dirty = true; more = true; }
     if (typeof Garbage !== 'undefined') { if (Garbage.step(t)) dirty = true; if (Garbage.busy() && !still) more = true; }
     if (typeof Celebrate !== 'undefined' && Celebrate.step(t)) { dirty = true; more = true; }
+    if (typeof Ghosts !== 'undefined') { if (Ghosts.step(t)) dirty = true; if (Ghosts.busy()) more = true; }
     if (planting) {
       dirty = true; more = true;
       if (t - planting.t0 >= planting.dur) { const done = planting.then; planting = null; if (done) setTimeout(done, 0); }
@@ -1016,6 +1018,7 @@ const MapView = (() => {
   /* ---------- selection, placing, moving ---------- */
   function select(id, { glide = true } = {}) {
     Wheel.close();                                           // the wheel closes for the status bubble
+    if (typeof Ghosts !== 'undefined') Ghosts.closeCard();   // and so does a ghost's card
     App.selectedId = id; hideTip();
     Bubble.open(id);
     if (glide) { if (FullView.isOpen()) glideBeside(id, FullView.rightEdge()); else glideTo(id); }   // with the view open, into the open strip
@@ -1121,11 +1124,27 @@ const MapView = (() => {
       else hideTip();
       return;
     }
+    const gh = ghostAt(x, y);                               // a ghost task in front: its task by the pointer (X1)
+    if (gh) {
+      if (hoverId) { hoverId = null; invalidate(); }
+      armHover(null);
+      canvas.classList.add('over-building');
+      const w = Ghosts.taskOf(gh);
+      if (w && w.t && Ghosts.cardGhost() !== gh) showTip(w.t.text, x, y); else hideTip();   // its card open: the card says it
+      return;
+    }
     const hit = hitProject(x, y);
     const id = hit ? hit.id : null;
     if (id !== hoverId) { hoverId = id; invalidate(); armHover(id); }
     canvas.classList.toggle('over-building', !!hit);
     if (hit && hit.id !== App.selectedId) showTip(hit.name, x, y); else hideTip();
+  }
+
+  /* The ghost task under a point on the canvas, when the ghosts show. */
+  function ghostAt(cx, cy) {
+    if (typeof Ghosts === 'undefined' || editing || mode.name !== 'idle') return null;
+    const [wx, wy] = cssToWorld(cx, cy);
+    return Ghosts.at(wx, wy);
   }
 
   /* ---------- input ---------- */
@@ -1139,9 +1158,9 @@ const MapView = (() => {
     cancelGlide();
     if (pointers.size === 2) { beginPinch(); return; }
     if (pointers.size > 2) return;
-    const hit = mode.name === 'place' ? null : hitProject(x, y);
+    const ghost = ghostAt(x, y), hit = mode.name === 'place' || ghost ? null : hitProject(x, y);
     armHover(null);                                          // a press ends the hover; letting go starts it again
-    gesture = { type: 'maybe', id: e.pointerId, sx: x, sy: y, lx: x, ly: y, hit, hold: null };
+    gesture = { type: 'maybe', id: e.pointerId, sx: x, sy: y, lx: x, ly: y, hit, ghost, hold: null };
     if (hit && mode.name === 'idle' && !editing) gesture.hold = setTimeout(() => beginMove(hit, x, y), 380);
   }
   function onMove(e) {
@@ -1175,14 +1194,14 @@ const MapView = (() => {
     const g = gesture; gesture = null;
     canvas.classList.remove('panning');
     if (e.type === 'pointercancel') { if (g.type === 'move') finishMove(false); return; }
-    if (g.type === 'maybe') click(x, y, g.hit);
+    if (g.type === 'maybe') click(x, y, g.hit, g.ghost);
     else if (g.type === 'move') finishMove(true);
     if (e.pointerType === 'mouse' && mode.name === 'idle' && !editing) {     // the building under the pointer now
-      const hit = hitProject(x, y);
+      const hit = ghostAt(x, y) ? null : hitProject(x, y);
       hoverId = hit ? hit.id : null; invalidate(); armHover(hoverId);
     }
   }
-  function click(x, y, hit) {
+  function click(x, y, hit, ghost = null) {
     if (editing) {
       const t = hit ? null : plotNear(x, y);
       if (t && !projectAt(t.u, t.v)) cyclePark(t.u, t.v);
@@ -1193,6 +1212,8 @@ const MapView = (() => {
       if (t && !projectAt(t.u, t.v)) placeAt(t);
       return;
     }
+    if (ghost) { hideTip(); Ghosts.open(ghost); return; }   // a ghost task's card (C4)
+    if (typeof Ghosts !== 'undefined') Ghosts.closeCard();
     if (hit) { if (hit.id !== App.selectedId) select(hit.id); else glideTo(hit.id); }
     else deselect();
   }
@@ -1548,6 +1569,7 @@ const MapView = (() => {
     artFor,
     dropCache: id => { bcache.delete(id); flat.delete(id); },
     plotCss: (u, v) => { const [X, Y] = plotTop(u, v); return worldToCss(X, Y + 32); },
+    worldCss: (wx, wy) => worldToCss(wx, wy), cssWorld: (cx, cy) => cssToWorld(cx, cy),
     camState: () => ({ x: cam.x, y: cam.y, z: cam.z, dpr }),
     _paints: () => paints,                                  // for the tests: how many times the map has been drawn
     editing: () => editing, setEditing, cyclePark,

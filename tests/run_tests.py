@@ -14,7 +14,7 @@ PASSES = ['test02_map', 'test04_seed_data', 'test05_bubble_art', 'test06_generic
           'test08_bubble_tasks', 'test09_urgency', 'test10_sidebar', 'test11_load_plan', 'test12_folder_links',
           'test13_traffic', 'test14_data_file', 'test15_notes_milestones', 'test16_dropups', 'test17_source',
           'test18_open_in_claude', 'test19_street_props', 'test20_settings', 'test21_city_settings', 'test22_edit_city', 'test23_links', 'test24_claude_work',
-          'test25_garbage', 'test26_garbage_man', 'test27_tasks_map', 'test28_repeats', 'test29_reports', 'test30_inspector', 'test31_celebrations']
+          'test25_garbage', 'test26_garbage_man', 'test27_tasks_map', 'test28_repeats', 'test29_reports', 'test30_inspector', 'test31_celebrations', 'test32_ghosts']
 ENV = dict(os.environ, PYTHONUTF8='1', PYTHONIOENCODING='utf-8')    # Arabic text reads and prints on Windows too
 
 
