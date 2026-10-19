@@ -9,7 +9,9 @@
    logged, on deck, copy that); real numbers said precisely, an exclamation when a number is good; she opens with the
    number and closes with the next thing to do. She never scolds or nags (Gus's job), mentions garbage, makes up or
    rounds a number, praises with empty words, or crowds a report with more than it holds.
-   Until her portrait is made, a faceless stand-in in her colors, sky blue with white, takes its place. */
+   Until her portrait is made, a faceless stand-in in her colors, sky blue with white, takes its place.
+   She also announces a finished milestone's street party (Celebrations, Rounds 1 and 2), with Go to it, in one of two
+   lines approved word for word, picked by the milestone; while the project view is open, her bubble sits beside it. */
 
 /* ---------- her lines (V2), approved word for word ---------- */
 const PROXIMA_LINES = {
@@ -20,6 +22,8 @@ const PROXIMA_LINES = {
   one_left: ["{milestone} is one task from done: {task}. Let's land it!"],
   empty_week: ["Next week's flight plan is empty. Nothing due yet."],
   repeat_run: ['{repeat}: ticked {k} weeks running. Steady hands!'],
+  milestone: ["Milestone landed! {milestone}: {n} tasks done in {project}. Street party's on!",
+    "Copy that, {milestone} is logged: {n} for {n} in {project}. The block's dancing!"],
 };
 /* A line with its blanks filled; counts read in the singular when they are one. */
 function proximaFill(text, v) {
@@ -269,16 +273,23 @@ const Proxima = (() => {
     clearTimeout(waitTimer);
     if (saying || !queue.length) return;
     if ((typeof Gus !== 'undefined' && Gus.isSaying()) || Panel.isOpen() || Confirm.isOpen()) { waitTimer = setTimeout(pump, 500); return; }
-    const kind = queue.shift(), r = proximaReport(kind);
+    const kind = queue.shift();
+    if (typeof kind !== 'string') { if (getProject(kind.pid)) say(kind); else pump(); return; }   // a milestone's party
+    const r = proximaReport(kind);
     state.spoke[kind] = r.per.key; save();
     say(r);
   }
   function say(r) {
-    saying = { kind: r.kind, key: r.per.key };
-    const box = $('#pxSay');
+    const party = r.kind === 'milestone';
+    saying = { kind: r.kind, key: party ? r.key : r.per.key, item: party ? r : null };
+    const box = $('#pxSay'), act = $('#pxSayRead');
     $('#pxSayText').textContent = r.line;
     if (!$('#pxSayFace').firstChild) $('#pxSayFace').append(faceImg(2));
-    $('#pxSayRead').onclick = () => { hush(false); if (typeof Reports !== 'undefined') Reports.open(); openReport(r.kind); pump(); };
+    act.textContent = party ? 'Go to it' : 'Read';
+    act.onclick = party ? () => { hush(false); goTo(r.pid); pump(); }
+      : () => { hush(false); if (typeof Reports !== 'undefined') Reports.open(); openReport(r.kind); pump(); };
+    const view = typeof FullView !== 'undefined' && FullView.isOpen();            // beside the project view, over the map it leaves open
+    box.style.left = view ? Math.round(FullView.rightEdge() + 22) + 'px' : '';
     box.hidden = false;
     requestAnimationFrame(() => box.classList.add('show'));
     clearTimeout(sayTimer);
@@ -295,10 +306,21 @@ const Proxima = (() => {
   /* Gus cuts in: her bubble goes, and she says it again once he is done. */
   function yieldToGus() {
     if (!saying) return;
-    const kind = saying.kind;
+    const kind = saying.item || saying.kind;
     hush(false);
     queue.unshift(kind);
     pump();
+  }
+  /* A finished milestone's street party: she says it after anything already waiting, and Go to it glides the map to the
+     building, into the open part beside the project view when it is open. */
+  function announce(p, m, n) {
+    const line = proximaFill(proximaPick(PROXIMA_LINES.milestone, 'milestone:' + m.id), { milestone: m.name, project: p.name, n });
+    queue.push({ kind: 'milestone', key: m.id, pid: p.id, line });
+    pump();
+  }
+  function goTo(pid) {
+    if (!getProject(pid)) return;
+    MapView.glideBeside(pid, typeof FullView !== 'undefined' && FullView.isOpen() ? FullView.rightEdge() : 0);
   }
 
   function init() {
@@ -309,6 +331,6 @@ const Proxima = (() => {
     check();
     setInterval(() => { refresh(); check(); }, 60000);        // a new day, week or month while the city stays open
   }
-  return { init, refresh, renderCard, renderDot, yieldToGus, openReport, check, hush, isSaying: () => !!saying, saying: () => saying && saying.kind, report: proximaReport,
+  return { init, refresh, renderCard, renderDot, yieldToGus, openReport, check, hush, announce, isSaying: () => !!saying, saying: () => saying && saying.kind, report: proximaReport,
     _test: { sayMs: ms => { sayMs = ms; }, state: () => JSON.parse(JSON.stringify(state)), forget: () => { state = { read: {}, spoke: {} }; save(); queue = []; }, queue: () => [...queue] } };
 })();

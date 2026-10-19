@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.46 (2026-10-20)
+
+Celebrations, the sixth of the task ideas, designed in Celebrations, Rounds 1 and 2, and built ahead of the third and fifth at Abdurrahman's call.
+- Every tick sets off small particles round its building (T1), never a firework: a burst like the decision wizard's when you type wizard there. 16 particles fly out from the building's middle, drift down and twinkle out over 1.5 seconds. They are pixel art at the map's scale, about the size of the people, with the city's 1 px dark outline, and keep their colors at night like the neon. A tick anywhere counts: the status card, the project view, the task panel, Tick it, and Claude's Apply; a repeat's tick too. Unticking plays nothing. The burst shows on the map and in the project view's picture of the building.
+- Twelve kinds (T2): stars, binary 0 and 1, gold 0 and 1, dollar signs, lightning, wizard sparkles, hearts, leaves, game buttons, speech bubbles, coins (which turn as they fly) and confetti. Every building starts on stars (T3).
+- The Building panel, opened from the building's picture in the project view, has Particles: a tile per kind, which plays its burst while pointed at. A click picks it and plays it on the map. Picking is not work: Updated stays, and nothing goes in Activity. The pick travels with the city, in the data file and backups.
+- A milestone of 2 tasks or more (S1) throws a 30 second street party round its building when its last task is ticked (S2): its particles burst every 2 seconds or so, and strings of party lights in the city's colors hang across its four streets, chasing and glowing at night. With the traffic on, about 20 people dance round the block (those already there, and others who walk over across its zebras or step out of its front), six party drones in the colors of its particles fly in from the map's edge and loop over it, and the nearest bus drives over and waits at the block's curb, cars holding back behind it. When it ends, the dancers walk on, the guests walk off, the drones fly away and the bus drives on.
+- Proxima Pace announces it, in one of her two new lines, approved word for word and picked by the milestone, with Go to it, which brings the building to the middle of the map. She waits for Gus and for an open panel as she does for her reports, says several milestones one after another, and sits beside the project view while it is open. She announces it on Still too.
+- A milestone throws its party once a day; one with a repeat in it never finishes. Motion on Still shows no particles and no party; with the traffic off, the party has its particles and lights only.
+- Tests: test31_celebrations, 59 checks. test30_inspector checks her two new lines word for word, and test17_source lets the tool name the Wizard sparkles kind while keeping out the decision wizard itself.
+
 ## 0.1.45 (2026-10-19)
 
 Proxima Pace, Productivity Inspector, V1 of the fourth task idea, designed in Productivity Inspector, Rounds 1 and 2.

@@ -1169,3 +1169,13 @@ button.rp-what:hover, button.rp-what:focus-visible { text-decoration: underline;
 .px-say { box-shadow: 0 -2px 0 0 #8FD0F7, 0 2px 0 0 #8FD0F7, -2px 0 0 0 #8FD0F7, 2px 0 0 0 #8FD0F7, var(--px-drop-sm); }
 .px-say-actions { display: flex; gap: 6px; margin-top: 4px; }
 .px-read { padding: 4px 12px 3px; }
+
+/* Celebrations (0.1.46): the Building panel's particles, a tile per kind, in the generic picker's look */
+.pv-particles { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; margin: 6px 2px 16px; }
+.pick-particle { display: grid; justify-items: center; gap: 3px; padding: 6px 4px 7px; border: 0; background: var(--paper); color: var(--ink);
+  box-shadow: var(--px-edge); cursor: pointer; font: inherit; }
+.pick-particle:hover { background: var(--hover); }
+.pick-particle.on { box-shadow: var(--px-edge), 0 0 0 4px var(--accent); }
+.pick-particle-art { display: block; line-height: 0; }
+.pick-particle-art canvas { image-rendering: pixelated; }
+.pick-particle-name { font-size: 12px; line-height: 1.2; text-align: center; }

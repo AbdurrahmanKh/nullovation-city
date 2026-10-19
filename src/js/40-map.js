@@ -551,11 +551,16 @@ const MapView = (() => {
       plots.push({ plot: true, u, v, a0, a1: a0 + S, b0, b1: b0 + S, key: a0 + b0 + S,
         box: { x0: X - 64, x1: X + 64, y0: p ? blockGeom(p, u, v).top : Y - 30, y1: Y + 66 } });
     }
-    const items = (moving ? Traffic.items() : []).concat(propItems(), junk ? Garbage.items() : []);
+    const party = typeof Celebrate !== 'undefined';               // a street party's lights, sorted with the figures
+    const items = (moving ? Traffic.items() : []).concat(propItems(), junk ? Garbage.items() : [], party ? Celebrate.items() : []);
     for (const it of items.length ? depthSort(plots, items) : plots) {
       if (it.plot) { drawPlot(it.u, it.v, lay, slots, T); if (junk) Garbage.drawOnPlot(ctx, it.u, it.v); } else it.draw(ctx);
     }
     if (moving) Traffic.drawAir(ctx);
+    if (party) Celebrate.drawAir(ctx, id => {                      // a tick's particles, round the building's middle
+      for (const [k, q] of lay) if (q.id === id) { const [u, v] = k.split(',').map(Number); return blockGeom(q, u, v); }
+      return null;
+    });
     if (!noBubbles) { drawUrgency(); placeHoverLabel(); }
   }
 
@@ -850,6 +855,7 @@ const MapView = (() => {
     if (lastBobKey && !still) more = true;
     if (typeof Traffic !== 'undefined' && Traffic.active()) { if (Traffic.step(t)) dirty = true; more = true; }
     if (typeof Garbage !== 'undefined') { if (Garbage.step(t)) dirty = true; if (Garbage.busy() && !still) more = true; }
+    if (typeof Celebrate !== 'undefined' && Celebrate.step(t)) { dirty = true; more = true; }
     if (planting) {
       dirty = true; more = true;
       if (t - planting.t0 >= planting.dur) { const done = planting.then; planting = null; if (done) setTimeout(done, 0); }

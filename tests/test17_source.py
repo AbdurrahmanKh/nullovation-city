@@ -27,7 +27,7 @@ ok('GitHub Pages serves the page as it is: .nojekyll sits at the root', (ROOT / 
 WIZ = re.compile(r'wizard', re.I)
 wiz = [p.relative_to(ROOT).as_posix() for d in ('src', 'tests') for p in (ROOT / d).rglob('*')
        if p.is_file() and p.suffix in ('.js', '.py', '.html', '.css', '.json') and p.name != 'test17_source.py'
-       and WIZ.search(p.read_text(encoding='utf-8', errors='replace'))]
+       and WIZ.search(p.read_text(encoding='utf-8', errors='replace').replace('Wizard sparkles', ''))]   # a particle kind's approved name (0.1.46)
 ok(f'the tool and its tests carry nothing of the decision wizard, which has its own repo ({wiz or "none"})', not wiz)
 
 # the knowledge, the rules and the skills travel with the code

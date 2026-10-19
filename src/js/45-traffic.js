@@ -1,4 +1,5 @@
-/* Traffic: cars, a small bus, and delivery drones on the streets, people on the sidewalks, and Claude's drones round a building it works on.
+/* Traffic: cars, a small bus, and delivery drones on the streets, people on the sidewalks, Claude's drones round a building it works on,
+   and a street party's crowd, drones and watching bus when a milestone is finished (Celebrations, Round 1, S2).
    Everything steps in whole map pixels, calmly. The city is busiest around the buildings you
    worked on recently, and a building left alone goes quiet around it. */
 const Traffic = (() => {
@@ -83,6 +84,11 @@ const Traffic = (() => {
   function chooseNext(c) {
     const [a, b] = HEADS[c.h], ti = c.ri + a, tj = c.rj + b;
     const r = rightOf(c.h), l = [-r[0], -r[1]];
+    if (c.party) {                                             // on its way to a party: the shortest way to its curb
+      let best = null, bd = Infinity;
+      for (const h of [c.h, keyOf(r), keyOf(l)]) if (validEdge(ti, tj, h)) { const d = segsTo(c.party.targets, ti, tj, h); if (d < bd) { bd = d; best = h; } }
+      if (best) return best;
+    }
     const opts = [[c.h, 1.6], [keyOf(r), 1], [keyOf(l), 1]]
       .filter(([h]) => validEdge(ti, tj, h)).map(([h, bias]) => [h, bias * edgeW(ti, tj, h)]);
     return opts.length ? pickW(opts) : keyOf([-a, -b]);        // a dead end at the map's edge: turn back
@@ -95,7 +101,7 @@ const Traffic = (() => {
   }
   function updateCars(dt, now) {
     for (const c of cars) {
-      if (c.wait > 0) { c.wait -= dt; continue; }
+      if (c.wait > 0) { c.wait -= dt; if (c.wait <= 0 && c.watching) releaseBus(c); continue; }
       if (!c.next && c.t > PITCH() - 1.3) c.next = chooseNext(c);
       let step = c.v * dt;
       const ap = approach(c);
@@ -111,7 +117,11 @@ const Traffic = (() => {
         return ahead > 0 && ahead < (c.len + o.len) / 2 + CAR_GAP * 0.6 && side < 0.2;
       });
       if (blocked) continue;
-      if (c.type === 'bus') {                                   // a bus stop on its side of the street: pull up to it and pause
+      if (c.party && c.party.targets.has(c.ri + ',' + c.rj + ',' + c.h)) {   // alongside the party's block: pull up to watch
+        const mid = PITCH() / 2;
+        if (c.t <= mid && c.t + step >= mid) { c.t = mid; c.watching = true; c.wait = Math.max(1, (c.party.until - now) / 1000 + 1); continue; }
+      }
+      if (c.type === 'bus' && !c.party) {                       // a bus stop on its side of the street: pull up to it and pause
         const [ra, rb] = rightOf(c.h);
         const s = busStops().find(s => {
           const ahead = (s.i - ci) * ha + (s.j - cj) * hb, side = (s.i - ci) * ra + (s.j - cj) * rb;
@@ -222,7 +232,7 @@ const Traffic = (() => {
     Object.assign(q, { path: [inside, pt], pos: inside, k: 0, then: 'walk', alpha: 0, fadeIn: true });
     return q;
   }
-  const here = q => q.mode === 'walk' || q.mode === 'pause' ? loopPt(q.u, q.v, q.p) : q.pos;
+  const here = q => q.mode === 'walk' || q.mode === 'pause' || q.mode === 'dance' ? loopPt(q.u, q.v, q.p) : q.pos;
   function startPath(q, from, to, then) { Object.assign(q, { mode: 'path', path: [from, to], pos: from, k: 0, then }); }
   /* The extras each busy building should have, in proportion to how busy it is. */
   function extraTargets() {
@@ -252,6 +262,10 @@ const Traffic = (() => {
     const target = baseCount();
     if (now - lastBalance > 1500) { lastBalance = now; balanceExtras(now); }
     for (const q of people) {
+      if (q.mode === 'dance') {                                  // a street party: dancing until it ends
+        if (!parties.has(pkey(q.u, q.v))) { q.mode = 'walk'; q.dir = R() < 0.5 ? 1 : -1; }
+        continue;
+      }
       if (q.mode === 'pause') {                                  // standing: hands move now and then, as if talking
         q.talkT -= dt;
         if (q.talkT <= 0) { q.talk = q.talk ? 0 : 1 + Math.floor(R() * 2); q.talkT = q.talk ? 0.25 + R() * 0.5 : 0.3 + R() * 1.2; }
@@ -267,7 +281,7 @@ const Traffic = (() => {
       if (q.mode === 'path') {
         const [a, b] = q.path, len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 0.001;
         q.k = Math.min(len, q.k + q.sp * dt); q.walked += q.sp * dt;
-        const f = q.k / len;
+        const f = Math.max(0, q.k) / len;                        // a guest may wait a moment before setting off
         q.pos = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
         if (q.fadeIn) q.alpha = Math.min(1, q.alpha + dt / 0.8);
         if (q.cross) busy.set(q.cross, now + 700);               // cars wait while someone is on the zebra
@@ -284,6 +298,20 @@ const Traffic = (() => {
       const p0 = q.p, p1 = q.p + q.dir * q.sp * dt;
       q.p = p1; q.walked += q.sp * dt;
       const passed = x => { const P = PER(); const A = ((p0 % P) + P) % P, B = A + (p1 - p0); return q.dir > 0 ? (x > A && x <= B) || (x + P > A && x + P <= B) : (x < A && x >= B) || (x - P < A && x - P >= B); };
+      if (q.guest) {
+        const key = pkey(q.u, q.v);
+        if (q.guestDone) {                                       // the party is over: off across the first zebra, or into the building
+          const c = crossings(q.u, q.v).find(c => passed(c.p));
+          if (c) { startPath(q, c.from, c.to, 'gone'); q.cross = c.key; q.guest = null; continue; }
+          q.left = (q.left || 0) + dt;
+          if (q.left > 6) { q.home = key; q.leaving = true; q.guest = null; }
+          else continue;
+        } else if (key === q.guest && parties.has(key)) {        // on the party's block: to their spot, then dance
+          const P = PER(), d = (((q.partyP - q.p) % P) + P) % P;
+          if (d < 0.2 || d > P - 0.2) startDance(q); else q.dir = d < P / 2 ? 1 : -1;
+          continue;
+        }
+      } else if (!q.run && !q.leaving && parties.has(pkey(q.u, q.v))) { startDance(q); continue; }   // anyone passing joins in
       const cross = q.home ? null : crossings(q.u, q.v).find(c => passed(c.p));
       if (cross && R() < 0.3 * (0.3 + wAt(cross.u2, cross.v2))) {
         startPath(q, cross.from, cross.to, 'walk'); q.cross = cross.key; q.nextBlock = [cross.u2, cross.v2, cross.p2];
@@ -406,6 +434,106 @@ const Traffic = (() => {
     if (cdrones.some(d => d.gone)) cdrones = cdrones.filter(d => !d.gone);
   }
 
+  /* ---------- a street party (Celebrations, Round 1, S2): the block dances, six party drones loop over it, and the
+     nearest bus pulls up to watch; all of them go when it ends ---------- */
+  const PARTY_CROWD = 20, PARTY_DRONES = 6;
+  let parties = new Map(), pdrones = [];
+  const pkey = (u, v) => u + ',' + v;
+  /* The street segments with the block (u, v) on their right: where a bus pulls up at its curb. */
+  function curbsOf(u, v) {
+    const out = new Set();
+    for (let ri = 0; ri <= NU; ri++) for (let rj = 0; rj <= NV; rj++) for (const h of Object.keys(HEADS)) {
+      if (!validEdge(ri, rj, h)) continue;
+      const [a, b] = HEADS[h], [ra, rb] = rightOf(h);
+      const pi = roadC(ri) + a * PITCH() / 2 + ra * 1.5, pj = roadC(rj) + b * PITCH() / 2 + rb * 1.5;
+      const lu = Math.floor((pi - WORLD.MARGIN) / PITCH()), lv = Math.floor((pj - WORLD.MARGIN) / PITCH());
+      if (lu === u && lv === v) out.add(ri + ',' + rj + ',' + h);
+    }
+    return out;
+  }
+  /* How many segments from the segment starting at (ri, rj) heading h to one of the targets, never turning back. */
+  function segsTo(targets, ri, rj, h) {
+    const start = ri + ',' + rj + ',' + h, seen = new Set([start]);
+    let front = [[ri, rj, h]];
+    for (let d = 0; front.length && d < 400; d++) {
+      const next = [];
+      for (const [i, j, hd] of front) {
+        if (targets.has(i + ',' + j + ',' + hd)) return d;
+        const [a, b] = HEADS[hd], ti = i + a, tj = j + b, r = rightOf(hd);
+        for (const h2 of [hd, keyOf(r), keyOf([-r[0], -r[1]])]) {
+          const k = ti + ',' + tj + ',' + h2;
+          if (validEdge(ti, tj, h2) && !seen.has(k)) { seen.add(k); next.push([ti, tj, h2]); }
+        }
+      }
+      front = next;
+    }
+    return Infinity;
+  }
+  function releaseBus(c) { c.party = null; c.watching = false; if (c.vNorm) c.v = c.vNorm; c.next = null; }
+  function startDance(q) { q.mode = 'dance'; q.ph = R(); q.danceBack = R() < 0.25; q.talk = 0; }
+  function party(u, v, until, colors) {
+    if (!ready) reset();
+    const key = pkey(u, v);
+    parties.set(key, { u, v, until, colors });
+    let here = 0;                                               // those already on the block dance where they are
+    for (const q of people) if (q.u === u && q.v === v && !q.run && !q.leaving && (q.mode === 'walk' || q.mode === 'pause')) { startDance(q); here++; }
+    /* the rest walk over from the blocks across its zebras, or step out of its front, up to about 20 in all */
+    const room = DB.city.walkers ? Math.max(0, Math.min(PARTY_CROWD - here, CEILING - people.length)) : 0, zebras = crossings(u, v);
+    for (let k = 0; k < room; k++) {
+      let q;
+      if (zebras.length && k % 2 === 0) {
+        const c = zebras[(k / 2) % zebras.length];
+        q = newPerson(c.u2, c.v2, c.p2, 'path');
+        Object.assign(q, { path: [c.to, c.from], pos: c.to, k: -R() * 1.2, then: 'walk', alpha: 0, fadeIn: true, cross: c.key, nextBlock: [u, v, c.p] });
+      } else q = personFromBuilding([u, v]);
+      Object.assign(q, { run: false, buddy: null, guest: key, partyP: R() * PER(), sp: 0.3 + R() * 0.1 });
+      people.push(q);
+    }
+    for (let k = 0; k < PARTY_DRONES; k++) {                    // six party drones, in the colors of the building's particles
+      const [i, j] = mapEdge();
+      pdrones.push({ key, u, v, i, j, color: colors[k % colors.length], ang: (k / PARTY_DRONES) * Math.PI * 2, r: 1.3 + R() * 0.9,
+        w: (0.8 + R() * 0.5) * (k % 2 ? -1 : 1), alt: 120 + Math.round(R() * 16), base: 34 + k * 9, sp: 3.2 + R() * 0.6, spin: R() * 5, arriving: true, leaving: false });
+    }
+    if (DB.city.buses) {                                        // the nearest bus heads over, faster than it drives on its rounds
+      const [ci, cj] = plotMid(u, v), free = cars.filter(c => c.type === 'bus' && !c.party);
+      free.sort((A, B) => { const [ai, aj] = carPos(A), [bi, bj] = carPos(B); return Math.hypot(ai - ci, aj - cj) - Math.hypot(bi - ci, bj - cj); });
+      if (free.length) {
+        const c = free[0];
+        c.party = { key, until, targets: curbsOf(u, v) }; c.vNorm = c.v; c.v = 1.6;
+        if (c.t < PITCH() - 1.3) c.next = null;
+      }
+    }
+  }
+  function endParty(key) {
+    parties.delete(key);
+    for (const d of pdrones) if (d.key === key && !d.leaving) { d.leaving = true; d.to = mapEdge(); d.altTo = 120 + Math.round(R() * 16); }
+    for (const c of cars) if (c.party && c.party.key === key) { if (c.watching) c.wait = Math.min(c.wait, 1); else releaseBus(c); }   // the bus drives on a second later
+    for (const q of people) if (q.guest === key) q.guestDone = true;
+  }
+  function updateParties(dt, now) {
+    for (const [k, pt] of [...parties]) if (now >= pt.until) endParty(k);
+    for (const d of pdrones) {
+      d.spin += dt;
+      if (d.leaving) {
+        d.alt += (d.altTo - d.alt) * Math.min(1, dt * 1.2);
+        const [ti, tj] = d.to, di = ti - d.i, dj = tj - d.j, dist = Math.hypot(di, dj), step = d.sp * dt;
+        if (dist <= step) d.gone = true; else { d.i += di / dist * step; d.j += dj / dist * step; }
+        continue;
+      }
+      const [ci, cj] = plotMid(d.u, d.v);
+      if (d.arriving) {                                         // fly in high, then settle on to the loop
+        d.alt += (d.base - d.alt) * Math.min(1, dt * 0.9);
+        const ti = ci + Math.cos(d.ang) * d.r, tj = cj + Math.sin(d.ang) * d.r, di = ti - d.i, dj = tj - d.j, dist = Math.hypot(di, dj), step = d.sp * dt;
+        if (dist <= step) d.arriving = false; else { d.i += di / dist * step; d.j += dj / dist * step; }
+        continue;
+      }
+      d.ang += d.w * dt;                                        // loops round the building, rising and dipping
+      d.i = ci + Math.cos(d.ang) * d.r; d.j = cj + Math.sin(d.ang) * d.r;
+      d.alt += (d.base + 12 * Math.sin(d.spin * 1.4 + d.ang) - d.alt) * Math.min(1, dt * 3);
+    }
+    if (pdrones.some(d => d.gone)) pdrones = pdrones.filter(d => !d.gone);
+  }
+
   /* ---------- the art: drawn in code, in the city palette, by day and by night ---------- */
   const CAR_COLORS = ['#F4A3C3', '#7FD6CE', '#B7A5F0', '#FFE38A', '#9CC7F3', '#FFFFFF', '#F29A74'];
   const HAIR = ['#2B2542', '#6E5446', '#FFE38A', '#9C7C6B'], SKIN = ['#FFB797', '#9C7C6B', '#F4D2B8'];
@@ -470,6 +598,7 @@ const Traffic = (() => {
     sit: ['..H..', '..k..', '.sss.', '.sss.', '.pp..'],
     talkL: ['..H..', '..k..', 'ksss.', '.sss.', '..p..', '..p..'],
     talkR: ['..H..', '..k..', '.sssk', '.sss.', '..p..', '..p..'],
+    up: ['k.H.k', 'k.k.k', '.sss.', '.sss.', '.p.p.', '.p.p.'],          // dancing: both arms up
     run0: ['..H..', '..k..', '.sssk', 'ksss.', '.p..p', 'p....'],
     run1: ['..H..', '..k..', 'ksss.', '.sssk', 'p..p.', '....p'],
     kid0: ['..H..', '..k..', '.sss.', '..p..', '..p..'],
@@ -521,9 +650,11 @@ const Traffic = (() => {
       b: tone(BIKES[look.frame]), w: tone(WHEEL) };
     return paint(flip ? flipRows(rows) : rows, col, 7, 8, 1);
   }
-  function drone(frame, worker) {                               // a delivery drone with its parcel, or one of Claude's: coral, with a warm light
+  function drone(frame, worker, color = null) {                 // a delivery drone with its parcel, one of Claude's (coral, with a warm light), or a party drone in a color
     const [c, g] = mkCanvas(9, 8);
-    const col = { '#': tone(worker ? '#A8584A' : '#7A7394'), '+': tone(worker ? '#F29A74' : '#D6CEE2'), r: tone('#FFFFFF'), l: worker ? '#FFE38A' : '#EE4C93', w: tone('#9C7C6B') };
+    const col = color ? { '#': tone(shade(color, 0.35)), '+': color, r: tone('#FFFFFF'), l: '#FFFFFF' }
+      : { '#': tone(worker ? '#A8584A' : '#7A7394'), '+': tone(worker ? '#F29A74' : '#D6CEE2'), r: tone('#FFFFFF'), l: worker ? '#FFE38A' : '#EE4C93', w: tone('#9C7C6B') };
+    if (color) worker = true;
     const rows = worker ? [frame ? 'r.....r' : '.r...r.', '.#####.', '#+++++#', '.##l##.', '...l...']
       : [frame ? 'r.....r' : '.r...r.', '.#####.', '#+++++#', '.##l##.', '...w...', '..www..'];
     rows.forEach((row, y) => [...row].forEach((ch, x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x + 1, y + 1, 1, 1); } }));
@@ -538,10 +669,11 @@ const Traffic = (() => {
       veh['bus' + h] = vehicle('bus', '#FFE38A', h);
       CAR_COLORS.forEach((col, n) => { veh['car' + n + h] = vehicle('car', col, h); });
     }
-    art = { veh, people: new Map(), drones: [drone(0), drone(1)], crew: [drone(0, true), drone(1, true)] };
+    art = { veh, people: new Map(), drones: [drone(0), drone(1)], crew: [drone(0, true), drone(1, true)], party: new Map() };
     return art;
   }
   const cached = (key, make) => { const A = artSet(); if (!A.people.has(key)) A.people.set(key, make()); return A.people.get(key); };
+  const partyDroneArt = (color, frame) => { const A = artSet(), k = color + frame; if (!A.party.has(k)) A.party.set(k, drone(frame, true, color)); return A.party.get(k); };
   const lookKey = l => [l.hair, l.skin, l.shirt, l.pants, +l.long, +l.dress, l.item || '', l.cap || 0, l.frame || 0].join('.');
   const personArt = (look, frame, back, flip) => cached('p' + lookKey(look) + '.' + frame + '.' + (+back) + (+flip), () => person(look, frame, back, flip));
   const dogArt = (color, frame, flip) => cached('d' + color + '.' + frame + '.' + (+flip), () => dog(color, frame, flip));
@@ -560,7 +692,7 @@ const Traffic = (() => {
 
   /* ---------- the map asks for these ---------- */
   function items() {
-    const out = [], A = artSet(), toW = MapView.tileToWorld;
+    const out = [], A = artSet(), toW = MapView.tileToWorld, beatNow = performance.now();
     const dark = Light.t;                                          // 0 by day, 1 at night
     for (const c of cars) {
       const [i, j] = carPos(c), [x, y] = toW(i, j), a = A.veh[(c.type === 'bus' ? 'bus' : 'car' + c.color) + c.h];
@@ -589,10 +721,13 @@ const Traffic = (() => {
       const at = here(q);
       if (!at) continue;
       const moving = q.mode === 'walk' || q.mode === 'path', n = Math.floor(q.walked / 0.16) % 2;
-      const [bi, bj] = at, frame = q.mode === 'sit' ? 'sit' : moving ? (q.run ? 'run' + n : n) : q.talk === 1 ? 'talkL' : q.talk === 2 ? 'talkR' : 0;
-      const hd = q.mode === 'sit' ? null : heading(q), { back, flip } = facing(hd);
+      const beat = q.mode === 'dance' ? Math.floor(beatNow / 250 + q.ph * 4) : 0;    // dancing: arms up, one arm out, up, the other, a hop on each up
+      const [bi, bj] = at, frame = q.mode === 'sit' ? 'sit' : q.mode === 'dance' ? ['up', 'talkL', 'up', 'talkR'][beat % 4]
+        : moving ? (q.run ? 'run' + n : n) : q.talk === 1 ? 'talkL' : q.talk === 2 ? 'talkR' : 0;
+      const hd = q.mode === 'sit' ? null : heading(q);
+      const { back, flip } = q.mode === 'dance' ? { back: q.danceBack, flip: Math.floor(beat / 4 + q.ph * 2) % 2 === 1 } : facing(hd);
       const [i, j] = q.mode === 'sit' ? [bi, bj] : [bi + q.lat, bj - q.lat];
-      const [x, y] = toW(i, j), img = personArt(q.look, frame, back, flip), lift = q.mode === 'sit' ? 3 : 0;
+      const [x, y] = toW(i, j), img = personArt(q.look, frame, back, flip), lift = q.mode === 'sit' ? 3 : q.mode === 'dance' && beat % 2 === 0 ? 1 : 0;
       const alpha = () => Math.max(0, Math.min(1, q.alpha));
       out.push({ i, j, key: i + j, box: { x0: x - 3, x1: x + 3, y0: y - 9, y1: y + 2 }, draw: g => {
         g.globalAlpha = alpha();
@@ -627,7 +762,7 @@ const Traffic = (() => {
   function drawGround(g) {                                      // drone shadows, under everything else
     const toW = MapView.tileToWorld;
     g.fillStyle = 'rgba(43, 37, 66, 0.22)';
-    for (const d of drones.concat(cdrones)) { const [x, y] = toW(d.i, d.j); g.fillRect(Math.round(x) - 2, Math.round(y), 5, 1); g.fillRect(Math.round(x) - 1, Math.round(y) + 1, 3, 1); }
+    for (const d of drones.concat(cdrones, pdrones)) { const [x, y] = toW(d.i, d.j); g.fillRect(Math.round(x) - 2, Math.round(y), 5, 1); g.fillRect(Math.round(x) - 1, Math.round(y) + 1, 3, 1); }
   }
   function drawAir(g) {                                         // drones, over everything
     const A = artSet(), toW = MapView.tileToWorld;
@@ -639,6 +774,10 @@ const Traffic = (() => {
       const [x, y] = toW(d.i, d.j), bob = d.hold > 0 ? Math.round(Math.sin(d.spin * 2.1)) : 0;
       g.drawImage(A.crew[Math.floor(d.spin * 10) % 2], Math.round(x) - 4, Math.round(y) - Math.round(d.alt) - 4 + bob);
     }
+    for (const d of pdrones) {
+      const [x, y] = toW(d.i, d.j);
+      g.drawImage(partyDroneArt(d.color, Math.floor(d.spin * 10) % 2), Math.round(x) - 4, Math.round(y) - Math.round(d.alt) - 4);
+    }
   }
   function reset() {
     NU = WORLD.NU; NV = WORLD.NV; wkey = worldKey(); crossCache.clear(); busy.clear(); seats.clear();
@@ -647,7 +786,7 @@ const Traffic = (() => {
     cars = [];
     for (let k = 0; k < n.cars; k++) { const c = spawnCar('car'); if (c) cars.push(c); }
     for (let k = 0; k < n.buses; k++) { const c = spawnCar('bus'); if (c) cars.push(c); }
-    cdrones = []; lastCrew = -1e9;
+    cdrones = []; lastCrew = -1e9; parties = new Map(); pdrones = [];
     drones = Array.from({ length: n.drones }, () => { const [i, j] = droneTarget(); return { i, j, to: droneTarget(), alt: 64 + Math.round(R() * 16), sp: 0.7 + R() * 0.3, hold: 0, spin: R() * 5 }; });
     people = [];
     while (people.length < baseCount()) people.push(spawnPerson());
@@ -665,19 +804,20 @@ const Traffic = (() => {
     const dt = last ? Math.min(0.1, (t - last) / 1000) : 0;
     last = t;
     if (t - lastW > 5000) { refreshWeights(); lastW = t; }
-    updateCars(dt, t); updatePeople(dt, t); updateRiders(dt, t); updateDrones(dt); crew(t); updateCrew(dt);
+    updateCars(dt, t); updatePeople(dt, t); updateRiders(dt, t); updateDrones(dt); crew(t); updateCrew(dt); updateParties(dt, t);
     if (t - lastDraw >= 50) { lastDraw = t; return true; }
     return false;
   }
   return {
     /* Still: nothing moves, whatever the button says */
-    active: () => on && !Motion.still(), isOn: () => on, step, items, drawGround, drawAir, reset,
+    active: () => on && !Motion.still(), isOn: () => on, step, items, drawGround, drawAir, reset, party,
     setOn: v => { on = !!v; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { /* this visit only */ } last = 0; },
     stats: () => ({ cars: cars.filter(c => c.type === 'car').length, buses: cars.filter(c => c.type === 'bus').length, drones: drones.length, crew: cdrones.filter(d => !d.leaving).length, people: people.length, extras: people.filter(q => q.home).length, bikes: riders.length }),
     busyness: p => busyness(p),
     crowd: () => DB.city.crowd,
     setCrowd: v => { if (!(v in CROWD_PER)) return; DB.city.crowd = v; persistSoon(); lastBalance = 0; },
-    _state: () => ({ cars, people, riders, drones, cdrones, busy }),
+    _state: () => ({ cars, people, riders, drones, cdrones, busy, parties, pdrones }),
+    _curbs: (u, v) => [...curbsOf(u, v)],
     /* for the tests: a look, and the sprite rows and canvases the map draws */
     _look: () => newLook(), _rows: (look, frame, back) => personRows(look, frame, back),
     _sprite: (look, frame, back, flip) => personArt(look, frame, back, flip),

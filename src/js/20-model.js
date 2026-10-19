@@ -128,12 +128,19 @@ function matchesFilter(p) {
   return hay.includes(f.q);
 }
 
+/* The particles a building's ticks set off (Celebrations, Round 1, T2): the four Abdurrahman named, gold 0 and 1 for
+   keys, and the suggestions he kept. Every building starts on stars until he picks (T3). */
+const PARTICLE_KINDS = [['stars', 'Stars'], ['binary', 'Binary 0 and 1'], ['gold-binary', 'Gold 0 and 1'], ['dollars', 'Dollar signs'],
+  ['lightning', 'Lightning'], ['sparkles', 'Wizard sparkles'], ['hearts', 'Hearts'], ['leaves', 'Leaves'], ['buttons', 'Game buttons'],
+  ['bubbles', 'Speech bubbles'], ['coins', 'Coins'], ['confetti', 'Confetti']];
+const PARTICLE_IDS = PARTICLE_KINDS.map(k => k[0]);
+
 function blankProject(o = {}) {
   const now = Date.now();
   return Object.assign({
     id: uid('p'), name: 'Untitled project', description: '',
     deadline: '', progressOverride: null, todos: [], links: [], milestones: [], notes: [], pin: '', star: '',
-    plot: { u: 0, v: 0 }, art: { has: false, includesPlot: false }, generic: null, activity: [], flip: false,
+    plot: { u: 0, v: 0 }, art: { has: false, includesPlot: false }, generic: null, activity: [], flip: false, particles: 'stars',
     urgency: { system: 'none', days: 1, lastWorked: null, pickedAt: null },
     createdAt: now, updatedAt: now,
   }, o);
@@ -351,6 +358,7 @@ function sanitizeProjects(raw) {
       art: { has: !!(r.art && r.art.has), includesPlot: !!(r.art && r.art.has && r.art.includesPlot === true) },
       generic: typeof GENERIC_IDS !== 'undefined' && GENERIC_IDS.has(r.generic) ? r.generic : null,
       flip: !!r.flip,
+      particles: PARTICLE_IDS.includes(r.particles) ? r.particles : 'stars',
       urgency: (() => {
         const u = r.urgency && typeof r.urgency === 'object' ? r.urgency : {};
         const num = x => typeof x === 'number' && isFinite(x) ? x : null;

@@ -1150,6 +1150,9 @@ const FullView = (() => {
         : 'A transparent PNG, or a GIF for a live building, 256 px wide in the new standard (128 px works too).'),
       file);
     side.replaceChildren(head('Building'), own,
+      h('h3', { class: 'pv-h' }, 'Particles'),                                  // what its ticks set off (Celebrations, T2)
+      h('p', { class: 'note' }, 'Every tick bursts round the building. Point at one to see it.'),
+      Celebrate.picker(p, id => { const b = side.querySelector('.pv-particles'); if (b) for (const x of b.children) { const on = x.dataset.kind === id; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); } }),
       h('h3', { class: 'pv-h' }, 'Generic buildings'),
       Picker.grid({ current: p.art.has ? null : p.generic, onPick: id => pickGeneric(p, id), zoom: 1 }));
   }

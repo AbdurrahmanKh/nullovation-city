@@ -21,6 +21,8 @@ LINES = {
     'one_left': ["{milestone} is one task from done: {task}. Let's land it!"],
     'empty_week': ["Next week's flight plan is empty. Nothing due yet."],
     'repeat_run': ['{repeat}: ticked {k} weeks running. Steady hands!'],
+    'milestone': ["Milestone landed! {milestone}: {n} tasks done in {project}. Street party's on!",          # Celebrations, Round 2 (0.1.46)
+                  "Copy that, {milestone} is logged: {n} for {n} in {project}. The block's dancing!"],
 }
 
 # The city on the fixed Monday. Garden planner waters its beds every week from 5 September; Nullovation City finishes
