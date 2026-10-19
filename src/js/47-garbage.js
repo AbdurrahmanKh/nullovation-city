@@ -51,7 +51,7 @@ const Garbage = (() => {
      yellow, and each late task's. The Garbage Man reads this. */
   function breakdown(p, now = Date.now()) {
     const sys = systemPoints(p, now), late = [];
-    for (const t of p.todos) { if (t.done) continue; const d = lateDays(t, now); if (d) late.push({ t, days: d, pts: 5 * d }); }
+    for (const t of p.todos) { if (!isOpenTask(t, now)) continue; const d = lateDays(t, now); if (d) late.push({ t, days: d, pts: 5 * d }); }
     const level = sys ? (urgencyOf(p, now).system === 'red' ? 'urgent' : 'attention') : null;
     return { sys, level, late, n: sys + late.reduce((a, l) => a + l.pts, 0) };
   }

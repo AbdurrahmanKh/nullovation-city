@@ -722,7 +722,7 @@ const MapView = (() => {
   function bubblesFor(p, u, v, wall, t) {
     const out = [];
     if (bubbleMode === 'tasks') {                                   // every project: how many tasks are still open
-      const count = p.todos.filter(x => !x.done).length;
+      const count = openTasks(p).length;
       out.push({ kind: 'urgency', color: 'grey', count, text: String(Math.min(count, 99)) });
     } else if (bubbleMode !== 'none') {
       const urg = urgencyOf(p, wall);
@@ -754,7 +754,7 @@ const MapView = (() => {
       /* The hover's white count joins on the left, so the bubbles already there stay where they are; the Tasks view
          already shows the count, so there only the label is added. */
       if (bubbleMode !== 'tasks') {
-        const count = p.todos.filter(q => !q.done).length;
+        const count = openTasks(p).length;
         const hb = { kind: 'hover', color: 'grey', count, text: String(Math.min(count, 99)) };
         size(hb);
         Object.assign(hb, { p, x: out.length ? out[0].x - 2 - hb.w : Math.round(g.X - hb.w / 2), y: y + bob, h: hh, bob });

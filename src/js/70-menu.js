@@ -74,7 +74,7 @@ const Menu = (() => {
     if (!sec) return;
     const items = [];
     for (const p of DB.projects) for (const t of p.todos) {
-      if (t.done || !t.due) continue;
+      if (!isOpenTask(t) || !t.due) continue;
       const d = dueInfo(t);
       if (d && d.diff <= 6) items.push({ p, t, d });
     }

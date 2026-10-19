@@ -17,7 +17,7 @@ const ClaudeInbox = (() => {
   const str = (x, n) => (typeof x === 'string' ? x.trim().slice(0, n) : '');
   const keyOf = s => String(s || '').trim().toLowerCase();
   const projectNamed = name => DB.projects.find(p => keyOf(p.name) === keyOf(name)) || null;
-  const taskNamed = (p, text, open = true) => p.todos.find(t => (!open || !t.done) && keyOf(t.text) === keyOf(text)) || null;
+  const taskNamed = (p, text, open = true) => p.todos.find(t => (!open || isOpenTask(t)) && keyOf(t.text) === keyOf(text)) || null;
 
   async function sub(dir, path) {
     let d = dir;
@@ -135,7 +135,7 @@ const ClaudeInbox = (() => {
 
   /* ---------- what asks first ---------- */
   function readable(p, c) {
-    if (c.do === 'done') { const t = taskNamed(p, c.task); return { text: 'Tick off: ' + str(c.task, 200), ok: !!t, why: t ? '' : 'not open in this project' }; }
+    if (c.do === 'done') { const t = taskNamed(p, c.task); return { text: 'Tick off: ' + str(c.task, 200) + (t && t.repeat ? ', on to its next date' : ''), ok: !!t, why: t ? '' : 'not open in this project' }; }
     if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); return { text: 'New description for ' + str(c.task, 200) + ': ' + str(c.description, 8000).replace(/\s+/g, ' ').slice(0, 140), ok: !!t, why: t ? '' : 'no task by that name' }; }
     if (c.do === 'replace-plan') {
       try { const plan = readPlan(c.plan); return { text: 'Replace the plan: ' + plural(plan.milestones.length, 'milestone', 'milestones') + ', ' + plural(plan.milestones.reduce((n, m) => n + m.tasks.length, 0), 'task', 'tasks') + '. The About, milestones and tasks are replaced.', ok: true, plan }; }
@@ -150,7 +150,7 @@ const ClaudeInbox = (() => {
     for (const c of entry.changes) {
       const r = readable(p, c);
       if (!r.ok) continue;
-      if (c.do === 'done') { const t = taskNamed(p, c.task); t.done = true; t.doneAt = Date.now(); markWorked(p); logActivity(p, 'Done: ' + t.text); }
+      if (c.do === 'done') tickTask(p, taskNamed(p, c.task));            // a repeat moves on to its next date
       else if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); t.description = str(c.description, 8000); logActivity(p, 'Claude updated the description of ' + t.text); }
       else if (c.do === 'replace-plan') applyPlan(p, r.plan);
       n++;

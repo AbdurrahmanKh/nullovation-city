@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.42 (2026-10-19)
+
+Recurring tasks and one-line adding, the second of the task ideas (Tasks, Round 2, R1 to R4, O1, O2).
+- How a repeat comes back (R1, reasoned out from Abdurrahman's own words): ticking a repeating task moves the same task on to its next date, and it goes away from the status card, What is next, the hover count, the bubbles, urgency, Due this week, Gus and the garbage until that day, when it is back, due that day. In the project view it keeps its place, dimmed, with its repeat sign and when it comes back ("Back Thu 22 Oct"), so it can be opened, changed or stopped. A repeat not ticked by its date stays one overdue task until it is ticked.
+- After a tick, a toast says when it comes back, with Undo; in the task panel, Esc undoes it.
+- Schedules (R2): every day, every N days, weekly on chosen weekdays, monthly on a date (a month without it uses its last day), and yearly, set in the task panel's new Repeat row. A task with no date gets the schedule's first one.
+- The next date (R3): weekdays, monthly dates and years keep their rhythm, so a late tick skips what was missed; every day and every N days count from the tick.
+- One task moves on (R4): only Activity's Done line records each tick, and it counts as work. Pins and the star clear on a repeat's tick, as on any tick.
+- The one-line add (O1): !fri, !today, !tomorrow, !20 or !oct 20 for the due date; #daily, #weekly, #monthly, #yearly or #every 3 days for a repeat; @name for the milestone. A line under the field says what it understood before Enter. Words that are not marks stay in the title.
+- Where (O2): the project view's add field; a new Add a task field in the status card, which stays for the next task; and T, anywhere outside a field, for a quick add over the map, where /name picks the project. The controls guide names T.
+- Claude: Copy task, a milestone's copy, a project's status and the city summary say which tasks repeat and which repeats wait for their next date. Claude's done on a repeat, once applied, moves it on.
+- Data: a task may carry `repeat` and `waiting`. They travel in the data file, the daily backups, Export, and a project export loaded back as a plan.
+- Tests: test28_repeats, 107 checks; test24_claude_work checks Claude ticking a repeat.
+
 ## 0.1.41 (2026-10-19)
 
 The star and What is next, from a round of mockups (Star and What is next, Round 1):

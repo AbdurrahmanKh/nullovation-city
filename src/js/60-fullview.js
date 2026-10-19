@@ -285,7 +285,9 @@ const FullView = (() => {
     const marks = h('span', { class: 'pv-next-marks' });
     const box = h('div', { class: 'pv-next' + (starred ? ' starred' : '') }, h('div', { class: 'pv-next-head' }, h('span', { class: 'pv-next-lbl' }, 'What is next'), marks));
     if (!t) {
-      box.append(h('p', { class: 'fv-empty' }, p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
+      const w = waitingTasks(p)[0];
+      box.append(h('p', { class: 'fv-empty' }, w ? 'Nothing open now. ' + w.text + ' comes back ' + backWhen(w) + '.'
+        : p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
       return box;
     }
     marks.append(...markButtons(p, t, 'next-mark', { chip: true }),
@@ -301,7 +303,7 @@ const FullView = (() => {
     box.append(h('div', { class: 'pv-next-row' },
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
       OpenInClaude.button({ id: 'pvNextClaude', text: () => taskForClaude(p, t), project: p, quiet: true })));
-    const others = p.todos.filter(x => !x.done && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;
+    const others = p.todos.filter(x => isOpenTask(x) && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;
     if (others) box.append(h('p', { class: 'pv-late-note' }, '! ' + plural(others, 'other task is', 'other tasks are') + ' overdue'));
     return box;
   }
@@ -349,19 +351,30 @@ const FullView = (() => {
       const ul = h('ul', { class: 'tasks', 'data-ms': m.id, hidden: m.collapsed });
       for (const t of g.todos) ul.append(taskRow(p, t));
       if (adding === 'task:' + m.id) {
-        const inp = h('input', { class: 'field', type: 'text', dir: 'auto', autocomplete: 'off', placeholder: 'New task, then Enter', 'aria-label': 'New task in ' + m.name,
+        /* one line (O1, O2): !fri for the date, #weekly for a repeat, @name for another milestone; the line under it
+           says what was understood before Enter */
+        const opts = { project: p, msId: m.id };
+        const hint = h('p', { id: 'pvAddHint', class: 'add-hint pv-add-hint', 'aria-live': 'polite' });
+        const inp = h('input', { class: 'field', type: 'text', dir: 'auto', autocomplete: 'off', maxlength: '700', placeholder: 'New task, then Enter', 'aria-label': 'New task in ' + m.name, 'aria-describedby': 'pvAddHint',
+          oninput: e => taskLineHint(hint, e.target.value, opts),
           onkeydown: e => {
             if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeAdd(); const b = $(`.ms[data-msid="${m.id}"] .ms-plus`, root); if (b) b.focus(); return; }
             if (e.key !== 'Enter') return;
             e.preventDefault();
-            const text = e.target.value.trim().slice(0, 500);
+            let goes = m.id;
+            if (e.target.value.trim()) {
+              const r = taskLineHint(hint, e.target.value, opts);
+              if (!r.ok) return;
+              goes = addTaskLine(r).milestoneId;
+              Bubble.refresh();
+            }
             adding = null;
-            if (text) { p.todos.push(todo(text, m.id)); normalizeOrder(p); logActivity(p, 'Added todo: ' + text); changed(p); Bubble.refresh(); }
             render();
-            const b = $(`.ms[data-msid="${m.id}"] .ms-plus`, root); if (b) b.focus();
+            const b = $(`.ms[data-msid="${goes}"] .ms-plus`, root); if (b) b.focus();
           },
           onblur: () => setTimeout(() => { const cur = root && $('li.task-add .field', root); if (adding === 'task:' + m.id && !(cur && cur === document.activeElement)) closeAdd(); }, 150) });
-        ul.append(h('li', { class: 'task-add', 'data-adding': 'task' }, inp));
+        taskLineHint(hint, '', opts);
+        ul.append(h('li', { class: 'task-add', 'data-adding': 'task' }, inp, hint));
       }
       list.append(h('div', { class: 'ms', 'data-msid': m.id }, row, ul));
     }
@@ -382,14 +395,18 @@ const FullView = (() => {
     box.append(list);
     return box;
   }
+  /* A ticked repeat waits for its next date (R1): dimmed in its place, with its repeat sign for the square and when it
+     comes back, so it can still be opened, changed or stopped here, and nowhere else. */
   function taskRow(p, t) {
-    const li = h('li', { class: 'task' + (t.done ? ' done' : '') + (sideMode === 'task' && sideTask === t.id ? ' on' : ''), 'data-id': t.id });
-    const cb = h('input', { type: 'checkbox', class: 'cb', checked: t.done, 'aria-label': 'Done: ' + t.text, onchange: e => {
-      t.done = e.target.checked; t.doneAt = t.done ? Date.now() : null;
-      if (t.done) markWorked(p);
-      logActivity(p, (t.done ? 'Done: ' : 'Reopened: ') + t.text);
+    const wait = isWaiting(t);
+    const li = h('li', { class: 'task' + (t.done ? ' done' : '') + (wait ? ' waiting' : '') + (sideMode === 'task' && sideTask === t.id ? ' on' : ''), 'data-id': t.id });
+    const cb = wait
+      ? h('span', { class: 'task-wait', role: 'img', 'aria-label': repeatText(t.repeat) + ', ticked', title: repeatText(t.repeat) + '. Ticked: it comes back ' + backWhen(t) + '.', html: iconSvg('repeat', 14) })
+      : h('input', { type: 'checkbox', class: 'cb', checked: t.done, 'aria-label': 'Done: ' + t.text, onchange: e => {
+      if (e.target.checked) { const was = tickTask(p, t); if (t.repeat) repeatToast(p, t, was); }      // a repeat moves on (R4)
+      else untickTask(p, t);
       changed(p); render(); Bubble.refresh();
-      const again = $(`.task[data-id="${t.id}"] .cb`, root); if (again) again.focus();
+      const again = $(`.task[data-id="${t.id}"] .cb`, root) || $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     } });
     const title = h('button', { class: 'task-title', type: 'button', dir: 'auto', title: 'Open this task',
       onclick: () => { if (justDragged) { justDragged = false; return; } openTask(p, t.id); } }, t.text);
@@ -401,8 +418,10 @@ const FullView = (() => {
       const again = $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     });
     li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark')) return; dragTask(e, p, li); });
-    const d = t.done ? null : dueInfo(t);
+    const d = t.done || wait ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
+      t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
+      wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
       d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark')].filter(Boolean));
     return li;
   }
@@ -509,12 +528,12 @@ const FullView = (() => {
   }
 
   /* ---------- a task or a milestone, open in full beside the view ---------- */
-  let sideTask = null, taskSnap = null, sideMs = null, msSnap = null;
+  let sideTask = null, taskSnap = null, sideMs = null, msSnap = null, sideTicked = false;
   function openTask(p, id) {
     finishEdit(); adding = null;
     if (side) closeSide();
     const t = p.todos.find(x => x.id === id); if (!t) return;
-    sideTask = id; taskSnap = clone(t);
+    sideTask = id; taskSnap = clone(t); sideTicked = false;
     openSide('task');
     const f = $('#pvTaskDesc', side); if (f) f.focus();
   }
@@ -524,17 +543,20 @@ const FullView = (() => {
     if (t && taskSnap) {
       if (!t.text.trim()) t.text = taskSnap.text || 'Untitled task';
       if (t.done !== taskSnap.done) logActivity(p, (t.done ? 'Done: ' : 'Reopened: ') + t.text);
-      if (t.text !== taskSnap.text || t.description !== taskSnap.description || t.due !== taskSnap.due) logActivity(p, 'Edited task: ' + t.text);
-      changed(p, { touch: t.text !== taskSnap.text || t.description !== taskSnap.description || t.due !== taskSnap.due || t.done !== taskSnap.done });
+      if (sideTicked && isWaiting(t)) logActivity(p, 'Done: ' + t.text);                 // a repeat ticked here moved on
+      const edited = t.text !== taskSnap.text || t.description !== taskSnap.description || (t.due !== taskSnap.due && !sideTicked)
+        || JSON.stringify(t.repeat || null) !== JSON.stringify(taskSnap.repeat || null);
+      if (edited) logActivity(p, 'Edited task: ' + t.text);
+      changed(p, { touch: edited || t.done !== taskSnap.done || sideTicked });
     }
-    sideTask = null; taskSnap = null;
+    sideTask = null; taskSnap = null; sideTicked = false;
   }
   function cancelTask() {
     const p = P(); if (!p || !sideTask) return;
     const i = p.todos.findIndex(x => x.id === sideTask);
     if (i >= 0 && taskSnap) p.todos[i] = taskSnap;
     changed(p, { touch: false });
-    sideTask = null; taskSnap = null;
+    sideTask = null; taskSnap = null; sideTicked = false;
     side.remove(); side = null; sideMode = null;
     if (root.style.width) root.style.width = '';
     render(); Bubble.refresh();
@@ -546,21 +568,30 @@ const FullView = (() => {
     const ms = p.milestones.find(m => m.id === t.milestoneId);
     const title = h('input', { id: 'pvTaskTitle', class: 'field pv-note-title', type: 'text', dir: 'auto', maxlength: '500', value: t.text, 'aria-label': 'Task title', autocomplete: 'off',
       oninput: e => { t.text = e.target.value; changed(p, { touch: false }); const b = $(`.task[data-id="${t.id}"] .task-title`, root); if (b) b.textContent = t.text; } });
-    const done = h('input', { type: 'checkbox', class: 'cb', checked: t.done, onchange: e => { t.done = e.target.checked; t.doneAt = t.done ? Date.now() : null; if (t.done) markWorked(p); changed(p, { touch: false }); render(); Bubble.refresh(); } });
+    const wait = isWaiting(t);
+    /* the Done line is written when the panel closes, as for any task; a repeat ticked here moves on, and waits */
+    const done = h('input', { id: 'pvTaskDone', type: 'checkbox', class: 'cb', checked: t.done, onchange: e => {
+      if (e.target.checked) { tickTask(p, t, { log: false }); if (t.repeat) sideTicked = true; }
+      else untickTask(p, t, null, { log: false });
+      changed(p, { touch: false }); render(); Bubble.refresh();
+      const b = side && ($('#pvTaskDone', side) || $('#pvTaskDue', side)); if (b) b.focus();
+    } });
+    /* a waiting repeat's due date is the day it comes back: a nearer one brings it back sooner */
     const due = h('input', { id: 'pvTaskDue', class: 'field', type: 'date', value: t.due, 'aria-label': 'Due date',
-      onchange: e => { t.due = parseYmd(e.target.value) != null ? e.target.value : ''; changed(p, { touch: false }); render(); } });
-    const d = dueInfo(t);
+      onchange: e => { const w = isWaiting(t); t.due = parseYmd(e.target.value) != null ? e.target.value : ''; setWaiting(t, w && !!t.due); changed(p, { touch: false }); render(); } });
+    const d = wait ? null : dueInfo(t);
     const desc = h('textarea', { id: 'pvTaskDesc', class: 'field pv-note-body', dir: 'auto', rows: '14', placeholder: 'What this task is, in full: what done looks like, where things are, anything Claude should know', 'aria-label': 'Task description',
       oninput: e => { t.description = e.target.value.slice(0, 8000); changed(p, { touch: false }); } }, t.description || '');
     return h('div', { class: 'pv-note-ed' },
       h('p', { class: 'pv-task-ms' }, h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), ms ? ms.name : ''),
       title,
       h('div', { class: 'inline pv-task-meta' },
-        h('label', { class: 'check' }, done, 'Done'),
+        wait ? h('p', { class: 'pv-task-back', title: 'Esc undoes the tick; a nearer due date brings it back sooner' }, iconEl('repeat', 14), 'Ticked. ' + backText(t) + ', due that day.') : h('label', { class: 'check' }, done, 'Done'),
         h('span', { class: 'lbl' }, 'Due'), due,
-        h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
+        h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; setWaiting(t, false); due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
-      t.done ? null : h('div', { class: 'inline pv-task-marks' }, ...[
+      t.done ? null : repeatEditor(p, t),
+      !isOpenTask(t) ? null : h('div', { class: 'inline pv-task-marks' }, ...[
         ['pin', isPinned(p, t), 'Pinned', 'Pin as next', 'Comes first in What is next and the status card', on => setPin(p, t, on)],
         ['star', isStarred(p, t), 'Starred', 'Star for the city', 'The one task the whole city shows with a star, over its building; starring pins it too', on => setStar(p, t, on)],
       ].map(([kind, on, yes, no, title, set]) => h('button', { class: 'btn btn-quiet btn-small pv-mark' + (on ? ' on' : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
@@ -580,6 +611,44 @@ const FullView = (() => {
           toast('Task deleted.');
         } }, 'Delete task')),
       h('p', { class: 'note' }, 'Saves as you type. Done closes it; Esc undoes everything since it opened.'));
+  }
+  /* Repeat (R2): every day, every N days, weekly on chosen weekdays, monthly on a date, yearly. A task with no date
+     gets the schedule's first one. Each change redraws the panel, so the focus goes back to the control it came from. */
+  function repeatEditor(p, t) {
+    const r = t.repeat || null;
+    const kind = !r ? 'none' : r.every === 'day' ? (r.n === 1 ? 'daily' : 'days') : r.every;
+    const set = (rep, focusSel) => {
+      if (JSON.stringify(rep) === JSON.stringify(t.repeat || null)) return;          // also a change the redraw itself fires
+      if (rep) { t.repeat = rep; if (!t.due) t.due = firstRepeatDue(rep); }
+      else { delete t.repeat; setWaiting(t, false); }
+      changed(p, { touch: false }); render(); Bubble.refresh();
+      const b = side && $(focusSel || '#pvRepeat', side); if (b) b.focus();
+    };
+    const base = new Date(parseYmd(t.due) != null ? parseYmd(t.due) : startOfDay(Date.now()));
+    const pick = h('select', { id: 'pvRepeat', class: 'field pv-repeat-kind', 'aria-label': 'Repeat', onchange: e => {
+      const k = e.target.value;
+      set(k === 'none' ? null : k === 'daily' ? { every: 'day', n: 1 } : k === 'days' ? { every: 'day', n: 2 }
+        : k === 'week' ? { every: 'week', days: [base.getDay()] } : k === 'month' ? { every: 'month', day: base.getDate() }
+        : { every: 'year', month: base.getMonth() + 1, day: base.getDate() });
+    } }, [['none', 'No repeat'], ['daily', 'Every day'], ['days', 'Every N days'], ['week', 'Weekly'], ['month', 'Monthly'], ['year', 'Yearly']]
+      .map(([v, l]) => h('option', { value: v, selected: v === kind }, l)));
+    const opts = (from, to, label, on) => Array.from({ length: to - from + 1 }, (_, i) => h('option', { value: String(from + i), selected: from + i === on }, label(from + i)));
+    const row = [pick];
+    if (kind === 'days') row.push(h('input', { id: 'pvRepeatN', class: 'field num', type: 'number', min: '2', max: '365', value: String(r.n), 'aria-label': 'Every how many days',
+      onchange: e => { const n = parseInt(e.target.value, 10); if (n >= 1 && n <= 365) set({ every: 'day', n }, '#pvRepeatN'); else e.target.value = String(r.n); } }), h('span', null, 'days'));
+    if (kind === 'month') row.push(h('span', null, 'on the'), h('select', { id: 'pvRepeatDay', class: 'field pv-repeat-num', 'aria-label': 'Day of the month', onchange: e => set({ every: 'month', day: +e.target.value }, '#pvRepeatDay') },
+      opts(1, 31, ordinal, r.day)));
+    if (kind === 'year') row.push(h('span', null, 'on'),
+      h('select', { id: 'pvRepeatDay', class: 'field pv-repeat-num', 'aria-label': 'Day', onchange: e => set({ every: 'year', month: r.month, day: +e.target.value }, '#pvRepeatDay') }, opts(1, daysInMonth(2024, r.month - 1), String, r.day)),
+      h('select', { id: 'pvRepeatMonth', class: 'field pv-repeat-num', 'aria-label': 'Month', onchange: e => { const month = +e.target.value; set({ every: 'year', month, day: Math.min(r.day, daysInMonth(2024, month - 1)) }, '#pvRepeatMonth'); } },
+        opts(1, 12, m => MONTHS[m - 1], r.month)));
+    const days = kind === 'week' ? h('div', { class: 'pv-repeat-days', role: 'group', 'aria-label': 'Weekdays' }, WEEK_ORDER.map(d => h('button', { class: 'btn set-day', type: 'button', 'data-day': String(d),
+      'aria-pressed': String(r.days.includes(d)), title: r.days.includes(d) ? (r.days.length > 1 ? 'Click to drop ' + WEEKDAYS[d] : 'A weekly repeat needs one day at least') : 'Click to add ' + WEEKDAYS[d],
+      onclick: () => { const next = r.days.includes(d) ? r.days.filter(x => x !== d) : [...r.days, d]; if (next.length) set({ every: 'week', days: next.sort((a, b) => a - b) }, `.pv-repeat-days [data-day="${d}"]`); } }, WEEKDAYS[d]))) : null;
+    return h('div', { class: 'pv-repeat' },
+      h('div', { class: 'inline pv-repeat-row' }, h('span', { class: 'lbl' }, 'Repeat'), ...row), days,
+      r ? h('p', { class: 'note pv-repeat-note' }, 'Ticked, it moves on to its next date and waits out of sight until then.'
+        + (r.every === 'month' && r.day > 28 ? ' Months without the ' + ordinal(r.day) + ' use their last day.' : r.every === 'year' && r.month === 2 && r.day === 29 ? ' Other years use 28 February.' : '')) : null);
   }
   function openMilestone(p, id) {
     finishEdit(); adding = null;
@@ -624,7 +693,7 @@ const FullView = (() => {
             h('span', { class: 'pv-ms-box' + (t.done ? ' done' : ''), 'aria-hidden': 'true' }),
             h('span', { class: 'pv-ms-body' },
               h('span', { class: 'pv-ms-text', dir: 'auto' }, t.text, h('span', { class: 'visually-hidden' }, t.done ? ' (done)' : '')),
-              d && !t.done ? h('span', { class: 'pv-ms-due' + (d.tone ? ' ' + d.tone : '') }, d.text) : null,
+              isWaiting(t, now) ? h('span', { class: 'pv-ms-due back' }, backText(t, now)) : d && !t.done ? h('span', { class: 'pv-ms-due' + (d.tone ? ' ' + d.tone : '') }, d.text) : null,
               first ? h('span', { class: 'pv-ms-desc', dir: 'auto' }, first.slice(0, 160)) : null));
         }))
       : h('p', { class: 'fv-empty' }, 'No tasks in this milestone yet.');

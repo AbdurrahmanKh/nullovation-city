@@ -395,6 +395,16 @@ with sync_playwright() as p:
     pg.locator('#bubble .b-claude-asks .b-claude-dismiss').click(); pg.wait_for_timeout(600)
     ok('Dismiss puts it away without applying it', js("() => !window.__sub.has('inbox/pending/2026-10-14-0920-garden.json')") and pg.locator('#bubble .b-claude-asks').count() == 0
        and js(f"() => getProject('{gp}').milestones.map(m => m.name)") == st0['ms'])
+    # 0.1.42: Claude ticking a repeat moves it on to its next date (Tasks, Round 2, R4), when you apply it
+    js(f"() => {{ const p = getProject('{gp}'), t = p.todos.find(t => t.text === 'Tune the watering reminders'); t.repeat = {{ every: 'day', n: 7 }}; t.due = ymd(); changed(p); }}")
+    drop('2026-10-14-0925-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'Garden planner', 'changes': [{'do': 'done', 'task': 'Tune the watering reminders'}]})
+    settle()
+    asks = pg.locator('#bubble .b-claude-asks')
+    said = asks.nth(0).text_content() if asks.count() else ''
+    if asks.count(): asks.nth(0).locator('.b-claude-apply').click(); pg.wait_for_timeout(700)
+    rep = js(f"() => {{ const t = getProject('{gp}').todos.find(t => t.text === 'Tune the watering reminders'); return [t.done, t.due === ymd(plusDays(startOfDay(Date.now()), 7)), !!t.waiting]; }}")
+    ok(f'Claude ticking a repeat asks first, and Apply moves it on a week, waiting ({rep})', 'Tick off: Tune the watering reminders, on to its next date' in said and rep == [False, True, True])
+    js(f"() => {{ const p = getProject('{gp}'), t = p.todos.find(t => t.text === 'Tune the watering reminders'); delete t.repeat; delete t.waiting; t.due = ''; changed(p); }}")
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     drop('2026-10-14-0930-nowhere.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'A project the city has not', 'changes': [{'do': 'add-note', 'title': 'x', 'text': 'y'}]})
     js("() => window.__sub.set('inbox/broken.json', { text: '{ not json', t: Date.now() })")

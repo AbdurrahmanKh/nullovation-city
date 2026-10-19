@@ -245,15 +245,15 @@ const ClaudeWork = (() => {
     if (!s || !s.task) return null;
     if (s.project && s.project.trim().toLowerCase() !== p.name.trim().toLowerCase()) return null;
     const key = s.task.trim().toLowerCase();
-    return p.todos.find(t => !t.done && t.text.trim().toLowerCase() === key) || null;
+    return p.todos.find(t => isOpenTask(t) && t.text.trim().toLowerCase() === key) || null;
   }
-  /* Ticks it off as a tick in the project view does: done now, work for urgency, a line in Activity. */
+  /* Ticks it off as a tick in the project view does: done now (a repeat on to its next date), work for urgency, a
+     line in Activity. */
   function tick(p, t) {
-    t.done = true; t.doneAt = Date.now();
-    markWorked(p);
-    logActivity(p, 'Done: ' + t.text);
+    const was = tickTask(p, t);
     window.changed(p);
-    toast('Ticked off: ' + t.text + '.');
+    if (t.repeat) repeatToast(p, t, was);
+    else toast('Ticked off: ' + t.text + '.');
   }
 
   /* The line in the status card. */
@@ -305,7 +305,8 @@ const ClaudeWork = (() => {
           urgency: { system: urgencyName(p), state: u.color || 'calm', reasons: u.reasons },
           next: next ? next.text : null,
           milestones: groupsOf(p).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',
-            open: g.todos.filter(t => !t.done).map(t => ({ task: t.text, description: t.description || '', due: t.due || null })),
+            open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}) })),
+            ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
             done: g.todos.filter(t => t.done).map(t => t.text) })),
           notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),
           links: p.links.map(l => ({ label: l.label || suggestLabel(l.url), url: l.url })) };

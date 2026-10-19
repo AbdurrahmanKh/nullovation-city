@@ -66,6 +66,14 @@
   window.addEventListener('beforeunload', () => persistSoon.flush());
   window.addEventListener('pagehide', () => persistSoon.flush());
 
-  /* Keeps "updated" times and the light current while the page stays open. */
-  setInterval(() => { Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); Backups.tick(); }, 60000);
+  /* Keeps "updated" times and the light current while the page stays open. On a new day, repeats due that day come
+     back, so the project view redraws too, unless something in it is being typed. */
+  let today = ymd();
+  setInterval(() => {
+    Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); Backups.tick();
+    if (ymd() === today) return;
+    today = ymd();
+    const a = document.activeElement;
+    if (FullView.isOpen() && !(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))) FullView.render();
+  }, 60000);
 })();

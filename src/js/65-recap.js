@@ -115,17 +115,21 @@ function projectStatus(p, now = Date.now()) {
   const dl = deadlineInfo(p.deadline, now); if (dl) L.push(dl.text + '.');
   const cur = currentGroup(p);
   if (cur && cur.ms) L.push('Current milestone: ' + cur.ms.name + ' (' + cur.todos.filter(t => t.done).length + ' of ' + cur.todos.length + ' done).');
-  const open = p.todos.filter(t => !t.done);
+  const open = openTasks(p, now), waiting = waitingTasks(p, now);
+  const msName = id => (p.milestones.find(m => m.id === id) || {}).name;
   if (open.length) {
     L.push('Open todos:');
-    const msName = id => (p.milestones.find(m => m.id === id) || {}).name;
     for (const t of open.slice(0, 15)) {
-      const extra = [msName(t.milestoneId), t.due ? dueInfo(t, now).text : null].filter(Boolean).join(', ');
+      const extra = [msName(t.milestoneId), t.due ? dueInfo(t, now).text : null, t.repeat ? 'repeats ' + repeatText(t.repeat).toLowerCase() : null].filter(Boolean).join(', ');
       L.push('- ' + t.text + (extra ? ' (' + extra + ')' : ''));
       if ((t.description || '').trim()) L.push('  ' + t.description.trim().replace(/\s+/g, ' ').slice(0, 300));
     }
     if (open.length > 15) L.push('- and ' + (open.length - 15) + ' more');
   } else L.push('No open todos.');
+  if (waiting.length) {
+    L.push('Repeats waiting for their next date:');
+    for (const t of waiting.slice(0, 15)) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')');
+  }
   const last = [...p.notes].sort((a, b) => b.at - a.at)[0];
   if (last) L.push('Latest note (' + fmtDate(last.at) + '): ' + ((last.title || '').trim() ? last.title.trim() + '. ' : '') + last.text.replace(/\s+/g, ' ').slice(0, 300));
   L.push('Updated ' + relAgo(p.updatedAt, now) + '.');

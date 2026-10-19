@@ -116,7 +116,7 @@ function progressOf(p) {
   const manual = typeof p.progressOverride === 'number';
   return { pct: manual ? clamp(Math.round(p.progressOverride), 0, 100) : auto, auto, manual, done, total };
 }
-function openTodos(p, n = BUBBLE_TODOS) { return p.todos.filter(t => !t.done).slice(0, n); }
+function openTodos(p, n = BUBBLE_TODOS) { return openTasks(p).slice(0, n); }
 
 function filterActive() { return !!App.filter.q; }
 function matchesFilter(p) {
@@ -148,24 +148,24 @@ function groupsOf(p) {
   for (const m of p.milestones) out.push({ ms: m, todos: p.todos.filter(t => t.milestoneId === m.id) });
   return out;
 }
-/* The current milestone is the first group that still has open todos. */
-function currentGroup(p) { return groupsOf(p).find(g => g.ms && g.todos.some(t => !t.done)) || null; }
+/* The current milestone is the first group that still has open todos. A repeat waiting for its next date is not open. */
+function currentGroup(p) { return groupsOf(p).find(g => g.ms && g.todos.some(t => isOpenTask(t))) || null; }
 /* What is next: the pinned task, else the first open todo in the current milestone, in list order. */
-function nextTask(p) { const pin = pinnedTask(p); if (pin) return pin; const g = currentGroup(p); return g ? g.todos.find(t => !t.done) || null : null; }
+function nextTask(p) { const pin = pinnedTask(p); if (pin) return pin; const g = currentGroup(p); return g ? g.todos.find(t => isOpenTask(t)) || null : null; }
 
 /* ---------- pins and the city's star (Tasks, Round 2, M4 to M6) ----------
    A project can pin one open task: it comes first in What is next and the status card. One open task in the whole
    city can wear the star, a bubble over its building; starring a task also pins it in its project, and the two are
    separate after that. Both clear only when their task is ticked, deleted, or unpinned or unstarred (M5). They live
    on the project as task ids (`pin`, `star`), so editing a task and undoing it with Esc never touches them. */
-const openTaskById = (p, id) => (id ? p.todos.find(t => t.id === id && !t.done) || null : null);
+const openTaskById = (p, id) => (id ? p.todos.find(t => t.id === id && isOpenTask(t)) || null : null);
 function pinnedTask(p) { return openTaskById(p, p.pin); }
 function starredTask() {
   for (const p of DB.projects) { const t = openTaskById(p, p.star); if (t) return { p, t }; }
   return null;
 }
-const isPinned = (p, t) => !t.done && p.pin === t.id;
-const isStarred = (p, t) => !t.done && p.star === t.id;
+const isPinned = (p, t) => isOpenTask(t) && p.pin === t.id;
+const isStarred = (p, t) => isOpenTask(t) && p.star === t.id;
 function setPin(p, t, on) {
   p.pin = on && !t.done ? t.id : (p.pin === t.id ? '' : p.pin);
   changed(p, { touch: false });                        // a pin is not work on the project
@@ -180,13 +180,15 @@ function setStar(p, t, on) {
   changed(p, { touch: false });
 }
 /* A tick, a deletion or a new plan leaves a pin or the star on a task that is no longer open: they clear for good,
-   so reopening the task does not bring them back. Runs before every save. */
+   so reopening the task does not bring them back. A ticked repeat counts as ticked here too. A repeat whose day has
+   come stops waiting, so a later due date does not hide it again. Runs before every save. */
 function tidyMarks() {
   let starSeen = false;
   for (const p of DB.projects) {
     if (p.pin && !openTaskById(p, p.pin)) p.pin = '';
     if (p.star && (!openTaskById(p, p.star) || starSeen)) p.star = '';
     if (p.star) starSeen = true;
+    for (const t of p.todos) if (t.waiting && !isWaiting(t)) setWaiting(t, false);
   }
 }
 /* Every todo lives in a milestone. Anything outside one moves into "To do", at the top. */
@@ -212,7 +214,8 @@ function taskForClaude(p, t, now = Date.now()) {
   if (ms) L.push('Milestone: ' + ms.name + ' (' + g.todos.filter(x => x.done).length + '/' + g.todos.length + ' done)');
   const d = dueInfo(t, now);
   L.push('Due: ' + (d ? d.text : 'no date'));
-  L.push('State: ' + (t.done ? 'done' : 'open'));
+  if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
+  L.push('State: ' + (t.done ? 'done' : isWaiting(t, now) ? 'ticked; it comes back ' + backWhen(t, now) : 'open'));
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
@@ -233,7 +236,7 @@ async function copyNote(p, n) {
 /* A milestone as a work package: its open tasks with their descriptions, then what is done. */
 function milestoneForClaude(p, m, now = Date.now()) {
   const g = groupsOf(p).find(x => x.ms && x.ms.id === m.id) || { todos: [] };
-  const open = g.todos.filter(t => !t.done), done = g.todos.filter(t => t.done);
+  const open = g.todos.filter(t => isOpenTask(t, now)), done = g.todos.filter(t => t.done), waiting = g.todos.filter(t => isWaiting(t, now));
   const L = ['# Milestone: ' + m.name, 'Project: ' + p.name, 'Progress: ' + done.length + '/' + g.todos.length + ' done'];
   L.push('', '## Open tasks');
   if (!open.length) L.push('None: every task here is done.');
@@ -241,8 +244,10 @@ function milestoneForClaude(p, m, now = Date.now()) {
     const d = dueInfo(t, now);
     L.push('', '### ' + t.text);
     if (d) L.push(d.text);
+    if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
     L.push((t.description || '').trim() || 'No description yet.');
   }
+  if (waiting.length) { L.push('', '## Repeats waiting for their next date'); for (const t of waiting) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')'); }
   if (done.length) { L.push('', '## Done'); for (const t of done) L.push('- ' + t.text); }
   L.push('', REPORT_LINE);
   return L.join('\n');
@@ -273,7 +278,7 @@ function dueInfo(t, now = Date.now()) {
 /* The bubble: the pinned task first, then todos due soon or overdue (any milestone), then the current milestone in
    list order. A task being ticked off (in keep) holds its place until it slides away. */
 function bubbleTodos(p, n = BUBBLE_TODOS, keep = null) {
-  const visible = t => !t.done || (keep && keep.has(t.id));
+  const visible = t => isOpenTask(t) || (keep && keep.has(t.id));
   const pin = p.pin ? p.todos.find(t => t.id === p.pin && visible(t)) || null : null;
   const urgent = p.todos.filter(t => t !== pin && visible(t) && t.due && dueInfo(t) && dueInfo(t).diff <= DUE_SOON_DAYS)
     .sort((a, b) => parseYmd(a.due) - parseYmd(b.due));
@@ -301,6 +306,14 @@ function seedProjects() {
   ];
 }
 
+/* A task's repeat as read from saved data: the repeat when whole, and waiting while its next date is still ahead. */
+function readRepeat(t) {
+  const repeat = sanitizeRepeat(t.repeat);
+  if (!repeat) return {};
+  const out = { repeat };
+  if (t.waiting === true && !t.done && parseYmd(t.due) > startOfDay(Date.now())) out.waiting = true;
+  return out;
+}
 /* Makes any loaded or imported data safe to use: fills gaps, fixes types, resolves plot clashes. */
 function sanitizeProjects(raw) {
   const out = [];
@@ -323,6 +336,7 @@ function sanitizeProjects(raw) {
         id: typeof t.id === 'string' && t.id ? t.id : uid('t'), text: t.text.slice(0, 500), description: typeof t.description === 'string' ? t.description.slice(0, 8000) : '',
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
+        ...readRepeat(t),
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed,
@@ -501,7 +515,7 @@ const awayNow = (now = Date.now()) => { const back = DB.city ? parseYmd(DB.city.
 /* What floats over a building: red or yellow, how many distinct things need you, and why.
    Red: open tasks with less than 2 days left or overdue, or a system gone red. Yellow: a system waiting. */
 function urgencyOf(p, now = Date.now()) {
-  const open = p.todos.filter(t => !t.done);
+  const open = openTasks(p, now);
   const due = open.filter(t => { const d = dueInfo(t, now); return d && d.diff <= 1; });
   const u = p.urgency || { system: 'none' };
   let sys = null, why = '';
@@ -542,7 +556,7 @@ function readPlan(data) {
   const src = data.project && typeof data.project === 'object' ? data.project : data;
   const str = (x, n) => typeof x === 'string' ? x.trim().slice(0, n) : '';
   const out = { name: str(src.name, 120), description: str(src.description, 8000), milestones: [], ideas: [], links: [] };
-  const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done });
+  const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done, repeat: sanitizeRepeat(t.repeat) });
   if (Array.isArray(src.todos) && Array.isArray(src.milestones) && src.milestones.every(m => m && typeof m.id === 'string')) {
     for (const m of src.milestones) out.milestones.push({ name: str(m.name, 120) || 'Untitled milestone',
       tasks: src.todos.filter(t => t && t.milestoneId === m.id && typeof t.text === 'string' && t.text.trim()).map(task) });
@@ -566,7 +580,7 @@ function readTasks(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('That is not a tasks file: it holds no JSON object.');
   const str = (x, n) => typeof x === 'string' ? x.trim().slice(0, n) : '';
   const tasks = (Array.isArray(data.tasks) ? data.tasks : []).filter(t => t && typeof t.text === 'string' && t.text.trim())
-    .map(t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due) }));
+    .map(t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), repeat: sanitizeRepeat(t.repeat) }));
   if (!tasks.length) throw new Error('The file has no tasks, so there is nothing to add.');
   return { milestone: str(data.milestone, 120), tasks };
 }
@@ -577,7 +591,9 @@ function addTasks(p, tasks, target) {
   if (!ms) { ms = { id: uid('m'), name: (target.name || '').trim().slice(0, 120) || 'To do', collapsed: false }; p.milestones.push(ms); logActivity(p, 'New milestone: ' + ms.name); }
   ms.collapsed = false;
   for (const t of tasks) {
-    p.todos.push(Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due }));
+    const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due });
+    if (t.repeat) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat); }
+    p.todos.push(x);
     logActivity(p, 'Added todo: ' + t.text);
   }
   normalizeOrder(p);
@@ -593,7 +609,9 @@ function applyPlan(p, plan, now = Date.now()) {
     const ms = { id: uid('m'), name: m.name, collapsed: false };
     p.milestones.push(ms);
     for (const t of m.tasks) {
-      p.todos.push(Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due, done: t.done, doneAt: t.done ? now : null }));
+      const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due, done: t.done, doneAt: t.done ? now : null });
+      if (t.repeat && !t.done) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat, now); }
+      p.todos.push(x);
       tasks++;
     }
   }

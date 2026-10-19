@@ -16,7 +16,7 @@ function dueChip(t) {
    focus comes back to the same button. The star is set only in the task panel (0.1.40), so lists stay quiet. With
    chip, as in What is next, a pressed pin says Pinned beside it (0.1.41). */
 function markButtons(p, t, cls = '', { chip = false } = {}) {
-  if (t.done) return [];
+  if (!isOpenTask(t)) return [];
   const one = (kind, on, label, title, flip) => h('button', {
     class: 'icon-btn task-mark mark-' + kind + (on ? ' on' : '') + (chip ? ' mark-chip' : '') + (cls ? ' ' + cls : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
     'aria-pressed': String(on), 'aria-label': label, title, html: iconSvg(kind, chip ? 12 : 14, on ? undefined : 'transparent') + (chip && on ? '<span>Pinned</span>' : ''),
@@ -48,6 +48,8 @@ const Bubble = (() => {
   let el, enter, tail = null, openId = null;
   let shownIds = new Set();
   const ticking = new Map();
+  const was = new Map();                    // a ticked repeat's date and state before the tick, for unticking it
+  let addIn = null, addHint = null;         // the add field (O2), kept across redraws so what is typed stays
 
   function init() {
     el = $('#bubble'); enter = $('#enterBtn');
@@ -56,7 +58,7 @@ const Bubble = (() => {
   }
   function clearTicks() { for (const t of ticking.values()) clearTimeout(t); ticking.clear(); }
   function open(id) {
-    if (openId !== id) { shownIds = new Set(); clearTicks(); }
+    if (openId !== id) { shownIds = new Set(); clearTicks(); if (addIn) addIn.value = ''; }
     openId = id;
     el.hidden = false; enter.hidden = false;
     el.classList.remove('show');
@@ -75,9 +77,9 @@ const Bubble = (() => {
   function height() { return el && !el.hidden ? el.offsetHeight : 0; }
 
   function tick(p, t, checked, li) {
-    t.done = checked; t.doneAt = checked ? Date.now() : null;
-    if (checked) markWorked(p);
-    logActivity(p, (checked ? 'Done: ' : 'Reopened: ') + t.text);   // ticks from the bubble count in Activity and the week too
+    /* ticks from the bubble count in Activity and the week too; a repeat moves on to its next date (R4) */
+    if (checked) { const w = tickTask(p, t); if (t.repeat) { was.set(t.id, w); repeatToast(p, t, w); } }
+    else { untickTask(p, t, was.get(t.id)); was.delete(t.id); }
     clearTimeout(ticking.get(t.id)); ticking.delete(t.id);
     if (checked) {
       /* the ticked line stays struck through for a moment, then the next one slides up */
@@ -97,9 +99,11 @@ const Bubble = (() => {
   function render(animateNew) {
     const p = getProject(openId); if (!p) return;
     const focusId = document.activeElement && el.contains(document.activeElement) ? (document.activeElement.closest('li') || {}).dataset?.id : null;
+    const typing = !!addIn && document.activeElement === addIn, sel = typing ? [addIn.selectionStart, addIn.selectionEnd] : null;   // before the field moves into the new card
     const { list: visible, current } = bubbleTodos(p, BUBBLE_TODOS, new Set(ticking.keys()));
-    const openCount = p.todos.filter(t => !t.done).length;
-    const moreCount = openCount - visible.filter(t => !t.done).length;
+    const openCount = openTasks(p).length;
+    const moreCount = openCount - visible.filter(t => isOpenTask(t)).length;
+    const waiting = waitingTasks(p);
 
     const kids = [
       h('button', { class: 'icon-btn b-close', type: 'button', 'aria-label': 'Close status', html: iconSvg('close', 16), onclick: () => MapView.deselect() }),
@@ -118,18 +122,22 @@ const Bubble = (() => {
         const li = h('li', { class: cls, 'data-id': t.id });
         /* one line: the square ticks it, the text opens it, the copy button sits at the end */
         li.append(
-          h('input', { type: 'checkbox', class: 'cb', checked: t.done, 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
-          h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t)),
+          h('input', { type: 'checkbox', class: 'cb', checked: t.done || ticking.has(t.id), 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
+          h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t),
+            t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null),
           ...(ticking.has(t.id) ? [] : markButtons(p, t, 'b-mark')),
           h('button', { class: 'icon-btn b-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));
         ul.append(li);
       }
       kids.push(ul);
     } else {
-      kids.push(h('p', { class: 'b-empty' }, p.todos.length ? 'All todos are done.' : 'No todos yet. Enter the building to add some.'));
+      kids.push(h('p', { class: 'b-empty' }, !p.todos.length ? 'No todos yet. Add one here, or enter the building.' : waiting.length
+        ? 'Nothing open now. ' + (waiting.length === 1 ? waiting[0].text + ' comes back ' + backWhen(waiting[0]) + '.' : plural(waiting.length, 'repeat comes', 'repeats come') + ' back from ' + backWhen(waiting[0]) + '.')
+        : 'All todos are done.'));
     }
     shownIds = new Set(visible.map(t => t.id));
     if (moreCount > 0) kids.push(h('p', { class: 'b-more' }, moreCount === 1 ? '1 more open todo inside' : moreCount + ' more open todos inside'));
+    kids.push(addField(p));
     kids.push(progressRow(p, 'b-prog'));
     kids.push(metaRow(p));
     kids.push(h('div', { class: 'b-actions' },
@@ -144,7 +152,37 @@ const Bubble = (() => {
     kids.push(tail);
     el.replaceChildren(...kids.filter(Boolean));
     if (focusId) { const cb = $(`li[data-id="${focusId}"] .cb`, el); if (cb) cb.focus(); }
+    if (typing) { addIn.focus({ preventScroll: true }); try { addIn.setSelectionRange(sel[0], sel[1]); } catch (e) { /* none */ } }
     if (typeof ClaudeWork !== 'undefined') ClaudeWork.markSeen(p.id);
+  }
+
+  /* A new add field (O2): a task in one line, with the marks for its date, its repeat and its milestone. Enter adds it
+     to this project, by default to its current milestone, and the field stays for the next one. */
+  function addField(p) {
+    if (!addIn) {
+      addIn = h('input', { id: 'bAdd', class: 'field b-add-in', type: 'text', dir: 'auto', autocomplete: 'off', maxlength: '700', placeholder: 'Add a task', 'aria-label': 'Add a task', 'aria-describedby': 'bAddHint',
+        oninput: () => { hint(); position(); },
+        onfocus: () => { hint(); position(); },
+        onblur: () => setTimeout(() => { if (document.activeElement !== addIn && !addIn.value) { addHint.hidden = true; position(); } }, 0),
+        onkeydown: e => {
+          if (e.key === 'Escape' && addIn.value) { e.preventDefault(); e.stopPropagation(); addIn.value = ''; hint(); return; }
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          const q = getProject(openId), r = q && readTaskLine(addIn.value, { project: q });
+          if (!r || !r.ok) { hint(); addHint.classList.add('bad'); return; }
+          addIn.value = '';
+          const t = addTaskLine(r);
+          toast('Added ' + t.text + (r.msNew ? ' in a new milestone, ' + r.msNew : '') + '.');
+        } });
+      addHint = h('p', { id: 'bAddHint', class: 'add-hint b-add-hint', 'aria-live': 'polite', hidden: true });
+    }
+    hint(p);
+    return h('div', { class: 'b-add' }, addIn, addHint);
+  }
+  function hint(p = getProject(openId)) {
+    if (!addIn || !p) return;
+    addHint.hidden = document.activeElement !== addIn && !addIn.value;
+    taskLineHint(addHint, addIn.value, { project: p });
   }
 
   function position() {

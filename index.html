@@ -719,6 +719,35 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
 .pv-task-meta { gap: 10px; align-items: center; }
 .pv-add-link { grid-template-columns: auto 1.3fr 1fr auto auto; }
 
+/* ---------- recurring tasks and the one-line add (Tasks, Round 2, R1 to R4, O1, O2) ---------- */
+.repeat-mark { display: inline-flex; flex: none; color: var(--muted); vertical-align: -1px; }
+.b-task .repeat-mark { margin-inline-start: 6px; }
+li.task.waiting { opacity: .62; }
+li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
+.task-wait { flex: none; display: inline-grid; place-items: center; width: 18px; height: 18px; margin-top: 2px; color: var(--teal); }
+.due.back { color: var(--ink-soft); background: transparent; border-style: dashed; border-color: var(--edge); }
+.pv-ms-due.back { color: var(--ink-soft); }
+.add-hint { margin: 5px 0 0; font-size: 12.5px; line-height: 1.35; color: var(--muted); overflow-wrap: anywhere; }
+.add-hint.bad { color: var(--late); font-weight: 600; }
+.add-hint[hidden] { display: none; }
+.b-add { margin-top: 10px; }
+.b-add-in { width: 100%; box-sizing: border-box; padding: 6px 9px; font-size: 14px; }
+.pv-task-back { display: flex; align-items: center; gap: 6px; margin: 0; font: 400 13px/1.3 var(--f-pixel); color: var(--teal); font-variant-ligatures: no-common-ligatures; }
+.pv-repeat { display: grid; gap: 8px; }
+.pv-repeat-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.pv-repeat-row .lbl { margin: 0; }
+.pv-repeat-row .field { width: auto; }
+.pv-repeat-row .field.num { width: 72px; }
+.pv-repeat-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: 340px; }
+.pv-repeat-days .set-day[aria-pressed="true"] { background: #2F6B56; color: #fff; transform: translate(2px, 2px); box-shadow: var(--px-edge); }
+.pv-repeat-note { margin: 0; font-size: 12.5px; color: var(--muted); }
+.quick-add { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 45; width: min(600px, calc(100% - 32px)); box-sizing: border-box;
+  padding: 10px 14px 10px; background: var(--paper); box-shadow: var(--px-edge), var(--px-drop); }
+.quick-add-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.quick-add-title { display: inline-flex; align-items: center; gap: 6px; font: 400 14px/1.2 var(--f-pixel); color: var(--ink); font-variant-ligatures: no-common-ligatures; }
+.quick-add-keys { font-size: 12px; color: var(--muted); }
+.quick-add-in { width: 100%; box-sizing: border-box; font-size: 16px; }
+
 /* ---------- urgency ---------- */
 .b-urg { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0 2px; font-size: 13px; line-height: 1.4; font-weight: 600; }
 .b-urg.red, .urg-why.red { color: #FF8FB0; }
@@ -1058,7 +1087,7 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.41</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.42</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1136,6 +1165,7 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
           <dt>Hop</dt><dd>Q and E: previous or next building</dd>
           <dt>Shortcuts</dt><dd>Right-click a building, or F with one selected</dd>
           <dt>Step inside</dt><dd>Enter, with a building selected</dd>
+          <dt>Add a task</dt><dd>T, anywhere; /project names the building</dd>
           <dt>Settings</dt><dd>The comma key opens and closes them</dd>
           <dt>Back</dt><dd>Esc closes one layer at a time</dd>
         </dl>
@@ -1991,7 +2021,7 @@ function progressOf(p) {
   const manual = typeof p.progressOverride === 'number';
   return { pct: manual ? clamp(Math.round(p.progressOverride), 0, 100) : auto, auto, manual, done, total };
 }
-function openTodos(p, n = BUBBLE_TODOS) { return p.todos.filter(t => !t.done).slice(0, n); }
+function openTodos(p, n = BUBBLE_TODOS) { return openTasks(p).slice(0, n); }
 
 function filterActive() { return !!App.filter.q; }
 function matchesFilter(p) {
@@ -2023,24 +2053,24 @@ function groupsOf(p) {
   for (const m of p.milestones) out.push({ ms: m, todos: p.todos.filter(t => t.milestoneId === m.id) });
   return out;
 }
-/* The current milestone is the first group that still has open todos. */
-function currentGroup(p) { return groupsOf(p).find(g => g.ms && g.todos.some(t => !t.done)) || null; }
+/* The current milestone is the first group that still has open todos. A repeat waiting for its next date is not open. */
+function currentGroup(p) { return groupsOf(p).find(g => g.ms && g.todos.some(t => isOpenTask(t))) || null; }
 /* What is next: the pinned task, else the first open todo in the current milestone, in list order. */
-function nextTask(p) { const pin = pinnedTask(p); if (pin) return pin; const g = currentGroup(p); return g ? g.todos.find(t => !t.done) || null : null; }
+function nextTask(p) { const pin = pinnedTask(p); if (pin) return pin; const g = currentGroup(p); return g ? g.todos.find(t => isOpenTask(t)) || null : null; }
 
 /* ---------- pins and the city's star (Tasks, Round 2, M4 to M6) ----------
    A project can pin one open task: it comes first in What is next and the status card. One open task in the whole
    city can wear the star, a bubble over its building; starring a task also pins it in its project, and the two are
    separate after that. Both clear only when their task is ticked, deleted, or unpinned or unstarred (M5). They live
    on the project as task ids (`pin`, `star`), so editing a task and undoing it with Esc never touches them. */
-const openTaskById = (p, id) => (id ? p.todos.find(t => t.id === id && !t.done) || null : null);
+const openTaskById = (p, id) => (id ? p.todos.find(t => t.id === id && isOpenTask(t)) || null : null);
 function pinnedTask(p) { return openTaskById(p, p.pin); }
 function starredTask() {
   for (const p of DB.projects) { const t = openTaskById(p, p.star); if (t) return { p, t }; }
   return null;
 }
-const isPinned = (p, t) => !t.done && p.pin === t.id;
-const isStarred = (p, t) => !t.done && p.star === t.id;
+const isPinned = (p, t) => isOpenTask(t) && p.pin === t.id;
+const isStarred = (p, t) => isOpenTask(t) && p.star === t.id;
 function setPin(p, t, on) {
   p.pin = on && !t.done ? t.id : (p.pin === t.id ? '' : p.pin);
   changed(p, { touch: false });                        // a pin is not work on the project
@@ -2055,13 +2085,15 @@ function setStar(p, t, on) {
   changed(p, { touch: false });
 }
 /* A tick, a deletion or a new plan leaves a pin or the star on a task that is no longer open: they clear for good,
-   so reopening the task does not bring them back. Runs before every save. */
+   so reopening the task does not bring them back. A ticked repeat counts as ticked here too. A repeat whose day has
+   come stops waiting, so a later due date does not hide it again. Runs before every save. */
 function tidyMarks() {
   let starSeen = false;
   for (const p of DB.projects) {
     if (p.pin && !openTaskById(p, p.pin)) p.pin = '';
     if (p.star && (!openTaskById(p, p.star) || starSeen)) p.star = '';
     if (p.star) starSeen = true;
+    for (const t of p.todos) if (t.waiting && !isWaiting(t)) setWaiting(t, false);
   }
 }
 /* Every todo lives in a milestone. Anything outside one moves into "To do", at the top. */
@@ -2087,7 +2119,8 @@ function taskForClaude(p, t, now = Date.now()) {
   if (ms) L.push('Milestone: ' + ms.name + ' (' + g.todos.filter(x => x.done).length + '/' + g.todos.length + ' done)');
   const d = dueInfo(t, now);
   L.push('Due: ' + (d ? d.text : 'no date'));
-  L.push('State: ' + (t.done ? 'done' : 'open'));
+  if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
+  L.push('State: ' + (t.done ? 'done' : isWaiting(t, now) ? 'ticked; it comes back ' + backWhen(t, now) : 'open'));
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
@@ -2108,7 +2141,7 @@ async function copyNote(p, n) {
 /* A milestone as a work package: its open tasks with their descriptions, then what is done. */
 function milestoneForClaude(p, m, now = Date.now()) {
   const g = groupsOf(p).find(x => x.ms && x.ms.id === m.id) || { todos: [] };
-  const open = g.todos.filter(t => !t.done), done = g.todos.filter(t => t.done);
+  const open = g.todos.filter(t => isOpenTask(t, now)), done = g.todos.filter(t => t.done), waiting = g.todos.filter(t => isWaiting(t, now));
   const L = ['# Milestone: ' + m.name, 'Project: ' + p.name, 'Progress: ' + done.length + '/' + g.todos.length + ' done'];
   L.push('', '## Open tasks');
   if (!open.length) L.push('None: every task here is done.');
@@ -2116,8 +2149,10 @@ function milestoneForClaude(p, m, now = Date.now()) {
     const d = dueInfo(t, now);
     L.push('', '### ' + t.text);
     if (d) L.push(d.text);
+    if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
     L.push((t.description || '').trim() || 'No description yet.');
   }
+  if (waiting.length) { L.push('', '## Repeats waiting for their next date'); for (const t of waiting) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')'); }
   if (done.length) { L.push('', '## Done'); for (const t of done) L.push('- ' + t.text); }
   L.push('', REPORT_LINE);
   return L.join('\n');
@@ -2148,7 +2183,7 @@ function dueInfo(t, now = Date.now()) {
 /* The bubble: the pinned task first, then todos due soon or overdue (any milestone), then the current milestone in
    list order. A task being ticked off (in keep) holds its place until it slides away. */
 function bubbleTodos(p, n = BUBBLE_TODOS, keep = null) {
-  const visible = t => !t.done || (keep && keep.has(t.id));
+  const visible = t => isOpenTask(t) || (keep && keep.has(t.id));
   const pin = p.pin ? p.todos.find(t => t.id === p.pin && visible(t)) || null : null;
   const urgent = p.todos.filter(t => t !== pin && visible(t) && t.due && dueInfo(t) && dueInfo(t).diff <= DUE_SOON_DAYS)
     .sort((a, b) => parseYmd(a.due) - parseYmd(b.due));
@@ -2176,6 +2211,14 @@ function seedProjects() {
   ];
 }
 
+/* A task's repeat as read from saved data: the repeat when whole, and waiting while its next date is still ahead. */
+function readRepeat(t) {
+  const repeat = sanitizeRepeat(t.repeat);
+  if (!repeat) return {};
+  const out = { repeat };
+  if (t.waiting === true && !t.done && parseYmd(t.due) > startOfDay(Date.now())) out.waiting = true;
+  return out;
+}
 /* Makes any loaded or imported data safe to use: fills gaps, fixes types, resolves plot clashes. */
 function sanitizeProjects(raw) {
   const out = [];
@@ -2198,6 +2241,7 @@ function sanitizeProjects(raw) {
         id: typeof t.id === 'string' && t.id ? t.id : uid('t'), text: t.text.slice(0, 500), description: typeof t.description === 'string' ? t.description.slice(0, 8000) : '',
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
+        ...readRepeat(t),
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed,
@@ -2376,7 +2420,7 @@ const awayNow = (now = Date.now()) => { const back = DB.city ? parseYmd(DB.city.
 /* What floats over a building: red or yellow, how many distinct things need you, and why.
    Red: open tasks with less than 2 days left or overdue, or a system gone red. Yellow: a system waiting. */
 function urgencyOf(p, now = Date.now()) {
-  const open = p.todos.filter(t => !t.done);
+  const open = openTasks(p, now);
   const due = open.filter(t => { const d = dueInfo(t, now); return d && d.diff <= 1; });
   const u = p.urgency || { system: 'none' };
   let sys = null, why = '';
@@ -2417,7 +2461,7 @@ function readPlan(data) {
   const src = data.project && typeof data.project === 'object' ? data.project : data;
   const str = (x, n) => typeof x === 'string' ? x.trim().slice(0, n) : '';
   const out = { name: str(src.name, 120), description: str(src.description, 8000), milestones: [], ideas: [], links: [] };
-  const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done });
+  const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done, repeat: sanitizeRepeat(t.repeat) });
   if (Array.isArray(src.todos) && Array.isArray(src.milestones) && src.milestones.every(m => m && typeof m.id === 'string')) {
     for (const m of src.milestones) out.milestones.push({ name: str(m.name, 120) || 'Untitled milestone',
       tasks: src.todos.filter(t => t && t.milestoneId === m.id && typeof t.text === 'string' && t.text.trim()).map(task) });
@@ -2441,7 +2485,7 @@ function readTasks(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('That is not a tasks file: it holds no JSON object.');
   const str = (x, n) => typeof x === 'string' ? x.trim().slice(0, n) : '';
   const tasks = (Array.isArray(data.tasks) ? data.tasks : []).filter(t => t && typeof t.text === 'string' && t.text.trim())
-    .map(t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due) }));
+    .map(t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), repeat: sanitizeRepeat(t.repeat) }));
   if (!tasks.length) throw new Error('The file has no tasks, so there is nothing to add.');
   return { milestone: str(data.milestone, 120), tasks };
 }
@@ -2452,7 +2496,9 @@ function addTasks(p, tasks, target) {
   if (!ms) { ms = { id: uid('m'), name: (target.name || '').trim().slice(0, 120) || 'To do', collapsed: false }; p.milestones.push(ms); logActivity(p, 'New milestone: ' + ms.name); }
   ms.collapsed = false;
   for (const t of tasks) {
-    p.todos.push(Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due }));
+    const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due });
+    if (t.repeat) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat); }
+    p.todos.push(x);
     logActivity(p, 'Added todo: ' + t.text);
   }
   normalizeOrder(p);
@@ -2468,7 +2514,9 @@ function applyPlan(p, plan, now = Date.now()) {
     const ms = { id: uid('m'), name: m.name, collapsed: false };
     p.milestones.push(ms);
     for (const t of m.tasks) {
-      p.todos.push(Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due, done: t.done, doneAt: t.done ? now : null }));
+      const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due, done: t.done, doneAt: t.done ? now : null });
+      if (t.repeat && !t.done) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat, now); }
+      p.todos.push(x);
       tasks++;
     }
   }
@@ -2486,6 +2534,261 @@ function applyPlan(p, plan, now = Date.now()) {
   for (const l of plan.links) if (!urls.has(l.url)) { urls.add(l.url); links++; p.links.push({ id: uid('l'), label: l.label, url: l.url, icon: l.icon, shortcut: true }); }
   logActivity(p, 'Loaded a plan: ' + plural(plan.milestones.length, 'milestone', 'milestones') + ', ' + plural(tasks, 'task', 'tasks') + (ideas ? ', ' + plural(ideas, 'idea', 'ideas') : ''));
   return { milestones: plan.milestones.length, tasks, ideas, links };
+}
+
+/* ---------- recurring tasks and the one-line add (Tasks, Round 2: R1 to R4, O1, O2) ----------
+   A task that repeats carries `repeat`, one of:
+     { every: 'day', n }            every day (n 1) or every N days
+     { every: 'week', days }        weekly on chosen weekdays, 0 for Sunday
+     { every: 'month', day }        monthly on a date, 1 to 31; a month without that date uses its last day
+     { every: 'year', month, day }  yearly, month 1 to 12
+   Ticking it moves the same task on (R4): its due date becomes its next date, and it waits, out of every list, count
+   and bubble, until that day comes and it is due again (R1, in Abdurrahman's words: "when you tick the task, it will
+   go away. after 7 days it will get re-added"). `waiting` marks it; only Activity's Done line records each tick.
+   The next date is by schedule (R3): weekdays, monthly dates and years keep their rhythm, the first such date after
+   the later of today and its due date, so a late tick skips what was missed; every day and every N days count from
+   the day of the tick. A repeat not ticked by its date stays one overdue task until it is. */
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];                      // the city's weeks run Saturday to Friday
+const ordinal = n => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th');
+const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();  // m from 0; Date carries a month past December over
+const dateOn = (y, m, d) => { const x = new Date(y, m, 1); return new Date(x.getFullYear(), x.getMonth(), Math.min(d, daysInMonth(x.getFullYear(), x.getMonth()))).getTime(); };
+const plusDays = (ts, n) => { const d = new Date(ts); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n).getTime(); };
+
+/* A repeat read from saved data, a backup or a plan: kept only when whole. */
+function sanitizeRepeat(r) {
+  if (!r || typeof r !== 'object') return null;
+  const int = (x, a, b) => (Number.isInteger(x) && x >= a && x <= b ? x : null);
+  if (r.every === 'day') return { every: 'day', n: int(r.n, 1, 365) || 1 };
+  if (r.every === 'week') {
+    const days = [...new Set((Array.isArray(r.days) ? r.days : []).filter(x => int(x, 0, 6) != null))].sort((a, b) => a - b);
+    return days.length ? { every: 'week', days } : null;
+  }
+  if (r.every === 'month') { const day = int(r.day, 1, 31); return day ? { every: 'month', day } : null; }
+  if (r.every === 'year') {
+    const month = int(r.month, 1, 12), day = int(r.day, 1, 31);
+    return month && day && day <= daysInMonth(2024, month - 1) ? { every: 'year', month, day } : null;   // 2024 has a 29 February
+  }
+  return null;
+}
+/* "Every day", "Every 3 days", "Weekly on Mon, Thu", "Monthly on the 20th", "Yearly on 20 Oct". */
+function repeatText(r) {
+  if (!r) return '';
+  if (r.every === 'day') return r.n === 1 ? 'Every day' : 'Every ' + r.n + ' days';
+  if (r.every === 'week') return 'Weekly on ' + WEEK_ORDER.filter(d => r.days.includes(d)).map(d => WEEKDAYS[d]).join(', ');
+  if (r.every === 'month') return 'Monthly on the ' + ordinal(r.day);
+  if (r.every === 'year') return 'Yearly on ' + r.day + ' ' + MONTHS[r.month - 1];
+  return '';
+}
+/* The first day of the schedule on or after a day. */
+function repeatOnOrAfter(r, start) {
+  if (r.every === 'week') {
+    for (let i = 0; i < 7; i++) { const x = plusDays(start, i); if (r.days.includes(new Date(x).getDay())) return x; }
+    return start;
+  }
+  const d = new Date(start), y = d.getFullYear(), m = d.getMonth();
+  if (r.every === 'month') { const x = dateOn(y, m, r.day); return x >= start ? x : dateOn(y, m + 1, r.day); }
+  if (r.every === 'year') { const x = dateOn(y, r.month - 1, r.day); return x >= start ? x : dateOn(y + 1, r.month - 1, r.day); }
+  return start;
+}
+/* A new repeat's first date: today, or the schedule's first day from today. */
+const firstRepeatDue = (r, now = Date.now()) => ymd(repeatOnOrAfter(r, startOfDay(now)));
+/* Where a ticked repeat moves to (R3). */
+function nextRepeatDue(t, now = Date.now()) {
+  const r = t.repeat, today = startOfDay(now);
+  if (!r) return t.due;
+  if (r.every === 'day') return ymd(plusDays(today, r.n));
+  const due = parseYmd(t.due);
+  return ymd(repeatOnOrAfter(r, plusDays(Math.max(today, due == null ? today : due), 1)));
+}
+
+/* A ticked repeat waiting for its next date: out of every list, count and bubble until then. */
+const isWaiting = (t, now = Date.now()) => !t.done && !!t.repeat && !!t.waiting && parseYmd(t.due) > startOfDay(now);
+/* Open: not done and not waiting. Everything that shows or counts open tasks asks this. */
+const isOpenTask = (t, now = Date.now()) => !t.done && !isWaiting(t, now);
+const openTasks = (p, now = Date.now()) => p.todos.filter(t => isOpenTask(t, now));
+const waitingTasks = (p, now = Date.now()) => p.todos.filter(t => isWaiting(t, now)).sort((a, b) => parseYmd(a.due) - parseYmd(b.due));
+function setWaiting(t, on) { if (on) t.waiting = true; else delete t.waiting; }
+/* "Due today", "Due tomorrow", "Due Fri 23 Oct", "2 days overdue": a due date in words, as What is next shows it. */
+function dueWords(due, now = Date.now()) {
+  const d = dueInfo({ due }, now);
+  return !d ? '' : d.diff > 1 ? 'Due ' + weekdayOf(due) + ' ' + fmtDate(parseYmd(due)) : d.text;
+}
+/* "tomorrow" or "Mon 26 Oct": when a waiting repeat comes back. */
+function backWhen(t, now = Date.now()) {
+  const n = daysBetween(now, parseYmd(t.due));
+  return n === 1 ? 'tomorrow' : weekdayOf(t.due) + ' ' + fmtDate(parseYmd(t.due));
+}
+const backText = (t, now) => 'Back ' + backWhen(t, now);
+
+/* Ticking a task off, wherever it is ticked: done, or for a repeat, on to its next date and out of sight until then.
+   Either way it is work for urgency, and one Done line in Activity (log: false leaves the line to the caller).
+   Returns what the task was, for untickTask. */
+function tickTask(p, t, { now = Date.now(), log = true } = {}) {
+  const was = { done: t.done, doneAt: t.doneAt, due: t.due, waiting: !!t.waiting };
+  if (t.repeat) { t.due = nextRepeatDue(t, now); setWaiting(t, true); }
+  else { t.done = true; t.doneAt = now; }
+  markWorked(p, now);
+  if (log) logActivity(p, 'Done: ' + t.text);
+  return was;
+}
+function untickTask(p, t, was = null, { log = true } = {}) {
+  if (t.repeat && was && !was.done) { t.due = was.due; setWaiting(t, was.waiting); }
+  else { t.done = false; t.doneAt = null; }
+  if (log) logActivity(p, 'Reopened: ' + t.text);
+}
+/* After a repeat is ticked: where it went, with Undo. */
+function repeatToast(p, t, was) {
+  toast(t.text + ' comes back ' + backWhen(t) + '.', '', { label: 'Undo', run: () => {
+    untickTask(p, t, was); changed(p);
+    if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
+  } });
+}
+
+/* ---------- the one-line add (O1, O2) ----------
+   A task typed in one line, with marks taken out of the title: !fri, !today, !tomorrow, !20, !oct 20 (or !20 oct, or
+   !2026-10-20) for the due date, the next such date that is not past; #daily, #weekly, #monthly, #yearly, #every day
+   and #every N days for a repeat, #weekly on the due date's weekday (on each weekday given, with several); @name for
+   the milestone whose name starts with it, a new one by that name when none does; and in the city-wide quick add,
+   /name for the project. A repeat with no date starts today. Marks are English; the title can be in any language.
+   A word that does not read as a mark stays in the title, so "#1 priority" and "bob@mail.com" are left alone. */
+const WEEKDAY_WORDS = { sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tues: 2, tuesday: 2, wed: 3, weds: 3, wednesday: 3,
+  thu: 4, thur: 4, thurs: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6 };
+const MONTH_WORDS = { jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3, may: 4, jun: 5, june: 5,
+  jul: 6, july: 6, aug: 7, august: 7, sep: 8, sept: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11 };
+/* A date mark's words, a and the one after it, b: { at, used, weekday } or null. */
+function readDateMark(a, b, now = Date.now()) {
+  const today = startOfDay(now), s = String(a || '').toLowerCase(), n = String(b || '').toLowerCase();
+  const num = x => (/^\d{1,2}$/.test(x) ? +x : null);
+  if (s === 'today') return { at: today, used: 1 };
+  if (s === 'tomorrow') return { at: plusDays(today, 1), used: 1 };
+  if (s in WEEKDAY_WORDS) { const w = WEEKDAY_WORDS[s]; return { at: plusDays(today, (w - new Date(today).getDay() + 7) % 7), used: 1, weekday: w }; }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const at = parseYmd(s); return at != null && ymd(at) === s ? { at, used: 1 } : null; }
+  const yearly = (m, d) => {                                   // this year's, or the next year's that has it
+    if (d < 1 || d > daysInMonth(2024, m)) return null;
+    for (let y = new Date(today).getFullYear(); y < new Date(today).getFullYear() + 8; y++) {
+      if (d > daysInMonth(y, m)) continue;
+      const at = new Date(y, m, d).getTime();
+      if (at >= today) return at;
+    }
+    return null;
+  };
+  if (s in MONTH_WORDS && num(n) != null) { const at = yearly(MONTH_WORDS[s], num(n)); return at == null ? null : { at, used: 2 }; }
+  if (num(s) != null && n in MONTH_WORDS) { const at = yearly(MONTH_WORDS[n], num(s)); return at == null ? null : { at, used: 2 }; }
+  if (num(s) != null && num(s) >= 1 && num(s) <= 31) {        // the next month, from this one, that has that date
+    const d = new Date(today);
+    for (let i = 0; i < 13; i++) {
+      const y = new Date(d.getFullYear(), d.getMonth() + i, 1).getFullYear(), m = new Date(d.getFullYear(), d.getMonth() + i, 1).getMonth();
+      if (num(s) > daysInMonth(y, m)) continue;
+      const at = new Date(y, m, num(s)).getTime();
+      if (at >= today) return { at, used: 1 };
+    }
+  }
+  return null;
+}
+/* The marks in a line, before they are matched to a project or a milestone. */
+function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+  const title = [], dates = [];
+  let rep = null, ms = null, project = null, marks = 0;
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i], head = w[0], rest = w.slice(1), low = rest.toLowerCase();
+    if (head === '!' && rest) {
+      const d = readDateMark(rest, words[i + 1], now);
+      if (d) { dates.push(d); i += d.used - 1; marks++; continue; }
+    } else if (head === '#' && rest) {
+      if (['daily', 'weekly', 'monthly', 'yearly'].includes(low)) { rep = low; marks++; continue; }
+      if (low === 'every') {
+        const a = words[i + 1] || '', b = words[i + 2] || '';
+        if (/^days?$/i.test(a)) { rep = { every: 'day', n: 1 }; i += 1; marks++; continue; }
+        if (/^\d{1,3}$/.test(a) && +a >= 1 && +a <= 365 && /^days?$/i.test(b)) { rep = { every: 'day', n: +a }; i += 2; marks++; continue; }
+      }
+    } else if (head === '@' && rest) { ms = rest; marks++; continue; }
+    else if (head === '/' && rest && cityWide) { project = rest; marks++; continue; }
+    title.push(w);
+  }
+  const today = startOfDay(now);
+  const first = dates.length ? Math.min(...dates.map(d => d.at)) : null;
+  const base = first != null ? first : today;
+  let repeat = null;
+  if (rep === 'daily') repeat = { every: 'day', n: 1 };
+  else if (rep === 'weekly') {
+    const days = dates.filter(d => d.weekday != null).map(d => d.weekday);
+    repeat = sanitizeRepeat({ every: 'week', days: days.length ? days : [new Date(base).getDay()] });
+  } else if (rep === 'monthly') repeat = { every: 'month', day: new Date(base).getDate() };
+  else if (rep === 'yearly') repeat = { every: 'year', month: new Date(base).getMonth() + 1, day: new Date(base).getDate() };
+  else if (rep) repeat = rep;
+  const due = first != null ? ymd(first) : repeat ? ymd(today) : '';
+  return { title: title.join(' ').slice(0, 500), due, repeat, ms, project, marks };
+}
+/* A name a mark points at: the first whose name is the mark, else starts with it, else has a word that starts with
+   it; case, Arabic letter forms, and hyphens or underscores for spaces aside. */
+function markMatch(list, name, mark) {
+  const key = norm(String(mark).replace(/[-_]+/g, ' ')), of = x => norm(name(x));
+  return list.find(x => of(x) === key) || list.find(x => of(x).startsWith(key)) || list.find(x => of(x).split(/\s+/).some(w => w.startsWith(key))) || null;
+}
+/* Where a task added without @ goes: the current milestone, else the last one, else a new To do. */
+function defaultMilestone(p) {
+  const cur = currentGroup(p);
+  return cur && cur.ms ? cur.ms.id : p.milestones.length ? p.milestones[p.milestones.length - 1].id : null;
+}
+/* A typed line, read for one place: the project view's add field (project and milestone given), the status card's
+   (project given) or the quick add (cityWide, the project by /name or the one given). What it understood comes back
+   as a line to show under the field, and ok says whether Enter can add it. */
+function readTaskLine(text, { project = null, msId = null, cityWide = false, now = Date.now() } = {}) {
+  const r = readTaskMarks(text, { now, cityWide });
+  const out = { ...r, p: null, msId: null, msNew: '', parts: [], problem: '', ok: false };
+  if (cityWide && r.project) {
+    out.p = markMatch(DB.projects, p => p.name, r.project);
+    if (!out.p) out.problem = '/' + r.project + ' fits no project';
+  } else out.p = project;
+  if (cityWide && !out.p && !out.problem) out.problem = 'Name the project with /name';
+  if (out.p) {
+    if (cityWide) out.parts.push(out.p.name);
+    if (r.ms) {
+      const m = markMatch(out.p.milestones, m => m.name, r.ms);
+      if (m) { out.msId = m.id; out.parts.push('In ' + m.name); }
+      else { out.msNew = r.ms.slice(0, 120); out.parts.push('New milestone ' + out.msNew); }
+    } else {
+      out.msId = msId || defaultMilestone(out.p);
+      const m = cityWide && out.p.milestones.find(x => x.id === out.msId);
+      if (m) out.parts.push('In ' + m.name);
+      else if (cityWide && !out.msId) out.parts.push('New milestone To do');
+    }
+  }
+  if (r.due) out.parts.push(dueWords(r.due, now));
+  if (r.repeat) out.parts.push('Repeats ' + repeatText(r.repeat).replace(/^\w/, c => c.toLowerCase()));
+  if (!out.problem && !r.title && r.marks) out.problem = 'Type the task too';
+  out.ok = !out.problem && !!r.title && !!out.p;
+  return out;
+}
+/* Adds what readTaskLine read: a new task at the end of its milestone. Returns the task. */
+function addTaskLine(r) {
+  const p = r.p;
+  let msId = r.msId;
+  if (!msId) {
+    const ms = { id: uid('m'), name: r.msNew || 'To do', collapsed: false };
+    p.milestones.push(ms); msId = ms.id;
+    logActivity(p, 'New milestone: ' + ms.name);
+  }
+  const ms = p.milestones.find(m => m.id === msId);
+  if (ms) ms.collapsed = false;
+  const t = Object.assign(todo(r.title, msId), { due: r.due });
+  if (r.repeat) t.repeat = r.repeat;
+  p.todos.push(t);
+  normalizeOrder(p);
+  logActivity(p, 'Added todo: ' + t.text);
+  changed(p);
+  return t;
+}
+/* The line under an add field: what was understood, or what is missing, or before anything is typed, the marks. */
+function taskLineHint(el, text, opts) {
+  const r = readTaskLine(text, opts), empty = !String(text || '').trim();
+  el.classList.toggle('bad', !empty && !!r.problem);
+  el.textContent = empty ? (opts.cityWide ? '/name project · ' : '') + '!fri date · #weekly repeat · @name milestone'
+    : [r.problem, ...r.parts].filter(Boolean).join(' · ');
+  return r;
 }
 
 /* Generated by build.py from src/buildings: the generic buildings, drawn in code. */
@@ -2524,7 +2827,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.41";
+const APP_VERSION = "0.1.42";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -2995,6 +3298,7 @@ const ICONS = {
   disk: ['#########.', '#+#....#+#', '#+#....#+#', '#+######+#', '#++++++++#', '#+######+#', '#+#....#+#', '#+#....#+#', '#+######+#', '##########'],
   pin: ['...####...', '..#++++#..', '..#++++#..', '..#++++#..', '.########.', '....##....', '....##....', '....##....', '....#.....', '....#.....'],
   star: ['....##....', '...#++#...', '...#++#...', '####++####', '#++++++++#', '.#++++++#.', '..#++++#..', '.#++##++#.', '.#+#..#+#.', '.##....##.'],
+  repeat: ['......#...', '......##..', '.########.', '#.....##..', '#.....#...', '...#.....#', '..##.....#', '.########.', '..##......', '...#......'],
   arrow: ['######....', '######....', '####......', '##.##.....', '##..##....', '##...##...', '......##..', '.......##.', '........##', '..........'],
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
@@ -3993,7 +4297,7 @@ const MapView = (() => {
   function bubblesFor(p, u, v, wall, t) {
     const out = [];
     if (bubbleMode === 'tasks') {                                   // every project: how many tasks are still open
-      const count = p.todos.filter(x => !x.done).length;
+      const count = openTasks(p).length;
       out.push({ kind: 'urgency', color: 'grey', count, text: String(Math.min(count, 99)) });
     } else if (bubbleMode !== 'none') {
       const urg = urgencyOf(p, wall);
@@ -4025,7 +4329,7 @@ const MapView = (() => {
       /* The hover's white count joins on the left, so the bubbles already there stay where they are; the Tasks view
          already shows the count, so there only the label is added. */
       if (bubbleMode !== 'tasks') {
-        const count = p.todos.filter(q => !q.done).length;
+        const count = openTasks(p).length;
         const hb = { kind: 'hover', color: 'grey', count, text: String(Math.min(count, 99)) };
         size(hb);
         Object.assign(hb, { p, x: out.length ? out[0].x - 2 - hb.w : Math.round(g.X - hb.w / 2), y: y + bob, h: hh, bob });
@@ -5560,7 +5864,7 @@ const Garbage = (() => {
      yellow, and each late task's. The Garbage Man reads this. */
   function breakdown(p, now = Date.now()) {
     const sys = systemPoints(p, now), late = [];
-    for (const t of p.todos) { if (t.done) continue; const d = lateDays(t, now); if (d) late.push({ t, days: d, pts: 5 * d }); }
+    for (const t of p.todos) { if (!isOpenTask(t, now)) continue; const d = lateDays(t, now); if (d) late.push({ t, days: d, pts: 5 * d }); }
     const level = sys ? (urgencyOf(p, now).system === 'red' ? 'urgent' : 'attention') : null;
     return { sys, level, late, n: sys + late.reduce((a, l) => a + l.pts, 0) };
   }
@@ -6260,7 +6564,7 @@ function dueChip(t) {
    focus comes back to the same button. The star is set only in the task panel (0.1.40), so lists stay quiet. With
    chip, as in What is next, a pressed pin says Pinned beside it (0.1.41). */
 function markButtons(p, t, cls = '', { chip = false } = {}) {
-  if (t.done) return [];
+  if (!isOpenTask(t)) return [];
   const one = (kind, on, label, title, flip) => h('button', {
     class: 'icon-btn task-mark mark-' + kind + (on ? ' on' : '') + (chip ? ' mark-chip' : '') + (cls ? ' ' + cls : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
     'aria-pressed': String(on), 'aria-label': label, title, html: iconSvg(kind, chip ? 12 : 14, on ? undefined : 'transparent') + (chip && on ? '<span>Pinned</span>' : ''),
@@ -6292,6 +6596,8 @@ const Bubble = (() => {
   let el, enter, tail = null, openId = null;
   let shownIds = new Set();
   const ticking = new Map();
+  const was = new Map();                    // a ticked repeat's date and state before the tick, for unticking it
+  let addIn = null, addHint = null;         // the add field (O2), kept across redraws so what is typed stays
 
   function init() {
     el = $('#bubble'); enter = $('#enterBtn');
@@ -6300,7 +6606,7 @@ const Bubble = (() => {
   }
   function clearTicks() { for (const t of ticking.values()) clearTimeout(t); ticking.clear(); }
   function open(id) {
-    if (openId !== id) { shownIds = new Set(); clearTicks(); }
+    if (openId !== id) { shownIds = new Set(); clearTicks(); if (addIn) addIn.value = ''; }
     openId = id;
     el.hidden = false; enter.hidden = false;
     el.classList.remove('show');
@@ -6319,9 +6625,9 @@ const Bubble = (() => {
   function height() { return el && !el.hidden ? el.offsetHeight : 0; }
 
   function tick(p, t, checked, li) {
-    t.done = checked; t.doneAt = checked ? Date.now() : null;
-    if (checked) markWorked(p);
-    logActivity(p, (checked ? 'Done: ' : 'Reopened: ') + t.text);   // ticks from the bubble count in Activity and the week too
+    /* ticks from the bubble count in Activity and the week too; a repeat moves on to its next date (R4) */
+    if (checked) { const w = tickTask(p, t); if (t.repeat) { was.set(t.id, w); repeatToast(p, t, w); } }
+    else { untickTask(p, t, was.get(t.id)); was.delete(t.id); }
     clearTimeout(ticking.get(t.id)); ticking.delete(t.id);
     if (checked) {
       /* the ticked line stays struck through for a moment, then the next one slides up */
@@ -6341,9 +6647,11 @@ const Bubble = (() => {
   function render(animateNew) {
     const p = getProject(openId); if (!p) return;
     const focusId = document.activeElement && el.contains(document.activeElement) ? (document.activeElement.closest('li') || {}).dataset?.id : null;
+    const typing = !!addIn && document.activeElement === addIn, sel = typing ? [addIn.selectionStart, addIn.selectionEnd] : null;   // before the field moves into the new card
     const { list: visible, current } = bubbleTodos(p, BUBBLE_TODOS, new Set(ticking.keys()));
-    const openCount = p.todos.filter(t => !t.done).length;
-    const moreCount = openCount - visible.filter(t => !t.done).length;
+    const openCount = openTasks(p).length;
+    const moreCount = openCount - visible.filter(t => isOpenTask(t)).length;
+    const waiting = waitingTasks(p);
 
     const kids = [
       h('button', { class: 'icon-btn b-close', type: 'button', 'aria-label': 'Close status', html: iconSvg('close', 16), onclick: () => MapView.deselect() }),
@@ -6362,18 +6670,22 @@ const Bubble = (() => {
         const li = h('li', { class: cls, 'data-id': t.id });
         /* one line: the square ticks it, the text opens it, the copy button sits at the end */
         li.append(
-          h('input', { type: 'checkbox', class: 'cb', checked: t.done, 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
-          h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t)),
+          h('input', { type: 'checkbox', class: 'cb', checked: t.done || ticking.has(t.id), 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
+          h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t),
+            t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null),
           ...(ticking.has(t.id) ? [] : markButtons(p, t, 'b-mark')),
           h('button', { class: 'icon-btn b-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));
         ul.append(li);
       }
       kids.push(ul);
     } else {
-      kids.push(h('p', { class: 'b-empty' }, p.todos.length ? 'All todos are done.' : 'No todos yet. Enter the building to add some.'));
+      kids.push(h('p', { class: 'b-empty' }, !p.todos.length ? 'No todos yet. Add one here, or enter the building.' : waiting.length
+        ? 'Nothing open now. ' + (waiting.length === 1 ? waiting[0].text + ' comes back ' + backWhen(waiting[0]) + '.' : plural(waiting.length, 'repeat comes', 'repeats come') + ' back from ' + backWhen(waiting[0]) + '.')
+        : 'All todos are done.'));
     }
     shownIds = new Set(visible.map(t => t.id));
     if (moreCount > 0) kids.push(h('p', { class: 'b-more' }, moreCount === 1 ? '1 more open todo inside' : moreCount + ' more open todos inside'));
+    kids.push(addField(p));
     kids.push(progressRow(p, 'b-prog'));
     kids.push(metaRow(p));
     kids.push(h('div', { class: 'b-actions' },
@@ -6388,7 +6700,37 @@ const Bubble = (() => {
     kids.push(tail);
     el.replaceChildren(...kids.filter(Boolean));
     if (focusId) { const cb = $(`li[data-id="${focusId}"] .cb`, el); if (cb) cb.focus(); }
+    if (typing) { addIn.focus({ preventScroll: true }); try { addIn.setSelectionRange(sel[0], sel[1]); } catch (e) { /* none */ } }
     if (typeof ClaudeWork !== 'undefined') ClaudeWork.markSeen(p.id);
+  }
+
+  /* A new add field (O2): a task in one line, with the marks for its date, its repeat and its milestone. Enter adds it
+     to this project, by default to its current milestone, and the field stays for the next one. */
+  function addField(p) {
+    if (!addIn) {
+      addIn = h('input', { id: 'bAdd', class: 'field b-add-in', type: 'text', dir: 'auto', autocomplete: 'off', maxlength: '700', placeholder: 'Add a task', 'aria-label': 'Add a task', 'aria-describedby': 'bAddHint',
+        oninput: () => { hint(); position(); },
+        onfocus: () => { hint(); position(); },
+        onblur: () => setTimeout(() => { if (document.activeElement !== addIn && !addIn.value) { addHint.hidden = true; position(); } }, 0),
+        onkeydown: e => {
+          if (e.key === 'Escape' && addIn.value) { e.preventDefault(); e.stopPropagation(); addIn.value = ''; hint(); return; }
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          const q = getProject(openId), r = q && readTaskLine(addIn.value, { project: q });
+          if (!r || !r.ok) { hint(); addHint.classList.add('bad'); return; }
+          addIn.value = '';
+          const t = addTaskLine(r);
+          toast('Added ' + t.text + (r.msNew ? ' in a new milestone, ' + r.msNew : '') + '.');
+        } });
+      addHint = h('p', { id: 'bAddHint', class: 'add-hint b-add-hint', 'aria-live': 'polite', hidden: true });
+    }
+    hint(p);
+    return h('div', { class: 'b-add' }, addIn, addHint);
+  }
+  function hint(p = getProject(openId)) {
+    if (!addIn || !p) return;
+    addHint.hidden = document.activeElement !== addIn && !addIn.value;
+    taskLineHint(addHint, addIn.value, { project: p });
   }
 
   function position() {
@@ -6753,7 +7095,9 @@ const FullView = (() => {
     const marks = h('span', { class: 'pv-next-marks' });
     const box = h('div', { class: 'pv-next' + (starred ? ' starred' : '') }, h('div', { class: 'pv-next-head' }, h('span', { class: 'pv-next-lbl' }, 'What is next'), marks));
     if (!t) {
-      box.append(h('p', { class: 'fv-empty' }, p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
+      const w = waitingTasks(p)[0];
+      box.append(h('p', { class: 'fv-empty' }, w ? 'Nothing open now. ' + w.text + ' comes back ' + backWhen(w) + '.'
+        : p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
       return box;
     }
     marks.append(...markButtons(p, t, 'next-mark', { chip: true }),
@@ -6769,7 +7113,7 @@ const FullView = (() => {
     box.append(h('div', { class: 'pv-next-row' },
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
       OpenInClaude.button({ id: 'pvNextClaude', text: () => taskForClaude(p, t), project: p, quiet: true })));
-    const others = p.todos.filter(x => !x.done && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;
+    const others = p.todos.filter(x => isOpenTask(x) && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;
     if (others) box.append(h('p', { class: 'pv-late-note' }, '! ' + plural(others, 'other task is', 'other tasks are') + ' overdue'));
     return box;
   }
@@ -6817,19 +7161,30 @@ const FullView = (() => {
       const ul = h('ul', { class: 'tasks', 'data-ms': m.id, hidden: m.collapsed });
       for (const t of g.todos) ul.append(taskRow(p, t));
       if (adding === 'task:' + m.id) {
-        const inp = h('input', { class: 'field', type: 'text', dir: 'auto', autocomplete: 'off', placeholder: 'New task, then Enter', 'aria-label': 'New task in ' + m.name,
+        /* one line (O1, O2): !fri for the date, #weekly for a repeat, @name for another milestone; the line under it
+           says what was understood before Enter */
+        const opts = { project: p, msId: m.id };
+        const hint = h('p', { id: 'pvAddHint', class: 'add-hint pv-add-hint', 'aria-live': 'polite' });
+        const inp = h('input', { class: 'field', type: 'text', dir: 'auto', autocomplete: 'off', maxlength: '700', placeholder: 'New task, then Enter', 'aria-label': 'New task in ' + m.name, 'aria-describedby': 'pvAddHint',
+          oninput: e => taskLineHint(hint, e.target.value, opts),
           onkeydown: e => {
             if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeAdd(); const b = $(`.ms[data-msid="${m.id}"] .ms-plus`, root); if (b) b.focus(); return; }
             if (e.key !== 'Enter') return;
             e.preventDefault();
-            const text = e.target.value.trim().slice(0, 500);
+            let goes = m.id;
+            if (e.target.value.trim()) {
+              const r = taskLineHint(hint, e.target.value, opts);
+              if (!r.ok) return;
+              goes = addTaskLine(r).milestoneId;
+              Bubble.refresh();
+            }
             adding = null;
-            if (text) { p.todos.push(todo(text, m.id)); normalizeOrder(p); logActivity(p, 'Added todo: ' + text); changed(p); Bubble.refresh(); }
             render();
-            const b = $(`.ms[data-msid="${m.id}"] .ms-plus`, root); if (b) b.focus();
+            const b = $(`.ms[data-msid="${goes}"] .ms-plus`, root); if (b) b.focus();
           },
           onblur: () => setTimeout(() => { const cur = root && $('li.task-add .field', root); if (adding === 'task:' + m.id && !(cur && cur === document.activeElement)) closeAdd(); }, 150) });
-        ul.append(h('li', { class: 'task-add', 'data-adding': 'task' }, inp));
+        taskLineHint(hint, '', opts);
+        ul.append(h('li', { class: 'task-add', 'data-adding': 'task' }, inp, hint));
       }
       list.append(h('div', { class: 'ms', 'data-msid': m.id }, row, ul));
     }
@@ -6850,14 +7205,18 @@ const FullView = (() => {
     box.append(list);
     return box;
   }
+  /* A ticked repeat waits for its next date (R1): dimmed in its place, with its repeat sign for the square and when it
+     comes back, so it can still be opened, changed or stopped here, and nowhere else. */
   function taskRow(p, t) {
-    const li = h('li', { class: 'task' + (t.done ? ' done' : '') + (sideMode === 'task' && sideTask === t.id ? ' on' : ''), 'data-id': t.id });
-    const cb = h('input', { type: 'checkbox', class: 'cb', checked: t.done, 'aria-label': 'Done: ' + t.text, onchange: e => {
-      t.done = e.target.checked; t.doneAt = t.done ? Date.now() : null;
-      if (t.done) markWorked(p);
-      logActivity(p, (t.done ? 'Done: ' : 'Reopened: ') + t.text);
+    const wait = isWaiting(t);
+    const li = h('li', { class: 'task' + (t.done ? ' done' : '') + (wait ? ' waiting' : '') + (sideMode === 'task' && sideTask === t.id ? ' on' : ''), 'data-id': t.id });
+    const cb = wait
+      ? h('span', { class: 'task-wait', role: 'img', 'aria-label': repeatText(t.repeat) + ', ticked', title: repeatText(t.repeat) + '. Ticked: it comes back ' + backWhen(t) + '.', html: iconSvg('repeat', 14) })
+      : h('input', { type: 'checkbox', class: 'cb', checked: t.done, 'aria-label': 'Done: ' + t.text, onchange: e => {
+      if (e.target.checked) { const was = tickTask(p, t); if (t.repeat) repeatToast(p, t, was); }      // a repeat moves on (R4)
+      else untickTask(p, t);
       changed(p); render(); Bubble.refresh();
-      const again = $(`.task[data-id="${t.id}"] .cb`, root); if (again) again.focus();
+      const again = $(`.task[data-id="${t.id}"] .cb`, root) || $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     } });
     const title = h('button', { class: 'task-title', type: 'button', dir: 'auto', title: 'Open this task',
       onclick: () => { if (justDragged) { justDragged = false; return; } openTask(p, t.id); } }, t.text);
@@ -6869,8 +7228,10 @@ const FullView = (() => {
       const again = $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     });
     li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark')) return; dragTask(e, p, li); });
-    const d = t.done ? null : dueInfo(t);
+    const d = t.done || wait ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
+      t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
+      wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
       d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark')].filter(Boolean));
     return li;
   }
@@ -6977,12 +7338,12 @@ const FullView = (() => {
   }
 
   /* ---------- a task or a milestone, open in full beside the view ---------- */
-  let sideTask = null, taskSnap = null, sideMs = null, msSnap = null;
+  let sideTask = null, taskSnap = null, sideMs = null, msSnap = null, sideTicked = false;
   function openTask(p, id) {
     finishEdit(); adding = null;
     if (side) closeSide();
     const t = p.todos.find(x => x.id === id); if (!t) return;
-    sideTask = id; taskSnap = clone(t);
+    sideTask = id; taskSnap = clone(t); sideTicked = false;
     openSide('task');
     const f = $('#pvTaskDesc', side); if (f) f.focus();
   }
@@ -6992,17 +7353,20 @@ const FullView = (() => {
     if (t && taskSnap) {
       if (!t.text.trim()) t.text = taskSnap.text || 'Untitled task';
       if (t.done !== taskSnap.done) logActivity(p, (t.done ? 'Done: ' : 'Reopened: ') + t.text);
-      if (t.text !== taskSnap.text || t.description !== taskSnap.description || t.due !== taskSnap.due) logActivity(p, 'Edited task: ' + t.text);
-      changed(p, { touch: t.text !== taskSnap.text || t.description !== taskSnap.description || t.due !== taskSnap.due || t.done !== taskSnap.done });
+      if (sideTicked && isWaiting(t)) logActivity(p, 'Done: ' + t.text);                 // a repeat ticked here moved on
+      const edited = t.text !== taskSnap.text || t.description !== taskSnap.description || (t.due !== taskSnap.due && !sideTicked)
+        || JSON.stringify(t.repeat || null) !== JSON.stringify(taskSnap.repeat || null);
+      if (edited) logActivity(p, 'Edited task: ' + t.text);
+      changed(p, { touch: edited || t.done !== taskSnap.done || sideTicked });
     }
-    sideTask = null; taskSnap = null;
+    sideTask = null; taskSnap = null; sideTicked = false;
   }
   function cancelTask() {
     const p = P(); if (!p || !sideTask) return;
     const i = p.todos.findIndex(x => x.id === sideTask);
     if (i >= 0 && taskSnap) p.todos[i] = taskSnap;
     changed(p, { touch: false });
-    sideTask = null; taskSnap = null;
+    sideTask = null; taskSnap = null; sideTicked = false;
     side.remove(); side = null; sideMode = null;
     if (root.style.width) root.style.width = '';
     render(); Bubble.refresh();
@@ -7014,21 +7378,30 @@ const FullView = (() => {
     const ms = p.milestones.find(m => m.id === t.milestoneId);
     const title = h('input', { id: 'pvTaskTitle', class: 'field pv-note-title', type: 'text', dir: 'auto', maxlength: '500', value: t.text, 'aria-label': 'Task title', autocomplete: 'off',
       oninput: e => { t.text = e.target.value; changed(p, { touch: false }); const b = $(`.task[data-id="${t.id}"] .task-title`, root); if (b) b.textContent = t.text; } });
-    const done = h('input', { type: 'checkbox', class: 'cb', checked: t.done, onchange: e => { t.done = e.target.checked; t.doneAt = t.done ? Date.now() : null; if (t.done) markWorked(p); changed(p, { touch: false }); render(); Bubble.refresh(); } });
+    const wait = isWaiting(t);
+    /* the Done line is written when the panel closes, as for any task; a repeat ticked here moves on, and waits */
+    const done = h('input', { id: 'pvTaskDone', type: 'checkbox', class: 'cb', checked: t.done, onchange: e => {
+      if (e.target.checked) { tickTask(p, t, { log: false }); if (t.repeat) sideTicked = true; }
+      else untickTask(p, t, null, { log: false });
+      changed(p, { touch: false }); render(); Bubble.refresh();
+      const b = side && ($('#pvTaskDone', side) || $('#pvTaskDue', side)); if (b) b.focus();
+    } });
+    /* a waiting repeat's due date is the day it comes back: a nearer one brings it back sooner */
     const due = h('input', { id: 'pvTaskDue', class: 'field', type: 'date', value: t.due, 'aria-label': 'Due date',
-      onchange: e => { t.due = parseYmd(e.target.value) != null ? e.target.value : ''; changed(p, { touch: false }); render(); } });
-    const d = dueInfo(t);
+      onchange: e => { const w = isWaiting(t); t.due = parseYmd(e.target.value) != null ? e.target.value : ''; setWaiting(t, w && !!t.due); changed(p, { touch: false }); render(); } });
+    const d = wait ? null : dueInfo(t);
     const desc = h('textarea', { id: 'pvTaskDesc', class: 'field pv-note-body', dir: 'auto', rows: '14', placeholder: 'What this task is, in full: what done looks like, where things are, anything Claude should know', 'aria-label': 'Task description',
       oninput: e => { t.description = e.target.value.slice(0, 8000); changed(p, { touch: false }); } }, t.description || '');
     return h('div', { class: 'pv-note-ed' },
       h('p', { class: 'pv-task-ms' }, h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), ms ? ms.name : ''),
       title,
       h('div', { class: 'inline pv-task-meta' },
-        h('label', { class: 'check' }, done, 'Done'),
+        wait ? h('p', { class: 'pv-task-back', title: 'Esc undoes the tick; a nearer due date brings it back sooner' }, iconEl('repeat', 14), 'Ticked. ' + backText(t) + ', due that day.') : h('label', { class: 'check' }, done, 'Done'),
         h('span', { class: 'lbl' }, 'Due'), due,
-        h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
+        h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; setWaiting(t, false); due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
-      t.done ? null : h('div', { class: 'inline pv-task-marks' }, ...[
+      t.done ? null : repeatEditor(p, t),
+      !isOpenTask(t) ? null : h('div', { class: 'inline pv-task-marks' }, ...[
         ['pin', isPinned(p, t), 'Pinned', 'Pin as next', 'Comes first in What is next and the status card', on => setPin(p, t, on)],
         ['star', isStarred(p, t), 'Starred', 'Star for the city', 'The one task the whole city shows with a star, over its building; starring pins it too', on => setStar(p, t, on)],
       ].map(([kind, on, yes, no, title, set]) => h('button', { class: 'btn btn-quiet btn-small pv-mark' + (on ? ' on' : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
@@ -7048,6 +7421,44 @@ const FullView = (() => {
           toast('Task deleted.');
         } }, 'Delete task')),
       h('p', { class: 'note' }, 'Saves as you type. Done closes it; Esc undoes everything since it opened.'));
+  }
+  /* Repeat (R2): every day, every N days, weekly on chosen weekdays, monthly on a date, yearly. A task with no date
+     gets the schedule's first one. Each change redraws the panel, so the focus goes back to the control it came from. */
+  function repeatEditor(p, t) {
+    const r = t.repeat || null;
+    const kind = !r ? 'none' : r.every === 'day' ? (r.n === 1 ? 'daily' : 'days') : r.every;
+    const set = (rep, focusSel) => {
+      if (JSON.stringify(rep) === JSON.stringify(t.repeat || null)) return;          // also a change the redraw itself fires
+      if (rep) { t.repeat = rep; if (!t.due) t.due = firstRepeatDue(rep); }
+      else { delete t.repeat; setWaiting(t, false); }
+      changed(p, { touch: false }); render(); Bubble.refresh();
+      const b = side && $(focusSel || '#pvRepeat', side); if (b) b.focus();
+    };
+    const base = new Date(parseYmd(t.due) != null ? parseYmd(t.due) : startOfDay(Date.now()));
+    const pick = h('select', { id: 'pvRepeat', class: 'field pv-repeat-kind', 'aria-label': 'Repeat', onchange: e => {
+      const k = e.target.value;
+      set(k === 'none' ? null : k === 'daily' ? { every: 'day', n: 1 } : k === 'days' ? { every: 'day', n: 2 }
+        : k === 'week' ? { every: 'week', days: [base.getDay()] } : k === 'month' ? { every: 'month', day: base.getDate() }
+        : { every: 'year', month: base.getMonth() + 1, day: base.getDate() });
+    } }, [['none', 'No repeat'], ['daily', 'Every day'], ['days', 'Every N days'], ['week', 'Weekly'], ['month', 'Monthly'], ['year', 'Yearly']]
+      .map(([v, l]) => h('option', { value: v, selected: v === kind }, l)));
+    const opts = (from, to, label, on) => Array.from({ length: to - from + 1 }, (_, i) => h('option', { value: String(from + i), selected: from + i === on }, label(from + i)));
+    const row = [pick];
+    if (kind === 'days') row.push(h('input', { id: 'pvRepeatN', class: 'field num', type: 'number', min: '2', max: '365', value: String(r.n), 'aria-label': 'Every how many days',
+      onchange: e => { const n = parseInt(e.target.value, 10); if (n >= 1 && n <= 365) set({ every: 'day', n }, '#pvRepeatN'); else e.target.value = String(r.n); } }), h('span', null, 'days'));
+    if (kind === 'month') row.push(h('span', null, 'on the'), h('select', { id: 'pvRepeatDay', class: 'field pv-repeat-num', 'aria-label': 'Day of the month', onchange: e => set({ every: 'month', day: +e.target.value }, '#pvRepeatDay') },
+      opts(1, 31, ordinal, r.day)));
+    if (kind === 'year') row.push(h('span', null, 'on'),
+      h('select', { id: 'pvRepeatDay', class: 'field pv-repeat-num', 'aria-label': 'Day', onchange: e => set({ every: 'year', month: r.month, day: +e.target.value }, '#pvRepeatDay') }, opts(1, daysInMonth(2024, r.month - 1), String, r.day)),
+      h('select', { id: 'pvRepeatMonth', class: 'field pv-repeat-num', 'aria-label': 'Month', onchange: e => { const month = +e.target.value; set({ every: 'year', month, day: Math.min(r.day, daysInMonth(2024, month - 1)) }, '#pvRepeatMonth'); } },
+        opts(1, 12, m => MONTHS[m - 1], r.month)));
+    const days = kind === 'week' ? h('div', { class: 'pv-repeat-days', role: 'group', 'aria-label': 'Weekdays' }, WEEK_ORDER.map(d => h('button', { class: 'btn set-day', type: 'button', 'data-day': String(d),
+      'aria-pressed': String(r.days.includes(d)), title: r.days.includes(d) ? (r.days.length > 1 ? 'Click to drop ' + WEEKDAYS[d] : 'A weekly repeat needs one day at least') : 'Click to add ' + WEEKDAYS[d],
+      onclick: () => { const next = r.days.includes(d) ? r.days.filter(x => x !== d) : [...r.days, d]; if (next.length) set({ every: 'week', days: next.sort((a, b) => a - b) }, `.pv-repeat-days [data-day="${d}"]`); } }, WEEKDAYS[d]))) : null;
+    return h('div', { class: 'pv-repeat' },
+      h('div', { class: 'inline pv-repeat-row' }, h('span', { class: 'lbl' }, 'Repeat'), ...row), days,
+      r ? h('p', { class: 'note pv-repeat-note' }, 'Ticked, it moves on to its next date and waits out of sight until then.'
+        + (r.every === 'month' && r.day > 28 ? ' Months without the ' + ordinal(r.day) + ' use their last day.' : r.every === 'year' && r.month === 2 && r.day === 29 ? ' Other years use 28 February.' : '')) : null);
   }
   function openMilestone(p, id) {
     finishEdit(); adding = null;
@@ -7092,7 +7503,7 @@ const FullView = (() => {
             h('span', { class: 'pv-ms-box' + (t.done ? ' done' : ''), 'aria-hidden': 'true' }),
             h('span', { class: 'pv-ms-body' },
               h('span', { class: 'pv-ms-text', dir: 'auto' }, t.text, h('span', { class: 'visually-hidden' }, t.done ? ' (done)' : '')),
-              d && !t.done ? h('span', { class: 'pv-ms-due' + (d.tone ? ' ' + d.tone : '') }, d.text) : null,
+              isWaiting(t, now) ? h('span', { class: 'pv-ms-due back' }, backText(t, now)) : d && !t.done ? h('span', { class: 'pv-ms-due' + (d.tone ? ' ' + d.tone : '') }, d.text) : null,
               first ? h('span', { class: 'pv-ms-desc', dir: 'auto' }, first.slice(0, 160)) : null));
         }))
       : h('p', { class: 'fv-empty' }, 'No tasks in this milestone yet.');
@@ -7945,17 +8356,21 @@ function projectStatus(p, now = Date.now()) {
   const dl = deadlineInfo(p.deadline, now); if (dl) L.push(dl.text + '.');
   const cur = currentGroup(p);
   if (cur && cur.ms) L.push('Current milestone: ' + cur.ms.name + ' (' + cur.todos.filter(t => t.done).length + ' of ' + cur.todos.length + ' done).');
-  const open = p.todos.filter(t => !t.done);
+  const open = openTasks(p, now), waiting = waitingTasks(p, now);
+  const msName = id => (p.milestones.find(m => m.id === id) || {}).name;
   if (open.length) {
     L.push('Open todos:');
-    const msName = id => (p.milestones.find(m => m.id === id) || {}).name;
     for (const t of open.slice(0, 15)) {
-      const extra = [msName(t.milestoneId), t.due ? dueInfo(t, now).text : null].filter(Boolean).join(', ');
+      const extra = [msName(t.milestoneId), t.due ? dueInfo(t, now).text : null, t.repeat ? 'repeats ' + repeatText(t.repeat).toLowerCase() : null].filter(Boolean).join(', ');
       L.push('- ' + t.text + (extra ? ' (' + extra + ')' : ''));
       if ((t.description || '').trim()) L.push('  ' + t.description.trim().replace(/\s+/g, ' ').slice(0, 300));
     }
     if (open.length > 15) L.push('- and ' + (open.length - 15) + ' more');
   } else L.push('No open todos.');
+  if (waiting.length) {
+    L.push('Repeats waiting for their next date:');
+    for (const t of waiting.slice(0, 15)) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')');
+  }
   const last = [...p.notes].sort((a, b) => b.at - a.at)[0];
   if (last) L.push('Latest note (' + fmtDate(last.at) + '): ' + ((last.title || '').trim() ? last.title.trim() + '. ' : '') + last.text.replace(/\s+/g, ' ').slice(0, 300));
   L.push('Updated ' + relAgo(p.updatedAt, now) + '.');
@@ -8028,6 +8443,62 @@ async function copyBuilderCard(p) {
   if (await copyText(builderCard(p))) toast('Builder card copied. Paste it into a chat with the nullovation-city-builder skill.');
   else toast('The browser blocked copying. Try again.', 'error');
 }
+
+/* The city-wide quick add (Tasks, Round 2, O2): T, anywhere but in a field, opens one line over the map for a task
+   in any project. /name picks the project, the first whose name starts with it; without one it goes to the project
+   open in the view, or else the selected building. The other marks work as in every add field: !fri, #weekly, @name.
+   Enter adds it and closes; Esc or a click elsewhere closes. */
+const QuickAdd = (() => {
+  let box = null, input = null, hint = null, prevFocus = null;
+  const target = () => getProject((FullView.isOpen() && FullView.currentId()) || App.selectedId);
+  const opts = () => ({ project: target(), cityWide: true });
+
+  function build() {
+    input = h('input', { id: 'quickAddIn', class: 'field quick-add-in', type: 'text', dir: 'auto', autocomplete: 'off', maxlength: '700',
+      placeholder: 'A task, with /project !date #repeat @milestone', 'aria-label': 'Add a task', 'aria-describedby': 'quickAddHint',
+      oninput: () => taskLineHint(hint, input.value, opts()),
+      onkeydown: e => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const r = taskLineHint(hint, input.value, opts());
+        if (!r.ok) { if (!input.value.trim()) close(); return; }
+        const t = addTaskLine(r), p = r.p;
+        close();
+        if (FullView.shows(p.id)) FullView.render();
+        toast('Added to ' + p.name + ': ' + t.text + '.', '', { label: 'Open', run: () => FullView.openTask(p.id, t.id) });
+      },
+      onblur: () => setTimeout(() => { if (box && !box.contains(document.activeElement)) close(false); }, 120) });
+    hint = h('p', { id: 'quickAddHint', class: 'add-hint quick-add-hint', 'aria-live': 'polite' });
+    box = h('div', { id: 'quickAdd', class: 'quick-add', role: 'dialog', 'aria-label': 'Add a task' },
+      h('div', { class: 'quick-add-head' }, h('span', { class: 'quick-add-title' }, iconEl('plus', 12), 'Add a task'), h('span', { class: 'quick-add-keys' }, 'Enter adds · Esc closes')),
+      input, hint);
+  }
+  function open() {
+    if (!box) build();
+    if (!box.isConnected) { prevFocus = document.activeElement; $('#mapWrap').append(box); }
+    if (typeof Wheel !== 'undefined') Wheel.close();
+    input.value = '';
+    taskLineHint(hint, '', opts());
+    input.focus();
+  }
+  function close(refocus = true) {
+    if (!box || !box.isConnected) return false;
+    box.remove();
+    if (refocus && prevFocus && document.contains(prevFocus) && prevFocus.focus) prevFocus.focus({ preventScroll: true });
+    prevFocus = null;
+    return true;
+  }
+  window.addEventListener('keydown', e => {
+    if (e.code !== 'KeyT' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (Confirm.isOpen() || Panel.isOpen()) return;
+    e.preventDefault();
+    open();
+  });
+  return { open, close, isOpen: () => !!box && box.isConnected };
+})();
 
 /* Open in Claude: opens the Claude desktop app with a Copy for Claude text already filled in, through the app's
    claude:// links. Chat starts a new chat; Cowork starts a task with the project's local folders and files attached;
@@ -8385,15 +8856,15 @@ const ClaudeWork = (() => {
     if (!s || !s.task) return null;
     if (s.project && s.project.trim().toLowerCase() !== p.name.trim().toLowerCase()) return null;
     const key = s.task.trim().toLowerCase();
-    return p.todos.find(t => !t.done && t.text.trim().toLowerCase() === key) || null;
+    return p.todos.find(t => isOpenTask(t) && t.text.trim().toLowerCase() === key) || null;
   }
-  /* Ticks it off as a tick in the project view does: done now, work for urgency, a line in Activity. */
+  /* Ticks it off as a tick in the project view does: done now (a repeat on to its next date), work for urgency, a
+     line in Activity. */
   function tick(p, t) {
-    t.done = true; t.doneAt = Date.now();
-    markWorked(p);
-    logActivity(p, 'Done: ' + t.text);
+    const was = tickTask(p, t);
     window.changed(p);
-    toast('Ticked off: ' + t.text + '.');
+    if (t.repeat) repeatToast(p, t, was);
+    else toast('Ticked off: ' + t.text + '.');
   }
 
   /* The line in the status card. */
@@ -8445,7 +8916,8 @@ const ClaudeWork = (() => {
           urgency: { system: urgencyName(p), state: u.color || 'calm', reasons: u.reasons },
           next: next ? next.text : null,
           milestones: groupsOf(p).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',
-            open: g.todos.filter(t => !t.done).map(t => ({ task: t.text, description: t.description || '', due: t.due || null })),
+            open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}) })),
+            ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
             done: g.todos.filter(t => t.done).map(t => t.text) })),
           notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),
           links: p.links.map(l => ({ label: l.label || suggestLabel(l.url), url: l.url })) };
@@ -8558,7 +9030,7 @@ const ClaudeInbox = (() => {
   const str = (x, n) => (typeof x === 'string' ? x.trim().slice(0, n) : '');
   const keyOf = s => String(s || '').trim().toLowerCase();
   const projectNamed = name => DB.projects.find(p => keyOf(p.name) === keyOf(name)) || null;
-  const taskNamed = (p, text, open = true) => p.todos.find(t => (!open || !t.done) && keyOf(t.text) === keyOf(text)) || null;
+  const taskNamed = (p, text, open = true) => p.todos.find(t => (!open || isOpenTask(t)) && keyOf(t.text) === keyOf(text)) || null;
 
   async function sub(dir, path) {
     let d = dir;
@@ -8676,7 +9148,7 @@ const ClaudeInbox = (() => {
 
   /* ---------- what asks first ---------- */
   function readable(p, c) {
-    if (c.do === 'done') { const t = taskNamed(p, c.task); return { text: 'Tick off: ' + str(c.task, 200), ok: !!t, why: t ? '' : 'not open in this project' }; }
+    if (c.do === 'done') { const t = taskNamed(p, c.task); return { text: 'Tick off: ' + str(c.task, 200) + (t && t.repeat ? ', on to its next date' : ''), ok: !!t, why: t ? '' : 'not open in this project' }; }
     if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); return { text: 'New description for ' + str(c.task, 200) + ': ' + str(c.description, 8000).replace(/\s+/g, ' ').slice(0, 140), ok: !!t, why: t ? '' : 'no task by that name' }; }
     if (c.do === 'replace-plan') {
       try { const plan = readPlan(c.plan); return { text: 'Replace the plan: ' + plural(plan.milestones.length, 'milestone', 'milestones') + ', ' + plural(plan.milestones.reduce((n, m) => n + m.tasks.length, 0), 'task', 'tasks') + '. The About, milestones and tasks are replaced.', ok: true, plan }; }
@@ -8691,7 +9163,7 @@ const ClaudeInbox = (() => {
     for (const c of entry.changes) {
       const r = readable(p, c);
       if (!r.ok) continue;
-      if (c.do === 'done') { const t = taskNamed(p, c.task); t.done = true; t.doneAt = Date.now(); markWorked(p); logActivity(p, 'Done: ' + t.text); }
+      if (c.do === 'done') tickTask(p, taskNamed(p, c.task));            // a repeat moves on to its next date
       else if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); t.description = str(c.description, 8000); logActivity(p, 'Claude updated the description of ' + t.text); }
       else if (c.do === 'replace-plan') applyPlan(p, r.plan);
       n++;
@@ -8807,7 +9279,7 @@ const Menu = (() => {
     if (!sec) return;
     const items = [];
     for (const p of DB.projects) for (const t of p.todos) {
-      if (t.done || !t.due) continue;
+      if (!isOpenTask(t) || !t.due) continue;
       const d = dueInfo(t);
       if (d && d.diff <= 6) items.push({ p, t, d });
     }
@@ -9299,8 +9771,16 @@ const Settings = (() => {
   window.addEventListener('beforeunload', () => persistSoon.flush());
   window.addEventListener('pagehide', () => persistSoon.flush());
 
-  /* Keeps "updated" times and the light current while the page stays open. */
-  setInterval(() => { Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); Backups.tick(); }, 60000);
+  /* Keeps "updated" times and the light current while the page stays open. On a new day, repeats due that day come
+     back, so the project view redraws too, unless something in it is being typed. */
+  let today = ymd();
+  setInterval(() => {
+    Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); Backups.tick();
+    if (ymd() === today) return;
+    today = ymd();
+    const a = document.activeElement;
+    if (FullView.isOpen() && !(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))) FullView.render();
+  }, 60000);
 })();
 
 </script>
