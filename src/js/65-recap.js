@@ -109,6 +109,7 @@ function projectStatus(p, now = Date.now()) {
   const L = [];
   const pr = progressOf(p);
   L.push('## ' + p.name);
+  if (leaderLine(p)) L.push(leaderLine(p) + '.');
   L.push('Progress: ' + pr.pct + '%' + (pr.manual ? ', set manually.' : ' (' + pr.done + ' of ' + pr.total + ' todos done).'));
   const nx = nextTask(p);
   if (nx) { const d = dueInfo(nx, now); L.push('Next task: ' + nx.text + (d ? ' (' + d.text.toLowerCase() + ')' : '') + '.'); }

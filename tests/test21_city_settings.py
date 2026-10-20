@@ -239,7 +239,7 @@ with sync_playwright() as p:
     ok(f'a backup carries the city\'s settings, the days away and the parks picked ({len(cityk)} of them)', cityk == sorted(js("() => Object.keys(CITY_DEFAULTS)") + ['awaySpans', 'parks'])
        and data['city']['crowd'] == 'large' and data['city']['night'] == '21:00' and data['city']['deal'] == 1 and data['city']['rest'] == [0, 5, 6])
     ok('and nothing of this computer: no light, bubbles, traffic, motion, postcard or folder links', not any(k in json.dumps(data['city']) for k in ('"light"', '"bubbles"', '"traffic"', '"motion"', '"caption"', '"explorer"'))
-       and set(data.keys()) == {'app', 'version', 'exportedAt', 'world', 'city', 'projects'})
+       and set(data.keys()) == {'app', 'version', 'exportedAt', 'world', 'city', 'leaders', 'projects'})
     b.close()
 
 # a fresh browser: importing that backup brings the city's settings, while this computer keeps its own

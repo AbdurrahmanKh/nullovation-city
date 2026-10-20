@@ -108,6 +108,7 @@ const Bubble = (() => {
     const kids = [
       h('button', { class: 'icon-btn b-close', type: 'button', 'aria-label': 'Close status', html: iconSvg('close', 16), onclick: () => MapView.deselect() }),
       h('h2', { class: 'b-title', dir: 'auto' }, p.name),
+      Leaders.statusLine(p),                                   // who leads it (0.1.51, L1)
     ];
     const urg = urgencyOf(p);
     if (urg.color) kids.push(h('p', { class: 'b-urg ' + urg.color }, h('span', { class: 'b-urg-dot', 'aria-hidden': 'true' }),

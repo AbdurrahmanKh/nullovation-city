@@ -94,7 +94,7 @@ function sanitizeCity(raw, crowdFallback = null) {
   return out;
 }
 
-let DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null), projects: [] };
+let DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null), leaders: [], projects: [] };
 
 const App = {
   selectedId: null,
@@ -139,7 +139,7 @@ function blankProject(o = {}) {
   const now = Date.now();
   return Object.assign({
     id: uid('p'), name: 'Untitled project', description: '',
-    deadline: '', progressOverride: null, todos: [], links: [], milestones: [], notes: [], pin: '', star: '',
+    deadline: '', progressOverride: null, todos: [], links: [], milestones: [], notes: [], pin: '', star: '', leader: '',
     plot: { u: 0, v: 0 }, art: { has: false, includesPlot: false }, generic: null, activity: [], flip: false, particles: 'stars',
     urgency: { system: 'none', days: 1, lastWorked: null, pickedAt: null },
     createdAt: now, updatedAt: now,
@@ -218,6 +218,7 @@ function taskForClaude(p, t, now = Date.now()) {
   const g = ms ? groupsOf(p).find(x => x.ms && x.ms.id === ms.id) : null;
   L.push('# Task: ' + t.text);
   L.push('Project: ' + p.name);
+  if (leaderLine(p)) L.push(leaderLine(p));
   if (ms) L.push('Milestone: ' + ms.name + ' (' + g.todos.filter(x => x.done).length + '/' + g.todos.length + ' done)');
   const d = dueInfo(t, now);
   L.push('Due: ' + (d ? d.text : 'no date'));
@@ -233,7 +234,7 @@ function taskForClaude(p, t, now = Date.now()) {
 function noteForClaude(p, n) {
   const title = n.title.trim() || (n.text.trim().split('\n')[0] || 'Untitled note').slice(0, 120);
   const body = n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join('\n').trim();
-  const L = ['# Note: ' + title, 'Project: ' + p.name, 'Written: ' + fmtStamp(n.at), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title), '', REPORT_LINE];
+  const L = ['# Note: ' + title, 'Project: ' + p.name, ...(leaderLine(p) ? [leaderLine(p)] : []), 'Written: ' + fmtStamp(n.at), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title), '', REPORT_LINE];
   return L.join('\n');
 }
 async function copyNote(p, n) {
@@ -244,7 +245,7 @@ async function copyNote(p, n) {
 function milestoneForClaude(p, m, now = Date.now()) {
   const g = groupsOf(p).find(x => x.ms && x.ms.id === m.id) || { todos: [] };
   const open = g.todos.filter(t => isOpenTask(t, now)), done = g.todos.filter(t => t.done), waiting = g.todos.filter(t => isWaiting(t, now));
-  const L = ['# Milestone: ' + m.name, 'Project: ' + p.name, 'Progress: ' + done.length + '/' + g.todos.length + ' done'];
+  const L = ['# Milestone: ' + m.name, 'Project: ' + p.name, ...(leaderLine(p) ? [leaderLine(p)] : []), 'Progress: ' + done.length + '/' + g.todos.length + ' done'];
   L.push('', '## Open tasks');
   if (!open.length) L.push('None: every task here is done.');
   for (const t of open) {
@@ -368,6 +369,7 @@ function sanitizeProjects(raw) {
       generic: typeof GENERIC_IDS !== 'undefined' && GENERIC_IDS.has(r.generic) ? r.generic : null,
       flip: !!r.flip,
       particles: PARTICLE_IDS.includes(r.particles) ? r.particles : 'stars',
+      leader: typeof r.leader === 'string' ? r.leader.slice(0, 60) : '',      // a leader's id (0.1.51); tidyLeaders lets go of one not in the city
       urgency: (() => {
         const u = r.urgency && typeof r.urgency === 'object' ? r.urgency : {};
         const num = x => typeof x === 'number' && isFinite(x) ? x : null;
@@ -417,17 +419,22 @@ function sanitizeProjects(raw) {
 /* ---------- saving ---------- */
 const persistSoon = debounce(persistNow, 300);
 function persistNow() {
-  tidyMarks();
+  tidyMarks(); tidyLeaders();
   const ok = Store.save(DB);
   if (typeof Menu !== 'undefined') Menu.setSaveStatus(ok);
   if (typeof DataFile !== 'undefined') DataFile.writeSoon();
   if (typeof ClaudeWork !== 'undefined') ClaudeWork.cityChanged();     // the summary Claude reads
   return ok;
 }
-/* The complete backup: the map, the city's settings, and every project with block art inlined. Used by export, the
-   data file and the daily backups. */
+/* The complete backup: the map, the city's settings, the leaders with their portraits inlined (0.1.51), and every
+   project with block art inlined. Used by export, the data file and the daily backups. */
 async function buildBackup() {
-  const out = { app: 'nullovation-city', version: 3, exportedAt: new Date().toISOString(), world: worldState(), city: JSON.parse(JSON.stringify(DB.city)), projects: [] };
+  const out = { app: 'nullovation-city', version: 3, exportedAt: new Date().toISOString(), world: worldState(), city: JSON.parse(JSON.stringify(DB.city)), leaders: [], projects: [] };
+  for (const l of DB.leaders) {
+    const q = Object.assign({}, l);
+    if (l.portrait) { const url = await Store.getArt(portraitKey(l.id)) || (typeof Leaders !== 'undefined' ? Leaders.url(l.id) : null); if (url) q.portraitUrl = url; }
+    out.leaders.push(q);
+  }
   for (const p of DB.projects) {
     const q = JSON.parse(JSON.stringify(p));
     if (p.art.has) { const url = await Store.getArt(p.id) || (Art.get(p.id) || {}).url; if (url) q.art.dataUrl = url; }

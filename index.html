@@ -1245,6 +1245,78 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .pv-arch-desc { padding: 8px 10px; background: var(--hover); }
 .pv-arch-desc:focus { outline: none; }
 
+/* ---------- leaders (0.1.51): a face on its signature color, the side bar's section, the leader panel, the picker,
+   the leader card, the status card's line and the wheel's middle ---------- */
+.ld-face { --face: 48px; flex: none; display: block; position: relative; width: var(--face); height: var(--face); overflow: hidden; background: var(--ld, #6B6388); box-shadow: 0 0 0 2px var(--ld-ring, #3E3854); }
+.ld-face.round { border-radius: 50%; }
+.ld-face svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
+.ld-face .face-pic { object-fit: cover; }
+.ld-face.ld-none { background: transparent; box-shadow: none; outline: 2px dashed var(--edge); outline-offset: -2px; }
+.ld-name { color: color-mix(in srgb, var(--ld, #ECE8F6) 55%, #FFFFFF); }
+
+.ld-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.ld-head .sb-h { margin: 0; }
+.ld-head .btn { padding: 4px 8px 3px; font-size: 13px; gap: 5px; }
+.ld-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px 6px; }
+.ld-tile { display: grid; justify-items: center; gap: 6px; padding: 6px 2px 4px; background: none; border: 0; cursor: pointer; color: var(--ink-soft); min-width: 0; }
+.ld-tile:hover .ld-face, .ld-tile:focus-visible .ld-face { box-shadow: 0 0 0 2px #FFFFFF; }
+.ld-tile:focus-visible { outline: none; }
+.ld-tile-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.ld-tile:hover .ld-tile-name, .ld-tile:focus-visible .ld-tile-name { color: var(--ink); }
+.ld-empty { grid-column: 1 / -1; margin: 0; font-size: 12.5px; color: var(--muted); }
+
+.ld-panel { width: min(520px, calc(100vw - 32px)); }
+.ld-form { display: grid; gap: 14px; padding: 4px 2px 0; }
+.ld-top { display: flex; gap: 16px; align-items: center; }
+.ld-big { flex: none; padding: 2px; }
+.ld-portrait { display: grid; gap: 6px; min-width: 0; }
+.ld-portrait-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ld-portrait .note { margin: 0; }
+.ld-field { display: grid; gap: 6px; }
+.ld-field .lbl { font-size: 13px; color: var(--muted); }
+.ld-err { margin: 0; }
+.ld-swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ld-swatch { width: 26px; height: 26px; padding: 0; border: 0; cursor: pointer; box-shadow: 0 0 0 2px rgba(0, 0, 0, .35); }
+.ld-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px #FFFFFF; }
+.ld-swatch:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 3px; }
+.ld-other { width: 34px; height: 28px; padding: 0 2px; background: none; border: 2px solid var(--edge); cursor: pointer; }
+.ld-blds { display: grid; gap: 4px; max-height: 220px; overflow: auto; padding: 2px; }
+.ld-bld { gap: 8px; padding: 3px 6px; font-size: 14px; }
+.ld-bld.on { background: var(--hover); }
+.ld-bld-thumb { display: inline-flex; flex: none; }
+.ld-bld-thumb canvas, .ld-bld-thumb img { display: block; width: 32px; height: auto; }
+.ld-bld-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ld-bld-other { margin-left: auto; flex: none; font-size: 12px; color: var(--muted); }
+.ld-actions { justify-content: space-between; margin-top: 16px; }
+
+.ld-pick { display: grid; gap: 12px; }
+.ld-pick > .note { margin: 0; }
+.ld-opts { display: grid; gap: 6px; }
+.ld-opt { display: flex; align-items: center; gap: 12px; padding: 8px 10px; text-align: left; background: var(--field); border: 0; box-shadow: var(--px-edge); color: var(--ink); cursor: pointer; }
+.ld-opt:hover, .ld-opt:focus-visible { background: var(--hover); outline: none; }
+.ld-opt.on { box-shadow: 0 -2px 0 0 #FFFFFF, 0 2px 0 0 #FFFFFF, -2px 0 0 0 #FFFFFF, 2px 0 0 0 #FFFFFF; }
+.ld-opt-text { display: grid; gap: 2px; min-width: 0; }
+.ld-opt-text b { font: 400 15px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
+.ld-opt-text span { font-size: 12.5px; color: var(--muted); }
+.ld-pick-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.ld-card { display: flex; align-items: center; gap: 12px; width: 440px; max-width: 100%; margin-top: 12px; padding: 10px 12px; background: var(--field); box-shadow: var(--px-edge), inset 4px 0 0 var(--ld, transparent); }
+.ld-card-text { display: grid; gap: 2px; min-width: 0; }
+.ld-card-text b { font: 400 17px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; overflow-wrap: anywhere; }
+.ld-card-text span { font-size: 13px; color: var(--muted); }
+.ld-card .ld-change { margin-left: auto; flex: none; }
+.ld-card.empty { color: var(--ink-soft); border: 0; cursor: pointer; text-align: left; box-shadow: var(--px-edge); }
+.ld-card.empty:hover, .ld-card.empty:focus-visible { background: var(--hover); outline: none; }
+.ld-card.empty .ld-card-text b { font-size: 15px; color: var(--ink-soft); }
+
+.b-leader { display: flex; align-items: center; gap: 9px; margin: -4px 0 10px; }
+.b-leader-text { display: grid; gap: 1px; min-width: 0; }
+.b-leader-text b { font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
+.b-leader-text span { font-size: 12px; color: var(--muted); }
+
+.wheel-hub.has-leader { background: var(--ld); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
+.wheel-hub .ld-face { position: absolute; left: 4px; top: 4px; box-shadow: none; }
+
 </style>
 </head>
 <body>
@@ -1252,7 +1324,7 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.50</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.51</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1310,6 +1382,10 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
       <section id="sbDue" class="sb-sec" aria-label="Due this week" hidden>
         <h2 class="sb-h">Due this week</h2>
         <ul id="dueList" class="due-list"></ul>
+      </section>
+      <section id="sbLeaders" class="sb-sec" aria-label="Leaders">
+        <div class="ld-head"><h2 class="sb-h">Leaders</h2><button id="btnNewLeader" class="btn btn-quiet btn-small" type="button"><span id="ldPlus" aria-hidden="true"></span>New leader</button></div>
+        <div id="leaderGrid" class="ld-grid"></div>
       </section>
       <div class="grow"></div>
       <div class="sb-foot">
@@ -2188,7 +2264,7 @@ function sanitizeCity(raw, crowdFallback = null) {
   return out;
 }
 
-let DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null), projects: [] };
+let DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null), leaders: [], projects: [] };
 
 const App = {
   selectedId: null,
@@ -2233,7 +2309,7 @@ function blankProject(o = {}) {
   const now = Date.now();
   return Object.assign({
     id: uid('p'), name: 'Untitled project', description: '',
-    deadline: '', progressOverride: null, todos: [], links: [], milestones: [], notes: [], pin: '', star: '',
+    deadline: '', progressOverride: null, todos: [], links: [], milestones: [], notes: [], pin: '', star: '', leader: '',
     plot: { u: 0, v: 0 }, art: { has: false, includesPlot: false }, generic: null, activity: [], flip: false, particles: 'stars',
     urgency: { system: 'none', days: 1, lastWorked: null, pickedAt: null },
     createdAt: now, updatedAt: now,
@@ -2312,6 +2388,7 @@ function taskForClaude(p, t, now = Date.now()) {
   const g = ms ? groupsOf(p).find(x => x.ms && x.ms.id === ms.id) : null;
   L.push('# Task: ' + t.text);
   L.push('Project: ' + p.name);
+  if (leaderLine(p)) L.push(leaderLine(p));
   if (ms) L.push('Milestone: ' + ms.name + ' (' + g.todos.filter(x => x.done).length + '/' + g.todos.length + ' done)');
   const d = dueInfo(t, now);
   L.push('Due: ' + (d ? d.text : 'no date'));
@@ -2327,7 +2404,7 @@ function taskForClaude(p, t, now = Date.now()) {
 function noteForClaude(p, n) {
   const title = n.title.trim() || (n.text.trim().split('\n')[0] || 'Untitled note').slice(0, 120);
   const body = n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join('\n').trim();
-  const L = ['# Note: ' + title, 'Project: ' + p.name, 'Written: ' + fmtStamp(n.at), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title), '', REPORT_LINE];
+  const L = ['# Note: ' + title, 'Project: ' + p.name, ...(leaderLine(p) ? [leaderLine(p)] : []), 'Written: ' + fmtStamp(n.at), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title), '', REPORT_LINE];
   return L.join('\n');
 }
 async function copyNote(p, n) {
@@ -2338,7 +2415,7 @@ async function copyNote(p, n) {
 function milestoneForClaude(p, m, now = Date.now()) {
   const g = groupsOf(p).find(x => x.ms && x.ms.id === m.id) || { todos: [] };
   const open = g.todos.filter(t => isOpenTask(t, now)), done = g.todos.filter(t => t.done), waiting = g.todos.filter(t => isWaiting(t, now));
-  const L = ['# Milestone: ' + m.name, 'Project: ' + p.name, 'Progress: ' + done.length + '/' + g.todos.length + ' done'];
+  const L = ['# Milestone: ' + m.name, 'Project: ' + p.name, ...(leaderLine(p) ? [leaderLine(p)] : []), 'Progress: ' + done.length + '/' + g.todos.length + ' done'];
   L.push('', '## Open tasks');
   if (!open.length) L.push('None: every task here is done.');
   for (const t of open) {
@@ -2462,6 +2539,7 @@ function sanitizeProjects(raw) {
       generic: typeof GENERIC_IDS !== 'undefined' && GENERIC_IDS.has(r.generic) ? r.generic : null,
       flip: !!r.flip,
       particles: PARTICLE_IDS.includes(r.particles) ? r.particles : 'stars',
+      leader: typeof r.leader === 'string' ? r.leader.slice(0, 60) : '',      // a leader's id (0.1.51); tidyLeaders lets go of one not in the city
       urgency: (() => {
         const u = r.urgency && typeof r.urgency === 'object' ? r.urgency : {};
         const num = x => typeof x === 'number' && isFinite(x) ? x : null;
@@ -2511,17 +2589,22 @@ function sanitizeProjects(raw) {
 /* ---------- saving ---------- */
 const persistSoon = debounce(persistNow, 300);
 function persistNow() {
-  tidyMarks();
+  tidyMarks(); tidyLeaders();
   const ok = Store.save(DB);
   if (typeof Menu !== 'undefined') Menu.setSaveStatus(ok);
   if (typeof DataFile !== 'undefined') DataFile.writeSoon();
   if (typeof ClaudeWork !== 'undefined') ClaudeWork.cityChanged();     // the summary Claude reads
   return ok;
 }
-/* The complete backup: the map, the city's settings, and every project with block art inlined. Used by export, the
-   data file and the daily backups. */
+/* The complete backup: the map, the city's settings, the leaders with their portraits inlined (0.1.51), and every
+   project with block art inlined. Used by export, the data file and the daily backups. */
 async function buildBackup() {
-  const out = { app: 'nullovation-city', version: 3, exportedAt: new Date().toISOString(), world: worldState(), city: JSON.parse(JSON.stringify(DB.city)), projects: [] };
+  const out = { app: 'nullovation-city', version: 3, exportedAt: new Date().toISOString(), world: worldState(), city: JSON.parse(JSON.stringify(DB.city)), leaders: [], projects: [] };
+  for (const l of DB.leaders) {
+    const q = Object.assign({}, l);
+    if (l.portrait) { const url = await Store.getArt(portraitKey(l.id)) || (typeof Leaders !== 'undefined' ? Leaders.url(l.id) : null); if (url) q.portraitUrl = url; }
+    out.leaders.push(q);
+  }
   for (const p of DB.projects) {
     const q = JSON.parse(JSON.stringify(p));
     if (p.art.has) { const url = await Store.getArt(p.id) || (Art.get(p.id) || {}).url; if (url) q.art.dataUrl = url; }
@@ -3007,6 +3090,62 @@ function taskLineHint(el, text, opts) {
   return r;
 }
 
+/* Leaders (0.1.51): the city's characters who run its buildings, designed over two rounds on 5 October 2026 and set up
+   in Leaders, 20 October 2026. For now a leader holds a name, a role, a signature color and a portrait (L2); talking
+   comes later. One leader per building, and one leader can run several. The leaders live in the side bar's Leaders
+   section, are picked from a building's more menu or its project view, and show in the wheel's middle, the leader card
+   in the project view and the status card (L1). Claude's copies and the city summary name them (L3). A portrait sits in
+   the art store under 'leader:' and the leader's id, and travels inline in backups and the data file. */
+const LEADER_COLORS = ['#F29A74', '#F08BB4', '#D9536B', '#F2C75C', '#E8DCC4', '#7FD6B5', '#6FAE5C', '#3FA79E', '#8FD0F7', '#5A6FA8', '#B9A3E3', '#8E5A9E'];
+const LEADER_MAX = { name: 60, role: 60 };
+const leaderColor = seed => LEADER_COLORS[hashStr(String(seed)) % LEADER_COLORS.length];
+const portraitKey = id => 'leader:' + id;
+
+function blankLeader(o = {}) {
+  const id = o.id || uid('ld');
+  return Object.assign({ name: '', role: '', color: leaderColor(id), portrait: false, createdAt: Date.now() }, o, { id });
+}
+/* Makes loaded or imported leaders safe to use, as sanitizeProjects does for projects. */
+function sanitizeLeaders(raw) {
+  const out = [], seen = new Set();
+  const s = (v, n) => (typeof v === 'string' ? v : '').replace(/\s+/g, ' ').trim().slice(0, n);
+  for (const r of Array.isArray(raw) ? raw : []) {
+    if (!r || typeof r !== 'object') continue;
+    let id = typeof r.id === 'string' && r.id ? r.id.slice(0, 60) : uid('ld');
+    if (seen.has(id)) id = uid('ld');
+    seen.add(id);
+    out.push({ id, name: s(r.name, LEADER_MAX.name) || 'Leader', role: s(r.role, LEADER_MAX.role),
+      color: /^#[0-9a-f]{6}$/i.test(r.color || '') ? r.color.toUpperCase() : leaderColor(id), portrait: !!r.portrait,
+      createdAt: typeof r.createdAt === 'number' ? r.createdAt : Date.now() });
+  }
+  return out;
+}
+const getLeader = id => (id && Array.isArray(DB.leaders) ? DB.leaders.find(l => l.id === id) : null) || null;
+const leaderOf = p => (p ? getLeader(p.leader) : null);
+const leaderProjects = l => DB.projects.filter(p => p.leader === l.id);
+const leaderName = l => (l && l.name.trim()) || 'Leader';
+/* A building whose leader is no longer in the city is left without one. */
+function tidyLeaders() {
+  if (!Array.isArray(DB.leaders)) DB.leaders = [];
+  const ids = new Set(DB.leaders.map(l => l.id));
+  for (const p of DB.projects) if (p.leader && !ids.has(p.leader)) p.leader = '';
+}
+/* One line for Claude: who leads the building, and as what (L3). Nothing when it has no leader. */
+function leaderLine(p) {
+  const l = leaderOf(p);
+  return l ? 'Leader: ' + leaderName(l) + (l.role ? ', ' + l.role : '') : null;
+}
+/* Picking a building's leader is not work, like a pin: Updated stays, and nothing goes in Activity. */
+function setLeader(p, id) {
+  p.leader = getLeader(id) ? id : '';
+}
+/* A signature color, darker or lighter: f below 0 mixes in black, above 0 white. */
+function shadeHex(hex, f) {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255];
+  const m = c.map(x => Math.round(f < 0 ? x * (1 + f) : x + (255 - x) * f));
+  return '#' + m.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
 /* ---------- the archive (Archiving, Round 1) ----------
    A done task moves into its project's archive by hand, or by itself 7 days after its tick (A2, A2a). It stays in the
    project's todos, marked `archived`, so the counts and progress (B2), search, Reports, the recap, Proxima and the
@@ -3128,7 +3267,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.50";
+const APP_VERSION = "0.1.51";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -7689,6 +7828,7 @@ const Bubble = (() => {
     const kids = [
       h('button', { class: 'icon-btn b-close', type: 'button', 'aria-label': 'Close status', html: iconSvg('close', 16), onclick: () => MapView.deselect() }),
       h('h2', { class: 'b-title', dir: 'auto' }, p.name),
+      Leaders.statusLine(p),                                   // who leads it (0.1.51, L1)
     ];
     const urg = urgencyOf(p);
     if (urg.color) kids.push(h('p', { class: 'b-urg ' + urg.color }, h('span', { class: 'b-urg-dot', 'aria-hidden': 'true' }),
@@ -8084,7 +8224,8 @@ const FullView = (() => {
       h('div', { class: 'pv-urgency-row' },
         h('button', { id: 'pvUrgencyBtn', class: 'pv-urgency-btn', type: 'button', title: 'Urgency: what raises bubbles over this building', onclick: () => openSide('urgency') },
           iconEl('alert', 16), h('span', null, urgencyName(p))),
-        p.urgency.system !== 'none' ? h('button', { id: 'pvWorked', class: 'btn btn-small', type: 'button', title: 'Counts as finishing a task, for ' + urgencyName(p), onclick: () => workedNow(p) }, 'I worked!') : null));
+        p.urgency.system !== 'none' ? h('button', { id: 'pvWorked', class: 'btn btn-small', type: 'button', title: 'Counts as finishing a task, for ' + urgencyName(p), onclick: () => workedNow(p) }, 'I worked!') : null),
+      Leaders.card(p, () => openSide('leader')));                           // the leader card, beside the About (0.1.51)
   }
   function workedNow(p) {
     iWorked(p); changed(p); render(); Bubble.refresh();
@@ -8920,6 +9061,7 @@ const FullView = (() => {
     const inArchive = archivedTodos(p).length;
     menu = h('div', { class: 'pv-menu', role: 'menu', 'aria-label': 'More' },
       item(inArchive ? 'Archive (' + inArchive + ')' : 'Archive', () => openArchive(p)),
+      item(leaderOf(p) ? 'Leader: ' + leaderName(leaderOf(p)) : 'Pick a leader', () => openSide('leader')),
       item('Copy for builder', () => copyBuilderCard(p)),
       item('Builder card in a Claude chat', () => OpenInClaude.go('chat', builderCard(p))),
       item('Load plan or tasks', () => openLoadPlan(p)),
@@ -8948,7 +9090,8 @@ const FullView = (() => {
   function exportProject(p) {
     (async () => {
       const art = p.art.has ? await Store.getArt(p.id) : null;
-      const data = { app: 'nullovation-city', kind: 'project', version: 2, exportedAt: new Date().toISOString(), project: clone(p), art: art ? { dataUrl: art } : null };
+      const data = { app: 'nullovation-city', kind: 'project', version: 2, exportedAt: new Date().toISOString(), project: clone(p), art: art ? { dataUrl: art } : null,
+        leader: await Leaders.carry(leaderOf(p)) };                          // its leader travels with it (0.1.51)
       downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), slug(p.name) + '.json');
       toast('Project exported. Import backup in the side menu adds it to any city.');
     })();
@@ -9079,6 +9222,10 @@ const FullView = (() => {
           h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { closeSide(); render(); } }, 'Done'),
           h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close the ' + label.toLowerCase(), title: 'Close', html: iconSvg('close', 18), onclick: () => { closeSide(); render(); } }))),
         sideMode === 'task' ? taskEditor(p) : milestoneEditor(p));
+      return;
+    }
+    if (sideMode === 'leader') {                                            // who leads the building (0.1.51)
+      side.replaceChildren(head('Leader'), Leaders.pickList(p, () => render()));
       return;
     }
     if (sideMode === 'archive') {
@@ -9352,9 +9499,297 @@ const Picker = (() => {
   return { open, grid };
 })();
 
+/* Leaders in the city (0.1.51): the side bar's Leaders section, the leader panel that adds or edits one (its portrait,
+   name, role, signature color and the buildings it leads), the picker beside the project view, the leader card under
+   the building's picture, the line in the status card, and the face in the shortcut wheel's middle. A leader without a
+   portrait shows a silhouette on its signature color, as the October design said. Portraits are read from the art
+   store once and kept here by leader. */
+const Leaders = (() => {
+  const urls = new Map();                                    // a leader's id: its portrait's data address
+  const PORTRAIT_MAX = 1024, PORTRAIT_BYTES = 3 * 1024 * 1024;
+
+  /* ---------- a face: the portrait shrunk smooth into a frame of its signature color, or a silhouette ---------- */
+  const SIL = ['................', '................', '......####......', '.....######.....', '....########....', '....########....',
+    '....########....', '.....######.....', '......####......', '.......##.......', '...##########...', '..############..',
+    '.##############.', '.##############.', '################', '################'];
+  function silhouette(color) {
+    let rects = '';
+    SIL.forEach((row, y) => { for (let x = 0; x < 16;) { if (row[x] !== '#') { x++; continue; } let e = x; while (row[e] === '#') e++; rects += `<rect x="${x}" y="${y}" width="${e - x}" height="1"/>`; x = e; } });
+    return `<svg viewBox="0 0 16 16" fill="${shadeHex(color, -0.42)}" aria-hidden="true">${rects}</svg>`;
+  }
+  function face(l, size = 48, { round = false, url } = {}) {
+    const el = h('span', { class: 'ld-face' + (round ? ' round' : ''), 'aria-hidden': 'true' });
+    el.style.setProperty('--face', size + 'px');
+    el.style.setProperty('--ld', l.color);
+    el.style.setProperty('--ld-ring', shadeHex(l.color, -0.45));
+    const src = url !== undefined ? url : (l.portrait ? urls.get(l.id) : null);
+    if (src) el.append(h('img', { class: 'face-pic', alt: '', src, draggable: 'false' }));
+    else el.innerHTML = silhouette(l.color);
+    return el;
+  }
+  const noFace = size => { const el = h('span', { class: 'ld-face ld-none', 'aria-hidden': 'true' }); el.style.setProperty('--face', size + 'px'); return el; };
+
+  /* ---------- portraits ---------- */
+  async function loadAll() {
+    for (const l of DB.leaders) if (l.portrait && !urls.has(l.id)) { const u = await Store.getArt(portraitKey(l.id)); if (u) urls.set(l.id, u); }
+    refreshAll();
+  }
+  async function readPortrait(f) {
+    if (!/^image\/(png|gif|jpeg|webp)$/.test(f.type) && !/\.(png|gif|jpe?g|webp)$/i.test(f.name)) throw new Error('A portrait takes a PNG, GIF, JPEG or WebP.');
+    if (f.size > PORTRAIT_BYTES) throw new Error('This image is over 3 MB. A portrait needs far less: 256 by 256 px is plenty.');
+    const url = await readAsDataURL(f);
+    let img;
+    try { img = await loadImage(url); } catch (e) { throw new Error('That image could not be read. Export it again and retry.'); }
+    if (img.naturalWidth > PORTRAIT_MAX || img.naturalHeight > PORTRAIT_MAX)
+      throw new Error('This image is ' + img.naturalWidth + ' by ' + img.naturalHeight + ' px. A portrait is at most 1024 px; 256 by 256 is plenty.');
+    return url;
+  }
+  async function putPortrait(l, url) {
+    const kept = await Store.putArt(portraitKey(l.id), url);
+    urls.set(l.id, url); l.portrait = true;
+    return kept;
+  }
+
+  /* ---------- the side bar's Leaders section ---------- */
+  function init() {
+    $('#ldPlus').innerHTML = iconSvg('plus', 12); $('#ldPlus').style.display = 'inline-flex';
+    $('#btnNewLeader').addEventListener('click', () => create());
+    renderSection();
+  }
+  function renderSection() {
+    const grid = $('#leaderGrid');
+    if (!grid) return;
+    grid.replaceChildren(...DB.leaders.map(l => {
+      const n = leaderProjects(l).length;
+      return h('button', { class: 'ld-tile', type: 'button', 'data-id': l.id,
+        title: leaderName(l) + (l.role ? ', ' + l.role : '') + '. ' + (n ? 'Leads ' + plural(n, 'building', 'buildings') : 'Leads no building yet') + '. Click to edit.',
+        'aria-label': leaderName(l) + (l.role ? ', ' + l.role : '') + ', leads ' + plural(n, 'building', 'buildings'), onclick: () => edit(l.id) },
+        face(l, 48), h('span', { class: 'ld-tile-name', dir: 'auto' }, leaderName(l)));
+    }));
+    if (!DB.leaders.length) grid.append(h('p', { class: 'ld-empty' }, 'No leaders yet. Add one with a portrait, then give it a building.'));
+  }
+  const refreshSoon = debounce(() => refreshAll(), 120);
+  function refreshAll() {
+    renderSection();
+    Bubble.refresh();
+    if (typeof FullView !== 'undefined') FullView.render();
+  }
+
+  /* ---------- the leader panel: add one, or edit one (changes apply at once) ---------- */
+  function create({ assign = null, onAdded = null } = {}) { form(blankLeader(), { isNew: true, assign, onAdded }); }
+  function edit(id) { const l = getLeader(id); if (l) form(l, { isNew: false }); }
+  function form(l, { isNew, assign = null, onAdded = null }) {
+    let draftUrl = null;                                      // a new leader's portrait, kept until Add
+    const picked = new Set(assign ? [assign.id] : []);        // a new leader's buildings, until Add
+    const live = !isNew;
+    const save = () => { if (live) { persistSoon(); refreshSoon(); } };
+
+    const faceBox = h('div', { class: 'ld-big' });
+    const drawFace = () => faceBox.replaceChildren(face(l, 128, isNew ? { url: draftUrl } : {}));
+    const has = () => (isNew ? !!draftUrl : l.portrait && urls.has(l.id));
+    const err = h('p', { class: 'plan-err ld-err', role: 'alert', hidden: true });
+    const file = h('input', { type: 'file', accept: 'image/png,image/gif,image/jpeg,image/webp,.png,.gif,.jpg,.jpeg,.webp', hidden: true,
+      onchange: async e => {
+        const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+        let url;
+        try { url = await readPortrait(f); } catch (x) { err.textContent = x.message; err.hidden = false; return; }
+        err.hidden = true;
+        if (isNew) draftUrl = url;
+        else { const kept = await putPortrait(l, url); save(); if (!kept) toast('Portrait added for this session only: this browser is not saving it. Export a backup to keep it.', 'error'); }
+        drawFace(); drawPortraitBtns();
+      } });
+    const portraitBtns = h('div', { class: 'inline ld-portrait-btns' });
+    const drawPortraitBtns = () => portraitBtns.replaceChildren(
+      h('button', { class: 'btn btn-small', type: 'button', onclick: () => file.click() }, iconEl('plus', 14), has() ? 'Replace portrait' : 'Upload portrait'),
+      has() ? h('button', { class: 'btn btn-small btn-quiet', type: 'button', onclick: async () => {
+        if (isNew) draftUrl = null;
+        else { await Store.deleteArt(portraitKey(l.id)); urls.delete(l.id); l.portrait = false; save(); }
+        drawFace(); drawPortraitBtns();
+      } }, 'Remove') : null);
+
+    const name = h('input', { id: 'ldName', class: 'field', type: 'text', dir: 'auto', maxlength: String(LEADER_MAX.name), value: l.name, placeholder: 'Name', autocomplete: 'off', 'aria-label': 'Name',
+      oninput: e => { l.name = e.target.value; err.hidden = true; save(); },
+      onblur: e => { if (live && !e.target.value.trim()) { l.name = 'Leader'; e.target.value = l.name; save(); } },
+      onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); if (isNew) add(); } } });
+    const role = h('input', { id: 'ldRole', class: 'field', type: 'text', dir: 'auto', maxlength: String(LEADER_MAX.role), value: l.role, placeholder: 'Mayor, Head chef, Chief of Staff', autocomplete: 'off', 'aria-label': 'Role',
+      oninput: e => { l.role = e.target.value; save(); },
+      onblur: e => { if (live) { l.role = e.target.value.replace(/\s+/g, ' ').trim(); e.target.value = l.role; save(); } },
+      onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); if (isNew) add(); } } });
+
+    const swatches = h('div', { class: 'ld-swatches', role: 'group', 'aria-label': 'Signature color' });
+    const other = h('input', { class: 'ld-other', type: 'color', value: l.color.toLowerCase(), 'aria-label': 'Another color', title: 'Another color', oninput: e => pickColor(e.target.value) });
+    const drawSwatches = () => swatches.replaceChildren(...LEADER_COLORS.map(c => {
+      const b = h('button', { class: 'ld-swatch', type: 'button', 'aria-pressed': String(c === l.color), 'aria-label': 'Color ' + c, title: c, onclick: () => pickColor(c) });
+      b.style.background = c;
+      return b;
+    }), other);
+    function pickColor(c) { l.color = c.toUpperCase(); other.value = l.color.toLowerCase(); drawFace(); drawSwatches(); save(); }
+
+    const blds = h('div', { class: 'ld-blds', role: 'group', 'aria-label': 'Buildings it leads' });
+    const drawBuildings = () => blds.replaceChildren(...(DB.projects.length ? [...DB.projects].sort((a, b) => a.name.localeCompare(b.name)).map(p => {
+      const on = isNew ? picked.has(p.id) : p.leader === l.id;
+      const otherLeader = !on && leaderOf(p);
+      return h('label', { class: 'check ld-bld' + (on ? ' on' : ''), 'data-id': p.id },
+        h('input', { type: 'checkbox', class: 'cb', checked: on, 'aria-label': 'Leads ' + p.name, onchange: e => {
+          if (isNew) { if (e.target.checked) picked.add(p.id); else picked.delete(p.id); }
+          else { setLeader(p, e.target.checked ? l.id : ''); changed(p, { touch: false }); refreshSoon(); }
+          drawBuildings();
+          const again = $(`.ld-bld[data-id="${p.id}"] input`, blds); if (again) again.focus();
+        } }),
+        h('span', { class: 'ld-bld-thumb', 'aria-hidden': 'true' }, MapView.thumb(p)),
+        h('span', { class: 'ld-bld-name', dir: 'auto' }, p.name),
+        otherLeader ? h('span', { class: 'ld-bld-other', dir: 'auto' }, 'led by ' + leaderName(otherLeader)) : null);
+    }) : [h('p', { class: 'note' }, 'No buildings yet.')]));
+
+    function add() {
+      const nm = name.value.replace(/\s+/g, ' ').trim();
+      if (!nm) { err.textContent = 'Give the leader a name.'; err.hidden = false; name.focus(); return; }
+      l.name = nm; l.role = role.value.replace(/\s+/g, ' ').trim(); l.createdAt = Date.now();
+      DB.leaders.push(l);
+      (async () => {
+        let kept = true;
+        if (draftUrl) kept = await putPortrait(l, draftUrl);
+        const ps = DB.projects.filter(p => picked.has(p.id));
+        for (const p of ps) setLeader(p, l.id);
+        persistNow(); Panel.close(); refreshAll(); MapView.invalidate();
+        toast('Added ' + leaderName(l) + (ps.length === 1 ? ', who leads ' + ps[0].name : ps.length ? ', who leads ' + plural(ps.length, 'building', 'buildings') : '') + '.'
+          + (kept ? '' : ' The portrait is held for this session only.'), kept ? '' : 'error');
+        if (onAdded) onAdded(l);
+      })();
+    }
+    async function remove() {
+      const ps = leaderProjects(l);
+      const ok = await Confirm.ask({ title: ['Delete ', h('bdi', null, leaderName(l)), '?'],
+        body: (ps.length === 1 ? ps[0].name + ' keeps running, with no leader. ' : ps.length ? 'Their ' + ps.length + ' buildings keep running, with no leader. ' : '')
+          + (l.portrait ? 'The portrait is removed from this browser.' : '') || 'Nothing else changes.',
+        confirm: 'Delete leader', danger: true });
+      if (!ok) return;
+      DB.leaders = DB.leaders.filter(x => x.id !== l.id);
+      for (const p of DB.projects) if (p.leader === l.id) p.leader = '';
+      await Store.deleteArt(portraitKey(l.id)); urls.delete(l.id);
+      persistNow(); Panel.close(); refreshAll(); MapView.invalidate();
+      toast('Deleted ' + leaderName(l) + '.');
+    }
+
+    drawFace(); drawPortraitBtns(); drawSwatches(); drawBuildings();
+    const foot = isNew
+      ? h('div', { class: 'confirm-actions ld-actions' }, h('button', { class: 'btn', type: 'button', onclick: () => Panel.close() }, 'Cancel'),
+          h('button', { id: 'ldAdd', class: 'btn btn-accent', type: 'button', onclick: add }, 'Add leader'))
+      : h('div', { class: 'confirm-actions ld-actions' }, h('button', { id: 'ldDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: remove }, 'Delete leader'),
+          h('button', { id: 'ldDone', class: 'btn btn-accent', type: 'button', onclick: () => Panel.close() }, 'Done'));
+    Panel.open(isNew ? 'New leader' : ['Leader: ', h('bdi', null, leaderName(l))], [
+      h('div', { class: 'ld-form' },
+        h('div', { class: 'ld-top' }, faceBox, h('div', { class: 'ld-portrait' }, portraitBtns,
+          h('p', { class: 'note' }, 'A PNG, GIF, JPEG or WebP, up to 1024 px. 256 by 256 pixel art on a see-through background fits best.'), file)),
+        err,
+        h('label', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Name'), name),
+        h('label', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Role'), role),
+        h('div', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Signature color'), swatches),
+        h('div', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Leads'), blds,
+          h('p', { class: 'note' }, 'One leader per building; a leader can lead several.')),
+        live ? h('p', { class: 'note' }, 'Changes save as you make them.') : null),
+      foot]);
+    const panel = $('.modal.panel'); if (panel) panel.classList.add('ld-panel');
+    name.focus(); if (isNew) name.select();
+  }
+
+  /* ---------- picking a building's leader, beside the project view ---------- */
+  function pickList(p, after) {
+    const opt = l => {
+      const on = l ? p.leader === l.id : !p.leader;
+      const also = l ? leaderProjects(l).filter(x => x.id !== p.id).length : 0;
+      return h('button', { class: 'ld-opt' + (on ? ' on' : ''), type: 'button', 'aria-pressed': String(on), 'data-id': l ? l.id : '',
+        onclick: () => {
+          if (!on) {
+            setLeader(p, l ? l.id : ''); changed(p, { touch: false });
+            toast(l ? leaderName(l) + ' leads ' + p.name + ' now.' : p.name + ' has no leader now.');
+          }
+          after();
+        } },
+        l ? face(l, 48) : noFace(48),
+        h('span', { class: 'ld-opt-text' }, h('b', { dir: 'auto' }, l ? leaderName(l) : 'No leader'),
+          h('span', { dir: 'auto' }, l ? [l.role, also ? 'also leads ' + plural(also, 'building', 'buildings') : ''].filter(Boolean).join(' · ') || ' ' : 'The building runs on its own')));
+    };
+    return h('div', { class: 'ld-pick' },
+      h('p', { class: 'note' }, 'Who leads ' + p.name + '. A leader can lead several buildings.'),
+      h('div', { class: 'ld-opts', role: 'group', 'aria-label': 'Leaders' }, opt(null), ...DB.leaders.map(opt)),
+      h('div', { class: 'inline ld-pick-btns' },
+        h('button', { id: 'ldPickNew', class: 'btn', type: 'button', onclick: () => create({ assign: p, onAdded: () => after() }) }, iconEl('plus', 14), 'New leader'),
+        p.leader ? h('button', { class: 'btn btn-quiet', type: 'button', onclick: () => edit(p.leader) }, iconEl('pencil', 14), 'Edit ' + leaderName(leaderOf(p))) : null));
+  }
+
+  /* ---------- where a leader shows ---------- */
+  /* the leader card under the building's picture in the project view: the face, the name in its color and the role */
+  function card(p, onPick) {
+    const l = leaderOf(p);
+    if (!l) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
+      noFace(48), h('span', { class: 'ld-card-text' }, h('b', null, 'No leader yet'), h('span', null, 'Pick a leader')));
+    const box = h('div', { id: 'pvLeader', class: 'ld-card' }, face(l, 64),
+      h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null),
+      h('button', { class: 'btn btn-quiet btn-small ld-change', type: 'button', title: 'Pick another leader, or edit this one', onclick: onPick }, 'Change'));
+    box.style.setProperty('--ld', l.color);
+    return box;
+  }
+  /* the status card's line under the building's name */
+  function statusLine(p) {
+    const l = leaderOf(p);
+    if (!l) return null;
+    const line = h('p', { class: 'b-leader' }, face(l, 32), h('span', { class: 'b-leader-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null));
+    line.style.setProperty('--ld', l.color);
+    return line;
+  }
+  /* the shortcut wheel's middle, kept for the leader's face since 0.1.26 */
+  function hub(p) {
+    const l = leaderOf(p);
+    const el = h('div', { class: 'wheel-hub' + (l ? ' has-leader' : ''), 'aria-hidden': 'true' }, l ? face(l, 64, { round: true }) : null);
+    if (l) el.style.setProperty('--ld', l.color);
+    return el;
+  }
+
+  /* ---------- leaders in backups and project files ---------- */
+  async function dropAll() {
+    for (const l of DB.leaders) await Store.deleteArt(portraitKey(l.id));
+    urls.clear(); DB.leaders = [];
+  }
+  /* A backup's leaders, with their portraits; resolves how many portraits this browser holds for this session only. */
+  async function restore(list) {
+    const out = sanitizeLeaders(list), raws = (Array.isArray(list) ? list : []).filter(r => r && typeof r === 'object');
+    let lost = 0;
+    for (let i = 0; i < out.length; i++) {
+      const l = out[i], r = raws[i], url = r && typeof r.portraitUrl === 'string' && /^data:image\//.test(r.portraitUrl) ? r.portraitUrl : null;
+      l.portrait = false;
+      if (url && !(await putPortrait(l, url))) lost++;
+    }
+    DB.leaders = out;
+    return lost;
+  }
+  /* A project file carries its leader: its name, role, color and portrait. */
+  async function carry(l) {
+    if (!l) return null;
+    const url = l.portrait ? (await Store.getArt(portraitKey(l.id))) || urls.get(l.id) || null : null;
+    return { name: leaderName(l), role: l.role, color: l.color, ...(url ? { portraitUrl: url } : {}) };
+  }
+  /* A project file's leader in this city: one of its leaders by the same name, else a new one. Resolves its id. */
+  async function adopt(info) {
+    if (!info || typeof info !== 'object') return '';
+    const [l] = sanitizeLeaders([Object.assign({}, info, { id: uid('ld') })]);
+    if (!l) return '';
+    const same = DB.leaders.find(x => norm(leaderName(x)) === norm(l.name));
+    if (same) return same.id;
+    l.portrait = false;
+    const url = typeof info.portraitUrl === 'string' && /^data:image\//.test(info.portraitUrl) ? info.portraitUrl : null;
+    if (url) await putPortrait(l, url);
+    DB.leaders.push(l);
+    return l.id;
+  }
+
+  return { init, loadAll, renderSection, refreshAll, create, edit, pickList, card, statusLine, hub, face,
+    url: id => urls.get(id) || null, dropAll, restore, carry, adopt };
+})();
+
 /* The shortcut wheel: right-click a building, or press F with one selected, and its shortcuts fan out round it like
-   a pie menu. They are its links marked as shortcuts, in the links' order, at most MAX_SHORTCUTS. The middle is kept
-   for the leader's face, and stays empty until leaders come. Each shortcut grows outward from the ring, so a label
+   a pie menu. They are its links marked as shortcuts, in the links' order, at most MAX_SHORTCUTS. The middle holds its
+   leader's face (0.1.51), and stays empty while it has none. Each shortcut grows outward from the ring, so a label
    of about three words fits. A click opens a link the way the project view does; Enter, the key or the button under
    the wheel, steps inside. The wheel and the status bubble never show together. Esc, a click elsewhere, or moving
    the map closes it. */
@@ -9366,8 +9801,9 @@ const Wheel = (() => {
     close();
     if (App.selectedId && !FullView.shows(App.selectedId)) MapView.deselect();   // the status bubble closes for the wheel
     const list = shortcutLinks(p).slice(0, MAX_SHORTCUTS), n = list.length;
-    el = h('div', { class: 'wheel', role: 'menu', tabindex: '-1', 'aria-label': 'Shortcuts of ' + p.name, 'data-id': p.id },
-      h('div', { class: 'wheel-hub', 'aria-hidden': 'true' }),
+    const l = leaderOf(p);
+    el = h('div', { class: 'wheel', role: 'menu', tabindex: '-1', 'aria-label': 'Shortcuts of ' + p.name + (l ? ', led by ' + leaderName(l) : ''), 'data-id': p.id },
+      Leaders.hub(p),
       h('p', { class: 'wheel-name', dir: 'auto' }, p.name));
     list.forEach((l, k) => {
       const ang = k * 2 * Math.PI / n, t = linkTarget(l);                  // from the top, clockwise
@@ -9538,6 +9974,7 @@ function projectStatus(p, now = Date.now()) {
   const L = [];
   const pr = progressOf(p);
   L.push('## ' + p.name);
+  if (leaderLine(p)) L.push(leaderLine(p) + '.');
   L.push('Progress: ' + pr.pct + '%' + (pr.manual ? ', set manually.' : ' (' + pr.done + ' of ' + pr.total + ' todos done).'));
   const nx = nextTask(p);
   if (nx) { const d = dueInfo(nx, now); L.push('Next task: ' + nx.text + (d ? ' (' + d.text.toLowerCase() + ')' : '') + '.'); }
@@ -10098,9 +10535,12 @@ const ClaudeWork = (() => {
     return { app: 'nullovation-city', kind: 'city-summary', version: 1, written: new Date(now).toISOString(),
       about: 'Nullovation City, Abdurrahman\'s project tracker, rewrites this file on every change. Each project is a building. '
         + 'To change the city, write a change file into the inbox folder beside this one, as the nullovation-city skill says.',
+      leaders: DB.leaders.map(l => ({ name: leaderName(l), role: l.role || '', projects: leaderProjects(l).map(p => p.name) })),
       projects: DB.projects.map(p => {
         const u = urgencyOf(p, now), pl = OpenInClaude.places(p), next = nextTask(p);
+        const l = leaderOf(p);
         return { name: p.name, description: p.description || '', deadline: p.deadline || null, folders: pl.folders,
+          leader: l ? { name: leaderName(l), role: l.role || '' } : null,                                     // who leads it (0.1.51, L3)
           urgency: { system: urgencyName(p), state: u.color || 'calm', reasons: u.reasons },
           next: next ? next.text : null,
           milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)
@@ -10513,6 +10953,7 @@ const Menu = (() => {
   function refresh() {
     if (!countEl) return;
     renderStar(); renderUrgent(); renderDue(); renderWeek();
+    if (typeof Leaders !== 'undefined') Leaders.renderSection();
     if (typeof Gus !== 'undefined') Gus.render();
     if (typeof Reports !== 'undefined') Reports.refresh();
     if (typeof Proxima !== 'undefined') Proxima.renderDot();
@@ -10562,6 +11003,7 @@ const Menu = (() => {
     p.art.has = false;
     const url = data.art && typeof data.art.dataUrl === 'string' && /^data:image\//.test(data.art.dataUrl) ? data.art.dataUrl : null;
     if (url) { try { await Store.putArt(p.id, url); await Art.set(p.id, url); p.art.has = true; } catch (e) { /* skip unreadable art */ } }
+    p.leader = await Leaders.adopt(data.leader);    // its leader: one of this city's by the same name, else a new one (0.1.51)
     logActivity(p, 'Imported into this city');
     DB.projects.push(p);
     archiveDueTasks();                           // its done tasks past their 7 days go to its archive
@@ -10587,13 +11029,15 @@ const Menu = (() => {
     if (!ok) return;
     FullView.close(); MapView.deselect(); MapView.cancelMode();
     for (const p of DB.projects) { await Store.deleteArt(p.id); Art.drop(p.id); MapView.dropCache(p.id); }
+    await Leaders.dropAll();                     // the leaders go with the projects, and the backup brings its own
     setWorld(worldFrom(data));
     DB.world = worldState();
     DB.city = sanitizeCity(data.city);           // a backup from before version 3 brings default settings
     MapView.applyWorld();
     Traffic.reset();
     DB.projects = items.map(x => x.p);
-    let lost = 0;
+    let lost = await Leaders.restore(data.leaders);
+    tidyLeaders();
     for (const { p, raw } of items) {
       const url = raw.art && typeof raw.art.dataUrl === 'string' && /^data:image\//.test(raw.art.dataUrl) ? raw.art.dataUrl : null;
       p.art.has = false;
@@ -11475,16 +11919,18 @@ const Proxima = (() => {
   const oldCrowd = (() => { try { return localStorage.getItem('nullovation-city:crowds'); } catch (e) { return null; } })();
   if (saved && Array.isArray(saved.projects)) {
     setWorld(worldFrom(saved));
-    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(saved.city, oldCrowd), projects: sanitizeProjects(saved.projects).map(x => x.p) };
+    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(saved.city, oldCrowd), leaders: sanitizeLeaders(saved.leaders), projects: sanitizeProjects(saved.projects).map(x => x.p) };
+    tidyLeaders();
     archiveDueTasks();                                     // done tasks past their 7 days go to the archive (A2a, D1)
     Store.save(DB);
   } else {
-    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null, oldCrowd), projects: seedProjects() };
+    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null, oldCrowd), leaders: [], projects: seedProjects() };
     DB.projects.forEach(backfillActivity);   // seeds start with their history, like saved projects do
     Store.save(DB);
   }
 
   Menu.init();
+  Leaders.init();
   Bubble.init();
   MapView.init();
   Settings.init();
@@ -11500,6 +11946,7 @@ const Proxima = (() => {
   else MapView.frameAll();
 
   for (const p of DB.projects) if (p.art.has) Art.load(p.id);
+  Leaders.loadAll();                                       // the leaders' portraits, from the art store
   // the generic buildings and the lot scenes, decoded once, a few at a time so the page stays responsive
   (async () => {
     const jobs = [...GENERICS.map(g => ['g:' + g.id, g.url]), ...LOTS.map(l => ['lot:' + l.id, l.url]),

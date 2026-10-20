@@ -217,7 +217,7 @@ with sync_playwright() as p:
     ok('a tick on the map shows in the open report at once', int(after or 0) == int(before or 0) + 1)
     ev("() => persistSoon.flush()")
     ok('nothing new in the data: Reports keep only their tab and Week or Month in this browser',
-       ev("() => Object.keys(JSON.parse(localStorage.getItem('nullovation-city:v1'))).sort().join()") == 'app,city,projects,version,world' and
+       ev("() => Object.keys(JSON.parse(localStorage.getItem('nullovation-city:v1'))).sort().join()") == 'app,city,leaders,projects,version,world' and
        ev("() => Object.keys(DB.city).some(k => /report|review|streak/i.test(k))") is False and
        ev("() => Object.keys(JSON.parse(localStorage.getItem('nullovation-city:reports'))).sort().join()") == 'period,tab')
     pg.reload(); pg.wait_for_timeout(2000)

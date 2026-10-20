@@ -119,6 +119,7 @@ const Menu = (() => {
   function refresh() {
     if (!countEl) return;
     renderStar(); renderUrgent(); renderDue(); renderWeek();
+    if (typeof Leaders !== 'undefined') Leaders.renderSection();
     if (typeof Gus !== 'undefined') Gus.render();
     if (typeof Reports !== 'undefined') Reports.refresh();
     if (typeof Proxima !== 'undefined') Proxima.renderDot();
@@ -168,6 +169,7 @@ const Menu = (() => {
     p.art.has = false;
     const url = data.art && typeof data.art.dataUrl === 'string' && /^data:image\//.test(data.art.dataUrl) ? data.art.dataUrl : null;
     if (url) { try { await Store.putArt(p.id, url); await Art.set(p.id, url); p.art.has = true; } catch (e) { /* skip unreadable art */ } }
+    p.leader = await Leaders.adopt(data.leader);    // its leader: one of this city's by the same name, else a new one (0.1.51)
     logActivity(p, 'Imported into this city');
     DB.projects.push(p);
     archiveDueTasks();                           // its done tasks past their 7 days go to its archive
@@ -193,13 +195,15 @@ const Menu = (() => {
     if (!ok) return;
     FullView.close(); MapView.deselect(); MapView.cancelMode();
     for (const p of DB.projects) { await Store.deleteArt(p.id); Art.drop(p.id); MapView.dropCache(p.id); }
+    await Leaders.dropAll();                     // the leaders go with the projects, and the backup brings its own
     setWorld(worldFrom(data));
     DB.world = worldState();
     DB.city = sanitizeCity(data.city);           // a backup from before version 3 brings default settings
     MapView.applyWorld();
     Traffic.reset();
     DB.projects = items.map(x => x.p);
-    let lost = 0;
+    let lost = await Leaders.restore(data.leaders);
+    tidyLeaders();
     for (const { p, raw } of items) {
       const url = raw.art && typeof raw.art.dataUrl === 'string' && /^data:image\//.test(raw.art.dataUrl) ? raw.art.dataUrl : null;
       p.art.has = false;

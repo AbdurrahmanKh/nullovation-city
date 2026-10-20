@@ -118,7 +118,7 @@ with sync_playwright() as p:
     # the more menu: the archive (0.1.49), builder, the builder card in a chat, export, delete; Esc peels layers one at a time
     pg.click('#pvMore'); pg.wait_for_timeout(100)
     items = pg.eval_on_selector_all('.pv-menu-item', 'els => els.map(e => e.textContent)')
-    ok(f'the more menu holds exactly {items}', items == ['Archive', 'Copy for builder', 'Builder card in a Claude chat', 'Load plan or tasks', 'Export this project', 'Delete project'])
+    ok(f'the more menu holds exactly {items}', items == ['Archive', 'Pick a leader', 'Copy for builder', 'Builder card in a Claude chat', 'Load plan or tasks', 'Export this project', 'Delete project'])
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
     ok('Esc closes the menu first', pg.locator('.pv-menu').count() == 0 and pg.is_visible('#pvSide'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)

@@ -241,7 +241,8 @@ const FullView = (() => {
       h('div', { class: 'pv-urgency-row' },
         h('button', { id: 'pvUrgencyBtn', class: 'pv-urgency-btn', type: 'button', title: 'Urgency: what raises bubbles over this building', onclick: () => openSide('urgency') },
           iconEl('alert', 16), h('span', null, urgencyName(p))),
-        p.urgency.system !== 'none' ? h('button', { id: 'pvWorked', class: 'btn btn-small', type: 'button', title: 'Counts as finishing a task, for ' + urgencyName(p), onclick: () => workedNow(p) }, 'I worked!') : null));
+        p.urgency.system !== 'none' ? h('button', { id: 'pvWorked', class: 'btn btn-small', type: 'button', title: 'Counts as finishing a task, for ' + urgencyName(p), onclick: () => workedNow(p) }, 'I worked!') : null),
+      Leaders.card(p, () => openSide('leader')));                           // the leader card, beside the About (0.1.51)
   }
   function workedNow(p) {
     iWorked(p); changed(p); render(); Bubble.refresh();
@@ -1077,6 +1078,7 @@ const FullView = (() => {
     const inArchive = archivedTodos(p).length;
     menu = h('div', { class: 'pv-menu', role: 'menu', 'aria-label': 'More' },
       item(inArchive ? 'Archive (' + inArchive + ')' : 'Archive', () => openArchive(p)),
+      item(leaderOf(p) ? 'Leader: ' + leaderName(leaderOf(p)) : 'Pick a leader', () => openSide('leader')),
       item('Copy for builder', () => copyBuilderCard(p)),
       item('Builder card in a Claude chat', () => OpenInClaude.go('chat', builderCard(p))),
       item('Load plan or tasks', () => openLoadPlan(p)),
@@ -1105,7 +1107,8 @@ const FullView = (() => {
   function exportProject(p) {
     (async () => {
       const art = p.art.has ? await Store.getArt(p.id) : null;
-      const data = { app: 'nullovation-city', kind: 'project', version: 2, exportedAt: new Date().toISOString(), project: clone(p), art: art ? { dataUrl: art } : null };
+      const data = { app: 'nullovation-city', kind: 'project', version: 2, exportedAt: new Date().toISOString(), project: clone(p), art: art ? { dataUrl: art } : null,
+        leader: await Leaders.carry(leaderOf(p)) };                          // its leader travels with it (0.1.51)
       downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), slug(p.name) + '.json');
       toast('Project exported. Import backup in the side menu adds it to any city.');
     })();
@@ -1236,6 +1239,10 @@ const FullView = (() => {
           h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { closeSide(); render(); } }, 'Done'),
           h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close the ' + label.toLowerCase(), title: 'Close', html: iconSvg('close', 18), onclick: () => { closeSide(); render(); } }))),
         sideMode === 'task' ? taskEditor(p) : milestoneEditor(p));
+      return;
+    }
+    if (sideMode === 'leader') {                                            // who leads the building (0.1.51)
+      side.replaceChildren(head('Leader'), Leaders.pickList(p, () => render()));
       return;
     }
     if (sideMode === 'archive') {

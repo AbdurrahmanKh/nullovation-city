@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.51 (2026-10-20)
+
+Leaders, first part: picking a leader for each building, from Abdurrahman's Leaders round of 20 October (L1 to L3). Talking comes later.
+- A leader holds a name, a role, a signature color and a portrait (L2). One leader per building, and one leader can lead several.
+- A Leaders section in the side bar, after Due this week, shows each leader's face and name, with New leader. A click on a face edits it.
+- The leader panel: the portrait (Upload, Replace, Remove; a PNG, GIF, JPEG or WebP up to 1024 px and 3 MB), name, role, twelve signature colors and one of your own, and the buildings it leads. A new leader is added with Add leader, or Enter in the name or role; editing applies each change at once. Delete leader asks first and leaves its buildings without one.
+- Without a portrait, a leader shows a silhouette on its signature color.
+- Picking: Pick a leader in the project's more menu (it names the leader once there is one), or the leader card in the project view, open a picker beside the view with No leader, each leader (saying where else it leads), New leader and Edit. Picking is not work: Updated and Activity stay.
+- Where the face shows (L1): the leader card under the building's picture in the project view, a line under the building's name in the status card, and the shortcut wheel's middle, kept for it since 0.1.26.
+- Claude knows the leader (L3): Copy task, a note's and a milestone's copies, the project's status and the status brief carry "Leader: name, role"; the city summary lists the leaders with what they lead, and each project's leader.
+- Backups and the data file carry the leaders with their portraits inline; importing a backup replaces them. Export this project carries its leader; importing it uses the city's leader of the same name, or adds it.
+- Data: the database gains `leaders` (`{ id, name, role, color, portrait, createdAt }`) and a project `leader`, a leader's id or empty; portraits sit in the art store under `leader:` and the id. `23-leaders.js` holds the model, `63-leaders.js` the side bar, panel, picker and faces.
+- Tests: test34_leaders, 93 checks; test07, test21 and test29 know the new menu item and the leaders in the data.
+
 ## 0.1.50 (2026-10-20)
 
 After Abdurrahman's first look at the archive: its milestones fold.

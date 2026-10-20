@@ -299,9 +299,12 @@ const ClaudeWork = (() => {
     return { app: 'nullovation-city', kind: 'city-summary', version: 1, written: new Date(now).toISOString(),
       about: 'Nullovation City, Abdurrahman\'s project tracker, rewrites this file on every change. Each project is a building. '
         + 'To change the city, write a change file into the inbox folder beside this one, as the nullovation-city skill says.',
+      leaders: DB.leaders.map(l => ({ name: leaderName(l), role: l.role || '', projects: leaderProjects(l).map(p => p.name) })),
       projects: DB.projects.map(p => {
         const u = urgencyOf(p, now), pl = OpenInClaude.places(p), next = nextTask(p);
+        const l = leaderOf(p);
         return { name: p.name, description: p.description || '', deadline: p.deadline || null, folders: pl.folders,
+          leader: l ? { name: leaderName(l), role: l.role || '' } : null,                                     // who leads it (0.1.51, L3)
           urgency: { system: urgencyName(p), state: u.color || 'calm', reasons: u.reasons },
           next: next ? next.text : null,
           milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)

@@ -4,16 +4,18 @@
   const oldCrowd = (() => { try { return localStorage.getItem('nullovation-city:crowds'); } catch (e) { return null; } })();
   if (saved && Array.isArray(saved.projects)) {
     setWorld(worldFrom(saved));
-    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(saved.city, oldCrowd), projects: sanitizeProjects(saved.projects).map(x => x.p) };
+    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(saved.city, oldCrowd), leaders: sanitizeLeaders(saved.leaders), projects: sanitizeProjects(saved.projects).map(x => x.p) };
+    tidyLeaders();
     archiveDueTasks();                                     // done tasks past their 7 days go to the archive (A2a, D1)
     Store.save(DB);
   } else {
-    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null, oldCrowd), projects: seedProjects() };
+    DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null, oldCrowd), leaders: [], projects: seedProjects() };
     DB.projects.forEach(backfillActivity);   // seeds start with their history, like saved projects do
     Store.save(DB);
   }
 
   Menu.init();
+  Leaders.init();
   Bubble.init();
   MapView.init();
   Settings.init();
@@ -29,6 +31,7 @@
   else MapView.frameAll();
 
   for (const p of DB.projects) if (p.art.has) Art.load(p.id);
+  Leaders.loadAll();                                       // the leaders' portraits, from the art store
   // the generic buildings and the lot scenes, decoded once, a few at a time so the page stays responsive
   (async () => {
     const jobs = [...GENERICS.map(g => ['g:' + g.id, g.url]), ...LOTS.map(l => ['lot:' + l.id, l.url]),
