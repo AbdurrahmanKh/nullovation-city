@@ -9,7 +9,7 @@
    logged, on deck, copy that); real numbers said precisely, an exclamation when a number is good; she opens with the
    number and closes with the next thing to do. She never scolds or nags (Gus's job), mentions garbage, makes up or
    rounds a number, praises with empty words, or crowds a report with more than it holds.
-   Until her portrait is made, a faceless stand-in in her colors, sky blue with white, takes its place.
+   Her face is her portrait, on her dark sky blue (0.1.48).
    She also announces a finished milestone's street party (Celebrations, Rounds 1 and 2), with Go to it, in one of two
    lines approved word for word, picked by the milestone; while the project view is open, her bubble sits beside it. */
 
@@ -142,44 +142,10 @@ const Proxima = (() => {
   const unread = per => state.read[per.kind] !== per.key;
   const anyUnread = () => periods().some(unread);
 
-  /* ---------- her face: a faceless stand-in in her colors (black hair in a high ponytail with a sky-blue tie, a white
-     earpiece with a side mic, a sky-blue pilot shirt with a white collar and epaulettes, a stopwatch on a lanyard) ---------- */
-  const FACE = [
-    '..........oooooooo....oooo..',
-    '........oohhhhhhhhoo.ohhHHo.',
-    '.......ohhhhHHhhhhhhoohhhho.',
-    '......ohhhhhhhhhhhhhhBohhho.',
-    '......ohhhsssssssshhhhohhho.',
-    '.....ohhssssssssssshhhoohho.',
-    '.....ohhsssssssssssshho.ohho',
-    '....wohssssssssssssshho..oho',
-    '...wWwhssssssssssssshho...o.',
-    '...wWwoSssssssssssssSo......',
-    '....w.oSSsssssssssSSo.......',
-    '.....w.oSSSssssssSSo........',
-    '......wwWooSSSSSSoo.........',
-    '...........oSSSSo...........',
-    '......ooooowwSSwwooooo......',
-    '....oobbbbbwwwwwwbbbbboo....',
-    '...owwwbbbbbwwwwbbbbbwwwo...',
-    '..owwwbbbbbbllwwllbbbbwwwo..',
-    '..obbbbbbbbbblllbbbbbbbbbbo.',
-    '.obbbbbbbbbbbblbbbbbbbbbbbbo',
-    '.oBbbbbbbbbbbgggbbbbbbbbbbBo',
-    '.oBbbbbbbbbbgGwGgbbbbbbbbbBo',
-  ];
-  const COLORS = { o: '#22304A', h: '#2E2440', H: '#5A4C7A', s: '#F3CDA8', S: '#D9A57E', w: '#FFFFFF', W: '#BFD3E6',
-    b: '#8FD0F7', B: '#5BA6DE', l: '#2F6FB3', g: '#C9D2DF', G: '#8C97A8' };
-  let faceUrl = '';
-  function faceImg(scale = 2) {
-    if (!faceUrl) {
-      const [c, g] = mkCanvas(FACE[0].length, FACE.length);
-      FACE.forEach((row, y) => [...row].forEach((ch, x) => { if (COLORS[ch]) { g.fillStyle = COLORS[ch]; g.fillRect(x, y, 1, 1); } }));
-      faceUrl = c.toDataURL('image/png');
-    }
-    return h('img', { class: 'gus-sil', alt: '', src: faceUrl, width: FACE[0].length * scale, height: FACE.length * scale });
-  }
-  const face = () => h('span', { class: 'gus-face px-face', 'aria-hidden': 'true' }, faceImg(2));
+  /* ---------- her face: her portrait (0.1.48), Abdurrahman's 256 px pixel art, shown shrunk in a frame of her dark
+     sky blue; the frame sets the size ---------- */
+  const faceImg = () => h('img', { class: 'face-pic', alt: '', src: PORTRAITS.proxima, width: 256, height: 256, draggable: 'false' });
+  const face = () => h('span', { class: 'gus-face px-face', 'aria-hidden': 'true' }, faceImg());
   const nameTag = () => h('span', { class: 'gus-name px-name' }, h('b', null, 'Proxima Pace'), h('span', null, 'Productivity Inspector'));
 
   /* ---------- her card at the top of Reports (J1): her face, her latest line, and her three reports; Reports draws it
@@ -284,7 +250,7 @@ const Proxima = (() => {
     saying = { kind: r.kind, key: party ? r.key : r.per.key, item: party ? r : null };
     const box = $('#pxSay'), act = $('#pxSayRead');
     $('#pxSayText').textContent = r.line;
-    if (!$('#pxSayFace').firstChild) $('#pxSayFace').append(faceImg(2));
+    if (!$('#pxSayFace').firstChild) $('#pxSayFace').append(faceImg());
     act.textContent = party ? 'Go to it' : 'Read';
     act.onclick = party ? () => { hush(false); goTo(r.pid); pump(); }
       : () => { hush(false); if (typeof Reports !== 'undefined') Reports.open(); openReport(r.kind); pump(); };

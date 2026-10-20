@@ -110,6 +110,30 @@ _DRAW = {
 }
 
 
+def portrait_sum(who):
+    """A portrait in src/portraits (0.1.48), summed: its opaque pixels and their red, green and blue, to check that the
+    page decodes it pixel for pixel (PORTRAIT_SUM gives the same sums from the page)."""
+    from PIL import Image
+    px = [p for p in Image.open(ROOT / 'src' / 'portraits' / (who + '.png')).convert('RGBA').getdata() if p[3]]
+    return [len(px), sum(p[0] for p in px), sum(p[1] for p in px), sum(p[2] for p in px)]
+
+
+# the same sums from the page: the portrait drawn on a canvas at its own size, with half-see-through pixels counted apart
+PORTRAIT_SUM = """(url) => new Promise(done => { const i = new Image(); i.onload = () => { const c = document.createElement('canvas');
+  c.width = i.naturalWidth; c.height = i.naturalHeight; const g = c.getContext('2d'); g.drawImage(i, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height).data, s = [0, 0, 0, 0]; let soft = 0;
+  for (let k = 0; k < d.length; k += 4) { if (d[k + 3] && d[k + 3] < 255) soft++; if (d[k + 3]) { s[0]++; s[1] += d[k]; s[2] += d[k + 1]; s[3] += d[k + 2]; } }
+  done(soft ? null : s); }; i.src = url; })"""
+
+# a face as shown: the portrait's address, how many pictures its frame holds, the picture's own size and its size on
+# screen, its frame's, whether it shrinks smooth, and the frame's color
+FACE_OF = """(sel) => { const i = document.querySelector(sel + ' img'); if (!i) return null;
+  const r = i.getBoundingClientRect(), f = i.parentElement.getBoundingClientRect();
+  return { url: i.getAttribute('src'), imgs: i.parentElement.querySelectorAll('img, canvas').length, nat: [i.naturalWidth, i.naturalHeight],
+    w: Math.round(r.width), h: Math.round(r.height), fw: Math.round(f.width), fh: Math.round(f.height),
+    smooth: getComputedStyle(i).imageRendering === 'auto', bg: getComputedStyle(i.parentElement).backgroundColor }; }"""
+
+
 def open_settings(pg, tab):
     """Opens Settings on one tab, the way a click on its button and then the tab does."""
     if not pg.is_visible('#settings'):

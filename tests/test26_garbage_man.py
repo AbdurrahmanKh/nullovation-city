@@ -4,7 +4,7 @@ face with a ! and a click opening him again, a click going to a building, his li
 the day, the alarms at 50 and 200 (once as the total climbs past, at most once a day, the worst only), the clean city,
 the speech bubble (where it sits, closing, going by itself), and the Garbage switch sending him away."""
 from playwright.sync_api import sync_playwright
-from testkit import FILE, SH, TEST_CITY
+from testkit import FILE, SH, TEST_CITY, FACE_OF, PORTRAIT_SUM, portrait_sum
 
 errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
@@ -102,7 +102,9 @@ with sync_playwright() as p:
     v, mini = js(VIS), pg.locator('#gusMini').bounding_box()
     ok(f'[-] shrinks him to his face with a ! on it, and nothing else ({v})', v['min'] and v['mini'] and not v['full'] and v['badge'] == '!' and pg.is_visible('.gus-badge'))
     sec_h = pg.locator('#sbGus').bounding_box()['height']
-    ok(f'one small picture: {mini["width"]:.0f} by {mini["height"]:.0f}, the section {sec_h:.0f} px tall (was {full_h:.0f})', mini['width'] <= 64 and mini['height'] <= 60 and sec_h <= 64)
+    ok(f'one small picture, his face: {mini["width"]:.0f} by {mini["height"]:.0f}, the section {sec_h:.0f} px tall (was {full_h:.0f})', mini['width'] <= 64 and mini['height'] <= 64 and sec_h <= 68)
+    f = js(FACE_OF, '#gusMiniFace')
+    ok(f'shrunk, his face is his portrait at 64 by 64 ({f and {k: f[k] for k in ("nat", "w", "h", "imgs")}})', f and f['url'] == js("() => PORTRAITS.gus") and f['nat'] == [256, 256] and f['w'] == f['h'] == 64 and f['imgs'] == 1)
     ok('the focus moves to his face', js("() => document.activeElement.id") == 'gusMini')
     ok('still between This week and Urgent', js("() => { const s = [...document.querySelectorAll('#sbLists > section')].map(x => x.id || x.getAttribute('aria-label')); return s.indexOf('sbGus') === s.indexOf('This week') + 1; }"))
     pg.locator('#sbGus').screenshot(path=str(SH / '262-gus-min.png'))
@@ -124,6 +126,16 @@ with sync_playwright() as p:
     ok('shrunk, his speech bubble still shows, and he stays shrunk in the side bar', r['saying'] and js(VIS)['mini'] and not js(VIS)['full'])
     js("() => Gus.minimize(false)")
     ok('his words show under his face in the side bar too', js(READ)['line'] == r['say'])
+
+    # ---------- his face: his portrait (0.1.48) ----------
+    gus = js("() => PORTRAITS.gus")
+    ok('the page carries his portrait as a PNG', isinstance(gus, str) and gus.startswith('data:image/png;base64,'))
+    ok('it decodes pixel for pixel, every pixel solid or see-through', js(PORTRAIT_SUM, gus) == portrait_sum('gus'))
+    side, says = js(FACE_OF, '#gusFace'), js(FACE_OF, '#gusSayFace')
+    ok(f'in the side bar: his portrait, 256 px, shown at 64 by 64 and filling its frame ({side and {k: side[k] for k in ("nat", "w", "h", "fw", "fh")}})',
+       side and side['url'] == gus and side['imgs'] == 1 and side['nat'] == [256, 256] and side['w'] == side['h'] == side['fw'] == side['fh'] == 64)
+    ok(f'in his speech bubble: bigger, 80 by 80 ({says and {k: says[k] for k in ("w", "h", "fw")}})', says and says['url'] == gus and says['imgs'] == 1 and says['w'] == says['h'] == says['fw'] == 80)
+    ok('shrunk smooth, as the map shrinks its buildings, on his dark coral', side['smooth'] and says['smooth'] and side['bg'] == says['bg'] == 'rgb(62, 34, 51)')
     box, wrap, menu = (pg.locator(s).bounding_box() for s in ('#gusSay', '#mapWrap', '#menu'))
     ok(f'the speech bubble sits at the map\'s top left, clear of the side bar ({box})', abs(box['x'] - wrap['x'] - 22) <= 2 and abs(box['y'] - wrap['y'] - 18) <= 2 and box['x'] >= menu['x'] + menu['width'])
     pg.screenshot(path=str(SH / '260-gus-says.png'))

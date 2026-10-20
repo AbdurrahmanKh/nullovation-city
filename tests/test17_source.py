@@ -17,8 +17,21 @@ ok(f'no script has a chat or /tmp path in its code ({len(scripts)} scripts; {san
 # the layout: the root keeps to the entry points, runs write nothing into src/, and git leaves out what runs make
 loose = sorted(p.name for p in ROOT.glob('*.py'))
 ok(f'the only script at the root is build.py ({loose})', loose == ['build.py'])
-ok('src/js holds only hand-written modules: the build makes 25-generics.js and 26-extra.js in memory',
-   not any((ROOT / 'src' / 'js' / n).exists() for n in ('25-generics.js', '26-extra.js')))
+ok('src/js holds only hand-written modules: the build makes 25-generics.js, 26-extra.js and 27-portraits.js in memory',
+   not any((ROOT / 'src' / 'js' / n).exists() for n in ('25-generics.js', '26-extra.js', '27-portraits.js')))
+
+# the portraits (0.1.48): Gus's and Proxima's, 256 px on a see-through background with no half-see-through pixel, and in the page
+from PIL import Image
+import base64
+shots = {p.stem: Image.open(p) for p in sorted((ROOT / 'src' / 'portraits').glob('*.png'))}
+ok(f'src/portraits holds Gus\'s and Proxima\'s portraits ({sorted(shots)})', sorted(shots) == ['gus', 'proxima'])
+for who, im in shots.items():
+    a = im.convert('RGBA').getchannel('A')
+    ok(f'{who}.png is 256 by 256 with a hard see-through background ({im.size}, alpha {sorted(set(a.getdata()))})',
+       im.size == (256, 256) and set(a.getdata()) == {0, 255})
+page_text = (ROOT / 'index.html').read_text(encoding='utf-8')
+ok('the page carries both portraits, byte for byte, as PORTRAITS', 'const PORTRAITS = {' in page_text and all(
+   base64.b64encode((ROOT / 'src' / 'portraits' / (who + '.png')).read_bytes()).decode() in page_text for who in shots))
 ignored = (ROOT / '.gitignore').read_text(encoding='utf-8').splitlines() if (ROOT / '.gitignore').exists() else []
 made = ['tests/shots/', 'tests/data/', 'art/out/', 'art/canon/out/', 'art/unslimmed/']
 ok(f'git leaves out every folder that runs make ({[m for m in made if m not in ignored] or "all listed"})', all(m in ignored for m in made))
@@ -58,8 +71,9 @@ with tempfile.TemporaryDirectory() as tmp:
     names = zipfile.ZipFile(archive).namelist() if archive.exists() else []
     need = ['nc/CLAUDE.md', 'nc/README.md', 'nc/docs/nullovation-city-knowledge.md', 'nc/src/VERSION', 'nc/build.py',
             'nc/tests/testkit.py', 'nc/tests/run_tests.py', 'nc/tools/pack.py', 'nc/src/buildings/meta.json', 'nc/index.html',
-            'nc/.claude/skills/nullovation-city/SKILL.md', 'nc/.claude/skills/nullovation-city-builder/SKILL.md']
-    ok('the archive holds the rules, the knowledge, the skills and the tooling', all(n in names for n in need))
+            'nc/.claude/skills/nullovation-city/SKILL.md', 'nc/.claude/skills/nullovation-city-builder/SKILL.md',
+            'nc/src/portraits/gus.png', 'nc/src/portraits/proxima.png']
+    ok('the archive holds the rules, the knowledge, the skills, the tooling and the portraits', all(n in names for n in need))
     left = [n for n in names if re.match(r'nc/(dist|tests/shots|tests/data|\.git|art/out|art/canon/out)/', n) or '__pycache__' in n]
     ok(f'the archive leaves out builds, screenshots, test data and caches ({len(names)} files; {left[:3] or "none left in"})',
        names and all(n.startswith('nc/') for n in names) and not left)

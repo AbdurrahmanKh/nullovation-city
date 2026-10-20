@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.48 (2026-10-20)
+
+Gus's and Proxima's portraits, Abdurrahman's 256 px pixel art, in place of the faceless stand-ins drawn in code since 0.1.32 and 0.1.45.
+- Gus Grimsby's portrait in his part of the side bar, on his shrunk face with its !, and in his speech bubble; Proxima Pace's on her card at the top of Reports, at the top of each report, and in her speech bubble.
+- They show in their frames of dark coral and dark sky blue: 64 by 64 in the side bar and Reports (the stand-ins were 56 by 50), and 80 by 80 in the speech bubbles. Shrunk smooth, as the map shrinks its buildings.
+- The portraits live in `src/portraits/` (`gus.png`, `proxima.png`), saved as palette PNGs with every pixel as drawn, and the build carries them in the page as `PORTRAITS`, a module it makes in memory, `27-portraits.js`.
+- Tests: test26_garbage_man and test30_inspector check each face (the portrait, its size on screen and in its frame, smooth, its frame's color) and that each portrait decodes pixel for pixel; test17_source checks both PNGs (256 by 256, a hard see-through background), the page carrying them, and the archive holding them: 16 new checks.
+
 ## 0.1.47 (2026-10-20)
 
 Ghost tasks, the fifth of the task ideas (first named Tasks as cars), designed in Ghost Tasks, Round 1, and built ahead of the third at Abdurrahman's call.

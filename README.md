@@ -6,7 +6,7 @@ Open it online at https://abdurrahmankh.github.io/nullovation-city/, or build it
 
 ## Versions
 
-Tool: 0.1.45. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
+Tool: 0.1.48. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
 
 ## Build and test
 
@@ -22,9 +22,10 @@ GitHub Pages serves `index.html` straight from the branch: in Settings, Pages, p
 - `src/`: everything the page is built from.
   - `VERSION`, `body.html`, `style.css`, and the modules in `js/`, joined in name order.
   - `buildings/`: the shipped buildings and park lots, with `meta.json` and `lots.json`.
+  - `portraits/`: the characters' portraits, Gus's and Proxima's, 256 px PNGs.
   - `fonts/`: Pixelify Sans and Readex Pro, with their licenses.
   - `setup/`: the folder links setup for Windows, which the page hands out.
-- `build.py`: joins `src/` into one HTML file. It also makes two modules in memory: `25-generics.js` from `src/buildings`, and `26-extra.js` from `src/VERSION` and `src/setup`.
+- `build.py`: joins `src/` into one HTML file. It also makes three modules in memory: `25-generics.js` from `src/buildings`, `26-extra.js` from `src/VERSION` and `src/setup`, and `27-portraits.js` from `src/portraits`.
 - `art/`: how the buildings are drawn. Nothing here ships until it is installed into `src/buildings`.
   - `kit/`: the 256 px kit.
   - `buildings/`: one script per building. Each renders into `art/out/`.

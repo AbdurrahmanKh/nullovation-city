@@ -3,7 +3,7 @@ daily, weekly and monthly reports, what each holds (L1), her facts (L2), her lin
 bubble, which brings the weekly and monthly reports after Gus (J3)."""
 import json
 from playwright.sync_api import sync_playwright
-from testkit import FILE, SHOTS, TEST_CITY
+from testkit import FILE, SHOTS, TEST_CITY, FACE_OF, PORTRAIT_SUM, portrait_sum
 
 errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
@@ -122,7 +122,15 @@ with sync_playwright() as p:
     ok('J1 her card at the top of Reports, above the tabs', pg.is_visible('#pxCard') and
        ev("() => document.querySelector('#pxCard').getBoundingClientRect().bottom <= document.querySelector('#rpTabs').getBoundingClientRect().top"))
     ok('her name and title, and her face', pg.text_content('#pxCard .px-name b') == 'Proxima Pace' and pg.text_content('#pxCard .px-name span') == 'Productivity Inspector'
-       and ev("() => document.querySelector('#pxCard .px-face img').naturalWidth") == 28)
+       and ev("() => document.querySelector('#pxCard .px-face img').naturalWidth") == 256)
+    # her face: her portrait (0.1.48)
+    px = ev("() => PORTRAITS.proxima")
+    ok('the page carries her portrait as a PNG', isinstance(px, str) and px.startswith('data:image/png;base64,'))
+    ok('it decodes pixel for pixel, every pixel solid or see-through', ev(PORTRAIT_SUM, px) == portrait_sum('proxima'))
+    f = ev(FACE_OF, '#pxCard .px-head')
+    ok(f'on her card: her portrait, 256 px, shown at 64 by 64 and filling its frame ({f and {k: f[k] for k in ("nat", "w", "h", "fw", "fh")}})',
+       f and f['url'] == px and f['imgs'] == 1 and f['nat'] == [256, 256] and f['w'] == f['h'] == f['fw'] == f['fh'] == 64)
+    ok('shrunk smooth, as the map shrinks its buildings, on her dark sky blue', f['smooth'] and f['bg'] == 'rgb(31, 53, 80)')
     ok('with nothing to report: her first report comes tomorrow', pg.text_content('#pxLine') == 'Her first report comes tomorrow.' and not pg.is_visible('#pxReports'))
     pg.click('#rpBack'); pg.wait_for_timeout(100)
 
@@ -145,6 +153,9 @@ with sync_playwright() as p:
     ok('J3 she brings the weekly report herself, in her bubble', pg.is_visible('#pxSay') and ev("() => Proxima.saying()") == 'weekly'
        and pg.text_content('#pxSayText') == ev("() => Proxima.report('weekly').line") and pg.text_content('#pxSay .px-name b') == 'Proxima Pace')
     ok('the monthly one waits its turn; the daily one never speaks', ev("() => Proxima._test.queue()") == ['monthly'])
+    f = ev(FACE_OF, '#pxSayFace')
+    ok(f'in her speech bubble: her portrait, bigger, 80 by 80, on her dark sky blue ({f and {k: f[k] for k in ("w", "h", "fw")}})',
+       f and f['url'] == px and f['imgs'] == 1 and f['w'] == f['h'] == f['fw'] == 80 and f['smooth'] and f['bg'] == 'rgb(31, 53, 80)')
     pg.screenshot(path=str(SHOTS / '300-proxima-says.png'), clip={'x': 290, 'y': 0, 'width': 620, 'height': 200})
     ok('she says each report once', ev("() => Proxima._test.state().spoke.weekly") == ev("() => proximaPeriod('weekly').key"))
     # Gus cuts in: she gives way, and says it again after him
@@ -165,6 +176,8 @@ with sync_playwright() as p:
        and 'Repeats kept up' not in heads and 'Notes written' not in heads)
     ok('finished against the week before, in numbers', ev("() => { const r = Proxima.report('weekly'); return document.querySelector('#pxFinished').textContent.startsWith(r.n + ', '); }"))
     ok('the overdue task to close first', 'Close this one first' in pg.text_content('#pxOverdue') and pg.is_visible('.px-report .recap-day.late'))
+    f = ev(FACE_OF, '.px-says')
+    ok(f'the report opens with her portrait at 64 by 64 ({f and {k: f[k] for k in ("w", "h")}})', f and f['url'] == px and f['imgs'] == 1 and f['w'] == f['h'] == 64)
     pg.screenshot(path=str(SHOTS / '301-proxima-weekly.png'))
     ok('the next report waits while one is open', not pg.is_visible('#pxSay'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(900)

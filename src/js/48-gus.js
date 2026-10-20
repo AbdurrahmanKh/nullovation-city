@@ -6,7 +6,7 @@
    passes 50 pieces and again 200 (each once as it climbs past, at most once a day), and when the last piece goes,
    just before he steps away. His words show in a speech bubble at the map's top left, and under his face in the side
    bar. He never mentions pieces, only tasks. The Garbage switch
-   sends him away with the garbage. Until his portrait is made, a faceless stand-in in his colors takes its place. */
+   sends him away with the garbage. His face is his portrait, on his dark coral (0.1.48). */
 const Gus = (() => {
   const KEY = 'nullovation-city:gus';                          // the days he last spoke, on this computer
   const MIN_KEY = 'nullovation-city:gusMin';                   // shrunk to his face, on this computer
@@ -58,44 +58,9 @@ const Gus = (() => {
   }
   const pick = list => list[Math.floor(Math.random() * list.length)];
 
-  /* ---------- his face: a faceless stand-in in his colors (yellow cap with the truck's teal badge, grey brows and walrus
-     mustache, coral overalls with a gold band, a broom over his shoulder), until his portrait is made ---------- */
-  const FACE = [
-    '...........oooooo...........',
-    '.........ooyyyyyyoo.........',
-    '........oyyyyyyyyyyo........',
-    '........oyyyyyyyyyyo........',
-    '........oYYYYtYYYYYo......oB',
-    '......oooooooooooooooo...oBB',
-    '.......ommcccccccccmmo..oBBB',
-    '........occccccccccco....oBB',
-    '........occccccccccco.....b.',
-    '.......ommmmmmmmmmmmmo....b.',
-    '......ommmmmmmmmmmmmmmo..b..',
-    '......ommmo.occco.ommmo..b..',
-    '.......ooo..occco..ooo..b...',
-    '........ooooccccooooo...b...',
-    '......oo~cccccccccccoo.b....',
-    '.....o~cccccccccccccccob....',
-    '....o~ccccccccccccccccbco...',
-    '...o~ccccccYYYYYYYYYYcccco..',
-    '...occcccYYYYYYYYYYYYYccco..',
-    '..o~cccccccccccccccccccccco.',
-    '..occcccccccccccccccccccccco',
-    '..occcccccccccccccccccccccco',
-  ];
-  const COLORS = { o: '#2B2542', c: '#F29A74', '~': '#FFB797', y: '#FFE38A', Y: '#F2C75C', t: '#3FA79E', m: '#CBC2DB', b: '#9C7C6B', B: '#F2C75C' };
-  let faceCanvas = null;
-  function face(scale) {
-    if (!faceCanvas) {
-      const w = Math.max(...FACE.map(r => r.length)), hh = FACE.length;
-      const [c, g] = mkCanvas(w, hh);
-      FACE.forEach((row, y) => [...row].forEach((ch, x) => { if (COLORS[ch]) { g.fillStyle = COLORS[ch]; g.fillRect(x, y, 1, 1); } }));
-      faceCanvas = c;
-    }
-    const img = h('img', { class: 'gus-sil', alt: '', src: faceCanvas.toDataURL('image/png'), width: faceCanvas.width * scale, height: faceCanvas.height * scale });
-    return img;
-  }
+  /* ---------- his face: his portrait (0.1.48), Abdurrahman's 256 px pixel art, shown shrunk in a frame of his dark
+     coral; the frame sets the size ---------- */
+  const face = () => h('img', { class: 'face-pic', alt: '', src: PORTRAITS.gus, width: 256, height: 256, draggable: 'false' });
 
   /* ---------- the side bar ---------- */
   function render() {
@@ -105,7 +70,7 @@ const Gus = (() => {
     const show = Garbage.isOn() && (r.rows.length > 0 || onMap > 0 || saying);
     sec.hidden = !show;
     if (!show) return;
-    if (!$('#gusFace').firstChild) { $('#gusFace').append(face(2)); $('#gusMiniFace').append(face(2)); }
+    if (!$('#gusFace').firstChild) { $('#gusFace').append(face()); $('#gusMiniFace').append(face()); }
     sec.classList.toggle('min', minimized);
     $('#gusFull').hidden = minimized; $('#gusMini').hidden = !minimized;
     if (minimized) return;
@@ -125,7 +90,7 @@ const Gus = (() => {
     if (typeof Proxima !== 'undefined') Proxima.yieldToGus();   // never both at once: she says hers after him
     const box = $('#gusSay');
     $('#gusSayText').textContent = text;
-    if (!$('#gusSayFace').firstChild) $('#gusSayFace').append(face(2));
+    if (!$('#gusSayFace').firstChild) $('#gusSayFace').append(face());
     box.hidden = false;
     requestAnimationFrame(() => box.classList.add('show'));
     clearTimeout(sayTimer);
