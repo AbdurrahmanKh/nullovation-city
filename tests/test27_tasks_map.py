@@ -226,7 +226,7 @@ with sync_playwright() as p:
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     ok('Esc, which undoes the task’s edits, leaves the pin and the star alone', proj(gp)['pin'] == proj(gp)['star'] == tid(gp, 'Add plant icons'))
     pg.locator('li.task', has_text='Add plant icons').locator('.cb').check(); pg.wait_for_timeout(400)
-    ok('a done task has no pin or star buttons', pg.locator('li.task.done', has_text='Add plant icons').locator('.task-mark').count() == 0)
+    ok('a done task has no pin or star buttons (its archive button since 0.1.49)', pg.locator('li.task.done', has_text='Add plant icons').locator('.task-mark:not(.mark-archive)').count() == 0)
     ok('M5 and ticking it in the list clears both', proj(gp)['pin'] == '' and proj(gp)['star'] == '')
     ok('done, it leaves the side bar', not pg.is_visible('#sbStar'))
     ev(f"() => setStar(getProject('{gp}'), {task(gp, 'Save a plan as a file')}, true)"); pg.wait_for_timeout(200)

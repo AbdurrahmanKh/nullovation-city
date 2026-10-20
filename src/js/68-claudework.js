@@ -304,10 +304,10 @@ const ClaudeWork = (() => {
         return { name: p.name, description: p.description || '', deadline: p.deadline || null, folders: pl.folders,
           urgency: { system: urgencyName(p), state: u.color || 'calm', reasons: u.reasons },
           next: next ? next.text : null,
-          milestones: groupsOf(p).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',
+          milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)
             open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}) })),
             ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
-            done: g.todos.filter(t => t.done).map(t => t.text) })),
+            done: g.todos.filter(t => t.done && !t.archived).map(t => t.text) })),
           notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),
           links: p.links.map(l => ({ label: l.label || suggestLabel(l.url), url: l.url })) };
       }) };

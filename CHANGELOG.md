@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.49 (2026-10-20)
+
+Archiving, the seventh of the task ideas, designed in Archiving, Round 1, and built ahead of the third at Abdurrahman's call.
+- A done task goes to its project's archive by itself 7 days after its tick (A2, A2a). On the first open with archiving, every done task ticked a week or more ago goes at once (D1). It is checked on opening and when the day changes; a done task with no tick on record counts its 7 days from the day the city first sees it.
+- By hand (A1): an archive button on each done row in the project view, shown while the row is pointed at, like the pin on open rows; Archive in a done task's panel; and Archive done tasks in the milestone view, for every done task in it. Each with a toast and Undo.
+- A milestone whose every task is archived goes to the archive with them (B1), and comes back when one of them is restored or a task is added to it with @name.
+- The Archive, first in the project's more menu with its count, "Archive (12)" (E1), opens beside the project view: archived tasks by milestone, the milestone with the newest task first, its tasks newest first (C3), each with the day it was ticked and Restore. A milestone that went to the archive with its tasks says so.
+- A click on an archived task opens it in the same task panel, to read, with Restore, Back to the archive, Copy task, Open in Claude and Delete task (C2). Esc goes back to the archive. Deleting the last task of a milestone in the archive takes the milestone with it.
+- Restore brings a task back done, in its old place in its milestone, with a toast and Undo, and it archives itself again 7 days later (C1). Dragging tasks, or moving them with Alt and an arrow, keeps every archived task's place.
+- At a milestone's foot, the count of its archived tasks with the archive's icon and no words (E1); a click opens the Archive at that milestone. The milestone view lists its archived tasks dimmed, with the icon, under the rest.
+- A milestone's count, the project's progress and its copies still count archived tasks as done (B2). Search, Reports, the recap, Proxima and the builder card still see them, while the project view's lists, a milestone's Copy for Claude and the city summary leave them out (A3). Copy task on an archived task says it is in the archive.
+- A plan loaded over a project leaves its archive alone, and a project export loaded as a plan leaves its own archive out. Claude's edit-description never touches an archived task, and Claude's add-tasks skips a milestone in the archive unless it names it.
+- Archiving and restoring are tidying, not work: Updated and urgency stay, and nothing goes in Activity.
+- Data: a done task may carry `archived: true` with `archivedAt`, and `archiveFrom`, the day its 7 days count from after a restore. `24-archive.js` holds the model.
+- Tests: test33_archive, 77 checks.
+
 ## 0.1.48 (2026-10-20)
 
 Gus's and Proxima's portraits, Abdurrahman's 256 px pixel art, in place of the faceless stand-ins drawn in code since 0.1.32 and 0.1.45.

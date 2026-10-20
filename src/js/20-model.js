@@ -222,7 +222,7 @@ function taskForClaude(p, t, now = Date.now()) {
   const d = dueInfo(t, now);
   L.push('Due: ' + (d ? d.text : 'no date'));
   if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
-  L.push('State: ' + (t.done ? 'done' : isWaiting(t, now) ? 'ticked; it comes back ' + backWhen(t, now) : 'open'));
+  L.push('State: ' + (t.done ? (t.archived ? 'done, in the archive' : 'done') : isWaiting(t, now) ? 'ticked; it comes back ' + backWhen(t, now) : 'open'));
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
@@ -255,7 +255,8 @@ function milestoneForClaude(p, m, now = Date.now()) {
     L.push((t.description || '').trim() || 'No description yet.');
   }
   if (waiting.length) { L.push('', '## Repeats waiting for their next date'); for (const t of waiting) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')'); }
-  if (done.length) { L.push('', '## Done'); for (const t of done) L.push('- ' + t.text); }
+  const shown = done.filter(t => !t.archived);                        // archived work stays out of the copy (A3)
+  if (shown.length) { L.push('', '## Done'); for (const t of shown) L.push('- ' + t.text); }
   L.push('', REPORT_LINE);
   return L.join('\n');
 }
@@ -321,6 +322,14 @@ function readRepeat(t) {
   if (t.waiting === true && !t.done && parseYmd(t.due) > startOfDay(Date.now())) out.waiting = true;
   return out;
 }
+/* An archived task (Archiving, Round 1) is a done one; `archiveFrom`, the day its 7 days count from after a restore. */
+function readArchive(t) {
+  if (!t.done) return {};
+  const out = {};
+  if (t.archived === true) { out.archived = true; out.archivedAt = typeof t.archivedAt === 'number' ? t.archivedAt : typeof t.doneAt === 'number' ? t.doneAt : Date.now(); }
+  if (typeof t.archiveFrom === 'string' && parseYmd(t.archiveFrom) != null) out.archiveFrom = t.archiveFrom;
+  return out;
+}
 /* Makes any loaded or imported data safe to use: fills gaps, fixes types, resolves plot clashes. */
 function sanitizeProjects(raw) {
   const out = [];
@@ -343,7 +352,7 @@ function sanitizeProjects(raw) {
         id: typeof t.id === 'string' && t.id ? t.id : uid('t'), text: t.text.slice(0, 500), description: typeof t.description === 'string' ? t.description.slice(0, 8000) : '',
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
-        ...readRepeat(t),
+        ...readRepeat(t), ...readArchive(t),
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed,
@@ -566,8 +575,12 @@ function readPlan(data) {
   const out = { name: str(src.name, 120), description: str(src.description, 8000), milestones: [], ideas: [], links: [] };
   const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done, repeat: sanitizeRepeat(t.repeat) });
   if (Array.isArray(src.todos) && Array.isArray(src.milestones) && src.milestones.every(m => m && typeof m.id === 'string')) {
-    for (const m of src.milestones) out.milestones.push({ name: str(m.name, 120) || 'Untitled milestone',
-      tasks: src.todos.filter(t => t && t.milestoneId === m.id && typeof t.text === 'string' && t.text.trim()).map(task) });
+    for (const m of src.milestones) {                     // a project export: its archive stays with its own project
+      const all = src.todos.filter(t => t && t.milestoneId === m.id && typeof t.text === 'string' && t.text.trim());
+      const live = all.filter(t => !(t.done && t.archived === true));
+      if (all.length && !live.length) continue;
+      out.milestones.push({ name: str(m.name, 120) || 'Untitled milestone', tasks: live.map(task) });
+    }
   } else {
     if (!Array.isArray(src.milestones)) throw new Error('A plan needs a milestones list.');
     for (const m of src.milestones) {
@@ -611,6 +624,8 @@ function addTasks(p, tasks, target) {
 function applyPlan(p, plan, now = Date.now()) {
   if (plan.name) p.name = plan.name;
   p.description = plan.description;
+  /* the archive stays: its tasks keep their milestones, which stay in the archive with them */
+  const kept = archivedTodos(p), keptMs = p.milestones.filter(m => kept.some(t => t.milestoneId === m.id));
   p.milestones = []; p.todos = [];
   let tasks = 0;
   for (const m of plan.milestones) {
@@ -623,6 +638,8 @@ function applyPlan(p, plan, now = Date.now()) {
       tasks++;
     }
   }
+  p.milestones.push(...keptMs); p.todos.push(...kept);
+  normalizeOrder(p);
   p.progressOverride = null;
   const seen = new Set(p.notes.map(n => (n.title || '') + '\n' + n.text));
   let ideas = 0;

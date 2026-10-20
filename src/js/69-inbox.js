@@ -17,7 +17,7 @@ const ClaudeInbox = (() => {
   const str = (x, n) => (typeof x === 'string' ? x.trim().slice(0, n) : '');
   const keyOf = s => String(s || '').trim().toLowerCase();
   const projectNamed = name => DB.projects.find(p => keyOf(p.name) === keyOf(name)) || null;
-  const taskNamed = (p, text, open = true) => p.todos.find(t => (!open || isOpenTask(t)) && keyOf(t.text) === keyOf(text)) || null;
+  const taskNamed = (p, text, open = true) => p.todos.find(t => (open ? isOpenTask(t) : !t.archived) && keyOf(t.text) === keyOf(text)) || null;   // never one in the archive
 
   async function sub(dir, path) {
     let d = dir;
@@ -98,7 +98,8 @@ const ClaudeInbox = (() => {
         let list;
         try { list = readTasks({ tasks: c.tasks }).tasks; } catch (e) { continue; }
         const name = str(c.milestone, 120), have = name && p.milestones.find(m => keyOf(m.name) === keyOf(name));
-        const cur = currentGroup(p), target = have ? { id: have.id } : name ? { name } : cur && cur.ms ? { id: cur.ms.id } : p.milestones[0] ? { id: p.milestones[p.milestones.length - 1].id } : { name: 'To do' };
+        const cur = currentGroup(p), live = liveMilestones(p);    // a milestone named in the archive comes back with them
+        const target = have ? { id: have.id } : name ? { name } : cur && cur.ms ? { id: cur.ms.id } : live.length ? { id: live[live.length - 1].id } : { name: 'To do' };
         addTasks(p, list, target);
         tasks += list.length;
       } else if (c.do === 'add-note') {

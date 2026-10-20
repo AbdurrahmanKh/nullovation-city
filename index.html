@@ -1216,6 +1216,34 @@ button.rp-what:hover, button.rp-what:focus-visible { text-decoration: underline;
 .pick-particle-art canvas { image-rendering: pixelated; }
 .pick-particle-name { font-size: 12px; line-height: 1.2; text-align: center; }
 
+/* ---------- the archive (Archiving, Round 1) ---------- */
+li.ms-archived { display: flex; padding: 2px 0 0; }
+.ms-arch-btn { display: inline-flex; align-items: center; gap: 5px; margin-left: -4px; padding: 3px 5px; background: none; border: 0; color: var(--muted); font: 400 13px/1 var(--f-pixel); font-variant-numeric: tabular-nums; cursor: pointer; }
+.ms-arch-btn:hover, .ms-arch-btn:focus-visible { color: var(--ink); background: var(--hover); outline: none; }
+.task-mark.mark-archive { color: var(--ink-soft); }
+.pv-ms-task.archived { opacity: .55; }
+.pv-ms-arch { flex: none; display: inline-flex; margin-left: auto; margin-top: 2px; color: var(--muted); }
+.pv-archive { display: grid; gap: 14px; }
+.pv-arch-group { display: grid; gap: 4px; }
+.pv-arch-ms { display: flex; align-items: center; gap: 6px; margin: 0; font: 600 15px/1.3 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); }
+.pv-arch-ms:focus-visible { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.pv-arch-ms .ms-count { font: 400 13px/1 var(--f-body); color: var(--muted); }
+.pv-arch-name { min-width: 0; overflow-wrap: anywhere; }
+.pv-arch-whole { margin-left: auto; flex: none; padding: 2px 6px; font: 400 11.5px/1.2 var(--f-pixel); color: var(--muted); box-shadow: inset 0 0 0 1px var(--edge, var(--line)); }
+.pv-arch-list { list-style: none; margin: 0 0 0 20px; padding: 0; display: grid; gap: 2px; }
+.pv-arch-task { display: flex; align-items: center; gap: 10px; padding: 5px 6px; margin: 0 -6px; }
+.pv-arch-task:hover, .pv-arch-task:focus-within { background: var(--hover); }
+.pv-arch-body { display: grid; gap: 1px; flex: 1; min-width: 0; }
+.pv-arch-title { justify-self: start; background: none; border: 0; padding: 0; color: var(--ink-soft); font: inherit; font-size: 14px; line-height: 1.35; text-align: left; text-decoration: line-through; text-decoration-color: var(--muted); cursor: pointer; overflow-wrap: anywhere; }
+.pv-arch-title:hover, .pv-arch-title:focus-visible { color: var(--ink); text-decoration: underline; outline: none; }
+.pv-arch-day { font-size: 12px; color: var(--muted); }
+.pv-arch-restore { flex: none; }
+.pv-arch-head { margin: 0; font: 600 17px/1.35 var(--f-body); color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--muted); overflow-wrap: anywhere; }
+.pv-arch-state { display: flex; align-items: center; gap: 6px; margin: 0; font: 400 13px/1.3 var(--f-pixel); color: var(--muted); font-variant-ligatures: no-common-ligatures; }
+.pv-arch-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pv-arch-desc { padding: 8px 10px; background: var(--hover); }
+.pv-arch-desc:focus { outline: none; }
+
 </style>
 </head>
 <body>
@@ -1223,7 +1251,7 @@ button.rp-what:hover, button.rp-what:focus-visible { text-decoration: underline;
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.48</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.49</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -2287,7 +2315,7 @@ function taskForClaude(p, t, now = Date.now()) {
   const d = dueInfo(t, now);
   L.push('Due: ' + (d ? d.text : 'no date'));
   if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
-  L.push('State: ' + (t.done ? 'done' : isWaiting(t, now) ? 'ticked; it comes back ' + backWhen(t, now) : 'open'));
+  L.push('State: ' + (t.done ? (t.archived ? 'done, in the archive' : 'done') : isWaiting(t, now) ? 'ticked; it comes back ' + backWhen(t, now) : 'open'));
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
@@ -2320,7 +2348,8 @@ function milestoneForClaude(p, m, now = Date.now()) {
     L.push((t.description || '').trim() || 'No description yet.');
   }
   if (waiting.length) { L.push('', '## Repeats waiting for their next date'); for (const t of waiting) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')'); }
-  if (done.length) { L.push('', '## Done'); for (const t of done) L.push('- ' + t.text); }
+  const shown = done.filter(t => !t.archived);                        // archived work stays out of the copy (A3)
+  if (shown.length) { L.push('', '## Done'); for (const t of shown) L.push('- ' + t.text); }
   L.push('', REPORT_LINE);
   return L.join('\n');
 }
@@ -2386,6 +2415,14 @@ function readRepeat(t) {
   if (t.waiting === true && !t.done && parseYmd(t.due) > startOfDay(Date.now())) out.waiting = true;
   return out;
 }
+/* An archived task (Archiving, Round 1) is a done one; `archiveFrom`, the day its 7 days count from after a restore. */
+function readArchive(t) {
+  if (!t.done) return {};
+  const out = {};
+  if (t.archived === true) { out.archived = true; out.archivedAt = typeof t.archivedAt === 'number' ? t.archivedAt : typeof t.doneAt === 'number' ? t.doneAt : Date.now(); }
+  if (typeof t.archiveFrom === 'string' && parseYmd(t.archiveFrom) != null) out.archiveFrom = t.archiveFrom;
+  return out;
+}
 /* Makes any loaded or imported data safe to use: fills gaps, fixes types, resolves plot clashes. */
 function sanitizeProjects(raw) {
   const out = [];
@@ -2408,7 +2445,7 @@ function sanitizeProjects(raw) {
         id: typeof t.id === 'string' && t.id ? t.id : uid('t'), text: t.text.slice(0, 500), description: typeof t.description === 'string' ? t.description.slice(0, 8000) : '',
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
-        ...readRepeat(t),
+        ...readRepeat(t), ...readArchive(t),
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed,
@@ -2631,8 +2668,12 @@ function readPlan(data) {
   const out = { name: str(src.name, 120), description: str(src.description, 8000), milestones: [], ideas: [], links: [] };
   const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done, repeat: sanitizeRepeat(t.repeat) });
   if (Array.isArray(src.todos) && Array.isArray(src.milestones) && src.milestones.every(m => m && typeof m.id === 'string')) {
-    for (const m of src.milestones) out.milestones.push({ name: str(m.name, 120) || 'Untitled milestone',
-      tasks: src.todos.filter(t => t && t.milestoneId === m.id && typeof t.text === 'string' && t.text.trim()).map(task) });
+    for (const m of src.milestones) {                     // a project export: its archive stays with its own project
+      const all = src.todos.filter(t => t && t.milestoneId === m.id && typeof t.text === 'string' && t.text.trim());
+      const live = all.filter(t => !(t.done && t.archived === true));
+      if (all.length && !live.length) continue;
+      out.milestones.push({ name: str(m.name, 120) || 'Untitled milestone', tasks: live.map(task) });
+    }
   } else {
     if (!Array.isArray(src.milestones)) throw new Error('A plan needs a milestones list.');
     for (const m of src.milestones) {
@@ -2676,6 +2717,8 @@ function addTasks(p, tasks, target) {
 function applyPlan(p, plan, now = Date.now()) {
   if (plan.name) p.name = plan.name;
   p.description = plan.description;
+  /* the archive stays: its tasks keep their milestones, which stay in the archive with them */
+  const kept = archivedTodos(p), keptMs = p.milestones.filter(m => kept.some(t => t.milestoneId === m.id));
   p.milestones = []; p.todos = [];
   let tasks = 0;
   for (const m of plan.milestones) {
@@ -2688,6 +2731,8 @@ function applyPlan(p, plan, now = Date.now()) {
       tasks++;
     }
   }
+  p.milestones.push(...keptMs); p.todos.push(...kept);
+  normalizeOrder(p);
   p.progressOverride = null;
   const seen = new Set(p.notes.map(n => (n.title || '') + '\n' + n.text));
   let ideas = 0;
@@ -2805,7 +2850,7 @@ function tickTask(p, t, { now = Date.now(), log = true } = {}) {
 }
 function untickTask(p, t, was = null, { log = true } = {}) {
   if (t.repeat && was && !was.done) { t.due = was.due; setWaiting(t, was.waiting); }
-  else { t.done = false; t.doneAt = null; }
+  else { t.done = false; t.doneAt = null; delete t.archiveFrom; }
   if (log) logActivity(p, 'Reopened: ' + t.text);
 }
 /* After a repeat is ticked: where it went, with Undo. */
@@ -2898,10 +2943,10 @@ function markMatch(list, name, mark) {
   const key = norm(String(mark).replace(/[-_]+/g, ' ')), of = x => norm(name(x));
   return list.find(x => of(x) === key) || list.find(x => of(x).startsWith(key)) || list.find(x => of(x).split(/\s+/).some(w => w.startsWith(key))) || null;
 }
-/* Where a task added without @ goes: the current milestone, else the last one, else a new To do. */
+/* Where a task added without @ goes: the current milestone, else the last one not in the archive, else a new To do. */
 function defaultMilestone(p) {
-  const cur = currentGroup(p);
-  return cur && cur.ms ? cur.ms.id : p.milestones.length ? p.milestones[p.milestones.length - 1].id : null;
+  const cur = currentGroup(p), live = liveMilestones(p);
+  return cur && cur.ms ? cur.ms.id : live.length ? live[live.length - 1].id : null;
 }
 /* A typed line, read for one place: the project view's add field (project and milestone given), the status card's
    (project given) or the quick add (cityWide, the project by /name or the one given). What it understood comes back
@@ -2961,6 +3006,91 @@ function taskLineHint(el, text, opts) {
   return r;
 }
 
+/* ---------- the archive (Archiving, Round 1) ----------
+   A done task moves into its project's archive by hand, or by itself 7 days after its tick (A2, A2a). It stays in the
+   project's todos, marked `archived`, so the counts and progress (B2), search, Reports, the recap, Proxima and the
+   builder card keep seeing it (A3), while the project view's lists, a milestone's Copy for Claude and the city summary
+   leave it out. A milestone whose every task is archived goes to the archive with them (B1), and comes back as soon as
+   one of them is restored or a task is added to it. Restore brings a task back done, and it archives itself again 7
+   days after the restore (C1). Archiving is tidying, not work: it touches neither Updated nor urgency, and writes
+   nothing in Activity. */
+const ARCHIVE_DAYS = 7;
+const isArchived = t => !!(t && t.archived);
+const shownTodos = list => list.filter(t => !t.archived);
+const archivedTodos = p => p.todos.filter(isArchived);
+const canArchive = t => !!t.done && !t.archived;
+
+/* The day a done task archives itself: 7 days after the later of its tick and its last restore (`archiveFrom`). */
+function archiveDay(t) {
+  const from = Math.max(t.doneAt ? startOfDay(t.doneAt) : 0, parseYmd(t.archiveFrom) || 0);
+  return from ? plusDays(from, ARCHIVE_DAYS) : null;
+}
+/* A milestone is in the archive when it has tasks and every one of them is archived. */
+function milestoneArchived(p, m) {
+  let any = false;
+  for (const t of p.todos) if (t.milestoneId === m.id) { if (!t.archived) return false; any = true; }
+  return any;
+}
+const liveMilestones = p => p.milestones.filter(m => !milestoneArchived(p, m));
+
+/* What archiving or restoring changes on a task, kept so Undo can put it back exactly. */
+const archiveSnap = t => ({ t, archived: !!t.archived, archivedAt: t.archivedAt ?? null, archiveFrom: t.archiveFrom || '' });
+function putBackArchive(s) {
+  const t = s.t;
+  if (s.archived) { t.archived = true; t.archivedAt = s.archivedAt; } else { delete t.archived; delete t.archivedAt; }
+  if (s.archiveFrom) t.archiveFrom = s.archiveFrom; else delete t.archiveFrom;
+}
+/* Into the archive, by hand (A1) or by itself. Returns what Undo needs. */
+function archiveTasks(list, now = Date.now()) {
+  const snaps = [];
+  for (const t of list) if (canArchive(t)) { snaps.push(archiveSnap(t)); t.archived = true; t.archivedAt = now; }
+  return snaps;
+}
+/* Back out of the archive (C1): done, in its old place, for another 7 days. */
+function restoreTask(t, now = Date.now()) {
+  const s = archiveSnap(t);
+  delete t.archived; delete t.archivedAt;
+  t.archiveFrom = ymd(now);
+  return s;
+}
+/* Every done task past its 7 days goes to the archive (A2a); on the first open with archiving that takes every done
+   task ticked a week or more ago at once (D1). A done task with no tick on record counts from the day this first sees
+   it. Runs on start-up and when the day changes; returns how many went. */
+function archiveDueTasks(now = Date.now()) {
+  const today = startOfDay(now);
+  let n = 0;
+  for (const p of DB.projects) for (const t of p.todos) {
+    if (!canArchive(t)) continue;
+    if (!t.doneAt && !t.archiveFrom) t.archiveFrom = ymd(now);
+    const day = archiveDay(t);
+    if (day != null && today >= day) { t.archived = true; t.archivedAt = now; n++; }
+  }
+  return n;
+}
+/* The Archive view's groups (C3): by milestone, the milestone with the newest task first, its tasks newest first, by
+   the day each was ticked. `whole` marks a milestone that went to the archive with its tasks (B1). */
+const archivedWhen = t => t.doneAt || t.archivedAt || 0;
+function archiveGroups(p) {
+  const known = new Map(p.milestones.map(m => [m.id, m]));
+  const by = new Map();
+  for (const t of archivedTodos(p)) {
+    const m = known.get(t.milestoneId) || null, k = m ? m.id : '';
+    if (!by.has(k)) by.set(k, { ms: m, tasks: [] });
+    by.get(k).tasks.push(t);
+  }
+  const out = [...by.values()];
+  for (const g of out) { g.tasks.sort((a, b) => archivedWhen(b) - archivedWhen(a)); g.whole = !!g.ms && milestoneArchived(p, g.ms); }
+  return out.sort((a, b) => archivedWhen(b.tasks[0]) - archivedWhen(a.tasks[0]));
+}
+/* The shown tasks in a new order (a drag, or Alt and an arrow), while every archived task keeps its place among them,
+   so Restore puts it back where it was. */
+function reorderShown(p, order) {
+  const shown = order.concat(p.todos.filter(t => !t.archived && !order.includes(t)));
+  let i = 0;
+  p.todos = p.todos.map(t => (t.archived ? t : shown[i++]));
+  normalizeOrder(p);
+}
+
 /* Generated by build.py from src/buildings: the generic buildings, drawn in code. */
 const GENERICS = [
   { id: "city-hall", name: "City hall", footprint: "Medium", url: 'data:image/gif;base64,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' },
@@ -2997,7 +3127,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.48";
+const APP_VERSION = "0.1.49";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -3479,6 +3609,7 @@ const ICONS = {
   chart: ['.......##.', '.......#+#', '....##.#+#', '....#+##+#', '.##.#+##+#', '.#+##+##+#', '.#+##+##+#', '.#+##+##+#', '##########', '..........'],
   trophy: ['.########.', '##++++++##', '#.#++++#.#', '#.#++++#.#', '.##++++##.', '...#++#...', '....##....', '....##....', '..######..', '..######..'],
   flame: ['....#.....', '....##....', '...#++#...', '...#++#.#.', '..#+++###.', '.#++++++#.', '.#++oo++#.', '.#+oooo+#.', '..#+oo+#..', '...####...'],
+  archive: ['##########', '#++++++++#', '##########', '.#......#.', '.#.####.#.', '.#......#.', '.#......#.', '.#......#.', '.########.', '..........'],
   arrow: ['######....', '######....', '####......', '##.##.....', '##..##....', '##...##...', '......##..', '.......##.', '........##', '..........'],
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
@@ -7823,7 +7954,7 @@ const FullView = (() => {
     if (adding) { closeAdd(); return true; }
     if (editing) { cancelEdit(); return true; }
     if (side && sideMode === 'note') { cancelNote(); return true; }
-    if (side && sideMode === 'task') { cancelTask(); return true; }
+    if (side && sideMode === 'task') { if (backToArchive()) return true; cancelTask(); return true; }
     if (side && sideMode === 'milestone') { cancelMilestone(); return true; }
     if (side) { closeSide(); root.focus({ preventScroll: true }); return true; }
     close();
@@ -8038,7 +8169,7 @@ const FullView = (() => {
     const cur = currentGroup(p);
     const list = h('div', { class: 'ms-list' });
     for (const g of groupsOf(p)) {
-      if (!g.ms) continue;
+      if (!g.ms || milestoneArchived(p, g.ms)) continue;        // a milestone in the archive goes with its tasks (B1)
       const m = g.ms;
       const toggle = h('button', { class: 'icon-btn ms-toggle', type: 'button', 'aria-expanded': String(!m.collapsed), 'aria-label': (m.collapsed ? 'Expand ' : 'Collapse ') + m.name,
         html: iconSvg(m.collapsed ? 'caretR' : 'caretD', 10), onclick: () => { m.collapsed = !m.collapsed; changed(p, { touch: false }); render(); } });
@@ -8060,7 +8191,8 @@ const FullView = (() => {
         cur && cur.ms && cur.ms.id === m.id ? h('span', { class: 'tag ms-current' }, 'Current') : null,
         plus);
       const ul = h('ul', { class: 'tasks', 'data-ms': m.id, hidden: m.collapsed });
-      for (const t of g.todos) ul.append(taskRow(p, t));
+      const shown = shownTodos(g.todos);
+      for (const t of shown) ul.append(taskRow(p, t));
       if (adding === 'task:' + m.id) {
         /* one line (O1, O2): !fri for the date, #weekly for a repeat, @name for another milestone; the line under it
            says what was understood before Enter */
@@ -8087,9 +8219,15 @@ const FullView = (() => {
         taskLineHint(hint, '', opts);
         ul.append(h('li', { class: 'task-add', 'data-adding': 'task' }, inp, hint));
       }
+      /* its archived tasks, counted at its foot with the archive's icon and no words (E1, s1); a click opens them */
+      const inArchive = g.todos.length - shown.length;
+      if (inArchive) ul.append(h('li', { class: 'ms-archived' }, h('button', { class: 'ms-arch-btn', type: 'button', 'data-ms': m.id,
+        title: inArchive + ' in the archive', 'aria-label': inArchive + ' in the archive. Open the archive', onclick: () => openArchive(p, m.id) },
+        h('span', null, String(inArchive)), iconEl('archive', 14))));
       list.append(h('div', { class: 'ms', 'data-msid': m.id }, row, ul));
     }
     if (!p.milestones.length && adding !== 'milestone') list.append(h('p', { class: 'fv-empty' }, 'No milestones yet. Every task lives in one.'));
+    else if (!liveMilestones(p).length && adding !== 'milestone') list.append(h('p', { class: 'fv-empty' }, 'Every milestone is in the archive. Add one to plan what is next.'));
     if (adding === 'milestone') {
       list.append(h('div', { class: 'pv-adding', 'data-adding': 'milestone' }, h('input', { class: 'field', type: 'text', dir: 'auto', autocomplete: 'off', placeholder: 'New milestone, then Enter', 'aria-label': 'New milestone name',
         onkeydown: e => {
@@ -8133,12 +8271,93 @@ const FullView = (() => {
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
       t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
       wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
-      d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark')].filter(Boolean));
+      d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark'),
+      canArchive(t) ? h('button', { class: 'icon-btn task-mark mark-archive', type: 'button', 'data-task': t.id, 'aria-label': 'Archive: ' + t.text,
+        title: 'Archive it now. Done tasks go there by themselves 7 days after their tick', html: iconSvg('archive', 14),
+        onclick: e => { e.stopPropagation(); rowArchive(p, t); } }) : null].filter(Boolean));
     return li;
+  }
+  /* After a row's archive button: the focus moves to the next done row's button, else the milestone's +. */
+  function rowArchive(p, t) {
+    const ul = $(`.task[data-id="${t.id}"]`, root)?.closest('ul.tasks'), msId = ul && ul.dataset.ms;
+    const after = ul ? $$('.task', ul).map(r => r.dataset.id) : [];
+    archiveByHand(p, [t]);
+    const next = after.slice(after.indexOf(t.id) + 1).concat(after.slice(0, after.indexOf(t.id))).map(id => $(`.task[data-id="${id}"] .mark-archive`, root)).find(Boolean);
+    const b = next || (msId && $(`.ms[data-msid="${msId}"] .ms-plus`, root)) || $('#pvAddMsBtn', root);
+    if (b) b.focus();
+  }
+  /* ---------- the archive (Archiving, Round 1) ----------
+     By hand (A1): a done row's button, a done task's panel, or every done task in a milestone, with a toast and Undo.
+     Restore (C1) brings a task back done, for another 7 days. Neither is work: Updated and urgency stay. */
+  function archiveByHand(p, list, from = '') {
+    const snaps = archiveTasks(list);
+    if (!snaps.length) return 0;
+    changed(p, { touch: false }); render(); Bubble.refresh();
+    toast(snaps.length === 1 ? 'Archived ' + snaps[0].t.text + '.' : 'Archived ' + snaps.length + ' done tasks' + (from ? ' from ' + from : '') + '.', '', { label: 'Undo', run: () => {
+      snaps.forEach(putBackArchive); changed(p, { touch: false });
+      if (root && openId === p.id) render();
+    } });
+    return snaps.length;
+  }
+  function restoreByHand(p, t) {
+    const s = restoreTask(t);
+    if (!p.milestones.some(m => m.id === t.milestoneId)) {     // its milestone is gone: where a new task would go
+      let id = defaultMilestone(p);
+      if (!id) { const m = { id: uid('m'), name: 'To do', collapsed: false }; p.milestones.push(m); id = m.id; }
+      t.milestoneId = id; normalizeOrder(p);
+    }
+    const ms = p.milestones.find(m => m.id === t.milestoneId);
+    if (ms) ms.collapsed = false;
+    changed(p, { touch: false }); render(); Bubble.refresh();
+    toast('Restored ' + t.text + (ms ? ' to ' + ms.name : '') + '.', '', { label: 'Undo', run: () => {
+      putBackArchive(s); changed(p, { touch: false });
+      if (root && openId === p.id) render();
+    } });
+  }
+  /* The Archive view (A1, C3), beside the project view: by milestone, newest first, each task with Restore. */
+  function openArchive(p, msId = null, taskId = null) {
+    finishEdit(); adding = null;
+    if (side) closeSide();
+    openSide('archive');
+    const target = taskId ? $(`.pv-arch-task[data-id="${taskId}"] .pv-arch-title`, side) : msId ? $(`.pv-arch-group[data-msid="${msId}"] .pv-arch-ms`, side) : null;
+    if (target) { target.scrollIntoView({ block: 'nearest' }); target.focus({ preventScroll: true }); }
+  }
+  /* An archived task's panel backs out to the archive, with the task in view (Esc, and Back to the archive). */
+  function backToArchive() {
+    const p = P(); if (!p || sideMode !== 'task') return false;
+    const t = p.todos.find(x => x.id === sideTask);
+    if (!t || !t.archived || !taskSnap || !taskSnap.archived) return false;
+    openArchive(p, null, t.id);
+    return true;
+  }
+  const tickedDay = t => (t.doneAt ? 'Ticked ' + weekdayOf(ymd(t.doneAt)) + ' ' + fmtDate(t.doneAt) : 'Done');
+  function archiveView(p) {
+    const groups = archiveGroups(p);
+    const box = h('div', { class: 'pv-archive' },
+      h('p', { class: 'note' }, 'Done tasks come here 7 days after their tick, or sooner by hand. Restore brings one back, done, for another 7 days.'));
+    if (!groups.length) { box.append(h('p', { class: 'fv-empty' }, 'Nothing in the archive yet.')); return box; }
+    for (const g of groups) {
+      box.append(h('section', { class: 'pv-arch-group', 'data-msid': g.ms ? g.ms.id : '' },
+        h('h3', { class: 'pv-arch-ms', tabindex: '-1' }, h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }),
+          h('span', { class: 'pv-arch-name', dir: 'auto' }, g.ms ? g.ms.name : 'No milestone'), h('span', { class: 'ms-count' }, '(' + g.tasks.length + ')'),
+          g.whole ? h('span', { class: 'pv-arch-whole', title: 'Every task in it is archived, so the milestone is in the archive too. Restoring one brings it back.' }, 'Milestone archived') : null),
+        h('ul', { class: 'pv-arch-list' }, g.tasks.map(t => h('li', { class: 'pv-arch-task', 'data-id': t.id },
+          h('div', { class: 'pv-arch-body' },
+            h('button', { class: 'pv-arch-title', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) }, t.text),
+            h('span', { class: 'pv-arch-day' }, tickedDay(t))),
+          h('button', { class: 'btn btn-small pv-arch-restore', type: 'button', 'aria-label': 'Restore ' + t.text, title: 'Back to its milestone, done',
+            onclick: () => {
+              const rows = $$('.pv-arch-task', side).map(r => r.dataset.id), i = rows.indexOf(t.id);
+              restoreByHand(p, t);
+              const next = side && ($(`.pv-arch-task[data-id="${rows[i + 1]}"] .pv-arch-restore`, side) || $(`.pv-arch-task[data-id="${rows[i - 1]}"] .pv-arch-restore`, side));
+              if (next) next.focus(); else if (side) side.focus({ preventScroll: true });
+            } }, 'Restore'))))));
+    }
+    return box;
   }
   /* Up or down one place, crossing into the neighbouring milestone at an edge. */
   function moveTodo(p, t, dir) {
-    const groups = groupsOf(p).filter(g => g.ms);
+    const groups = groupsOf(p).filter(g => g.ms && !milestoneArchived(p, g.ms)).map(g => ({ ms: g.ms, todos: shownTodos(g.todos) }));
     const gi = groups.findIndex(g => g.todos.includes(t)), g = groups[gi], i = g.todos.indexOf(t);
     if (dir < 0) {
       if (i > 0) { g.todos.splice(i, 1); g.todos.splice(i - 1, 0, t); }
@@ -8149,7 +8368,7 @@ const FullView = (() => {
       else if (gi < groups.length - 1) { g.todos.splice(i, 1); groups[gi + 1].todos.unshift(t); t.milestoneId = groups[gi + 1].ms.id; }
       else return false;
     }
-    p.todos = groups.flatMap(x => x.todos);
+    reorderShown(p, groups.flatMap(x => x.todos));                // archived tasks keep their places
     return true;
   }
   /* Near the panel's top or bottom edge a drag scrolls the list, but only once you move toward that edge,
@@ -8192,8 +8411,7 @@ const FullView = (() => {
         const t = p.todos.find(x => x.id === row.dataset.id); if (t) { t.milestoneId = ul.dataset.ms; order.push(t); }
       }
       const was = p.todos.map(x => x.id + ':' + x.milestoneId).join();
-      p.todos = order.concat(p.todos.filter(x => !order.includes(x)));
-      normalizeOrder(p);
+      reorderShown(p, order);                                     // archived tasks keep their places
       if (p.todos.map(x => x.id + ':' + x.milestoneId).join() !== was) changed(p);
       render();
     };
@@ -8276,6 +8494,7 @@ const FullView = (() => {
   function taskEditor(p) {
     const t = p.todos.find(x => x.id === sideTask);
     if (!t) return h('p', { class: 'fv-empty' }, 'This task is gone.');
+    if (t.archived) return archivedTask(p, t);
     const ms = p.milestones.find(m => m.id === t.milestoneId);
     const title = h('input', { id: 'pvTaskTitle', class: 'field pv-note-title', type: 'text', dir: 'auto', maxlength: '500', value: t.text, 'aria-label': 'Task title', autocomplete: 'off',
       oninput: e => { t.text = e.target.value; changed(p, { touch: false }); const b = $(`.task[data-id="${t.id}"] .task-title`, root); if (b) b.textContent = t.text; } });
@@ -8298,6 +8517,8 @@ const FullView = (() => {
       title,
       h('div', { class: 'inline pv-task-meta' },
         wait ? h('p', { class: 'pv-task-back', title: 'Esc undoes the tick; a nearer due date brings it back sooner' }, iconEl('repeat', 14), 'Ticked. ' + backText(t) + ', due that day.') : h('label', { class: 'check' }, done, 'Done'),
+        canArchive(t) ? h('button', { id: 'pvTaskArchive', class: 'btn btn-quiet btn-small', type: 'button', title: 'Archive it now. Done tasks go there by themselves 7 days after their tick',
+          onclick: () => { closeSide(); archiveByHand(p, [t]); root.focus({ preventScroll: true }); } }, iconEl('archive', 14), 'Archive') : null,
         h('span', { class: 'lbl' }, 'Due'), due,
         h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; setWaiting(t, false); due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
@@ -8313,15 +8534,45 @@ const FullView = (() => {
         h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
         OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' },
-        h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
-          p.todos.splice(p.todos.indexOf(t), 1);
-          logActivity(p, 'Removed todo: ' + t.text);
-          changed(p);
-          sideTask = null; taskSnap = null;
-          closeSide(); render(); Bubble.refresh();
-          toast('Task deleted.');
-        } }, 'Delete task')),
+        deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'Saves as you type. Done closes it; Esc undoes everything since it opened.'));
+  }
+  /* Delete task. An archived task deleted from its panel goes back to the archive; the last task of a milestone in
+     the archive takes the milestone with it, since nothing would show it again. */
+  function deleteTaskBtn(p, t) {
+    return h('button', { id: 'pvTaskDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
+      const wasArchived = !!t.archived, ms = p.milestones.find(m => m.id === t.milestoneId);
+      const lastOfArchived = ms && milestoneArchived(p, ms) && p.todos.filter(x => x.milestoneId === ms.id).length === 1;
+      p.todos.splice(p.todos.indexOf(t), 1);
+      if (lastOfArchived) p.milestones.splice(p.milestones.indexOf(ms), 1);
+      logActivity(p, 'Removed todo: ' + t.text);
+      changed(p);
+      sideTask = null; taskSnap = null;
+      closeSide(); render(); Bubble.refresh();
+      if (wasArchived) openArchive(p);
+      toast('Task deleted.');
+    } }, 'Delete task');
+  }
+  /* An archived task (C2): the same panel, to read, with Restore, Copy task and Delete task. */
+  function archivedTask(p, t) {
+    const ms = p.milestones.find(m => m.id === t.milestoneId);
+    const desc = (t.description || '').trim();
+    return h('div', { class: 'pv-note-ed pv-task-archived' },
+      h('p', { class: 'pv-task-ms' }, h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), ms ? ms.name : 'No milestone'),
+      h('h3', { id: 'pvTaskTitle', class: 'pv-arch-head', dir: 'auto' }, t.text),
+      h('p', { class: 'pv-arch-state' }, iconEl('archive', 14), 'In the archive. ' + tickedDay(t) + '.'),
+      h('div', { class: 'pv-arch-actions' },
+        h('button', { id: 'pvTaskRestore', class: 'btn btn-accent btn-small', type: 'button', title: 'Back to its milestone, done, for another 7 days',
+          onclick: () => { restoreByHand(p, t); const b = side && $('#pvTaskArchive', side); if (b) b.focus(); } }, 'Restore'),
+        h('button', { id: 'pvTaskBackArch', class: 'btn btn-quiet btn-small', type: 'button', onclick: () => backToArchive() }, iconEl('back', 14), 'Back to the archive')),
+      t.due ? h('p', { class: 'note' }, 'It was due ' + weekdayOf(t.due) + ' ' + fmtDate(parseYmd(t.due)) + '.') : null,
+      h('span', { class: 'lbl' }, 'Description'),
+      desc ? h('div', { id: 'pvTaskDesc', class: 'note-text pv-arch-desc', tabindex: '-1' }, ...paragraphs(desc)) : h('p', { id: 'pvTaskDesc', class: 'fv-empty', tabindex: '-1' }, 'No description.'),
+      h('div', { class: 'pv-claude-row' },
+        h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
+        OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
+      h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
+      h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
   }
   /* Repeat (R2): every day, every N days, weekly on chosen weekdays, monthly on a date, yearly. A task with no date
      gets the schedule's first one. Each change redraws the panel, so the focus goes back to the control it came from. */
@@ -8397,15 +8648,17 @@ const FullView = (() => {
       oninput: e => { m.name = e.target.value; changed(p, { touch: false }); const b = $(`.ms[data-msid="${m.id}"] .ms-name-btn`, root); if (b) b.textContent = m.name; },
       onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); closeSide(); render(); } } });
     const now = Date.now();
+    const order = [...shownTodos(g.todos), ...g.todos.filter(isArchived).sort((a, b) => archivedWhen(b) - archivedWhen(a))];
     const tasks = g.todos.length
-      ? h('ol', { class: 'pv-ms-tasks', 'aria-label': 'The tasks in this milestone' }, g.todos.map(t => {
+      ? h('ol', { class: 'pv-ms-tasks', 'aria-label': 'The tasks in this milestone' }, order.map(t => {
           const d = dueInfo(t, now), first = (t.description || '').trim().split('\n')[0];
-          return h('li', { class: 'pv-ms-task' + (t.done ? ' done' : '') },
+          return h('li', { class: 'pv-ms-task' + (t.done ? ' done' : '') + (t.archived ? ' archived' : ''), 'data-id': t.id },
             h('span', { class: 'pv-ms-box' + (t.done ? ' done' : ''), 'aria-hidden': 'true' }),
             h('span', { class: 'pv-ms-body' },
-              h('span', { class: 'pv-ms-text', dir: 'auto' }, t.text, h('span', { class: 'visually-hidden' }, t.done ? ' (done)' : '')),
+              h('span', { class: 'pv-ms-text', dir: 'auto' }, t.text, h('span', { class: 'visually-hidden' }, t.archived ? ' (done, in the archive)' : t.done ? ' (done)' : '')),
               isWaiting(t, now) ? h('span', { class: 'pv-ms-due back' }, backText(t, now)) : d && !t.done ? h('span', { class: 'pv-ms-due' + (d.tone ? ' ' + d.tone : '') }, d.text) : null,
-              first ? h('span', { class: 'pv-ms-desc', dir: 'auto' }, first.slice(0, 160)) : null));
+              first ? h('span', { class: 'pv-ms-desc', dir: 'auto' }, first.slice(0, 160)) : null),
+            t.archived ? h('span', { class: 'pv-ms-arch', title: 'In the archive', html: iconSvg('archive', 14) }) : null);
         }))
       : h('p', { class: 'fv-empty' }, 'No tasks in this milestone yet.');
     return h('div', { class: 'pv-note-ed' }, name,
@@ -8415,6 +8668,12 @@ const FullView = (() => {
         h('button', { id: 'pvMsCopy', class: 'btn btn-small', type: 'button', title: 'Copies this milestone and its open tasks with their descriptions, for a Claude chat', onclick: () => copyMilestone(p, m) }, iconEl('copy', 14), 'Copy for Claude'),
         OpenInClaude.button({ id: 'pvMsClaude', text: () => milestoneForClaude(p, m), project: p })),
       h('div', { class: 'pv-note-foot' },
+        g.todos.some(canArchive) ? h('button', { id: 'pvMsArchive', class: 'btn btn-small', type: 'button', title: 'Every done task in it goes to the archive now',
+          onclick: () => {
+            archiveByHand(p, g.todos.filter(canArchive), m.name);
+            if (milestoneArchived(p, m)) { sideMs = null; msSnap = null; closeSide(); root.focus({ preventScroll: true }); }
+            else { const b = side && ($('#pvMsCopy', side)); if (b) b.focus(); }
+          } }, iconEl('archive', 14), 'Archive done tasks') : null,
         h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: async () => {
           if (g.todos.length) {
             const ok = await Confirm.ask({ title: ['Delete ', h('bdi', null, m.name), '?'], body: 'Its ' + plural(g.todos.length, 'task goes', 'tasks go') + ' with it.', confirm: 'Delete milestone', danger: true });
@@ -8641,7 +8900,9 @@ const FullView = (() => {
     closeMenu();
     const p = P();
     const item = (label, fn, danger) => h('button', { class: 'pv-menu-item' + (danger ? ' danger' : ''), type: 'button', role: 'menuitem', onclick: () => { closeMenu(); fn(); } }, label);
+    const inArchive = archivedTodos(p).length;
     menu = h('div', { class: 'pv-menu', role: 'menu', 'aria-label': 'More' },
+      item(inArchive ? 'Archive (' + inArchive + ')' : 'Archive', () => openArchive(p)),
       item('Copy for builder', () => copyBuilderCard(p)),
       item('Builder card in a Claude chat', () => OpenInClaude.go('chat', builderCard(p))),
       item('Load plan or tasks', () => openLoadPlan(p)),
@@ -8801,6 +9062,12 @@ const FullView = (() => {
           h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { closeSide(); render(); } }, 'Done'),
           h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close the ' + label.toLowerCase(), title: 'Close', html: iconSvg('close', 18), onclick: () => { closeSide(); render(); } }))),
         sideMode === 'task' ? taskEditor(p) : milestoneEditor(p));
+      return;
+    }
+    if (sideMode === 'archive') {
+      const top = side.scrollTop;
+      side.replaceChildren(head('Archive'), archiveView(p));
+      side.scrollTop = top;
       return;
     }
     if (sideMode === 'urgency') {
@@ -9819,10 +10086,10 @@ const ClaudeWork = (() => {
         return { name: p.name, description: p.description || '', deadline: p.deadline || null, folders: pl.folders,
           urgency: { system: urgencyName(p), state: u.color || 'calm', reasons: u.reasons },
           next: next ? next.text : null,
-          milestones: groupsOf(p).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',
+          milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)
             open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}) })),
             ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
-            done: g.todos.filter(t => t.done).map(t => t.text) })),
+            done: g.todos.filter(t => t.done && !t.archived).map(t => t.text) })),
           notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),
           links: p.links.map(l => ({ label: l.label || suggestLabel(l.url), url: l.url })) };
       }) };
@@ -9934,7 +10201,7 @@ const ClaudeInbox = (() => {
   const str = (x, n) => (typeof x === 'string' ? x.trim().slice(0, n) : '');
   const keyOf = s => String(s || '').trim().toLowerCase();
   const projectNamed = name => DB.projects.find(p => keyOf(p.name) === keyOf(name)) || null;
-  const taskNamed = (p, text, open = true) => p.todos.find(t => (!open || isOpenTask(t)) && keyOf(t.text) === keyOf(text)) || null;
+  const taskNamed = (p, text, open = true) => p.todos.find(t => (open ? isOpenTask(t) : !t.archived) && keyOf(t.text) === keyOf(text)) || null;   // never one in the archive
 
   async function sub(dir, path) {
     let d = dir;
@@ -10015,7 +10282,8 @@ const ClaudeInbox = (() => {
         let list;
         try { list = readTasks({ tasks: c.tasks }).tasks; } catch (e) { continue; }
         const name = str(c.milestone, 120), have = name && p.milestones.find(m => keyOf(m.name) === keyOf(name));
-        const cur = currentGroup(p), target = have ? { id: have.id } : name ? { name } : cur && cur.ms ? { id: cur.ms.id } : p.milestones[0] ? { id: p.milestones[p.milestones.length - 1].id } : { name: 'To do' };
+        const cur = currentGroup(p), live = liveMilestones(p);    // a milestone named in the archive comes back with them
+        const target = have ? { id: have.id } : name ? { name } : cur && cur.ms ? { id: cur.ms.id } : live.length ? { id: live[live.length - 1].id } : { name: 'To do' };
         addTasks(p, list, target);
         tasks += list.length;
       } else if (c.do === 'add-note') {
@@ -10279,6 +10547,7 @@ const Menu = (() => {
     if (url) { try { await Store.putArt(p.id, url); await Art.set(p.id, url); p.art.has = true; } catch (e) { /* skip unreadable art */ } }
     logActivity(p, 'Imported into this city');
     DB.projects.push(p);
+    archiveDueTasks();                           // its done tasks past their 7 days go to its archive
     persistNow(); refresh(); MapView.invalidate();
     MapView.select(p.id);
     toast('Imported ' + p.name + ' on a free plot.');
@@ -10319,6 +10588,7 @@ const Menu = (() => {
         if (!kept) lost++;
       } catch (e) { /* skip unreadable art */ }
     }
+    archiveDueTasks();
     persistNow();
     Light.update(); Settings.refresh();          // the city's settings came with it: Auto's hours, props, life
     MapView.frameAll(); MapView.invalidate(); refresh();
@@ -11189,6 +11459,7 @@ const Proxima = (() => {
   if (saved && Array.isArray(saved.projects)) {
     setWorld(worldFrom(saved));
     DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(saved.city, oldCrowd), projects: sanitizeProjects(saved.projects).map(x => x.p) };
+    archiveDueTasks();                                     // done tasks past their 7 days go to the archive (A2a, D1)
     Store.save(DB);
   } else {
     DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null, oldCrowd), projects: seedProjects() };
@@ -11255,12 +11526,14 @@ const Proxima = (() => {
   window.addEventListener('pagehide', () => persistSoon.flush());
 
   /* Keeps "updated" times and the light current while the page stays open. On a new day, repeats due that day come
-     back, so the project view redraws too, unless something in it is being typed. */
+     back and done tasks past their 7 days go to the archive, so the project view redraws too, unless something in it
+     is being typed. */
   let today = ymd();
   setInterval(() => {
     Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); Backups.tick();
     if (ymd() === today) return;
     today = ymd();
+    if (archiveDueTasks()) { persistSoon(); Menu.refresh(); }
     const a = document.activeElement;
     if (FullView.isOpen() && !(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))) FullView.render();
   }, 60000);

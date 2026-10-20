@@ -5,6 +5,7 @@
   if (saved && Array.isArray(saved.projects)) {
     setWorld(worldFrom(saved));
     DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(saved.city, oldCrowd), projects: sanitizeProjects(saved.projects).map(x => x.p) };
+    archiveDueTasks();                                     // done tasks past their 7 days go to the archive (A2a, D1)
     Store.save(DB);
   } else {
     DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null, oldCrowd), projects: seedProjects() };
@@ -71,12 +72,14 @@
   window.addEventListener('pagehide', () => persistSoon.flush());
 
   /* Keeps "updated" times and the light current while the page stays open. On a new day, repeats due that day come
-     back, so the project view redraws too, unless something in it is being typed. */
+     back and done tasks past their 7 days go to the archive, so the project view redraws too, unless something in it
+     is being typed. */
   let today = ymd();
   setInterval(() => {
     Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); Backups.tick();
     if (ymd() === today) return;
     today = ymd();
+    if (archiveDueTasks()) { persistSoon(); Menu.refresh(); }
     const a = document.activeElement;
     if (FullView.isOpen() && !(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))) FullView.render();
   }, 60000);

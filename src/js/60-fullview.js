@@ -112,7 +112,7 @@ const FullView = (() => {
     if (adding) { closeAdd(); return true; }
     if (editing) { cancelEdit(); return true; }
     if (side && sideMode === 'note') { cancelNote(); return true; }
-    if (side && sideMode === 'task') { cancelTask(); return true; }
+    if (side && sideMode === 'task') { if (backToArchive()) return true; cancelTask(); return true; }
     if (side && sideMode === 'milestone') { cancelMilestone(); return true; }
     if (side) { closeSide(); root.focus({ preventScroll: true }); return true; }
     close();
@@ -327,7 +327,7 @@ const FullView = (() => {
     const cur = currentGroup(p);
     const list = h('div', { class: 'ms-list' });
     for (const g of groupsOf(p)) {
-      if (!g.ms) continue;
+      if (!g.ms || milestoneArchived(p, g.ms)) continue;        // a milestone in the archive goes with its tasks (B1)
       const m = g.ms;
       const toggle = h('button', { class: 'icon-btn ms-toggle', type: 'button', 'aria-expanded': String(!m.collapsed), 'aria-label': (m.collapsed ? 'Expand ' : 'Collapse ') + m.name,
         html: iconSvg(m.collapsed ? 'caretR' : 'caretD', 10), onclick: () => { m.collapsed = !m.collapsed; changed(p, { touch: false }); render(); } });
@@ -349,7 +349,8 @@ const FullView = (() => {
         cur && cur.ms && cur.ms.id === m.id ? h('span', { class: 'tag ms-current' }, 'Current') : null,
         plus);
       const ul = h('ul', { class: 'tasks', 'data-ms': m.id, hidden: m.collapsed });
-      for (const t of g.todos) ul.append(taskRow(p, t));
+      const shown = shownTodos(g.todos);
+      for (const t of shown) ul.append(taskRow(p, t));
       if (adding === 'task:' + m.id) {
         /* one line (O1, O2): !fri for the date, #weekly for a repeat, @name for another milestone; the line under it
            says what was understood before Enter */
@@ -376,9 +377,15 @@ const FullView = (() => {
         taskLineHint(hint, '', opts);
         ul.append(h('li', { class: 'task-add', 'data-adding': 'task' }, inp, hint));
       }
+      /* its archived tasks, counted at its foot with the archive's icon and no words (E1, s1); a click opens them */
+      const inArchive = g.todos.length - shown.length;
+      if (inArchive) ul.append(h('li', { class: 'ms-archived' }, h('button', { class: 'ms-arch-btn', type: 'button', 'data-ms': m.id,
+        title: inArchive + ' in the archive', 'aria-label': inArchive + ' in the archive. Open the archive', onclick: () => openArchive(p, m.id) },
+        h('span', null, String(inArchive)), iconEl('archive', 14))));
       list.append(h('div', { class: 'ms', 'data-msid': m.id }, row, ul));
     }
     if (!p.milestones.length && adding !== 'milestone') list.append(h('p', { class: 'fv-empty' }, 'No milestones yet. Every task lives in one.'));
+    else if (!liveMilestones(p).length && adding !== 'milestone') list.append(h('p', { class: 'fv-empty' }, 'Every milestone is in the archive. Add one to plan what is next.'));
     if (adding === 'milestone') {
       list.append(h('div', { class: 'pv-adding', 'data-adding': 'milestone' }, h('input', { class: 'field', type: 'text', dir: 'auto', autocomplete: 'off', placeholder: 'New milestone, then Enter', 'aria-label': 'New milestone name',
         onkeydown: e => {
@@ -422,12 +429,93 @@ const FullView = (() => {
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
       t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
       wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
-      d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark')].filter(Boolean));
+      d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark'),
+      canArchive(t) ? h('button', { class: 'icon-btn task-mark mark-archive', type: 'button', 'data-task': t.id, 'aria-label': 'Archive: ' + t.text,
+        title: 'Archive it now. Done tasks go there by themselves 7 days after their tick', html: iconSvg('archive', 14),
+        onclick: e => { e.stopPropagation(); rowArchive(p, t); } }) : null].filter(Boolean));
     return li;
+  }
+  /* After a row's archive button: the focus moves to the next done row's button, else the milestone's +. */
+  function rowArchive(p, t) {
+    const ul = $(`.task[data-id="${t.id}"]`, root)?.closest('ul.tasks'), msId = ul && ul.dataset.ms;
+    const after = ul ? $$('.task', ul).map(r => r.dataset.id) : [];
+    archiveByHand(p, [t]);
+    const next = after.slice(after.indexOf(t.id) + 1).concat(after.slice(0, after.indexOf(t.id))).map(id => $(`.task[data-id="${id}"] .mark-archive`, root)).find(Boolean);
+    const b = next || (msId && $(`.ms[data-msid="${msId}"] .ms-plus`, root)) || $('#pvAddMsBtn', root);
+    if (b) b.focus();
+  }
+  /* ---------- the archive (Archiving, Round 1) ----------
+     By hand (A1): a done row's button, a done task's panel, or every done task in a milestone, with a toast and Undo.
+     Restore (C1) brings a task back done, for another 7 days. Neither is work: Updated and urgency stay. */
+  function archiveByHand(p, list, from = '') {
+    const snaps = archiveTasks(list);
+    if (!snaps.length) return 0;
+    changed(p, { touch: false }); render(); Bubble.refresh();
+    toast(snaps.length === 1 ? 'Archived ' + snaps[0].t.text + '.' : 'Archived ' + snaps.length + ' done tasks' + (from ? ' from ' + from : '') + '.', '', { label: 'Undo', run: () => {
+      snaps.forEach(putBackArchive); changed(p, { touch: false });
+      if (root && openId === p.id) render();
+    } });
+    return snaps.length;
+  }
+  function restoreByHand(p, t) {
+    const s = restoreTask(t);
+    if (!p.milestones.some(m => m.id === t.milestoneId)) {     // its milestone is gone: where a new task would go
+      let id = defaultMilestone(p);
+      if (!id) { const m = { id: uid('m'), name: 'To do', collapsed: false }; p.milestones.push(m); id = m.id; }
+      t.milestoneId = id; normalizeOrder(p);
+    }
+    const ms = p.milestones.find(m => m.id === t.milestoneId);
+    if (ms) ms.collapsed = false;
+    changed(p, { touch: false }); render(); Bubble.refresh();
+    toast('Restored ' + t.text + (ms ? ' to ' + ms.name : '') + '.', '', { label: 'Undo', run: () => {
+      putBackArchive(s); changed(p, { touch: false });
+      if (root && openId === p.id) render();
+    } });
+  }
+  /* The Archive view (A1, C3), beside the project view: by milestone, newest first, each task with Restore. */
+  function openArchive(p, msId = null, taskId = null) {
+    finishEdit(); adding = null;
+    if (side) closeSide();
+    openSide('archive');
+    const target = taskId ? $(`.pv-arch-task[data-id="${taskId}"] .pv-arch-title`, side) : msId ? $(`.pv-arch-group[data-msid="${msId}"] .pv-arch-ms`, side) : null;
+    if (target) { target.scrollIntoView({ block: 'nearest' }); target.focus({ preventScroll: true }); }
+  }
+  /* An archived task's panel backs out to the archive, with the task in view (Esc, and Back to the archive). */
+  function backToArchive() {
+    const p = P(); if (!p || sideMode !== 'task') return false;
+    const t = p.todos.find(x => x.id === sideTask);
+    if (!t || !t.archived || !taskSnap || !taskSnap.archived) return false;
+    openArchive(p, null, t.id);
+    return true;
+  }
+  const tickedDay = t => (t.doneAt ? 'Ticked ' + weekdayOf(ymd(t.doneAt)) + ' ' + fmtDate(t.doneAt) : 'Done');
+  function archiveView(p) {
+    const groups = archiveGroups(p);
+    const box = h('div', { class: 'pv-archive' },
+      h('p', { class: 'note' }, 'Done tasks come here 7 days after their tick, or sooner by hand. Restore brings one back, done, for another 7 days.'));
+    if (!groups.length) { box.append(h('p', { class: 'fv-empty' }, 'Nothing in the archive yet.')); return box; }
+    for (const g of groups) {
+      box.append(h('section', { class: 'pv-arch-group', 'data-msid': g.ms ? g.ms.id : '' },
+        h('h3', { class: 'pv-arch-ms', tabindex: '-1' }, h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }),
+          h('span', { class: 'pv-arch-name', dir: 'auto' }, g.ms ? g.ms.name : 'No milestone'), h('span', { class: 'ms-count' }, '(' + g.tasks.length + ')'),
+          g.whole ? h('span', { class: 'pv-arch-whole', title: 'Every task in it is archived, so the milestone is in the archive too. Restoring one brings it back.' }, 'Milestone archived') : null),
+        h('ul', { class: 'pv-arch-list' }, g.tasks.map(t => h('li', { class: 'pv-arch-task', 'data-id': t.id },
+          h('div', { class: 'pv-arch-body' },
+            h('button', { class: 'pv-arch-title', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) }, t.text),
+            h('span', { class: 'pv-arch-day' }, tickedDay(t))),
+          h('button', { class: 'btn btn-small pv-arch-restore', type: 'button', 'aria-label': 'Restore ' + t.text, title: 'Back to its milestone, done',
+            onclick: () => {
+              const rows = $$('.pv-arch-task', side).map(r => r.dataset.id), i = rows.indexOf(t.id);
+              restoreByHand(p, t);
+              const next = side && ($(`.pv-arch-task[data-id="${rows[i + 1]}"] .pv-arch-restore`, side) || $(`.pv-arch-task[data-id="${rows[i - 1]}"] .pv-arch-restore`, side));
+              if (next) next.focus(); else if (side) side.focus({ preventScroll: true });
+            } }, 'Restore'))))));
+    }
+    return box;
   }
   /* Up or down one place, crossing into the neighbouring milestone at an edge. */
   function moveTodo(p, t, dir) {
-    const groups = groupsOf(p).filter(g => g.ms);
+    const groups = groupsOf(p).filter(g => g.ms && !milestoneArchived(p, g.ms)).map(g => ({ ms: g.ms, todos: shownTodos(g.todos) }));
     const gi = groups.findIndex(g => g.todos.includes(t)), g = groups[gi], i = g.todos.indexOf(t);
     if (dir < 0) {
       if (i > 0) { g.todos.splice(i, 1); g.todos.splice(i - 1, 0, t); }
@@ -438,7 +526,7 @@ const FullView = (() => {
       else if (gi < groups.length - 1) { g.todos.splice(i, 1); groups[gi + 1].todos.unshift(t); t.milestoneId = groups[gi + 1].ms.id; }
       else return false;
     }
-    p.todos = groups.flatMap(x => x.todos);
+    reorderShown(p, groups.flatMap(x => x.todos));                // archived tasks keep their places
     return true;
   }
   /* Near the panel's top or bottom edge a drag scrolls the list, but only once you move toward that edge,
@@ -481,8 +569,7 @@ const FullView = (() => {
         const t = p.todos.find(x => x.id === row.dataset.id); if (t) { t.milestoneId = ul.dataset.ms; order.push(t); }
       }
       const was = p.todos.map(x => x.id + ':' + x.milestoneId).join();
-      p.todos = order.concat(p.todos.filter(x => !order.includes(x)));
-      normalizeOrder(p);
+      reorderShown(p, order);                                     // archived tasks keep their places
       if (p.todos.map(x => x.id + ':' + x.milestoneId).join() !== was) changed(p);
       render();
     };
@@ -565,6 +652,7 @@ const FullView = (() => {
   function taskEditor(p) {
     const t = p.todos.find(x => x.id === sideTask);
     if (!t) return h('p', { class: 'fv-empty' }, 'This task is gone.');
+    if (t.archived) return archivedTask(p, t);
     const ms = p.milestones.find(m => m.id === t.milestoneId);
     const title = h('input', { id: 'pvTaskTitle', class: 'field pv-note-title', type: 'text', dir: 'auto', maxlength: '500', value: t.text, 'aria-label': 'Task title', autocomplete: 'off',
       oninput: e => { t.text = e.target.value; changed(p, { touch: false }); const b = $(`.task[data-id="${t.id}"] .task-title`, root); if (b) b.textContent = t.text; } });
@@ -587,6 +675,8 @@ const FullView = (() => {
       title,
       h('div', { class: 'inline pv-task-meta' },
         wait ? h('p', { class: 'pv-task-back', title: 'Esc undoes the tick; a nearer due date brings it back sooner' }, iconEl('repeat', 14), 'Ticked. ' + backText(t) + ', due that day.') : h('label', { class: 'check' }, done, 'Done'),
+        canArchive(t) ? h('button', { id: 'pvTaskArchive', class: 'btn btn-quiet btn-small', type: 'button', title: 'Archive it now. Done tasks go there by themselves 7 days after their tick',
+          onclick: () => { closeSide(); archiveByHand(p, [t]); root.focus({ preventScroll: true }); } }, iconEl('archive', 14), 'Archive') : null,
         h('span', { class: 'lbl' }, 'Due'), due,
         h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; setWaiting(t, false); due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
@@ -602,15 +692,45 @@ const FullView = (() => {
         h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
         OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' },
-        h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
-          p.todos.splice(p.todos.indexOf(t), 1);
-          logActivity(p, 'Removed todo: ' + t.text);
-          changed(p);
-          sideTask = null; taskSnap = null;
-          closeSide(); render(); Bubble.refresh();
-          toast('Task deleted.');
-        } }, 'Delete task')),
+        deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'Saves as you type. Done closes it; Esc undoes everything since it opened.'));
+  }
+  /* Delete task. An archived task deleted from its panel goes back to the archive; the last task of a milestone in
+     the archive takes the milestone with it, since nothing would show it again. */
+  function deleteTaskBtn(p, t) {
+    return h('button', { id: 'pvTaskDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
+      const wasArchived = !!t.archived, ms = p.milestones.find(m => m.id === t.milestoneId);
+      const lastOfArchived = ms && milestoneArchived(p, ms) && p.todos.filter(x => x.milestoneId === ms.id).length === 1;
+      p.todos.splice(p.todos.indexOf(t), 1);
+      if (lastOfArchived) p.milestones.splice(p.milestones.indexOf(ms), 1);
+      logActivity(p, 'Removed todo: ' + t.text);
+      changed(p);
+      sideTask = null; taskSnap = null;
+      closeSide(); render(); Bubble.refresh();
+      if (wasArchived) openArchive(p);
+      toast('Task deleted.');
+    } }, 'Delete task');
+  }
+  /* An archived task (C2): the same panel, to read, with Restore, Copy task and Delete task. */
+  function archivedTask(p, t) {
+    const ms = p.milestones.find(m => m.id === t.milestoneId);
+    const desc = (t.description || '').trim();
+    return h('div', { class: 'pv-note-ed pv-task-archived' },
+      h('p', { class: 'pv-task-ms' }, h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), ms ? ms.name : 'No milestone'),
+      h('h3', { id: 'pvTaskTitle', class: 'pv-arch-head', dir: 'auto' }, t.text),
+      h('p', { class: 'pv-arch-state' }, iconEl('archive', 14), 'In the archive. ' + tickedDay(t) + '.'),
+      h('div', { class: 'pv-arch-actions' },
+        h('button', { id: 'pvTaskRestore', class: 'btn btn-accent btn-small', type: 'button', title: 'Back to its milestone, done, for another 7 days',
+          onclick: () => { restoreByHand(p, t); const b = side && $('#pvTaskArchive', side); if (b) b.focus(); } }, 'Restore'),
+        h('button', { id: 'pvTaskBackArch', class: 'btn btn-quiet btn-small', type: 'button', onclick: () => backToArchive() }, iconEl('back', 14), 'Back to the archive')),
+      t.due ? h('p', { class: 'note' }, 'It was due ' + weekdayOf(t.due) + ' ' + fmtDate(parseYmd(t.due)) + '.') : null,
+      h('span', { class: 'lbl' }, 'Description'),
+      desc ? h('div', { id: 'pvTaskDesc', class: 'note-text pv-arch-desc', tabindex: '-1' }, ...paragraphs(desc)) : h('p', { id: 'pvTaskDesc', class: 'fv-empty', tabindex: '-1' }, 'No description.'),
+      h('div', { class: 'pv-claude-row' },
+        h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
+        OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
+      h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
+      h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
   }
   /* Repeat (R2): every day, every N days, weekly on chosen weekdays, monthly on a date, yearly. A task with no date
      gets the schedule's first one. Each change redraws the panel, so the focus goes back to the control it came from. */
@@ -686,15 +806,17 @@ const FullView = (() => {
       oninput: e => { m.name = e.target.value; changed(p, { touch: false }); const b = $(`.ms[data-msid="${m.id}"] .ms-name-btn`, root); if (b) b.textContent = m.name; },
       onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); closeSide(); render(); } } });
     const now = Date.now();
+    const order = [...shownTodos(g.todos), ...g.todos.filter(isArchived).sort((a, b) => archivedWhen(b) - archivedWhen(a))];
     const tasks = g.todos.length
-      ? h('ol', { class: 'pv-ms-tasks', 'aria-label': 'The tasks in this milestone' }, g.todos.map(t => {
+      ? h('ol', { class: 'pv-ms-tasks', 'aria-label': 'The tasks in this milestone' }, order.map(t => {
           const d = dueInfo(t, now), first = (t.description || '').trim().split('\n')[0];
-          return h('li', { class: 'pv-ms-task' + (t.done ? ' done' : '') },
+          return h('li', { class: 'pv-ms-task' + (t.done ? ' done' : '') + (t.archived ? ' archived' : ''), 'data-id': t.id },
             h('span', { class: 'pv-ms-box' + (t.done ? ' done' : ''), 'aria-hidden': 'true' }),
             h('span', { class: 'pv-ms-body' },
-              h('span', { class: 'pv-ms-text', dir: 'auto' }, t.text, h('span', { class: 'visually-hidden' }, t.done ? ' (done)' : '')),
+              h('span', { class: 'pv-ms-text', dir: 'auto' }, t.text, h('span', { class: 'visually-hidden' }, t.archived ? ' (done, in the archive)' : t.done ? ' (done)' : '')),
               isWaiting(t, now) ? h('span', { class: 'pv-ms-due back' }, backText(t, now)) : d && !t.done ? h('span', { class: 'pv-ms-due' + (d.tone ? ' ' + d.tone : '') }, d.text) : null,
-              first ? h('span', { class: 'pv-ms-desc', dir: 'auto' }, first.slice(0, 160)) : null));
+              first ? h('span', { class: 'pv-ms-desc', dir: 'auto' }, first.slice(0, 160)) : null),
+            t.archived ? h('span', { class: 'pv-ms-arch', title: 'In the archive', html: iconSvg('archive', 14) }) : null);
         }))
       : h('p', { class: 'fv-empty' }, 'No tasks in this milestone yet.');
     return h('div', { class: 'pv-note-ed' }, name,
@@ -704,6 +826,12 @@ const FullView = (() => {
         h('button', { id: 'pvMsCopy', class: 'btn btn-small', type: 'button', title: 'Copies this milestone and its open tasks with their descriptions, for a Claude chat', onclick: () => copyMilestone(p, m) }, iconEl('copy', 14), 'Copy for Claude'),
         OpenInClaude.button({ id: 'pvMsClaude', text: () => milestoneForClaude(p, m), project: p })),
       h('div', { class: 'pv-note-foot' },
+        g.todos.some(canArchive) ? h('button', { id: 'pvMsArchive', class: 'btn btn-small', type: 'button', title: 'Every done task in it goes to the archive now',
+          onclick: () => {
+            archiveByHand(p, g.todos.filter(canArchive), m.name);
+            if (milestoneArchived(p, m)) { sideMs = null; msSnap = null; closeSide(); root.focus({ preventScroll: true }); }
+            else { const b = side && ($('#pvMsCopy', side)); if (b) b.focus(); }
+          } }, iconEl('archive', 14), 'Archive done tasks') : null,
         h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: async () => {
           if (g.todos.length) {
             const ok = await Confirm.ask({ title: ['Delete ', h('bdi', null, m.name), '?'], body: 'Its ' + plural(g.todos.length, 'task goes', 'tasks go') + ' with it.', confirm: 'Delete milestone', danger: true });
@@ -930,7 +1058,9 @@ const FullView = (() => {
     closeMenu();
     const p = P();
     const item = (label, fn, danger) => h('button', { class: 'pv-menu-item' + (danger ? ' danger' : ''), type: 'button', role: 'menuitem', onclick: () => { closeMenu(); fn(); } }, label);
+    const inArchive = archivedTodos(p).length;
     menu = h('div', { class: 'pv-menu', role: 'menu', 'aria-label': 'More' },
+      item(inArchive ? 'Archive (' + inArchive + ')' : 'Archive', () => openArchive(p)),
       item('Copy for builder', () => copyBuilderCard(p)),
       item('Builder card in a Claude chat', () => OpenInClaude.go('chat', builderCard(p))),
       item('Load plan or tasks', () => openLoadPlan(p)),
@@ -1090,6 +1220,12 @@ const FullView = (() => {
           h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { closeSide(); render(); } }, 'Done'),
           h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close the ' + label.toLowerCase(), title: 'Close', html: iconSvg('close', 18), onclick: () => { closeSide(); render(); } }))),
         sideMode === 'task' ? taskEditor(p) : milestoneEditor(p));
+      return;
+    }
+    if (sideMode === 'archive') {
+      const top = side.scrollTop;
+      side.replaceChildren(head('Archive'), archiveView(p));
+      side.scrollTop = top;
       return;
     }
     if (sideMode === 'urgency') {

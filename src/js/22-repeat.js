@@ -99,7 +99,7 @@ function tickTask(p, t, { now = Date.now(), log = true } = {}) {
 }
 function untickTask(p, t, was = null, { log = true } = {}) {
   if (t.repeat && was && !was.done) { t.due = was.due; setWaiting(t, was.waiting); }
-  else { t.done = false; t.doneAt = null; }
+  else { t.done = false; t.doneAt = null; delete t.archiveFrom; }
   if (log) logActivity(p, 'Reopened: ' + t.text);
 }
 /* After a repeat is ticked: where it went, with Undo. */
@@ -192,10 +192,10 @@ function markMatch(list, name, mark) {
   const key = norm(String(mark).replace(/[-_]+/g, ' ')), of = x => norm(name(x));
   return list.find(x => of(x) === key) || list.find(x => of(x).startsWith(key)) || list.find(x => of(x).split(/\s+/).some(w => w.startsWith(key))) || null;
 }
-/* Where a task added without @ goes: the current milestone, else the last one, else a new To do. */
+/* Where a task added without @ goes: the current milestone, else the last one not in the archive, else a new To do. */
 function defaultMilestone(p) {
-  const cur = currentGroup(p);
-  return cur && cur.ms ? cur.ms.id : p.milestones.length ? p.milestones[p.milestones.length - 1].id : null;
+  const cur = currentGroup(p), live = liveMilestones(p);
+  return cur && cur.ms ? cur.ms.id : live.length ? live[live.length - 1].id : null;
 }
 /* A typed line, read for one place: the project view's add field (project and milestone given), the status card's
    (project given) or the quick add (cityWide, the project by /name or the one given). What it understood comes back

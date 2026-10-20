@@ -170,6 +170,7 @@ const Menu = (() => {
     if (url) { try { await Store.putArt(p.id, url); await Art.set(p.id, url); p.art.has = true; } catch (e) { /* skip unreadable art */ } }
     logActivity(p, 'Imported into this city');
     DB.projects.push(p);
+    archiveDueTasks();                           // its done tasks past their 7 days go to its archive
     persistNow(); refresh(); MapView.invalidate();
     MapView.select(p.id);
     toast('Imported ' + p.name + ' on a free plot.');
@@ -210,6 +211,7 @@ const Menu = (() => {
         if (!kept) lost++;
       } catch (e) { /* skip unreadable art */ }
     }
+    archiveDueTasks();
     persistNow();
     Light.update(); Settings.refresh();          // the city's settings came with it: Auto's hours, props, life
     MapView.frameAll(); MapView.invalidate(); refresh();
