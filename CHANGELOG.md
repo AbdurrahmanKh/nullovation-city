@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.1.53 (2026-10-21)
+
+All tasks, the eighth of the task ideas, designed in All tasks, Rounds 1 to 3, with shifts, and built ahead of the third at Abdurrahman's call.
+- Shifts: a task can have one of three, or none: Create (at the screen and the keyboard, in work hours: code, art, testing), Think (pen and paper will do: design, writing, a decision) and Errand (away from the screen: daily tasks, buying, a call). They are fixed; none can be added (K3, K4).
+- +create, +think or +errand in a task's line sets it, or just the start of one (+c, +t, +e); a + word that names none stays in the title. The line under an add field says the shift it read, and names the mark when empty.
+- The tag shows on the project view's rows, the status card's rows and in What is next; the task panel has a Shift row with the three, a click on the pressed one taking it off, and Esc undoing it as any edit there. Setting a shift is not work: Updated and Activity stay.
+- Copy task and a milestone's copy say "Shift: Create"; the city summary for Claude has each open task's `shift`; tasks files, plans and Claude's add-tasks may carry one.
+- All tasks: a button at the side bar's foot, before Reports and Settings, or L, or Due this week's "and N more" line, turns the side bar into every open task in the city, with the map in view. The three panels close each other; the back arrow, Esc or L again close it; on a narrow window it opens the drawer.
+- At its top: "13 open, 1 overdue, 2 due this week", for what it shows; a words field that finds a task by its title, description, project or milestone; a chip for each shift with its count, and No shift; and a tile for each building with its count of the shift picked. A click on a chip or a tile shows only that, a second click everything.
+- The list: the starred task first, in a purple card with a gold edge; then the dated tasks in day groups (Overdue, Today, Tomorrow, Rest of this week, Next week, Later), each row with its shift, its day and its project and milestone; then the undated ones by building, the ones behind their pace first, 3 each in the project's own order and Show all.
+- Sorting: under No shift, pointing at a row shows the three shifts, and one click tags it; the focus goes on to the next.
+- A row works like the status card's: the square ticks it, struck through for a moment, its particles bursting; the text opens it in its project; the pin and Copy task show while it is pointed at. Pointing at a row lights its building on the map. The arrow keys move between rows, Enter opens one and Space ticks it.
+- It opens on everything each time: opening on the last shift picked was left out.
+- Data: a task may carry `shift`, one of `create`, `think` or `errand`. `73-alltasks.js` holds the panel; `SHIFTS` and `setShift` live in `20-model.js`, the mark in `22-repeat.js`.
+- Tests: test35_all_tasks; test28 knows the longer hint line.
+
+## 0.1.52 (2026-10-21)
+
+After Abdurrahman's first leaders: Kryptos's portrait showed far smaller than the rest, since it was drawn small on a big see-through canvas (Pro Flash at 128 px, the figure 83 by 95 with 16 px clear under it), while the others fill their 256 px canvas.
+- Every leader's portrait is now framed by its figure: a square round its drawn pixels, the foot on the frame's foot and the figure 97% of its height, centred. A portrait that already fills its canvas, like Gus's, stays as it was.
+- The file is never changed: the art store keeps it as uploaded, and an animated GIF keeps playing, framed by its first frame. A picture with no see-through pixels is cropped square, from the top when it is tall.
+- A face shown larger than the portrait's own pixels grows in whole pixels; smaller, it shrinks smooth as before.
+- Portraits already in the city are framed on the next open.
+- Tests: test34_leaders, 9 more checks.
+
 ## 0.1.51 (2026-10-20)
 
 Leaders, first part: picking a leader for each building, from Abdurrahman's Leaders round of 20 October (L1 to L3). Talking comes later.

@@ -55,7 +55,8 @@ const Settings = (() => {
   const isOpen = () => !$('#settings').hidden;
   function open(tab) {
     if (tab) ui.tab = tab;
-    if (typeof Reports !== 'undefined') Reports.close(false);   // the two share the side bar
+    if (typeof Reports !== 'undefined') Reports.close(false);   // the three share the side bar
+    if (typeof AllTasks !== 'undefined') AllTasks.close(false);
     Menu.toggleDrawer(true);
     $('#sbLists').hidden = true; $('#settings').hidden = false;
     $('#menu').classList.add('in-settings');

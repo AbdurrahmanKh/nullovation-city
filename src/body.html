@@ -67,6 +67,7 @@
       </section>
       <div class="grow"></div>
       <div class="sb-foot">
+        <button id="btnOpenAllTasks" class="btn sb-settings sb-alltasks" type="button" title="All tasks (L)"><span id="sbTaskIcon" aria-hidden="true"></span>All tasks</button>
         <button id="btnOpenReports" class="btn sb-settings" type="button" title="Reports (R)"><span id="sbChartIcon" aria-hidden="true"></span>Reports</button>
         <button id="btnOpenSettings" class="btn sb-settings" type="button" title="Settings (comma key)"><span id="sbGearIcon" aria-hidden="true"></span>Settings</button>
       </div>
@@ -88,6 +89,7 @@
           <dt>Shortcuts</dt><dd>Right-click a building, or F with one selected</dd>
           <dt>Step inside</dt><dd>Enter, with a building selected</dd>
           <dt>Add a task</dt><dd>T, anywhere; /project names the building</dd>
+          <dt>All tasks</dt><dd>L opens and closes the list</dd>
           <dt>Reports</dt><dd>R opens and closes them</dd>
           <dt>Settings</dt><dd>The comma key opens and closes them</dd>
           <dt>Back</dt><dd>Esc closes one layer at a time</dd>
@@ -249,6 +251,19 @@
       <section id="pxCard" class="gus px-card" aria-label="Proxima Pace, Productivity Inspector"></section>
       <div id="rpTabs" class="set-tabs rp-tabs" role="tablist" aria-label="Reports"></div>
       <div id="rpBody" class="set-body"></div>
+    </div>
+
+    <div id="allTasks" class="settings all-tasks" tabindex="-1" aria-label="All tasks" hidden>
+      <header class="set-head">
+        <button id="atBack" class="icon-btn" type="button" aria-label="Back to the lists" title="Back to the lists"></button>
+        <h2 class="set-title">All tasks</h2>
+      </header>
+      <p id="atSum" class="at-sum" aria-live="polite"></p>
+      <label class="sr-only" for="atFind">Find a task</label>
+      <input id="atFind" class="field" type="search" dir="auto" placeholder="Find a task" autocomplete="off">
+      <div id="atShifts" class="at-shifts" role="group" aria-label="Shifts"></div>
+      <div id="atTiles" class="at-tiles" role="group" aria-label="Buildings"></div>
+      <div id="atList" class="at-list"></div>
     </div>
   </aside>
 

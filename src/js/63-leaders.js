@@ -2,9 +2,11 @@
    name, role, signature color and the buildings it leads), the picker beside the project view, the leader card under
    the building's picture, the line in the status card, and the face in the shortcut wheel's middle. A leader without a
    portrait shows a silhouette on its signature color, as the October design said. Portraits are read from the art
-   store once and kept here by leader. */
+   store once and kept here by leader. Every portrait is framed by its figure (0.1.52), so one drawn small on a big
+   see-through canvas fills its frame like the rest; the file itself is never changed. */
 const Leaders = (() => {
   const urls = new Map();                                    // a leader's id: its portrait's data address
+  const frames = new Map();                                  // a portrait's data address: how to frame it
   const PORTRAIT_MAX = 1024, PORTRAIT_BYTES = 3 * 1024 * 1024;
 
   /* ---------- a face: the portrait shrunk smooth into a frame of its signature color, or a silhouette ---------- */
@@ -22,15 +24,49 @@ const Leaders = (() => {
     el.style.setProperty('--ld', l.color);
     el.style.setProperty('--ld-ring', shadeHex(l.color, -0.45));
     const src = url !== undefined ? url : (l.portrait ? urls.get(l.id) : null);
-    if (src) el.append(h('img', { class: 'face-pic', alt: '', src, draggable: 'false' }));
+    if (src) el.append(placed(h('img', { class: 'face-pic', alt: '', src, draggable: 'false' }), frames.get(src), size));
     else el.innerHTML = silhouette(l.color);
     return el;
+  }
+  /* The figure's frame: a square round the portrait's drawn pixels, its foot on the frame's foot and the head a
+     little under its top, as Gus and Proxima fill theirs. A picture with no see-through pixels is cropped square,
+     from the top when it is tall. Read from the first frame, so an animated GIF keeps playing. */
+  const HEAD_ROOM = 0.97;                                    // the figure's height, of the frame's
+  function frameOf(img) {
+    const w = img.naturalWidth, hh = img.naturalHeight;
+    const c = document.createElement('canvas'); c.width = w; c.height = hh;
+    const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, w, hh).data;
+    let x0 = w, y0 = hh, x1 = -1, y1 = -1;
+    for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] >= 8) {
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    if (x1 < 0 || (x0 === 0 && y0 === 0 && x1 === w - 1 && y1 === hh - 1)) {
+      const s = Math.min(w, hh);
+      return { x: (w - s) / 2, y: hh > w ? 0 : (hh - s) / 2, s, w, h: hh };
+    }
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1, s = Math.max(bw, bh / HEAD_ROOM);
+    return { x: x0 + bw / 2 - s / 2, y: y1 + 1 - s, s, w, h: hh };
+  }
+  async function measure(url) {
+    if (!url || frames.has(url)) return frames.get(url) || null;
+    try { const f = frameOf(await loadImage(url)); frames.set(url, f); return f; } catch (e) { return null; }
+  }
+  /* The picture sized and moved so its frame fills the face; shrunk smooth, and grown in whole pixels. */
+  function placed(img, f, size) {
+    if (!f) return img;
+    const k = size / f.s;
+    img.classList.add('framed');
+    if (k > 1) img.classList.add('up');
+    Object.assign(img.style, { width: f.w * k + 'px', height: f.h * k + 'px', left: -f.x * k + 'px', top: -f.y * k + 'px' });
+    return img;
   }
   const noFace = size => { const el = h('span', { class: 'ld-face ld-none', 'aria-hidden': 'true' }); el.style.setProperty('--face', size + 'px'); return el; };
 
   /* ---------- portraits ---------- */
   async function loadAll() {
     for (const l of DB.leaders) if (l.portrait && !urls.has(l.id)) { const u = await Store.getArt(portraitKey(l.id)); if (u) urls.set(l.id, u); }
+    for (const u of urls.values()) await measure(u);
     refreshAll();
   }
   async function readPortrait(f) {
@@ -45,6 +81,7 @@ const Leaders = (() => {
   }
   async function putPortrait(l, url) {
     const kept = await Store.putArt(portraitKey(l.id), url);
+    await measure(url);
     urls.set(l.id, url); l.portrait = true;
     return kept;
   }
@@ -93,6 +130,7 @@ const Leaders = (() => {
         let url;
         try { url = await readPortrait(f); } catch (x) { err.textContent = x.message; err.hidden = false; return; }
         err.hidden = true;
+        await measure(url);
         if (isNew) draftUrl = url;
         else { const kept = await putPortrait(l, url); save(); if (!kept) toast('Portrait added for this session only: this browser is not saving it. Export a backup to keep it.', 'error'); }
         drawFace(); drawPortraitBtns();
@@ -283,5 +321,5 @@ const Leaders = (() => {
   }
 
   return { init, loadAll, renderSection, refreshAll, create, edit, pickList, card, statusLine, hub, face,
-    url: id => urls.get(id) || null, dropAll, restore, carry, adopt };
+    url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt };
 })();

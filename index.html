@@ -1251,6 +1251,8 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-face.round { border-radius: 50%; }
 .ld-face svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
 .ld-face .face-pic { object-fit: cover; }
+.ld-face .face-pic.framed { position: absolute; max-width: none; }   /* placed by its figure's frame (0.1.52) */
+.ld-face .face-pic.up { image-rendering: pixelated; }               /* grown: in whole pixels, never blurred */
 .ld-face.ld-none { background: transparent; box-shadow: none; outline: 2px dashed var(--edge); outline-offset: -2px; }
 .ld-name { color: color-mix(in srgb, var(--ld, #ECE8F6) 55%, #FFFFFF); }
 
@@ -1317,6 +1319,82 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .wheel-hub.has-leader { background: var(--ld); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
 .wheel-hub .ld-face { position: absolute; left: 4px; top: 4px; box-shadow: none; }
 
+/* ---------- shifts (All tasks, Round 3): Create, Think, Errand ---------- */
+.shift-create { --shift: #7FD6CE; }
+.shift-think { --shift: #B7A5F0; }
+.shift-errand { --shift: #A9E2BE; }
+.shift-tag { display: inline-flex; align-items: center; flex: none; height: 16px; padding: 0 5px; font: 400 11px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures;
+  color: #2B2542; background: var(--shift, var(--line)); vertical-align: 1px; white-space: nowrap; }
+.b-task .shift-tag, .task .row-shift { margin-inline-start: 6px; }
+.pv-next-shift { margin-left: auto; }
+.pv-next-shift + .pv-next-due { margin-left: 0; }
+.shift-dot { flex: none; width: 8px; height: 8px; background: var(--shift, transparent); box-shadow: 0 0 0 1px #0A0812; }
+.pv-shift-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.pv-shift-row .lbl { margin: 0 2px 0 0; }
+.pv-shift { display: inline-flex; align-items: center; gap: 6px; }
+.pv-shift.on { background: var(--hover); box-shadow: 0 0 0 2px var(--shift), 0 0 0 4px #0A0812; }
+
+/* ---------- All tasks (All tasks, Rounds 1 to 3) ---------- */
+.sb-alltasks { flex-basis: calc(100% - 4px); justify-content: flex-start; }      /* its own row, over Reports and Settings */
+.sb-alltasks > span { display: inline-flex; }
+.due-more-btn { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.due-more-btn:hover, .due-more-btn:focus-visible { color: var(--ink); outline: none; }
+#allTasks:focus { outline: none; }                         /* it takes the focus on opening, quietly, so L closes it again */
+.all-tasks .at-sum { margin: -4px 0 0; font-size: 13px; color: var(--ink-soft); }
+.all-tasks .at-sum b { color: var(--ink); font-weight: 500; }
+.all-tasks .at-sum b.late { color: var(--late); }
+.at-shifts { display: flex; flex-wrap: wrap; gap: 5px; }
+.at-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 7px 0 6px; margin: 2px; background: var(--field); border: 0; box-shadow: var(--px-edge);
+  color: var(--ink); font: 400 12.5px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; cursor: pointer; }
+.at-chip .n { color: var(--muted); font-size: 11.5px; }
+.at-chip:hover, .at-chip:focus-visible { background: var(--hover); outline: none; }
+.at-chip[aria-pressed="true"] { background: #3A2766; box-shadow: 0 0 0 2px #FFD23F, 0 0 0 4px #0A0812; }
+.at-tiles { display: flex; flex-wrap: wrap; gap: 6px; }
+.at-tile { position: relative; display: grid; place-items: end center; width: 40px; height: 40px; padding: 1px; margin: 2px; background: var(--field); border: 0; box-shadow: var(--px-edge);
+  color: var(--ink); font: 400 12px/1 var(--f-pixel); cursor: pointer; }
+.at-tile.all { place-items: center; }
+.at-tile:hover, .at-tile:focus-visible { background: var(--hover); outline: none; }
+.at-tile[aria-pressed="true"] { background: #3A2766; box-shadow: 0 0 0 2px #FFD23F, 0 0 0 4px #0A0812; }
+.at-tile canvas.thumb { width: 36px; height: auto; max-height: 36px; object-fit: contain; image-rendering: auto; }
+.at-tile b { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 3px; display: grid; place-items: center;
+  font: 400 11px/1 var(--f-pixel); color: var(--ink); background: var(--panel); box-shadow: 0 0 0 1px var(--edge); }
+.at-list { display: flex; flex-direction: column; gap: 10px; }
+.at-gh { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); }
+.at-gh .n { font-size: 12px; color: var(--muted); }
+.at-gh.late { color: var(--late); }
+.at-gt { flex: none; display: inline-grid; place-items: end center; width: 24px; height: 24px; }
+.at-gt canvas.thumb { width: 24px; height: auto; max-height: 24px; object-fit: contain; image-rendering: auto; }
+.at-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-nodate { margin-top: 2px; }
+.at-sep { height: 2px; background: var(--edge); opacity: .6; }
+.at-star { padding: 8px 10px 8px 8px; margin: 2px 4px; background: #3A2766; box-shadow: 0 0 0 2px #FFD23F, 0 0 0 4px #0A0812; }
+.at-star .at-gh { color: #FFD23F; }
+.at-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.at-row { display: flex; align-items: flex-start; gap: 6px; }
+.at-row .cb { flex: none; margin-top: 2px; }
+.at-row.ticked .at-task { text-decoration: line-through; color: var(--muted); }
+.at-row .at-body { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.at-task { padding: 0; background: none; border: 0; color: var(--ink); font: inherit; font-size: 13.5px; line-height: 1.35; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.at-task:hover, .at-task:focus-visible { text-decoration: underline; outline: none; }
+.at-task .repeat-mark { margin-inline-start: 6px; }
+.at-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.at-meta:empty { display: none; }
+.at-meta .due { margin: 0; font-size: 11.5px; }
+.at-tagit { display: none; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.at-row:hover .at-tagit, .at-row:focus-within .at-tagit { display: flex; }
+@media (hover: none) { .at-tagit { display: flex; } }
+.at-tag { border: 0; cursor: pointer; }
+.at-tag:hover, .at-tag:focus-visible { outline: 2px solid var(--ink); outline-offset: 0; }
+.at-row .task-mark { margin-top: -2px; }
+.at-copy { flex: none; width: 24px; height: 24px; padding: 0; margin-top: -2px; opacity: 0; }
+.at-row:hover .at-copy, .at-row:focus-within .at-copy { opacity: .75; }
+.at-copy:hover, .at-copy:focus-visible { opacity: 1; }
+@media (hover: none) { .at-copy { opacity: .6; } }
+.at-more { align-self: flex-start; margin: 6px 0 0 24px; padding: 0; background: none; border: 0; color: var(--muted); font: inherit; font-size: 12.5px; text-decoration: underline; cursor: pointer; }
+.at-more:hover, .at-more:focus-visible { color: var(--ink); outline: none; }
+.at-bld { display: flex; flex-direction: column; }
+.at-empty { margin: 4px 0; }
+
 </style>
 </head>
 <body>
@@ -1324,7 +1402,7 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.51</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.53</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1389,6 +1467,7 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
       </section>
       <div class="grow"></div>
       <div class="sb-foot">
+        <button id="btnOpenAllTasks" class="btn sb-settings sb-alltasks" type="button" title="All tasks (L)"><span id="sbTaskIcon" aria-hidden="true"></span>All tasks</button>
         <button id="btnOpenReports" class="btn sb-settings" type="button" title="Reports (R)"><span id="sbChartIcon" aria-hidden="true"></span>Reports</button>
         <button id="btnOpenSettings" class="btn sb-settings" type="button" title="Settings (comma key)"><span id="sbGearIcon" aria-hidden="true"></span>Settings</button>
       </div>
@@ -1410,6 +1489,7 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
           <dt>Shortcuts</dt><dd>Right-click a building, or F with one selected</dd>
           <dt>Step inside</dt><dd>Enter, with a building selected</dd>
           <dt>Add a task</dt><dd>T, anywhere; /project names the building</dd>
+          <dt>All tasks</dt><dd>L opens and closes the list</dd>
           <dt>Reports</dt><dd>R opens and closes them</dd>
           <dt>Settings</dt><dd>The comma key opens and closes them</dd>
           <dt>Back</dt><dd>Esc closes one layer at a time</dd>
@@ -1571,6 +1651,19 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
       <section id="pxCard" class="gus px-card" aria-label="Proxima Pace, Productivity Inspector"></section>
       <div id="rpTabs" class="set-tabs rp-tabs" role="tablist" aria-label="Reports"></div>
       <div id="rpBody" class="set-body"></div>
+    </div>
+
+    <div id="allTasks" class="settings all-tasks" tabindex="-1" aria-label="All tasks" hidden>
+      <header class="set-head">
+        <button id="atBack" class="icon-btn" type="button" aria-label="Back to the lists" title="Back to the lists"></button>
+        <h2 class="set-title">All tasks</h2>
+      </header>
+      <p id="atSum" class="at-sum" aria-live="polite"></p>
+      <label class="sr-only" for="atFind">Find a task</label>
+      <input id="atFind" class="field" type="search" dir="auto" placeholder="Find a task" autocomplete="off">
+      <div id="atShifts" class="at-shifts" role="group" aria-label="Shifts"></div>
+      <div id="atTiles" class="at-tiles" role="group" aria-label="Buildings"></div>
+      <div id="atList" class="at-list"></div>
     </div>
   </aside>
 
@@ -2305,6 +2398,25 @@ const PARTICLE_KINDS = [['stars', 'Stars'], ['binary', 'Binary 0 and 1'], ['gold
   ['bubbles', 'Speech bubbles'], ['coins', 'Coins'], ['confetti', 'Confetti']];
 const PARTICLE_IDS = PARTICLE_KINDS.map(k => k[0]);
 
+/* A task's shift (All tasks, Round 3, and Abdurrahman's names): not what a task is, but how and when it can be done.
+   Create needs the screen and the keyboard, maybe Claude working beside it, in work hours (code, art, test); Think can
+   be done with pen and paper (design, write, decide); Errand is away from the screen (daily tasks, buying, a call).
+   One per task or none (K3), and only these three (K4). */
+const SHIFTS = [['create', 'Create'], ['think', 'Think'], ['errand', 'Errand']];
+const SHIFT_IDS = SHIFTS.map(s => s[0]);
+const SHIFT_HINTS = { create: 'At the screen and the keyboard, in work hours: code, art, testing',
+  think: 'Pen and paper will do: design, writing, a decision', errand: 'Away from the screen: daily tasks, buying, a call' };
+const shiftOf = x => (SHIFT_IDS.includes(x) ? x : '');
+const shiftName = id => (SHIFTS.find(s => s[0] === id) || [, ''])[1];
+/* Its tag, beside a task's repeat sign and in What is next. */
+const shiftTag = (t, cls = '') => t && t.shift ? h('span', { class: 'shift-tag shift-' + t.shift + (cls ? ' ' + cls : ''), title: 'Shift: ' + shiftName(t.shift) }, shiftName(t.shift)) : null;
+/* Setting a shift sorts the work; like a pin it is not work, so Updated and urgency stay and Activity is left alone. */
+function setShift(p, t, id) {
+  const s = shiftOf(id);
+  if (s) t.shift = s; else delete t.shift;
+  changed(p, { touch: false });
+}
+
 function blankProject(o = {}) {
   const now = Date.now();
   return Object.assign({
@@ -2393,6 +2505,7 @@ function taskForClaude(p, t, now = Date.now()) {
   const d = dueInfo(t, now);
   L.push('Due: ' + (d ? d.text : 'no date'));
   if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
+  if (t.shift) L.push('Shift: ' + shiftName(t.shift));
   L.push('State: ' + (t.done ? (t.archived ? 'done, in the archive' : 'done') : isWaiting(t, now) ? 'ticked; it comes back ' + backWhen(t, now) : 'open'));
   L.push('');
   L.push('## Description');
@@ -2423,6 +2536,7 @@ function milestoneForClaude(p, m, now = Date.now()) {
     L.push('', '### ' + t.text);
     if (d) L.push(d.text);
     if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
+    if (t.shift) L.push('Shift: ' + shiftName(t.shift));
     L.push((t.description || '').trim() || 'No description yet.');
   }
   if (waiting.length) { L.push('', '## Repeats waiting for their next date'); for (const t of waiting) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')'); }
@@ -2523,7 +2637,7 @@ function sanitizeProjects(raw) {
         id: typeof t.id === 'string' && t.id ? t.id : uid('t'), text: t.text.slice(0, 500), description: typeof t.description === 'string' ? t.description.slice(0, 8000) : '',
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
-        ...readRepeat(t), ...readArchive(t),
+        ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}),
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed, ...(m.archiveCollapsed === true ? { archiveCollapsed: true } : {}),
@@ -2750,7 +2864,7 @@ function readPlan(data) {
   const src = data.project && typeof data.project === 'object' ? data.project : data;
   const str = (x, n) => typeof x === 'string' ? x.trim().slice(0, n) : '';
   const out = { name: str(src.name, 120), description: str(src.description, 8000), milestones: [], ideas: [], links: [] };
-  const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done, repeat: sanitizeRepeat(t.repeat) });
+  const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done, repeat: sanitizeRepeat(t.repeat), shift: shiftOf(t.shift) });
   if (Array.isArray(src.todos) && Array.isArray(src.milestones) && src.milestones.every(m => m && typeof m.id === 'string')) {
     for (const m of src.milestones) {                     // a project export: its archive stays with its own project
       const all = src.todos.filter(t => t && t.milestoneId === m.id && typeof t.text === 'string' && t.text.trim());
@@ -2778,7 +2892,7 @@ function readTasks(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('That is not a tasks file: it holds no JSON object.');
   const str = (x, n) => typeof x === 'string' ? x.trim().slice(0, n) : '';
   const tasks = (Array.isArray(data.tasks) ? data.tasks : []).filter(t => t && typeof t.text === 'string' && t.text.trim())
-    .map(t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), repeat: sanitizeRepeat(t.repeat) }));
+    .map(t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), repeat: sanitizeRepeat(t.repeat), shift: shiftOf(t.shift) }));
   if (!tasks.length) throw new Error('The file has no tasks, so there is nothing to add.');
   return { milestone: str(data.milestone, 120), tasks };
 }
@@ -2791,6 +2905,7 @@ function addTasks(p, tasks, target) {
   for (const t of tasks) {
     const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due });
     if (t.repeat) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat); }
+    if (t.shift) x.shift = t.shift;
     p.todos.push(x);
     logActivity(p, 'Added todo: ' + t.text);
   }
@@ -2811,6 +2926,7 @@ function applyPlan(p, plan, now = Date.now()) {
     for (const t of m.tasks) {
       const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due, done: t.done, doneAt: t.done ? now : null });
       if (t.repeat && !t.done) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat, now); }
+      if (t.shift) x.shift = t.shift;
       p.todos.push(x);
       tasks++;
     }
@@ -2990,7 +3106,7 @@ function readDateMark(a, b, now = Date.now()) {
 function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
   const words = String(text || '').trim().split(/\s+/).filter(Boolean);
   const title = [], dates = [];
-  let rep = null, ms = null, project = null, marks = 0;
+  let rep = null, ms = null, project = null, shift = '', marks = 0;
   for (let i = 0; i < words.length; i++) {
     const w = words[i], head = w[0], rest = w.slice(1), low = rest.toLowerCase();
     if (head === '!' && rest) {
@@ -3003,6 +3119,9 @@ function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
         if (/^days?$/i.test(a)) { rep = { every: 'day', n: 1 }; i += 1; marks++; continue; }
         if (/^\d{1,3}$/.test(a) && +a >= 1 && +a <= 365 && /^days?$/i.test(b)) { rep = { every: 'day', n: +a }; i += 2; marks++; continue; }
       }
+    } else if (head === '+' && /^\p{L}/u.test(rest)) {          // a shift: +create, +think, +errand, or the start of one
+      const s = SHIFT_IDS.find(id => id.startsWith(low));         // a + word that names none stays in the title
+      if (s) { shift = s; marks++; continue; }
     } else if (head === '@' && rest) { ms = rest; marks++; continue; }
     else if (head === '/' && rest && cityWide) { project = rest; marks++; continue; }
     title.push(w);
@@ -3019,7 +3138,7 @@ function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
   else if (rep === 'yearly') repeat = { every: 'year', month: new Date(base).getMonth() + 1, day: new Date(base).getDate() };
   else if (rep) repeat = rep;
   const due = first != null ? ymd(first) : repeat ? ymd(today) : '';
-  return { title: title.join(' ').slice(0, 500), due, repeat, ms, project, marks };
+  return { title: title.join(' ').slice(0, 500), due, repeat, ms, project, shift, marks };
 }
 /* A name a mark points at: the first whose name is the mark, else starts with it, else has a word that starts with
    it; case, Arabic letter forms, and hyphens or underscores for spaces aside. */
@@ -3058,6 +3177,7 @@ function readTaskLine(text, { project = null, msId = null, cityWide = false, now
   }
   if (r.due) out.parts.push(dueWords(r.due, now));
   if (r.repeat) out.parts.push('Repeats ' + repeatText(r.repeat).replace(/^\w/, c => c.toLowerCase()));
+  if (r.shift) out.parts.push('Shift: ' + shiftName(r.shift));
   if (!out.problem && !r.title && r.marks) out.problem = 'Type the task too';
   out.ok = !out.problem && !!r.title && !!out.p;
   return out;
@@ -3075,6 +3195,7 @@ function addTaskLine(r) {
   if (ms) ms.collapsed = false;
   const t = Object.assign(todo(r.title, msId), { due: r.due });
   if (r.repeat) t.repeat = r.repeat;
+  if (r.shift) t.shift = r.shift;
   p.todos.push(t);
   normalizeOrder(p);
   logActivity(p, 'Added todo: ' + t.text);
@@ -3085,7 +3206,7 @@ function addTaskLine(r) {
 function taskLineHint(el, text, opts) {
   const r = readTaskLine(text, opts), empty = !String(text || '').trim();
   el.classList.toggle('bad', !empty && !!r.problem);
-  el.textContent = empty ? (opts.cityWide ? '/name project · ' : '') + '!fri date · #weekly repeat · @name milestone'
+  el.textContent = empty ? (opts.cityWide ? '/name project · ' : '') + '!fri date · #weekly repeat · @name milestone · +create shift'
     : [r.problem, ...r.parts].filter(Boolean).join(' · ');
   return r;
 }
@@ -3267,7 +3388,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.51";
+const APP_VERSION = "0.1.53";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -4048,6 +4169,7 @@ const MapView = (() => {
   const anim = { glide: null, zoom: null };
   const keys = new Set();
   let hoverId = null;
+  let lightId = null;                                     // a building lit from outside the map: a row pointed at in All tasks
   let mode = { name: 'idle' };               // idle | place {pendingName, pendingId, target} | move {id, target, gx, gy}
   let gesture = null;
   const pointers = new Map();
@@ -4611,7 +4733,7 @@ const MapView = (() => {
     if (clean) { /* postcard: no selection marks */ }
     else if (carried) { drawRing(rings.target, X, Y); drawRing(rings.targetRing, X, Y); }
     else if (p.id === App.selectedId && mode.name !== 'move') { drawRing(rings.selHi, X, Y); drawRing(rings.sel, X, Y); }
-    else if (p.id === hoverId && !slots) drawRing(rings.hover, X, Y);
+    else if ((p.id === hoverId || p.id === lightId) && !slots) drawRing(rings.hover, X, Y);
     const lift = carried ? 6 : 0;
     if (planting && planting.id === p.id && !clean) {
       const e = easeOut(clamp((performance.now() - planting.t0) / planting.dur, 0, 1));
@@ -5567,8 +5689,10 @@ const MapView = (() => {
   /* The same block the map draws, alone on a canvas at 1x: used as the art preview. */
   const blockPreview = p => livePreview(p);
 
+  /* Lights a building with the hover ring, the map left where it is (All tasks, D1); null puts it out. */
+  function light(id) { if (id !== lightId) { lightId = id || null; invalidate(); } }
   return {
-    init, invalidate, frameAll, setCam, select, deselect, glideTo, startPlace, cancelMode, anchors, blockPreview,
+    init, invalidate, frameAll, setCam, select, deselect, glideTo, startPlace, cancelMode, anchors, blockPreview, light, _lit: () => lightId,
     resizeWorld, outerRingEmpty, canResize, addLine, canLine, lineEmpty, hop, postcard, applyWorld, blockPng,
     moving: () => mode.name === 'move',
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
@@ -7845,7 +7969,8 @@ const Bubble = (() => {
         li.append(
           h('input', { type: 'checkbox', class: 'cb', checked: t.done || ticking.has(t.id), 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
           h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t),
-            t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null),
+            t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
+            shiftTag(t, 'b-shift')),
           ...(ticking.has(t.id) ? [] : markButtons(p, t, 'b-mark')),
           h('button', { class: 'icon-btn b-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));
         ul.append(li);
@@ -8281,6 +8406,7 @@ const FullView = (() => {
     box.append(h('div', { class: 'pv-next-msrow' },
       h('button', { class: 'pv-next-ms', type: 'button', title: 'Open this milestone', onclick: () => openMilestone(p, ms.id) },
         h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), h('span', { dir: 'auto' }, ms.name), h('span', { class: 'ms-count' }, countText(g))),
+      shiftTag(t, 'pv-next-shift'),
       d ? h('span', { class: 'due pv-next-due ' + (d.tone || ''), title: t.due }, d.diff > 1 ? 'Due ' + weekdayOf(t.due) + ' ' + fmtDate(parseYmd(t.due)) : d.text) : null));
     box.append(h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
       late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
@@ -8412,6 +8538,7 @@ const FullView = (() => {
     const d = t.done || wait ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
       t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
+      shiftTag(t, 'row-shift'),
       wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
       d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark'),
       canArchive(t) ? h('button', { class: 'icon-btn task-mark mark-archive', type: 'button', 'data-task': t.id, 'aria-label': 'Archive: ' + t.text,
@@ -8681,6 +8808,7 @@ const FullView = (() => {
         h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; setWaiting(t, false); due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
       t.done ? null : repeatEditor(p, t),
+      shiftEditor(p, t),
       !isOpenTask(t) ? null : h('div', { class: 'inline pv-task-marks' }, ...[
         ['pin', isPinned(p, t), 'Pinned', 'Pin as next', 'Comes first in What is next and the status card', on => setPin(p, t, on)],
         ['star', isStarred(p, t), 'Starred', 'Star for the city', 'The one task the whole city shows with a star, over its building; starring pins it too', on => setStar(p, t, on)],
@@ -8731,6 +8859,18 @@ const FullView = (() => {
         OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
+  }
+  /* Shift: Create, Think or Errand, one or none; a click on the pressed one takes it off. Like the rest of the panel,
+     Esc undoes it; on its own it is not work, so closing the panel leaves Updated alone. */
+  function shiftEditor(p, t) {
+    return h('div', { class: 'inline pv-shift-row', role: 'group', 'aria-label': 'Shift' }, h('span', { class: 'lbl' }, 'Shift'),
+      ...SHIFTS.map(([id, name]) => {
+        const on = t.shift === id;
+        return h('button', { class: 'btn btn-quiet btn-small pv-shift shift-' + id + (on ? ' on' : ''), type: 'button', 'data-shift': id, 'aria-pressed': String(on),
+          title: on ? name + '. Click to take it off.' : SHIFT_HINTS[id],
+          onclick: () => { setShift(p, t, on ? '' : id); render(); Bubble.refresh(); const b = side && $(`.pv-shift[data-shift="${id}"]`, side); if (b) b.focus(); } },
+          h('i', { class: 'shift-dot', 'aria-hidden': 'true' }), name);
+      }));
   }
   /* Repeat (R2): every day, every N days, weekly on chosen weekdays, monthly on a date, yearly. A task with no date
      gets the schedule's first one. Each change redraws the panel, so the focus goes back to the control it came from. */
@@ -9503,9 +9643,11 @@ const Picker = (() => {
    name, role, signature color and the buildings it leads), the picker beside the project view, the leader card under
    the building's picture, the line in the status card, and the face in the shortcut wheel's middle. A leader without a
    portrait shows a silhouette on its signature color, as the October design said. Portraits are read from the art
-   store once and kept here by leader. */
+   store once and kept here by leader. Every portrait is framed by its figure (0.1.52), so one drawn small on a big
+   see-through canvas fills its frame like the rest; the file itself is never changed. */
 const Leaders = (() => {
   const urls = new Map();                                    // a leader's id: its portrait's data address
+  const frames = new Map();                                  // a portrait's data address: how to frame it
   const PORTRAIT_MAX = 1024, PORTRAIT_BYTES = 3 * 1024 * 1024;
 
   /* ---------- a face: the portrait shrunk smooth into a frame of its signature color, or a silhouette ---------- */
@@ -9523,15 +9665,49 @@ const Leaders = (() => {
     el.style.setProperty('--ld', l.color);
     el.style.setProperty('--ld-ring', shadeHex(l.color, -0.45));
     const src = url !== undefined ? url : (l.portrait ? urls.get(l.id) : null);
-    if (src) el.append(h('img', { class: 'face-pic', alt: '', src, draggable: 'false' }));
+    if (src) el.append(placed(h('img', { class: 'face-pic', alt: '', src, draggable: 'false' }), frames.get(src), size));
     else el.innerHTML = silhouette(l.color);
     return el;
+  }
+  /* The figure's frame: a square round the portrait's drawn pixels, its foot on the frame's foot and the head a
+     little under its top, as Gus and Proxima fill theirs. A picture with no see-through pixels is cropped square,
+     from the top when it is tall. Read from the first frame, so an animated GIF keeps playing. */
+  const HEAD_ROOM = 0.97;                                    // the figure's height, of the frame's
+  function frameOf(img) {
+    const w = img.naturalWidth, hh = img.naturalHeight;
+    const c = document.createElement('canvas'); c.width = w; c.height = hh;
+    const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, w, hh).data;
+    let x0 = w, y0 = hh, x1 = -1, y1 = -1;
+    for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] >= 8) {
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    if (x1 < 0 || (x0 === 0 && y0 === 0 && x1 === w - 1 && y1 === hh - 1)) {
+      const s = Math.min(w, hh);
+      return { x: (w - s) / 2, y: hh > w ? 0 : (hh - s) / 2, s, w, h: hh };
+    }
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1, s = Math.max(bw, bh / HEAD_ROOM);
+    return { x: x0 + bw / 2 - s / 2, y: y1 + 1 - s, s, w, h: hh };
+  }
+  async function measure(url) {
+    if (!url || frames.has(url)) return frames.get(url) || null;
+    try { const f = frameOf(await loadImage(url)); frames.set(url, f); return f; } catch (e) { return null; }
+  }
+  /* The picture sized and moved so its frame fills the face; shrunk smooth, and grown in whole pixels. */
+  function placed(img, f, size) {
+    if (!f) return img;
+    const k = size / f.s;
+    img.classList.add('framed');
+    if (k > 1) img.classList.add('up');
+    Object.assign(img.style, { width: f.w * k + 'px', height: f.h * k + 'px', left: -f.x * k + 'px', top: -f.y * k + 'px' });
+    return img;
   }
   const noFace = size => { const el = h('span', { class: 'ld-face ld-none', 'aria-hidden': 'true' }); el.style.setProperty('--face', size + 'px'); return el; };
 
   /* ---------- portraits ---------- */
   async function loadAll() {
     for (const l of DB.leaders) if (l.portrait && !urls.has(l.id)) { const u = await Store.getArt(portraitKey(l.id)); if (u) urls.set(l.id, u); }
+    for (const u of urls.values()) await measure(u);
     refreshAll();
   }
   async function readPortrait(f) {
@@ -9546,6 +9722,7 @@ const Leaders = (() => {
   }
   async function putPortrait(l, url) {
     const kept = await Store.putArt(portraitKey(l.id), url);
+    await measure(url);
     urls.set(l.id, url); l.portrait = true;
     return kept;
   }
@@ -9594,6 +9771,7 @@ const Leaders = (() => {
         let url;
         try { url = await readPortrait(f); } catch (x) { err.textContent = x.message; err.hidden = false; return; }
         err.hidden = true;
+        await measure(url);
         if (isNew) draftUrl = url;
         else { const kept = await putPortrait(l, url); save(); if (!kept) toast('Portrait added for this session only: this browser is not saving it. Export a backup to keep it.', 'error'); }
         drawFace(); drawPortraitBtns();
@@ -9784,7 +9962,7 @@ const Leaders = (() => {
   }
 
   return { init, loadAll, renderSection, refreshAll, create, edit, pickList, card, statusLine, hub, face,
-    url: id => urls.get(id) || null, dropAll, restore, carry, adopt };
+    url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt };
 })();
 
 /* The shortcut wheel: right-click a building, or press F with one selected, and its shortcuts fan out round it like
@@ -10544,7 +10722,7 @@ const ClaudeWork = (() => {
           urgency: { system: urgencyName(p), state: u.color || 'calm', reasons: u.reasons },
           next: next ? next.text : null,
           milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)
-            open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}) })),
+            open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}), ...(t.shift ? { shift: shiftName(t.shift) } : {}) })),
             ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
             done: g.todos.filter(t => t.done && !t.archived).map(t => t.text) })),
           notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),
@@ -10920,7 +11098,8 @@ const Menu = (() => {
         h('span', { class: 'due-text', dir: 'auto' }, t.text),
         h('span', { class: 'due-meta' }, h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text), h('span', { class: 'due-proj', dir: 'auto' }, p.name))),
       h('button', { class: 'icon-btn due-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }))),
-      ...(items.length > shown.length ? [h('li', { class: 'due-more' }, 'and ' + (items.length - shown.length) + ' more')] : []));
+      ...(items.length > shown.length ? [h('li', { class: 'due-more' }, h('button', { class: 'due-more-btn', type: 'button', title: 'Every open task: All tasks (L)',
+        onclick: () => AllTasks.open() }, 'and ' + (items.length - shown.length) + ' more'))] : []));
   }
   /* The city's starred task (0.1.40): its building, the task and its project, a shortcut to the task. It shows
      until the task is unstarred, ticked or deleted. */
@@ -10956,6 +11135,7 @@ const Menu = (() => {
     if (typeof Leaders !== 'undefined') Leaders.renderSection();
     if (typeof Gus !== 'undefined') Gus.render();
     if (typeof Reports !== 'undefined') Reports.refresh();
+    if (typeof AllTasks !== 'undefined') AllTasks.refresh();
     if (typeof Proxima !== 'undefined') Proxima.renderDot();
     $('#mapSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
     const total = DB.projects.length;
@@ -11128,7 +11308,8 @@ const Settings = (() => {
   const isOpen = () => !$('#settings').hidden;
   function open(tab) {
     if (tab) ui.tab = tab;
-    if (typeof Reports !== 'undefined') Reports.close(false);   // the two share the side bar
+    if (typeof Reports !== 'undefined') Reports.close(false);   // the three share the side bar
+    if (typeof AllTasks !== 'undefined') AllTasks.close(false);
     Menu.toggleDrawer(true);
     $('#sbLists').hidden = true; $('#settings').hidden = false;
     $('#menu').classList.add('in-settings');
@@ -11344,6 +11525,273 @@ const Settings = (() => {
   return { init, open, close, toggle, isOpen, refresh, showTab, tab: () => ui.tab, resetTab, set, changed: changedFromDefault, storageUsed: () => StorageUse.used() };
 })();
 
+/* All tasks, the eighth of the task ideas (All tasks, Rounds 1 to 3): every open task in the city in one list. The side
+   bar turns into it as it does into Settings and Reports, with the map in view (L1). It opens from a button at the side
+   bar's foot, from L, or from Due this week's "and N more" line (A1).
+   - The words field narrows it by a task's title or description, its project's name or its milestone's (D1).
+   - The shift chips show one shift across the city, or the tasks with none, which a click on a shift tags (L1, sort).
+   - The building tiles show one building, each counting the shift picked; the map itself stays as it is (A2, L1).
+   - The starred task comes first (B2); then the dated tasks in day groups (C1); then the undated ones by building,
+     those behind their pace first, the furthest behind first, then by name (C2), 3 each and Show all (C3).
+   - A row says its project and milestone (B1); pointing at it lights its building on the map (D1); the square ticks
+     it, the text opens it, the arrow keys move between rows, Enter opens one and Space ticks it (D1).
+   It opens on everything each time: opening on the last shift picked was left out (L1). */
+const AllTasks = (() => {
+  const FIRST = 3;                                              // undated tasks a building shows before Show all (C3)
+  let shift = '';                                               // '' every shift, 'none' the untagged, else a shift
+  let building = '';                                            // a project's id, or '' for every building
+  let words = '';
+  const unfolded = new Set();                                   // buildings showing all their undated tasks
+  const ticking = new Map();                                    // a ticked row stays a moment, struck through
+  const was = new Map();                                        // a ticked repeat's state, for unticking it
+  const heldDue = new Map();                                    // a ticked row keeps its old date while it stays, so it stays put
+  const heldMark = new Map();                                   // and its star and pin, which the tick clears
+
+  const isOpen = () => !!$('#allTasks') && !$('#allTasks').hidden;
+  function open() {
+    shift = ''; building = ''; words = ''; unfolded.clear();
+    if (typeof Settings !== 'undefined') Settings.close(false);  // the three share the side bar
+    if (typeof Reports !== 'undefined') Reports.close(false);
+    Menu.toggleDrawer(true);
+    $('#sbLists').hidden = true; $('#allTasks').hidden = false;
+    $('#menu').classList.add('in-alltasks');
+    $('#menu').scrollTop = 0;
+    $('#atFind').value = '';
+    render();
+    $('#allTasks').focus({ preventScroll: true });            // not the field, so L closes it again; the down arrow goes to the rows
+  }
+  function close(refocus = true) {
+    if (!isOpen()) return false;
+    $('#allTasks').hidden = true;
+    if ((!$('#settings') || $('#settings').hidden) && (!$('#reports') || $('#reports').hidden)) $('#sbLists').hidden = false;
+    $('#menu').classList.remove('in-alltasks');
+    MapView.light(null);
+    if (refocus) $('#btnOpenAllTasks').focus({ preventScroll: true });
+    return true;
+  }
+  /* Shown: open, and on a narrow window in the open drawer. Opening a task closes the drawer over the list; L then
+     brings it back rather than closing it unseen. */
+  const shown = () => isOpen() && (!window.matchMedia('(max-width: 760px)').matches || $('#menu').classList.contains('open'));
+  const toggle = () => { if (shown()) close(); else open(); };
+
+  /* ---------- what the list holds ---------- */
+  const msOf = (p, t) => p.milestones.find(m => m.id === t.milestoneId) || null;
+  const fitsShift = (t, s = shift) => !s || (s === 'none' ? !t.shift : t.shift === s);
+  const fitsWords = (p, t, key) => !key || norm([t.text, t.description || '', p.name, (msOf(p, t) || {}).name || ''].join(' \n ')).includes(key);
+  /* Every open task that fits the words, with a ticked one held for its moment. */
+  function pool(now) {
+    const key = norm(words.trim()), out = [];
+    for (const p of DB.projects) for (const t of p.todos)
+      if ((isOpenTask(t, now) || ticking.has(t.id)) && fitsWords(p, t, key)) {
+        const m = heldMark.get(t.id);
+        out.push({ p, t, due: heldDue.has(t.id) ? heldDue.get(t.id) : t.due, star: m ? m.star : p.star === t.id, pin: m ? m.pin : p.pin === t.id });
+      }
+    return out;
+  }
+  /* How far behind its pace a building is: its urgency garbage, which only a building behind its pace has (C2). */
+  const behind = p => (typeof Garbage !== 'undefined' ? Garbage.breakdown(p).sys : 0);
+  function groupsFor(list, now) {
+    const ws = weekStartOf(now), thisEnd = addDays(ws, 7), nextEnd = addDays(ws, 14);
+    const star = list.find(x => x.star) || null;               // a ticked star stays in its card for its moment too
+    const rest = list.filter(x => x !== star);
+    const dated = rest.filter(x => x.due && parseYmd(x.due) != null)
+      .sort((a, b) => parseYmd(a.due) - parseYmd(b.due) || a.p.name.localeCompare(b.p.name));
+    const days = [['late', 'Overdue'], ['today', 'Today'], ['tomorrow', 'Tomorrow'], ['week', 'Rest of this week'], ['next', 'Next week'], ['later', 'Later']]
+      .map(([id, title]) => ({ id, title, rows: [] }));
+    const at = id => days.find(d => d.id === id).rows;
+    for (const x of dated) {
+      const diff = daysBetween(now, parseYmd(x.due)), due = parseYmd(x.due);
+      at(diff < 0 ? 'late' : diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : due < thisEnd ? 'week' : due < nextEnd ? 'next' : 'later').push(x);
+    }
+    const undated = rest.filter(x => !(x.due && parseYmd(x.due) != null));
+    const order = new Map();                                      // each project's own order: its pin, then its milestones
+    const projects = [...new Set(undated.map(x => x.p))];
+    for (const p of projects) {
+      const seq = groupsOf(p).flatMap(g => g.todos);
+      const marked = undated.find(x => x.p === p && x.pin), pin = marked ? marked.t : null;
+      (pin ? [pin, ...seq.filter(t => t !== pin)] : seq).forEach((t, i) => order.set(t.id, i));
+    }
+    const lag = new Map(projects.map(p => [p.id, behind(p)]));
+    projects.sort((a, b) => (lag.get(b.id) > 0) - (lag.get(a.id) > 0) || lag.get(b.id) - lag.get(a.id) || a.name.localeCompare(b.name));
+    const buildings = projects.map(p => ({ p, rows: undated.filter(x => x.p === p).sort((a, b) => order.get(a.t.id) - order.get(b.t.id)) }));
+    return { star, days: days.filter(d => d.rows.length), buildings };
+  }
+
+  /* ---------- drawing ---------- */
+  /* Redraws the list, keeping the focus on the control that had it, or the one now in its place. */
+  let lastSig = '';
+  function render(force = true) {
+    if (!isOpen()) return;
+    const now = Date.now();
+    const all = pool(now);
+    if (building && !getProject(building)) building = '';
+    /* A change elsewhere in the city redraws it only when something it shows changed, so a row under the pointer
+       stays put, and its buttons with it. */
+    const sig = JSON.stringify([ymd(now), shift, building, words, [...unfolded], all.map(x => [x.t.id, x.t.text, x.due, x.t.shift || '',
+      !!x.t.repeat, ticking.has(x.t.id), x.pin, x.star, (msOf(x.p, x.t) || {}).name || '']),
+      DB.projects.map(p => [p.id, p.name, p.generic, p.art.has, p.flip, behind(p)])]);
+    if (!force && sig === lastSig) return;
+    lastSig = sig;
+    const a = document.activeElement, key = a && $('#allTasks').contains(a) && a.id !== 'atFind' ? a.dataset.k : null;
+    const place = key ? $$('#allTasks [data-k]').indexOf(a) : -1, top = $('#menu').scrollTop;
+    const list = all.filter(x => fitsShift(x.t) && (!building || x.p.id === building));
+    summary(list, now);
+    chips(all.filter(x => !building || x.p.id === building));
+    tiles(all.filter(x => fitsShift(x.t)));
+    $('#atList').replaceChildren(...body(list, now));
+    $('#menu').scrollTop = top;
+    if (key) {
+      const els = $$('#allTasks [data-k]'), b = $(`#allTasks [data-k="${CSS.escape(key)}"]`) || els[Math.min(place, els.length - 1)];
+      if (b) b.focus({ preventScroll: true });
+    }
+  }
+  function refresh() { if (isOpen()) render(false); }
+  /* "34 open, 2 overdue, 5 due this week", for what the list shows (D1). */
+  function summary(list, now) {
+    const ws = weekStartOf(now), end = addDays(ws, 7);
+    const open = list.filter(x => !ticking.has(x.t.id)), dated = open.filter(x => x.due && parseYmd(x.due) != null);
+    const late = dated.filter(x => daysBetween(now, parseYmd(x.due)) < 0).length;
+    const week = dated.filter(x => daysBetween(now, parseYmd(x.due)) >= 0 && parseYmd(x.due) < end).length;
+    $('#atSum').replaceChildren(h('b', null, String(open.length)), ' open, ', h('b', { class: late ? 'late' : null }, String(late)), ' overdue, ',
+      h('b', null, String(week)), ' due this week');
+  }
+  function chips(list) {
+    const n = s => list.filter(x => !ticking.has(x.t.id) && fitsShift(x.t, s)).length, none = n('none');
+    const chip = (s, label, count) => h('button', { class: 'at-chip' + (s === 'none' ? '' : ' shift-' + s), type: 'button', 'data-k': 'shift-' + s, 'data-shift': s,
+      'aria-pressed': String(shift === s), title: shift === s ? 'Showing ' + label.toLowerCase() + '. Click to show every shift' : s === 'none' ? 'The tasks with no shift yet, to sort' : SHIFT_HINTS[s],
+      onclick: () => { shift = shift === s ? '' : s; render(); } }, h('i', { class: 'shift-dot', 'aria-hidden': 'true' }), label, h('span', { class: 'n' }, String(count)));
+    $('#atShifts').replaceChildren(...SHIFTS.map(([s, name]) => chip(s, name, n(s))), ...(none || shift === 'none' ? [chip('none', 'No shift', none)] : []));
+  }
+  function tiles(list) {
+    const count = new Map();
+    for (const x of list) if (!ticking.has(x.t.id)) count.set(x.p.id, (count.get(x.p.id) || 0) + 1);
+    const projects = DB.projects.filter(p => count.get(p.id) || p.id === building).sort((a, b) => a.name.localeCompare(b.name));
+    $('#atTiles').replaceChildren(
+      h('button', { class: 'at-tile all', type: 'button', 'data-k': 'tile-all', 'aria-pressed': String(!building), title: 'Every building', onclick: () => { building = ''; render(); } }, 'All'),
+      ...projects.map(p => {
+        const n = count.get(p.id) || 0;
+        return h('button', { class: 'at-tile', type: 'button', 'data-k': 'tile-' + p.id, 'data-p': p.id, 'aria-pressed': String(building === p.id),
+          title: p.name + ': ' + plural(n, 'task', 'tasks') + (building === p.id ? '. Click to show every building' : ''), 'aria-label': p.name + ', ' + plural(n, 'task', 'tasks'),
+          onclick: () => { building = building === p.id ? '' : p.id; render(); },
+          onpointerenter: () => MapView.light(p.id), onpointerleave: () => MapView.light(null), onfocus: () => MapView.light(p.id), onblur: () => MapView.light(null) },
+          MapView.thumb(p), h('b', null, String(n)));
+      }));
+  }
+  function body(list, now) {
+    if (!list.length) {
+      const any = DB.projects.some(p => p.todos.some(t => isOpenTask(t, now)));
+      return [h('p', { class: 'fv-empty at-empty' }, any ? 'No task fits.' : 'No open tasks in the city.'),
+        any ? h('button', { class: 'btn btn-quiet btn-small', type: 'button', 'data-k': 'clear', onclick: () => { shift = ''; building = ''; words = ''; $('#atFind').value = ''; render(); } }, 'Show every task') : null].filter(Boolean);
+    }
+    const G = groupsFor(list, now), out = [];
+    if (G.star) out.push(h('section', { class: 'at-star', 'aria-label': 'Starred' }, h('h3', { class: 'at-gh' }, iconEl('star', 12), 'Starred'),
+      h('ul', { class: 'at-rows' }, row(G.star, { chip: 'full', proj: true }, now))));
+    for (const d of G.days) out.push(h('section', { class: 'at-group', 'data-group': d.id },
+      h('h3', { class: 'at-gh' + (d.id === 'late' ? ' late' : '') }, d.title, h('span', { class: 'n' }, String(d.rows.length))),
+      h('ul', { class: 'at-rows' }, d.rows.map(x => row(x, { chip: d.id === 'today' || d.id === 'tomorrow' ? '' : 'day', proj: true }, now)))));
+    if (G.buildings.length) {
+      if (G.days.length || G.star) out.push(h('div', { class: 'at-sep', 'aria-hidden': 'true' }));
+      out.push(h('h3', { class: 'at-gh at-nodate' }, 'No due date', h('span', { class: 'n' }, String(G.buildings.reduce((s, b) => s + b.rows.length, 0)))));
+      const whole = !!building || !!words.trim();                 // one building picked, or words typed: everything shows
+      for (const { p, rows } of G.buildings) {
+        const all = whole || unfolded.has(p.id), shown = all ? rows : rows.slice(0, FIRST);
+        out.push(h('section', { class: 'at-group at-bld', 'data-p': p.id },
+          h('h3', { class: 'at-gh' }, h('span', { class: 'at-gt', 'aria-hidden': 'true' }, MapView.thumb(p)), h('span', { class: 'at-nm', dir: 'auto' }, p.name), h('span', { class: 'n' }, String(rows.length))),
+          h('ul', { class: 'at-rows' }, shown.map(x => row(x, { chip: '', proj: false }, now))),
+          rows.length > shown.length ? h('button', { class: 'at-more', type: 'button', 'data-k': 'more-' + p.id, onclick: () => { unfolded.add(p.id); render(); } }, 'Show all ' + rows.length) : null));
+      }
+    }
+    return out;
+  }
+  /* A row: the square, the task (with its repeat sign), then its shift, its date and where it lives; the pin and Copy
+     task while it is pointed at; and for a task with no shift, the three to tag it with one click. */
+  function row({ p, t, due: on }, { chip, proj }, now) {
+    const held = ticking.has(t.id), ms = msOf(p, t), d = dueInfo({ due: on }, now);
+    const due = !d || !chip ? null : d.tone === 'late' ? h('span', { class: 'due late' }, '! ' + d.text)
+      : h('span', { class: 'due ' + (d.tone || '') }, chip === 'full' ? dueWords(on, now) : weekdayOf(on) + ' ' + fmtDate(parseYmd(on)));
+    const where = proj ? p.name + (ms ? ' · ' + ms.name : '') : ms ? ms.name : '';
+    const meta = h('span', { class: 'at-meta' }, shift && shift !== 'none' ? null : shiftTag(t), due, where ? h('span', { class: 'at-where', dir: 'auto' }, where) : null);
+    const li = h('li', { class: 'at-row' + (held ? ' ticked' : ''), 'data-id': t.id, 'data-p': p.id,
+      onpointerenter: () => MapView.light(p.id), onpointerleave: () => MapView.light(null) });
+    li.addEventListener('focusin', () => MapView.light(p.id));
+    li.addEventListener('focusout', e => { if (!li.contains(e.relatedTarget)) MapView.light(null); });
+    const kids = [
+      h('input', { type: 'checkbox', class: 'cb', checked: held, 'data-k': 'cb-' + t.id, 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked) }),
+      h('span', { class: 'at-body' },
+        h('button', { class: 'at-task', type: 'button', dir: 'auto', 'data-k': 'task-' + t.id, title: 'Open this task', onclick: () => openTask(p, t) },
+          t.text, t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null),
+        meta,
+        !t.shift && !held ? h('span', { class: 'at-tagit', role: 'group', 'aria-label': 'Give it a shift' }, h('span', null, 'Shift:'),
+          ...SHIFTS.map(([s, name]) => h('button', { class: 'shift-tag shift-' + s + ' at-tag', type: 'button', 'data-k': 'tag-' + t.id + '-' + s, title: SHIFT_HINTS[s],
+            onclick: () => tag(p, t, s) }, name))) : null)];
+    if (!held) kids.push(...markButtons(p, t, 'at-mark'),
+      h('button', { class: 'icon-btn at-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));
+    li.append(...kids);
+    return li;
+  }
+  function openTask(p, t) { Menu.closeDrawer(); FullView.openTask(p.id, t.id); }
+  /* A tick plays as in the status card: the line stays struck through for a moment, then goes; a repeat moves on,
+     with its toast. Its particles burst through tickTask, as for a tick anywhere. */
+  function tick(p, t, checked) {
+    clearTimeout(ticking.get(t.id)); ticking.delete(t.id);
+    if (checked) {
+      heldDue.set(t.id, t.due); heldMark.set(t.id, { star: p.star === t.id, pin: p.pin === t.id });
+      const w = tickTask(p, t); if (t.repeat) { was.set(t.id, w); repeatToast(p, t, w); }
+      ticking.set(t.id, setTimeout(() => { ticking.delete(t.id); heldDue.delete(t.id); heldMark.delete(t.id); was.delete(t.id); render(); }, reducedMotion() ? 0 : 750));
+    } else { untickTask(p, t, was.get(t.id)); was.delete(t.id); heldDue.delete(t.id); heldMark.delete(t.id); }
+    changed(p);
+    if (FullView.isOpen()) FullView.render();
+  }
+  /* Sorting: a click on a shift tags the task, and the focus goes on to the next row still to sort. */
+  function tag(p, t, s) {
+    const rows = $$('#atList .at-row'), i = rows.findIndex(r => r.dataset.id === t.id);
+    const next = rows.slice(i + 1).find(r => $('.at-tagit', r));
+    setShift(p, t, s);                                           // redraws the list through the side bar's refresh
+    if (FullView.isOpen()) FullView.render();
+    const b = (next && $(`[data-k="${CSS.escape('task-' + next.dataset.id)}"]`, $('#atList'))) || $(`[data-k="${CSS.escape('task-' + t.id)}"]`, $('#atList'));
+    if (b) b.focus({ preventScroll: true });
+  }
+
+  /* ---------- keys: the arrows move between rows, Enter opens one (a button's own), Space ticks it ---------- */
+  function onKey(e) {
+    const tasks = $$('#atList .at-task'), at = e.target.closest && e.target.closest('.at-task');
+    if (e.key === 'ArrowDown' && (e.target.id === 'atFind' || e.target.id === 'allTasks') && tasks.length) { e.preventDefault(); e.stopPropagation(); tasks[0].focus(); return; }
+    if (!at) return;
+    const i = tasks.indexOf(at);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault(); e.stopPropagation();       // the map's arrow keys would move it too
+      const j = i + (e.key === 'ArrowDown' ? 1 : -1);
+      if (j >= 0 && j < tasks.length) tasks[j].focus();
+      else if (j < 0) $('#atFind').focus();
+    } else if (e.key === ' ') {
+      e.preventDefault(); e.stopPropagation();
+      const li = at.closest('.at-row'), cb = li && $('.cb', li);
+      if (cb && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+    }
+  }
+
+  function init() {
+    $('#atBack').innerHTML = iconSvg('back', 18);
+    $('#sbTaskIcon').innerHTML = iconSvg('task', 16);
+    $('#sbTaskIcon').style.display = 'inline-flex';
+    $('#atBack').addEventListener('click', () => close());
+    $('#btnOpenAllTasks').addEventListener('click', () => open());
+    const typed = debounce(() => render(), 120);
+    $('#atFind').addEventListener('input', e => { words = e.target.value; typed(); });
+    $('#allTasks').addEventListener('keydown', onKey);
+    /* L opens and closes the list, unless you are typing or a dialog is open, as R does Reports. */
+    window.addEventListener('keydown', e => {
+      if (e.code !== 'KeyL' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      const t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (Confirm.isOpen() || Panel.isOpen()) return;
+      e.preventDefault();
+      toggle();
+    });
+  }
+  return { init, open, close, toggle, isOpen, refresh, render, _state: () => ({ shift, building, words }), _groupsFor: groupsFor };   // the last two for the tests
+})();
+
 /* Reports, from the fourth of the task ideas (Tasks, Round 2, P1 to P3). The side bar turns into Reports as it does into
    Settings, with two tabs:
    - Weeks: tasks finished each week for the last 12 weeks, and by project for a week or a month;
@@ -11449,6 +11897,7 @@ const Reports = (() => {
   function open(tab) {
     if (tab && TABS.some(t => t.id === tab)) ui.tab = tab;
     if (typeof Settings !== 'undefined') Settings.close(false);
+    if (typeof AllTasks !== 'undefined') AllTasks.close(false);
     Menu.toggleDrawer(true);
     $('#sbLists').hidden = true; $('#reports').hidden = false;
     $('#menu').classList.add('in-reports');
@@ -11460,7 +11909,7 @@ const Reports = (() => {
   function close(refocus = true) {
     if (!isOpen()) return false;
     $('#reports').hidden = true;
-    if (!$('#settings') || $('#settings').hidden) $('#sbLists').hidden = false;
+    if ((!$('#settings') || $('#settings').hidden) && (!$('#allTasks') || $('#allTasks').hidden)) $('#sbLists').hidden = false;
     $('#menu').classList.remove('in-reports');
     if (refocus) $('#btnOpenReports').focus({ preventScroll: true });
     return true;
@@ -11935,6 +12384,7 @@ const Proxima = (() => {
   MapView.init();
   Settings.init();
   Reports.init();
+  AllTasks.init();
   Garbage.refresh();                                       // the garbage already lying there, with no truck
   Gus.init();                                              // the Garbage Man, and his first word of the day
   Proxima.init();                                          // the Productivity Inspector: a weekly or monthly report, after Gus
@@ -11975,6 +12425,7 @@ const Proxima = (() => {
     if (MapView.deselect()) return;
     if (Settings.close()) return;
     if (Reports.close()) return;
+    if (AllTasks.close()) return;
     Menu.closeDrawer();
   });
   /* The comma key opens and closes Settings, unless you are typing or a dialog is open. */

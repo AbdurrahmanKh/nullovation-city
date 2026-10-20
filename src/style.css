@@ -1237,6 +1237,8 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-face.round { border-radius: 50%; }
 .ld-face svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
 .ld-face .face-pic { object-fit: cover; }
+.ld-face .face-pic.framed { position: absolute; max-width: none; }   /* placed by its figure's frame (0.1.52) */
+.ld-face .face-pic.up { image-rendering: pixelated; }               /* grown: in whole pixels, never blurred */
 .ld-face.ld-none { background: transparent; box-shadow: none; outline: 2px dashed var(--edge); outline-offset: -2px; }
 .ld-name { color: color-mix(in srgb, var(--ld, #ECE8F6) 55%, #FFFFFF); }
 
@@ -1302,3 +1304,79 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 
 .wheel-hub.has-leader { background: var(--ld); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
 .wheel-hub .ld-face { position: absolute; left: 4px; top: 4px; box-shadow: none; }
+
+/* ---------- shifts (All tasks, Round 3): Create, Think, Errand ---------- */
+.shift-create { --shift: #7FD6CE; }
+.shift-think { --shift: #B7A5F0; }
+.shift-errand { --shift: #A9E2BE; }
+.shift-tag { display: inline-flex; align-items: center; flex: none; height: 16px; padding: 0 5px; font: 400 11px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures;
+  color: #2B2542; background: var(--shift, var(--line)); vertical-align: 1px; white-space: nowrap; }
+.b-task .shift-tag, .task .row-shift { margin-inline-start: 6px; }
+.pv-next-shift { margin-left: auto; }
+.pv-next-shift + .pv-next-due { margin-left: 0; }
+.shift-dot { flex: none; width: 8px; height: 8px; background: var(--shift, transparent); box-shadow: 0 0 0 1px #0A0812; }
+.pv-shift-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.pv-shift-row .lbl { margin: 0 2px 0 0; }
+.pv-shift { display: inline-flex; align-items: center; gap: 6px; }
+.pv-shift.on { background: var(--hover); box-shadow: 0 0 0 2px var(--shift), 0 0 0 4px #0A0812; }
+
+/* ---------- All tasks (All tasks, Rounds 1 to 3) ---------- */
+.sb-alltasks { flex-basis: calc(100% - 4px); justify-content: flex-start; }      /* its own row, over Reports and Settings */
+.sb-alltasks > span { display: inline-flex; }
+.due-more-btn { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.due-more-btn:hover, .due-more-btn:focus-visible { color: var(--ink); outline: none; }
+#allTasks:focus { outline: none; }                         /* it takes the focus on opening, quietly, so L closes it again */
+.all-tasks .at-sum { margin: -4px 0 0; font-size: 13px; color: var(--ink-soft); }
+.all-tasks .at-sum b { color: var(--ink); font-weight: 500; }
+.all-tasks .at-sum b.late { color: var(--late); }
+.at-shifts { display: flex; flex-wrap: wrap; gap: 5px; }
+.at-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 7px 0 6px; margin: 2px; background: var(--field); border: 0; box-shadow: var(--px-edge);
+  color: var(--ink); font: 400 12.5px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; cursor: pointer; }
+.at-chip .n { color: var(--muted); font-size: 11.5px; }
+.at-chip:hover, .at-chip:focus-visible { background: var(--hover); outline: none; }
+.at-chip[aria-pressed="true"] { background: #3A2766; box-shadow: 0 0 0 2px #FFD23F, 0 0 0 4px #0A0812; }
+.at-tiles { display: flex; flex-wrap: wrap; gap: 6px; }
+.at-tile { position: relative; display: grid; place-items: end center; width: 40px; height: 40px; padding: 1px; margin: 2px; background: var(--field); border: 0; box-shadow: var(--px-edge);
+  color: var(--ink); font: 400 12px/1 var(--f-pixel); cursor: pointer; }
+.at-tile.all { place-items: center; }
+.at-tile:hover, .at-tile:focus-visible { background: var(--hover); outline: none; }
+.at-tile[aria-pressed="true"] { background: #3A2766; box-shadow: 0 0 0 2px #FFD23F, 0 0 0 4px #0A0812; }
+.at-tile canvas.thumb { width: 36px; height: auto; max-height: 36px; object-fit: contain; image-rendering: auto; }
+.at-tile b { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 3px; display: grid; place-items: center;
+  font: 400 11px/1 var(--f-pixel); color: var(--ink); background: var(--panel); box-shadow: 0 0 0 1px var(--edge); }
+.at-list { display: flex; flex-direction: column; gap: 10px; }
+.at-gh { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); }
+.at-gh .n { font-size: 12px; color: var(--muted); }
+.at-gh.late { color: var(--late); }
+.at-gt { flex: none; display: inline-grid; place-items: end center; width: 24px; height: 24px; }
+.at-gt canvas.thumb { width: 24px; height: auto; max-height: 24px; object-fit: contain; image-rendering: auto; }
+.at-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-nodate { margin-top: 2px; }
+.at-sep { height: 2px; background: var(--edge); opacity: .6; }
+.at-star { padding: 8px 10px 8px 8px; margin: 2px 4px; background: #3A2766; box-shadow: 0 0 0 2px #FFD23F, 0 0 0 4px #0A0812; }
+.at-star .at-gh { color: #FFD23F; }
+.at-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.at-row { display: flex; align-items: flex-start; gap: 6px; }
+.at-row .cb { flex: none; margin-top: 2px; }
+.at-row.ticked .at-task { text-decoration: line-through; color: var(--muted); }
+.at-row .at-body { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.at-task { padding: 0; background: none; border: 0; color: var(--ink); font: inherit; font-size: 13.5px; line-height: 1.35; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.at-task:hover, .at-task:focus-visible { text-decoration: underline; outline: none; }
+.at-task .repeat-mark { margin-inline-start: 6px; }
+.at-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.at-meta:empty { display: none; }
+.at-meta .due { margin: 0; font-size: 11.5px; }
+.at-tagit { display: none; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.at-row:hover .at-tagit, .at-row:focus-within .at-tagit { display: flex; }
+@media (hover: none) { .at-tagit { display: flex; } }
+.at-tag { border: 0; cursor: pointer; }
+.at-tag:hover, .at-tag:focus-visible { outline: 2px solid var(--ink); outline-offset: 0; }
+.at-row .task-mark { margin-top: -2px; }
+.at-copy { flex: none; width: 24px; height: 24px; padding: 0; margin-top: -2px; opacity: 0; }
+.at-row:hover .at-copy, .at-row:focus-within .at-copy { opacity: .75; }
+.at-copy:hover, .at-copy:focus-visible { opacity: 1; }
+@media (hover: none) { .at-copy { opacity: .6; } }
+.at-more { align-self: flex-start; margin: 6px 0 0 24px; padding: 0; background: none; border: 0; color: var(--muted); font: inherit; font-size: 12.5px; text-decoration: underline; cursor: pointer; }
+.at-more:hover, .at-more:focus-visible { color: var(--ink); outline: none; }
+.at-bld { display: flex; flex-direction: column; }
+.at-empty { margin: 4px 0; }

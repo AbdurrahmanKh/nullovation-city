@@ -22,6 +22,15 @@ if not BIG.exists(): Image.new('RGBA', (1100, 40), (90, 160, 150, 255)).save(BIG
 if not HEAVY.exists():
     rnd = random.Random(7)
     Image.frombytes('RGBA', (1000, 1000), bytes(rnd.getrandbits(8) for _ in range(4_000_000))).save(HEAVY)
+# a portrait drawn small on a big see-through canvas, as Pro Flash's 128 px ones were (0.1.52): its figure from (19, 17)
+# to (101, 111), with 16 px clear under it; and a tall photo with no see-through pixels
+SMALL = DATA / 'leader-small.png'; TALL = DATA / 'leader-tall.jpg'
+if not SMALL.exists():
+    from PIL import ImageDraw
+    im = Image.new('RGBA', (128, 128), (0, 0, 0, 0)); ImageDraw.Draw(im).rectangle((19, 17, 101, 111), fill=(120, 80, 160, 255)); im.save(SMALL)
+if not TALL.exists(): Image.new('RGB', (100, 160), (200, 120, 90)).save(TALL, quality=95)
+import base64
+data_url = lambda path, kind: 'data:image/' + kind + ';base64,' + base64.b64encode(pathlib.Path(path).read_bytes()).decode()
 
 def watch(pg):
     pg.on('pageerror', lambda e: errors.append(str(e)))
@@ -240,6 +249,41 @@ with sync_playwright() as p:
     pg.click('#ldDone'); pg.wait_for_timeout(300)
     ok('Done closes it; the side bar and the card already show the changes', not pg.is_visible('.ld-panel')
        and ev(f"() => document.querySelector('.ld-tile[data-id=\"{gid}\"] .ld-tile-name').textContent") == 'Gus Grimsby')
+
+    # ---------- framing (0.1.52): every portrait fills its frame by its figure ----------
+    urls = {'small': data_url(SMALL, 'png'), 'gus': data_url(GUS, 'png'), 'tall': data_url(TALL, 'jpeg'), 'gif': data_url(fixture('test-live.gif'), 'gif')}
+    fr = ev("""async (u) => { const out = {}; for (const [k, v] of Object.entries(u)) out[k] = await Leaders.measure(v); return out; }""", urls)
+    sm = fr['small']
+    ok(f'a portrait drawn small is framed by its figure: a square round it, its foot on the frame\'s foot ({ {k: round(v, 2) for k, v in sm.items()} })',
+       abs(sm['s'] - 95 / 0.97) < 0.01 and abs(sm['y'] + sm['s'] - 112) < 0.01 and abs(sm['x'] + sm['s'] / 2 - (19 + 83 / 2)) < 0.01 and sm['w'] == 128)
+    ok(f'Gus, who fills his canvas, keeps his framing within 1% ({round(fr["gus"]["s"], 1)} of 256)', 253 <= fr['gus']['s'] <= 259)
+    ok(f'a picture with no see-through pixels is cropped square, from the top when tall ({fr["tall"]})', fr['tall'] == {'x': 0, 'y': 0, 's': 100, 'w': 100, 'h': 160})
+    shown = ev("""(u) => { const l = blankLeader({ color: '#B9A3E3' }), box = document.createElement('div');
+        box.style.cssText = 'position:fixed;left:0;top:0;z-index:99999;display:flex;gap:8px';
+        const faces = [Leaders.face(l, 64, { url: u.small }), Leaders.face(l, 128, { url: u.small }), Leaders.face(l, 64, { url: u.gus }), Leaders.face(l, 64, { url: u.gif })];
+        box.append(...faces); document.body.append(box);
+        const fig = (f, x0, y0, x1, y1) => { const i = f.querySelector('img'), r = i.getBoundingClientRect(), F = f.getBoundingClientRect(), k = r.width / i.naturalWidth;
+          return { top: r.top + y0 * k - F.top, bottom: r.top + y1 * k - F.top, left: r.left + x0 * k - F.left, right: r.left + x1 * k - F.left, size: F.width,
+            render: getComputedStyle(i).imageRendering, src: i.getAttribute('src').slice(0, 15) }; };
+        const out = [fig(faces[0], 19, 17, 102, 112), fig(faces[1], 19, 17, 102, 112), fig(faces[2], 6, 8, 250, 256), fig(faces[3], 0, 0, 1, 1)];
+        box.remove(); return out; }""", urls)
+    a, big, g, gif = shown
+    ok(f'on screen it fills the face: the figure 97% of its height, its foot on the face\'s foot, centred ({round(a["top"], 1)} to {round(a["bottom"], 1)} of 64)',
+       abs((a['bottom'] - a['top']) - 0.97 * 64) < 0.5 and abs(a['bottom'] - 64) < 0.5 and abs((a['left'] + a['right']) / 2 - 32) < 0.5)
+    ok(f'grown past its own size it stays in whole pixels; shrunk it is smooth ({big["render"]}, {g["render"]})', big['render'] == 'pixelated' and g['render'] == 'auto'
+       and abs(big['bottom'] - 128) < 0.5)
+    ok('Gus\'s figure still fills his face, foot on the foot', abs(g['bottom'] - 64) < 0.5 and g['top'] < 4)
+    ok('an animated GIF stays the GIF itself, framed by its first frame', gif['src'] == 'data:image/gif;')
+    pg.click(f'.ld-tile[data-id="{pid}"]'); pg.wait_for_timeout(250)
+    pg.set_input_files('.ld-panel input[type=file]', str(SMALL)); pg.wait_for_timeout(500)
+    up = ev(f"""async () => {{ const u = Leaders.url('{pid}'), i = document.querySelector('.ld-big img');
+        return {{ same: (await Store.getArt('leader:{pid}')) === u, framed: !!i && i.classList.contains('framed'), w: i && Math.round(parseFloat(i.style.width)),
+          card: !!document.querySelector('#pvLeader') }}; }}""")
+    ok(f'uploaded, the small portrait fills the panel\'s face, and the file is kept as it came ({up})', up['same'] and up['framed'] and up['w'] == round(128 * 128 / (95 / 0.97)))
+    pg.screenshot(path=str(SHOTS / '348-leader-framed.png'), clip={'x': 360, 'y': 120, 'width': 720, 'height': 240})
+    pg.click('.ld-portrait-btns >> text=Remove'); pg.wait_for_timeout(300)
+    pg.click('#ldDone'); pg.wait_for_timeout(300)
+    ok('and removed again, as it was', ev(f"() => !getLeader('{pid}').portrait"))
 
     # ---------- Claude knows the leader ----------
     cl = ev(f"""() => {{ const p = getProject('{gp}'), t = p.todos.find(t => !t.done), m = p.milestones[0];

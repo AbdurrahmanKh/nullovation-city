@@ -135,6 +135,25 @@ const PARTICLE_KINDS = [['stars', 'Stars'], ['binary', 'Binary 0 and 1'], ['gold
   ['bubbles', 'Speech bubbles'], ['coins', 'Coins'], ['confetti', 'Confetti']];
 const PARTICLE_IDS = PARTICLE_KINDS.map(k => k[0]);
 
+/* A task's shift (All tasks, Round 3, and Abdurrahman's names): not what a task is, but how and when it can be done.
+   Create needs the screen and the keyboard, maybe Claude working beside it, in work hours (code, art, test); Think can
+   be done with pen and paper (design, write, decide); Errand is away from the screen (daily tasks, buying, a call).
+   One per task or none (K3), and only these three (K4). */
+const SHIFTS = [['create', 'Create'], ['think', 'Think'], ['errand', 'Errand']];
+const SHIFT_IDS = SHIFTS.map(s => s[0]);
+const SHIFT_HINTS = { create: 'At the screen and the keyboard, in work hours: code, art, testing',
+  think: 'Pen and paper will do: design, writing, a decision', errand: 'Away from the screen: daily tasks, buying, a call' };
+const shiftOf = x => (SHIFT_IDS.includes(x) ? x : '');
+const shiftName = id => (SHIFTS.find(s => s[0] === id) || [, ''])[1];
+/* Its tag, beside a task's repeat sign and in What is next. */
+const shiftTag = (t, cls = '') => t && t.shift ? h('span', { class: 'shift-tag shift-' + t.shift + (cls ? ' ' + cls : ''), title: 'Shift: ' + shiftName(t.shift) }, shiftName(t.shift)) : null;
+/* Setting a shift sorts the work; like a pin it is not work, so Updated and urgency stay and Activity is left alone. */
+function setShift(p, t, id) {
+  const s = shiftOf(id);
+  if (s) t.shift = s; else delete t.shift;
+  changed(p, { touch: false });
+}
+
 function blankProject(o = {}) {
   const now = Date.now();
   return Object.assign({
@@ -223,6 +242,7 @@ function taskForClaude(p, t, now = Date.now()) {
   const d = dueInfo(t, now);
   L.push('Due: ' + (d ? d.text : 'no date'));
   if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
+  if (t.shift) L.push('Shift: ' + shiftName(t.shift));
   L.push('State: ' + (t.done ? (t.archived ? 'done, in the archive' : 'done') : isWaiting(t, now) ? 'ticked; it comes back ' + backWhen(t, now) : 'open'));
   L.push('');
   L.push('## Description');
@@ -253,6 +273,7 @@ function milestoneForClaude(p, m, now = Date.now()) {
     L.push('', '### ' + t.text);
     if (d) L.push(d.text);
     if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
+    if (t.shift) L.push('Shift: ' + shiftName(t.shift));
     L.push((t.description || '').trim() || 'No description yet.');
   }
   if (waiting.length) { L.push('', '## Repeats waiting for their next date'); for (const t of waiting) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')'); }
@@ -353,7 +374,7 @@ function sanitizeProjects(raw) {
         id: typeof t.id === 'string' && t.id ? t.id : uid('t'), text: t.text.slice(0, 500), description: typeof t.description === 'string' ? t.description.slice(0, 8000) : '',
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
-        ...readRepeat(t), ...readArchive(t),
+        ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}),
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed, ...(m.archiveCollapsed === true ? { archiveCollapsed: true } : {}),
@@ -580,7 +601,7 @@ function readPlan(data) {
   const src = data.project && typeof data.project === 'object' ? data.project : data;
   const str = (x, n) => typeof x === 'string' ? x.trim().slice(0, n) : '';
   const out = { name: str(src.name, 120), description: str(src.description, 8000), milestones: [], ideas: [], links: [] };
-  const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done, repeat: sanitizeRepeat(t.repeat) });
+  const task = t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), done: !!t.done, repeat: sanitizeRepeat(t.repeat), shift: shiftOf(t.shift) });
   if (Array.isArray(src.todos) && Array.isArray(src.milestones) && src.milestones.every(m => m && typeof m.id === 'string')) {
     for (const m of src.milestones) {                     // a project export: its archive stays with its own project
       const all = src.todos.filter(t => t && t.milestoneId === m.id && typeof t.text === 'string' && t.text.trim());
@@ -608,7 +629,7 @@ function readTasks(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('That is not a tasks file: it holds no JSON object.');
   const str = (x, n) => typeof x === 'string' ? x.trim().slice(0, n) : '';
   const tasks = (Array.isArray(data.tasks) ? data.tasks : []).filter(t => t && typeof t.text === 'string' && t.text.trim())
-    .map(t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), repeat: sanitizeRepeat(t.repeat) }));
+    .map(t => ({ text: str(t.text, 500), description: str(t.description, 8000), due: validDue(t.due), repeat: sanitizeRepeat(t.repeat), shift: shiftOf(t.shift) }));
   if (!tasks.length) throw new Error('The file has no tasks, so there is nothing to add.');
   return { milestone: str(data.milestone, 120), tasks };
 }
@@ -621,6 +642,7 @@ function addTasks(p, tasks, target) {
   for (const t of tasks) {
     const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due });
     if (t.repeat) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat); }
+    if (t.shift) x.shift = t.shift;
     p.todos.push(x);
     logActivity(p, 'Added todo: ' + t.text);
   }
@@ -641,6 +663,7 @@ function applyPlan(p, plan, now = Date.now()) {
     for (const t of m.tasks) {
       const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due, done: t.done, doneAt: t.done ? now : null });
       if (t.repeat && !t.done) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat, now); }
+      if (t.shift) x.shift = t.shift;
       p.todos.push(x);
       tasks++;
     }

@@ -22,6 +22,7 @@ const MapView = (() => {
   const anim = { glide: null, zoom: null };
   const keys = new Set();
   let hoverId = null;
+  let lightId = null;                                     // a building lit from outside the map: a row pointed at in All tasks
   let mode = { name: 'idle' };               // idle | place {pendingName, pendingId, target} | move {id, target, gx, gy}
   let gesture = null;
   const pointers = new Map();
@@ -585,7 +586,7 @@ const MapView = (() => {
     if (clean) { /* postcard: no selection marks */ }
     else if (carried) { drawRing(rings.target, X, Y); drawRing(rings.targetRing, X, Y); }
     else if (p.id === App.selectedId && mode.name !== 'move') { drawRing(rings.selHi, X, Y); drawRing(rings.sel, X, Y); }
-    else if (p.id === hoverId && !slots) drawRing(rings.hover, X, Y);
+    else if ((p.id === hoverId || p.id === lightId) && !slots) drawRing(rings.hover, X, Y);
     const lift = carried ? 6 : 0;
     if (planting && planting.id === p.id && !clean) {
       const e = easeOut(clamp((performance.now() - planting.t0) / planting.dur, 0, 1));
@@ -1541,8 +1542,10 @@ const MapView = (() => {
   /* The same block the map draws, alone on a canvas at 1x: used as the art preview. */
   const blockPreview = p => livePreview(p);
 
+  /* Lights a building with the hover ring, the map left where it is (All tasks, D1); null puts it out. */
+  function light(id) { if (id !== lightId) { lightId = id || null; invalidate(); } }
   return {
-    init, invalidate, frameAll, setCam, select, deselect, glideTo, startPlace, cancelMode, anchors, blockPreview,
+    init, invalidate, frameAll, setCam, select, deselect, glideTo, startPlace, cancelMode, anchors, blockPreview, light, _lit: () => lightId,
     resizeWorld, outerRingEmpty, canResize, addLine, canLine, lineEmpty, hop, postcard, applyWorld, blockPng,
     moving: () => mode.name === 'move',
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),

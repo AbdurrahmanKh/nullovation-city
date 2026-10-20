@@ -20,6 +20,7 @@
   MapView.init();
   Settings.init();
   Reports.init();
+  AllTasks.init();
   Garbage.refresh();                                       // the garbage already lying there, with no truck
   Gus.init();                                              // the Garbage Man, and his first word of the day
   Proxima.init();                                          // the Productivity Inspector: a weekly or monthly report, after Gus
@@ -60,6 +61,7 @@
     if (MapView.deselect()) return;
     if (Settings.close()) return;
     if (Reports.close()) return;
+    if (AllTasks.close()) return;
     Menu.closeDrawer();
   });
   /* The comma key opens and closes Settings, unless you are typing or a dialog is open. */

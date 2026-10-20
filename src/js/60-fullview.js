@@ -298,6 +298,7 @@ const FullView = (() => {
     box.append(h('div', { class: 'pv-next-msrow' },
       h('button', { class: 'pv-next-ms', type: 'button', title: 'Open this milestone', onclick: () => openMilestone(p, ms.id) },
         h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), h('span', { dir: 'auto' }, ms.name), h('span', { class: 'ms-count' }, countText(g))),
+      shiftTag(t, 'pv-next-shift'),
       d ? h('span', { class: 'due pv-next-due ' + (d.tone || ''), title: t.due }, d.diff > 1 ? 'Due ' + weekdayOf(t.due) + ' ' + fmtDate(parseYmd(t.due)) : d.text) : null));
     box.append(h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
       late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
@@ -429,6 +430,7 @@ const FullView = (() => {
     const d = t.done || wait ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
       t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
+      shiftTag(t, 'row-shift'),
       wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
       d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark'),
       canArchive(t) ? h('button', { class: 'icon-btn task-mark mark-archive', type: 'button', 'data-task': t.id, 'aria-label': 'Archive: ' + t.text,
@@ -698,6 +700,7 @@ const FullView = (() => {
         h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; setWaiting(t, false); due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
         d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
       t.done ? null : repeatEditor(p, t),
+      shiftEditor(p, t),
       !isOpenTask(t) ? null : h('div', { class: 'inline pv-task-marks' }, ...[
         ['pin', isPinned(p, t), 'Pinned', 'Pin as next', 'Comes first in What is next and the status card', on => setPin(p, t, on)],
         ['star', isStarred(p, t), 'Starred', 'Star for the city', 'The one task the whole city shows with a star, over its building; starring pins it too', on => setStar(p, t, on)],
@@ -748,6 +751,18 @@ const FullView = (() => {
         OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
+  }
+  /* Shift: Create, Think or Errand, one or none; a click on the pressed one takes it off. Like the rest of the panel,
+     Esc undoes it; on its own it is not work, so closing the panel leaves Updated alone. */
+  function shiftEditor(p, t) {
+    return h('div', { class: 'inline pv-shift-row', role: 'group', 'aria-label': 'Shift' }, h('span', { class: 'lbl' }, 'Shift'),
+      ...SHIFTS.map(([id, name]) => {
+        const on = t.shift === id;
+        return h('button', { class: 'btn btn-quiet btn-small pv-shift shift-' + id + (on ? ' on' : ''), type: 'button', 'data-shift': id, 'aria-pressed': String(on),
+          title: on ? name + '. Click to take it off.' : SHIFT_HINTS[id],
+          onclick: () => { setShift(p, t, on ? '' : id); render(); Bubble.refresh(); const b = side && $(`.pv-shift[data-shift="${id}"]`, side); if (b) b.focus(); } },
+          h('i', { class: 'shift-dot', 'aria-hidden': 'true' }), name);
+      }));
   }
   /* Repeat (R2): every day, every N days, weekly on chosen weekdays, monthly on a date, yearly. A task with no date
      gets the schedule's first one. Each change redraws the panel, so the focus goes back to the control it came from. */

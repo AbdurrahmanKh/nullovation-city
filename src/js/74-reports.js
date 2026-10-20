@@ -103,6 +103,7 @@ const Reports = (() => {
   function open(tab) {
     if (tab && TABS.some(t => t.id === tab)) ui.tab = tab;
     if (typeof Settings !== 'undefined') Settings.close(false);
+    if (typeof AllTasks !== 'undefined') AllTasks.close(false);
     Menu.toggleDrawer(true);
     $('#sbLists').hidden = true; $('#reports').hidden = false;
     $('#menu').classList.add('in-reports');
@@ -114,7 +115,7 @@ const Reports = (() => {
   function close(refocus = true) {
     if (!isOpen()) return false;
     $('#reports').hidden = true;
-    if (!$('#settings') || $('#settings').hidden) $('#sbLists').hidden = false;
+    if ((!$('#settings') || $('#settings').hidden) && (!$('#allTasks') || $('#allTasks').hidden)) $('#sbLists').hidden = false;
     $('#menu').classList.remove('in-reports');
     if (refocus) $('#btnOpenReports').focus({ preventScroll: true });
     return true;

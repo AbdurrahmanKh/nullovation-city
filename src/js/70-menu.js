@@ -86,7 +86,8 @@ const Menu = (() => {
         h('span', { class: 'due-text', dir: 'auto' }, t.text),
         h('span', { class: 'due-meta' }, h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text), h('span', { class: 'due-proj', dir: 'auto' }, p.name))),
       h('button', { class: 'icon-btn due-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }))),
-      ...(items.length > shown.length ? [h('li', { class: 'due-more' }, 'and ' + (items.length - shown.length) + ' more')] : []));
+      ...(items.length > shown.length ? [h('li', { class: 'due-more' }, h('button', { class: 'due-more-btn', type: 'button', title: 'Every open task: All tasks (L)',
+        onclick: () => AllTasks.open() }, 'and ' + (items.length - shown.length) + ' more'))] : []));
   }
   /* The city's starred task (0.1.40): its building, the task and its project, a shortcut to the task. It shows
      until the task is unstarred, ticked or deleted. */
@@ -122,6 +123,7 @@ const Menu = (() => {
     if (typeof Leaders !== 'undefined') Leaders.renderSection();
     if (typeof Gus !== 'undefined') Gus.render();
     if (typeof Reports !== 'undefined') Reports.refresh();
+    if (typeof AllTasks !== 'undefined') AllTasks.refresh();
     if (typeof Proxima !== 'undefined') Proxima.renderDot();
     $('#mapSize').textContent = WORLD.NU + ' by ' + WORLD.NV + ' plots';
     const total = DB.projects.length;

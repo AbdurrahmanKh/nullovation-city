@@ -155,7 +155,7 @@ function readDateMark(a, b, now = Date.now()) {
 function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
   const words = String(text || '').trim().split(/\s+/).filter(Boolean);
   const title = [], dates = [];
-  let rep = null, ms = null, project = null, marks = 0;
+  let rep = null, ms = null, project = null, shift = '', marks = 0;
   for (let i = 0; i < words.length; i++) {
     const w = words[i], head = w[0], rest = w.slice(1), low = rest.toLowerCase();
     if (head === '!' && rest) {
@@ -168,6 +168,9 @@ function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
         if (/^days?$/i.test(a)) { rep = { every: 'day', n: 1 }; i += 1; marks++; continue; }
         if (/^\d{1,3}$/.test(a) && +a >= 1 && +a <= 365 && /^days?$/i.test(b)) { rep = { every: 'day', n: +a }; i += 2; marks++; continue; }
       }
+    } else if (head === '+' && /^\p{L}/u.test(rest)) {          // a shift: +create, +think, +errand, or the start of one
+      const s = SHIFT_IDS.find(id => id.startsWith(low));         // a + word that names none stays in the title
+      if (s) { shift = s; marks++; continue; }
     } else if (head === '@' && rest) { ms = rest; marks++; continue; }
     else if (head === '/' && rest && cityWide) { project = rest; marks++; continue; }
     title.push(w);
@@ -184,7 +187,7 @@ function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
   else if (rep === 'yearly') repeat = { every: 'year', month: new Date(base).getMonth() + 1, day: new Date(base).getDate() };
   else if (rep) repeat = rep;
   const due = first != null ? ymd(first) : repeat ? ymd(today) : '';
-  return { title: title.join(' ').slice(0, 500), due, repeat, ms, project, marks };
+  return { title: title.join(' ').slice(0, 500), due, repeat, ms, project, shift, marks };
 }
 /* A name a mark points at: the first whose name is the mark, else starts with it, else has a word that starts with
    it; case, Arabic letter forms, and hyphens or underscores for spaces aside. */
@@ -223,6 +226,7 @@ function readTaskLine(text, { project = null, msId = null, cityWide = false, now
   }
   if (r.due) out.parts.push(dueWords(r.due, now));
   if (r.repeat) out.parts.push('Repeats ' + repeatText(r.repeat).replace(/^\w/, c => c.toLowerCase()));
+  if (r.shift) out.parts.push('Shift: ' + shiftName(r.shift));
   if (!out.problem && !r.title && r.marks) out.problem = 'Type the task too';
   out.ok = !out.problem && !!r.title && !!out.p;
   return out;
@@ -240,6 +244,7 @@ function addTaskLine(r) {
   if (ms) ms.collapsed = false;
   const t = Object.assign(todo(r.title, msId), { due: r.due });
   if (r.repeat) t.repeat = r.repeat;
+  if (r.shift) t.shift = r.shift;
   p.todos.push(t);
   normalizeOrder(p);
   logActivity(p, 'Added todo: ' + t.text);
@@ -250,7 +255,7 @@ function addTaskLine(r) {
 function taskLineHint(el, text, opts) {
   const r = readTaskLine(text, opts), empty = !String(text || '').trim();
   el.classList.toggle('bad', !empty && !!r.problem);
-  el.textContent = empty ? (opts.cityWide ? '/name project · ' : '') + '!fri date · #weekly repeat · @name milestone'
+  el.textContent = empty ? (opts.cityWide ? '/name project · ' : '') + '!fri date · #weekly repeat · @name milestone · +create shift'
     : [r.problem, ...r.parts].filter(Boolean).join(' · ');
   return r;
 }

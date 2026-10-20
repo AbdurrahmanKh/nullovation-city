@@ -125,7 +125,8 @@ const Bubble = (() => {
         li.append(
           h('input', { type: 'checkbox', class: 'cb', checked: t.done || ticking.has(t.id), 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
           h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t),
-            t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null),
+            t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
+            shiftTag(t, 'b-shift')),
           ...(ticking.has(t.id) ? [] : markButtons(p, t, 'b-mark')),
           h('button', { class: 'icon-btn b-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));
         ul.append(li);
