@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.50 (2026-10-20)
+
+After Abdurrahman's first look at the archive: its milestones fold.
+- Each milestone in the Archive view has a fold toggle before its flag, as in the task list. They all start open; a click, or Enter on the toggle, folds one to its name and count, and again opens it. The focus stays on the toggle.
+- The fold is the archive's own: folding a milestone there leaves it as it is in the list, and the other way round. It is kept on the milestone, `archiveCollapsed`, and travels with the city like the list's fold. The group with no milestone keeps its fold while the page is open.
+- Opening the archive at a milestone, from the count at its foot, or at a task, with Esc or Back to the archive, unfolds that milestone to show it.
+- Folding is not work: Updated and Activity stay.
+- Tests: test33_archive, 8 more checks.
+
 ## 0.1.49 (2026-10-20)
 
 Archiving, the seventh of the task ideas, designed in Archiving, Round 1, and built ahead of the third at Abdurrahman's call.

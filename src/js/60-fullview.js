@@ -476,6 +476,9 @@ const FullView = (() => {
   function openArchive(p, msId = null, taskId = null) {
     finishEdit(); adding = null;
     if (side) closeSide();
+    const t = taskId ? p.todos.find(x => x.id === taskId) : null, at = msId || (t && t.milestoneId);
+    const ms = at ? p.milestones.find(m => m.id === at) : null;
+    if (ms ? archFolded(p, ms) : t && archFolded(p, null)) setArchFolded(p, ms, false);   // opened at it, so it shows
     openSide('archive');
     const target = taskId ? $(`.pv-arch-task[data-id="${taskId}"] .pv-arch-title`, side) : msId ? $(`.pv-arch-group[data-msid="${msId}"] .pv-arch-ms`, side) : null;
     if (target) { target.scrollIntoView({ block: 'nearest' }); target.focus({ preventScroll: true }); }
@@ -489,17 +492,30 @@ const FullView = (() => {
     return true;
   }
   const tickedDay = t => (t.doneAt ? 'Ticked ' + weekdayOf(ymd(t.doneAt)) + ' ' + fmtDate(t.doneAt) : 'Done');
+  /* A milestone folds in the archive as it does in the list (0.1.50), each on its own: `archiveCollapsed` on the
+     milestone, kept with the city like `collapsed`. The group with no milestone keeps it while the page is open. */
+  const looseFolded = new Set();
+  const archFolded = (p, ms) => (ms ? !!ms.archiveCollapsed : looseFolded.has(p.id));
+  function setArchFolded(p, ms, on) {
+    if (!ms) { if (on) looseFolded.add(p.id); else looseFolded.delete(p.id); return; }
+    if (on) ms.archiveCollapsed = true; else delete ms.archiveCollapsed;
+    changed(p, { touch: false });
+  }
   function archiveView(p) {
     const groups = archiveGroups(p);
     const box = h('div', { class: 'pv-archive' },
       h('p', { class: 'note' }, 'Done tasks come here 7 days after their tick, or sooner by hand. Restore brings one back, done, for another 7 days.'));
     if (!groups.length) { box.append(h('p', { class: 'fv-empty' }, 'Nothing in the archive yet.')); return box; }
     for (const g of groups) {
-      box.append(h('section', { class: 'pv-arch-group', 'data-msid': g.ms ? g.ms.id : '' },
-        h('h3', { class: 'pv-arch-ms', tabindex: '-1' }, h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }),
-          h('span', { class: 'pv-arch-name', dir: 'auto' }, g.ms ? g.ms.name : 'No milestone'), h('span', { class: 'ms-count' }, '(' + g.tasks.length + ')'),
+      const name = g.ms ? g.ms.name : 'No milestone', folded = archFolded(p, g.ms), key = g.ms ? g.ms.id : '';
+      const toggle = h('button', { class: 'icon-btn ms-toggle pv-arch-toggle', type: 'button', 'aria-expanded': String(!folded), 'aria-label': (folded ? 'Expand ' : 'Collapse ') + name,
+        title: folded ? 'Show its tasks' : 'Fold it', html: iconSvg(folded ? 'caretR' : 'caretD', 10),
+        onclick: () => { setArchFolded(p, g.ms, !folded); renderSide(); const b = side && $(`.pv-arch-group[data-msid="${key}"] .pv-arch-toggle`, side); if (b) b.focus(); } });
+      box.append(h('section', { class: 'pv-arch-group' + (folded ? ' folded' : ''), 'data-msid': key },
+        h('h3', { class: 'pv-arch-ms', tabindex: '-1' }, toggle, h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }),
+          h('span', { class: 'pv-arch-name', dir: 'auto' }, name), h('span', { class: 'ms-count' }, '(' + g.tasks.length + ')'),
           g.whole ? h('span', { class: 'pv-arch-whole', title: 'Every task in it is archived, so the milestone is in the archive too. Restoring one brings it back.' }, 'Milestone archived') : null),
-        h('ul', { class: 'pv-arch-list' }, g.tasks.map(t => h('li', { class: 'pv-arch-task', 'data-id': t.id },
+        h('ul', { class: 'pv-arch-list', hidden: folded }, g.tasks.map(t => h('li', { class: 'pv-arch-task', 'data-id': t.id },
           h('div', { class: 'pv-arch-body' },
             h('button', { class: 'pv-arch-title', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) }, t.text),
             h('span', { class: 'pv-arch-day' }, tickedDay(t))),

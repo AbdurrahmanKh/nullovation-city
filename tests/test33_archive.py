@@ -83,6 +83,8 @@ with sync_playwright() as p:
         { text: 'a', done: true, doneAt: 5, archived: true, archivedAt: 9 }, { text: 'b', done: true, doneAt: 5, archived: true },
         { text: 'c', done: false, archived: true }, { text: 'd', done: true, archiveFrom: '2026-10-19' }, { text: 'e', done: true, archiveFrom: 'soon' }] }])[0].p.todos
         .map(t => [t.text, !!t.archived, t.archivedAt || null, t.archiveFrom || null])""")
+    ok('0.1.50 reading saved data keeps a milestone folded in the archive, apart from its fold in the list',
+       ev("() => sanitizeProjects([{ name: 'F', milestones: [{ id: 'f1', name: 'A', archiveCollapsed: true }, { id: 'f2', name: 'B', archiveCollapsed: 'yes', collapsed: true }] }])[0].p.milestones.map(m => [!!m.archiveCollapsed, m.collapsed])") == [[True, False], [False, True]])
     ok('reading saved data keeps the archive, on done tasks only, with a restore day only when it reads',
        rd == [['a', True, 9, None], ['b', True, 5, None], ['c', False, None, None], ['d', False, None, '2026-10-19'], ['e', False, None, None]])
 
@@ -167,6 +169,33 @@ with sync_playwright() as p:
     ok('each with Restore', ev("() => document.querySelectorAll('.pv-arch-restore').length") == 2)
     pg.screenshot(path=str(SHOTS / '331-archive-view.png'))
 
+    # folding a milestone in the archive, as in the list (0.1.50)
+    tog = lambda ms: f'.pv-arch-group[data-msid="{ms}"] .pv-arch-toggle'
+    ok('0.1.50 every milestone in the archive has a fold toggle, and starts open',
+       ev("() => [...document.querySelectorAll('.pv-arch-group')].map(g => g.querySelector('.pv-arch-toggle').getAttribute('aria-expanded') + ':' + !g.querySelector('.pv-arch-list').hidden)") == ['true:true', 'true:true'])
+    up0 = ev(f"() => {P}.updatedAt")
+    pg.click(tog('m_first')); pg.wait_for_timeout(200)
+    ok('a click folds it: its tasks hide, its name and count stay', not pg.is_visible('.pv-arch-group[data-msid="m_first"] .pv-arch-list') and
+       pg.is_visible('.pv-arch-group[data-msid="m_first"] .pv-arch-name') and ev(f"() => document.querySelector('{tog('m_first')}').getAttribute('aria-expanded')") == 'false')
+    ok('the focus stays on its toggle, and the other milestone stays open',
+       ev("() => document.activeElement.classList.contains('pv-arch-toggle') && document.activeElement.closest('.pv-arch-group').dataset.msid") == 'm_first' and
+       pg.is_visible('.pv-arch-group[data-msid="m_launch"] .pv-arch-list'))
+    ok('folding in the archive leaves the list\'s fold alone, and is not work',
+       ev(f"() => {P}.milestones.find(m => m.id === 'm_first').collapsed") is False and pg.is_visible('.ms[data-msid="m_first"] ul.tasks') and
+       ev(f"() => {P}.milestones.find(m => m.id === 'm_first').archiveCollapsed") is True and ev(f"() => {P}.updatedAt") == up0)
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    pg.click('#pvMore'); pg.wait_for_timeout(100); pg.click('.pv-menu-item >> nth=0'); pg.wait_for_timeout(250)
+    ok('it stays folded when the archive opens again', not pg.is_visible('.pv-arch-group[data-msid="m_first"] .pv-arch-list'))
+    pg.screenshot(path=str(SHOTS / '334-archive-folded.png'))
+    pg.focus(tog('m_first')); pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
+    ok('Enter on the toggle opens it again', pg.is_visible('.pv-arch-group[data-msid="m_first"] .pv-arch-list') and
+       ev(f"() => 'archiveCollapsed' in {P}.milestones.find(m => m.id === 'm_first')") is False)
+    pg.click(tog('m_first')); pg.wait_for_timeout(150)
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    pg.click(foot); pg.wait_for_timeout(300)
+    ok('opening the archive at a milestone, from its foot, unfolds it', pg.is_visible('.pv-arch-group[data-msid="m_first"] .pv-arch-list') and
+       ev("() => document.activeElement.closest('.pv-arch-group').dataset.msid") == 'm_first')
+
     # an archived task, opened from the archive (C2)
     pg.click('.pv-arch-title >> text=Draw the beds on a grid'); pg.wait_for_timeout(300)
     ok('C2 a click opens the archived task in the task panel, to read', pg.is_visible('#pvSide .pv-task-archived') and
@@ -177,8 +206,9 @@ with sync_playwright() as p:
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     ok('Esc goes back to the archive, with the task in view', pg.is_visible('#pvSide .pv-archive') and ev("() => document.activeElement.textContent") == 'Draw the beds on a grid')
     pg.click('.pv-arch-title >> text=Draw the beds on a grid'); pg.wait_for_timeout(200)
+    ev(f"() => {{ {P}.milestones.find(m => m.id === 'm_first').archiveCollapsed = true; }}")
     pg.click('#pvTaskBackArch'); pg.wait_for_timeout(200)
-    ok('Back to the archive does the same', pg.is_visible('#pvSide .pv-archive'))
+    ok('Back to the archive does the same, unfolding its milestone to show it', pg.is_visible('#pvSide .pv-archive') and ev("() => document.activeElement.textContent") == 'Draw the beds on a grid')
 
     # Restore (C1) from the archive
     quiet()

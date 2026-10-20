@@ -355,7 +355,7 @@ function sanitizeProjects(raw) {
         ...readRepeat(t), ...readArchive(t),
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
-        id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed,
+        id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed, ...(m.archiveCollapsed === true ? { archiveCollapsed: true } : {}),
       })),
       notes: (Array.isArray(r.notes) ? r.notes : []).filter(n => n && typeof n.text === 'string' && typeof n.at === 'number').map(n => ({
         id: typeof n.id === 'string' && n.id ? n.id : uid('n'), title: typeof n.title === 'string' ? n.title.slice(0, 200) : '', text: n.text.slice(0, 8000), at: n.at,
