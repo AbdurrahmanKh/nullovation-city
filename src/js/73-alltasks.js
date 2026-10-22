@@ -101,7 +101,7 @@ const AllTasks = (() => {
     /* A change elsewhere in the city redraws it only when something it shows changed, so a row under the pointer
        stays put, and its buttons with it. */
     const sig = JSON.stringify([ymd(now), shift, building, words, [...unfolded], all.map(x => [x.t.id, x.t.text, x.due, x.t.shift || '',
-      !!x.t.repeat, ticking.has(x.t.id), x.pin, x.star, (msOf(x.p, x.t) || {}).name || '']),
+      !!x.t.repeat, ticking.has(x.t.id), x.pin, x.star, (msOf(x.p, x.t) || {}).name || '', x.t.round ? roundStateText(roundState(x.t)) : '']),
       DB.projects.map(p => [p.id, p.name, p.generic, p.art.has, p.flip, behind(p)])]);
     if (!force && sig === lastSig) return;
     lastSig = sig;
@@ -183,7 +183,7 @@ const AllTasks = (() => {
     const due = !d || !chip ? null : d.tone === 'late' ? h('span', { class: 'due late' }, '! ' + d.text)
       : h('span', { class: 'due ' + (d.tone || '') }, chip === 'full' ? dueWords(on, now) : weekdayOf(on) + ' ' + fmtDate(parseYmd(on)));
     const where = proj ? p.name + (ms ? ' · ' + ms.name : '') : ms ? ms.name : '';
-    const meta = h('span', { class: 'at-meta' }, shift && shift !== 'none' ? null : shiftTag(t), due, where ? h('span', { class: 'at-where', dir: 'auto' }, where) : null);
+    const meta = h('span', { class: 'at-meta' }, held ? null : Rounds.hatButton(p, t, 'at-round'), shift && shift !== 'none' ? null : shiftTag(t), due, where ? h('span', { class: 'at-where', dir: 'auto' }, where) : null);
     const li = h('li', { class: 'at-row' + (held ? ' ticked' : ''), 'data-id': t.id, 'data-p': p.id,
       onpointerenter: () => MapView.light(p.id), onpointerleave: () => MapView.light(null) });
     li.addEventListener('focusin', () => MapView.light(p.id));

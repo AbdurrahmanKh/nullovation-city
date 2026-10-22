@@ -32,6 +32,8 @@ const Settings = (() => {
     cardSize: { tab: 'look', get: () => MapView.card().size, def: () => MapView.CARD_DEFAULT.size, set: v => MapView.setCard({ size: v }) },
     rest: { tab: 'projects', ...city('rest') }, away: { tab: 'projects', ...city('away') },
     explorer: { tab: 'links', get: () => explorerLinks(), def: () => false, set: v => { try { localStorage.setItem(EXPLORER_KEY, v ? '1' : '0'); } catch (e) { /* this visit only */ } if (FullView.isOpen()) FullView.render(); } },
+    /* where Wizard it opens the decision wizard (0.1.55): empty for the hosted one, or your own copy's address */
+    wizard: { tab: 'links', get: () => wizardSetting(), def: () => '', set: v => { try { if (v) localStorage.setItem(WIZARD_KEY, v); else localStorage.removeItem(WIZARD_KEY); } catch (e) { /* this visit only */ } } },
   };
   const changedFromDefault = k => !same(DEFS[k].get(), DEFS[k].def());
   function setCity(k, v) {
@@ -163,6 +165,12 @@ const Settings = (() => {
     $('#btnAwayClear').addEventListener('click', () => set('away', ''));
     /* Links */
     check('optExplorer', 'explorer');
+    $('#optWizard').placeholder = WIZARD_HOSTED;
+    $('#optWizard').addEventListener('change', e => {
+      const v = e.target.value.trim();
+      if (v && !/^(https?|file):\/\//i.test(v)) { toast('The wizard\'s address starts with https://, or file:// for a copy on this computer.', 'error'); e.target.value = wizardSetting(); return; }
+      set('wizard', v);
+    });
     $('#btnFolderSetup').addEventListener('click', () => {
       downloadBlob(new Blob([FOLDER_SETUP_PS1], { type: 'text/plain' }), 'nullovation-folder-links.ps1');
       toast('Saved nullovation-folder-links.ps1. Right-click it, choose Run with PowerShell, then turn on the setting.');
@@ -191,7 +199,7 @@ const Settings = (() => {
     life: () => { DEFS.traffic.set(true); for (const k of LIFE) DEFS[k].set(DEFS[k].def()); },
     look: () => { for (const k of ['light', 'hours', 'bubbles', 'garbage', 'ghosts', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
     projects: () => { DEFS.rest.set([]); DEFS.away.set(''); },
-    links: () => DEFS.explorer.set(false),
+    links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); },
   };
   function resetTab(id) { if (TAB_RESET[id]) { TAB_RESET[id](); refresh(); } }
 
@@ -229,6 +237,7 @@ const Settings = (() => {
     if (document.activeElement !== $('#optAway')) $('#optAway').value = c.away;
     $('#btnAwayClear').disabled = !c.away;
     $('#optExplorer').checked = explorerLinks();
+    if (document.activeElement !== $('#optWizard')) $('#optWizard').value = wizardSetting();
     /* the dots */
     const tabs = new Set();
     for (const row of $$('#setBody [data-set]')) {

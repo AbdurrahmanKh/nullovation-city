@@ -2,7 +2,7 @@
   Claude updates the city (0.1.36): Claude drops a change file into inbox/ in the Claude folder, and the city picks it
   up within a few seconds, with no Load plan or tasks. Each kind of change follows its own rule, as decided in Even
   Better Claude Connections, Round 1 (A1):
-    applies at once, with a toast and Undo:   add-tasks, add-note, add-link
+    applies at once, with a toast and Undo:   add-tasks, add-note, add-link, add-round (0.1.55)
     asks first, with Apply and Dismiss:       done (tick tasks), edit-description, replace-plan
   A change file is { app: 'nullovation-city', kind: 'change', version: 1, project, summary, changes: [{ do, ... }] }.
   What applies at once is applied, what asks first waits in inbox/pending/, and the file itself moves to inbox/done/
@@ -10,7 +10,7 @@
   One tab takes new files: the one that writes the data file.
 */
 const ClaudeInbox = (() => {
-  const AT_ONCE = new Set(['add-tasks', 'add-note', 'add-link']);
+  const AT_ONCE = new Set(['add-tasks', 'add-note', 'add-link', 'add-round']);
   const ASK = new Set(['done', 'edit-description', 'replace-plan']);
   const KEEP_DAYS = 14;                       // done and rejected files are cleared after two weeks
   let pending = [], pendingSig = '', busy = false, prunedDay = '';
@@ -71,6 +71,7 @@ const ClaudeInbox = (() => {
     }
     const now = data.changes.filter(c => c && AT_ONCE.has(c.do)), later = data.changes.filter(c => c && ASK.has(c.do));
     let undo = null;
+    for (const c of now) if (c.do === 'add-round') c._got = await Rounds.fromChange(dir, c);   // its round, read from wizard-rounds
     if (now.length) undo = applyNow(p, now, str(data.summary, 300));
     if (later.length) await put(await sub(dir, 'inbox/pending'), name, JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: p.name, summary: str(data.summary, 300), changes: later, received: Date.now() }, null, 1));
     await move(inbox, name, await sub(dir, 'inbox/done'), text);
@@ -91,7 +92,7 @@ const ClaudeInbox = (() => {
   /* ---------- what applies at once: adding, never removing ---------- */
   function applyNow(p, changes, summary) {
     const before = { todos: new Set(p.todos.map(t => t.id)), ms: new Set(p.milestones.map(m => m.id)) };
-    const added = { notes: [], links: [] };
+    const added = { notes: [], links: [], rounds: [] };
     let tasks = 0;
     for (const c of changes) {
       if (c.do === 'add-tasks') {
@@ -114,12 +115,20 @@ const ClaudeInbox = (() => {
         const l = { id: uid('l'), label: str(c.label, 120), url, icon: LINK_ICONS.includes(c.icon) ? c.icon : guessIcon(url), shortcut: true };
         p.links.push(l); added.links.push(l.id);
         logActivity(p, 'Claude added a link: ' + (l.label || suggestLabel(url)));
+      } else if (c.do === 'add-round') {
+        /* a wizard round for a task (0.1.55, W1): it replaces any round the task had (W6) */
+        const t = taskNamed(p, c.task) || taskNamed(p, c.task, false), got = c._got;
+        if (!t || !got) continue;
+        added.rounds.push({ id: t.id, was: t.round ? JSON.parse(JSON.stringify(t.round)) : null });
+        t.round = makeRound(got.w, got.file);
+        logActivity(p, 'Claude attached a wizard round to ' + t.text + ': ' + t.round.title);
       }
     }
-    const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links'))].filter(Boolean);
+    const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links')),
+      added.rounds.length && (added.rounds.length === 1 ? 'attached a wizard round' : 'attached ' + added.rounds.length + ' wizard rounds')].filter(Boolean);
     const what = bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] || '';
     if (what && summary) logActivity(p, 'Claude: ' + summary);
-    if (what) window.changed(p);
+    if (what) { window.changed(p); if (added.rounds.length && typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }
     return { what, todos: p.todos.filter(t => !before.todos.has(t.id)).map(t => t.id), ms: p.milestones.filter(m => !before.ms.has(m.id)).map(m => m.id), ...added };
   }
   function undoNow(p, u) {
@@ -127,6 +136,7 @@ const ClaudeInbox = (() => {
     p.todos = p.todos.filter(t => !drop.has(t.id));
     p.notes = p.notes.filter(n => !notes.has(n.id));
     p.links = p.links.filter(l => !links.has(l.id));
+    for (const r of u.rounds || []) { const t = p.todos.find(x => x.id === r.id); if (!t) continue; if (r.was) t.round = r.was; else delete t.round; }
     p.milestones = p.milestones.filter(m => !u.ms.includes(m.id) || p.todos.some(t => t.milestoneId === m.id));
     logActivity(p, 'Undid what Claude added');
     window.changed(p);

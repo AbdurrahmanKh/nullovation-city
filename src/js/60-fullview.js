@@ -291,7 +291,7 @@ const FullView = (() => {
         : p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
       return box;
     }
-    marks.append(...markButtons(p, t, 'next-mark', { chip: true }),
+    marks.append(...[Rounds.chip(p, t)].filter(Boolean), ...markButtons(p, t, 'next-mark', { chip: true }),
       ...(starred ? [h('span', { class: 'pv-starred', title: 'Starred for the city: set it in the task' }, iconEl('star', 12), 'Starred')] : []));
     const g = groupsOf(p).find(x => x.ms && x.ms.id === t.milestoneId) || currentGroup(p), ms = g.ms;
     const d = dueInfo(t), late = d && d.tone === 'late';
@@ -304,7 +304,7 @@ const FullView = (() => {
       late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
     box.append(h('div', { class: 'pv-next-row' },
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
-      OpenInClaude.button({ id: 'pvNextClaude', text: () => taskForClaude(p, t), project: p, quiet: true })));
+      OpenInClaude.button({ id: 'pvNextClaude', ...taskClaude(p, t), project: p, quiet: true })));
     const others = p.todos.filter(x => isOpenTask(x) && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;
     if (others) box.append(h('p', { class: 'pv-late-note' }, '! ' + plural(others, 'other task is', 'other tasks are') + ' overdue'));
     return box;
@@ -426,9 +426,10 @@ const FullView = (() => {
       changed(p); render();
       const again = $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     });
-    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark')) return; dragTask(e, p, li); });
+    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark, .round-hat')) return; dragTask(e, p, li); });
     const d = t.done || wait ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
+      Rounds.hatButton(p, t, 'row-round'),                                      // its wizard round (0.1.55)
       t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
       shiftTag(t, 'row-shift'),
       wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
@@ -645,6 +646,7 @@ const FullView = (() => {
     if (side) closeSide();
     const t = p.todos.find(x => x.id === id); if (!t) return;
     sideTask = id; taskSnap = clone(t); sideTicked = false;
+    Rounds.foldAll();                                                           // its round's answers start folded (P1a)
     openSide('task');
     const f = $('#pvTaskDesc', side); if (f) f.focus();
   }
@@ -665,7 +667,11 @@ const FullView = (() => {
   function cancelTask() {
     const p = P(); if (!p || !sideTask) return;
     const i = p.todos.findIndex(x => x.id === sideTask);
-    if (i >= 0 && taskSnap) p.todos[i] = taskSnap;
+    if (i >= 0 && taskSnap) {
+      const live = p.todos[i].round;                // a round came, went or was answered while open: Esc leaves it, as it leaves pins
+      p.todos[i] = taskSnap;
+      if (live) taskSnap.round = live; else delete taskSnap.round;
+    }
     changed(p, { touch: false });
     sideTask = null; taskSnap = null; sideTicked = false;
     side.remove(); side = null; sideMode = null;
@@ -712,10 +718,11 @@ const FullView = (() => {
       ].map(([kind, on, yes, no, title, set]) => h('button', { class: 'btn btn-quiet btn-small pv-mark' + (on ? ' on' : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
         'aria-pressed': String(on), title: on ? title + '. Click to take it off.' : title,
         onclick: () => { set(!on); render(); const b = side && $(`[data-mark="${kind}"]`, side); if (b) b.focus(); } }, iconEl(kind, 14, on ? undefined : 'transparent'), on ? yes : no))),
+      h('div', { class: 'pv-round-slot' }, Rounds.card(p, t)),                 // its wizard round (0.1.55, P1)
       h('span', { class: 'lbl' }, 'Description'), desc,
       h('div', { class: 'pv-claude-row' },
         h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
-        OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
+        OpenInClaude.button({ id: 'pvTaskClaude', ...taskClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' },
         h('button', { id: 'pvTaskToNote', class: 'btn btn-small', type: 'button', title: 'Keep it as an idea in Notes: its title and description stay; its date, repeat and shift go',
           onclick: () => turnIntoNote(p, t.id) }, iconEl('doc', 14), 'Turn into a note'),
@@ -751,11 +758,12 @@ const FullView = (() => {
           onclick: () => { restoreByHand(p, t); const b = side && $('#pvTaskArchive', side); if (b) b.focus(); } }, 'Restore'),
         h('button', { id: 'pvTaskBackArch', class: 'btn btn-quiet btn-small', type: 'button', onclick: () => backToArchive() }, iconEl('back', 14), 'Back to the archive')),
       t.due ? h('p', { class: 'note' }, 'It was due ' + weekdayOf(t.due) + ' ' + fmtDate(parseYmd(t.due)) + '.') : null,
+      t.round ? h('div', { class: 'pv-round-slot' }, Rounds.card(p, t, { readOnly: true })) : null,
       h('span', { class: 'lbl' }, 'Description'),
       desc ? h('div', { id: 'pvTaskDesc', class: 'note-text pv-arch-desc', tabindex: '-1' }, ...paragraphs(desc)) : h('p', { id: 'pvTaskDesc', class: 'fv-empty', tabindex: '-1' }, 'No description.'),
       h('div', { class: 'pv-claude-row' },
         h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
-        OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
+        OpenInClaude.button({ id: 'pvTaskClaude', text: kind => taskForClaude(p, t, Date.now(), { kind }), files: () => Rounds.files(t), project: p })),
       h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
   }
@@ -1289,6 +1297,7 @@ const FullView = (() => {
     if (!side) {
       side = h('aside', { id: 'pvSide', class: 'pv-side', role: 'region', tabindex: '-1' });
       $('#mapWrap').append(side);
+      dropOn(side);
     }
     sideMode = mode;
     renderSide();
@@ -1309,6 +1318,39 @@ const FullView = (() => {
     if (Math.abs(root.offsetWidth - was) > 1) render();    // the banner redraws at the new width
   }
   window.addEventListener('resize', () => placeSide());
+  /* A round file from a chat, or its answers, dropped on a task's panel (W1, P2): the line lights up while a file is
+     over the panel, and the drop attaches it. An archived task is to read, so it takes none. */
+  function dropOn(el) {
+    const task = () => { const p = P(), t = p && sideMode === 'task' && p.todos.find(x => x.id === sideTask); return t && !t.archived ? { p, t } : null; };
+    const files = e => !!(e.dataTransfer && [...e.dataTransfer.types].includes('Files'));
+    const show = on => {
+      const slot = $('.pv-round-slot', el), had = slot && $('.pv-round-drop', slot), at = task();
+      if (on && slot && !had && at) slot.prepend(Rounds.dropLine(at.t));
+      if (!on && had) had.remove();
+    };
+    el.addEventListener('dragover', e => { if (!files(e) || !task()) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; show(true); });
+    el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) show(false); });
+    el.addEventListener('drop', async e => {
+      if (!files(e)) return;
+      e.preventDefault();
+      show(false);
+      const at = task(); if (!at) return;
+      await Rounds.dropFile(at.p, at.t, e.dataTransfer.files[0]);
+    });
+  }
+  /* What Open in Claude sends for a task: its copy (the round's answers written in for a chat, C1), Make a wizard round's
+     request (M1), and the round's file for Cowork when its path is known. */
+  const taskClaude = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }),
+    round: isOpenTask(t) ? kind => taskForClaude(p, t, Date.now(), { kind, ask: true }) : null, files: () => Rounds.files(t) });
+  /* A round came, changed or went: its card and its hats, redrawn in place, so a description being typed keeps its place. */
+  function refreshRounds() {
+    const p = P(); if (!p || !root) return;
+    const typing = document.activeElement && side && side.contains(document.activeElement) && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if (!typing) { render(); return; }
+    const t = sideMode === 'task' && p.todos.find(x => x.id === sideTask), slot = side && $('.pv-round-slot', side);
+    if (t && slot) slot.replaceChildren(...[Rounds.card(p, t, { readOnly: !!t.archived })].filter(Boolean));
+    for (const b of $$('li.task .round-hat', root)) { const x = p.todos.find(y => y.id === b.dataset.task), nu = x && Rounds.hatButton(p, x, 'row-round'); if (nu) b.replaceWith(nu); else b.remove(); }
+  }
   function closeSide() {
     if (!side) return;
     if (sideMode === 'note') finishNote();
@@ -1580,6 +1622,6 @@ const FullView = (() => {
     scrollBy: dy => { const el = side && side.matches(':hover') ? side : root; if (el) el.scrollTop += dy; },
     isOpen: () => !!root, currentId: () => openId, shows: id => !!root && openId === id, rightEdge,
     openTask: (pid, tid) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid); },   // from the bubble: the view, with the task open beside it
-    popoverOpen: () => !!pop, closePopover,
+    popoverOpen: () => !!pop, closePopover, refreshRounds,
   };
 })();

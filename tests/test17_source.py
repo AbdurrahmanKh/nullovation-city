@@ -37,11 +37,20 @@ made = ['tests/shots/', 'tests/data/', 'art/out/', 'art/canon/out/', 'art/unslim
 ok(f'git leaves out every folder that runs make ({[m for m in made if m not in ignored] or "all listed"})', all(m in ignored for m in made))
 ok('nothing builds into a dist/ folder any more, and git has no rule for one', 'dist/' not in ignored)
 ok('GitHub Pages serves the page as it is: .nojekyll sits at the root', (ROOT / '.nojekyll').exists())
-WIZ = re.compile(r'wizard', re.I)
-wiz = [p.relative_to(ROOT).as_posix() for d in ('src', 'tests') for p in (ROOT / d).rglob('*')
-       if p.is_file() and p.suffix in ('.js', '.py', '.html', '.css', '.json') and p.name != 'test17_source.py'
-       and WIZ.search(p.read_text(encoding='utf-8', errors='replace').replace('Wizard sparkles', ''))]   # a particle kind's approved name (0.1.46)
-ok(f'the tool and its tests carry nothing of the decision wizard, which has its own repo ({wiz or "none"})', not wiz)
+# The decision wizard has its own repo (0.1.17): its skill and the starter city's Decision Wizard project left this one.
+# Since 0.1.55 the tool talks to it (a task's wizard round), so the checks are on what left, and on the wizard being
+# opened at its own address rather than shipped here.
+copies = [p.relative_to(ROOT).as_posix() for p in ROOT.rglob('*') if p.is_dir() and '.git' not in p.parts
+          and p.name.lower() in ('d-wizard', 'decision-wizard')]
+ok(f'no copy of the d-wizard skill or of the wizard itself in the repo ({copies or "none"})', not copies)
+model = (ROOT / 'src' / 'js' / '20-model.js').read_text(encoding='utf-8')
+seed = model[model.index('function seedProjects'):]
+seed = seed[:seed.index('\n}\n')]
+ok('a new city starts with Nullovation City alone: no Decision Wizard project, no chat links', 'wizard' not in seed.lower() and 'claude.ai/chat' not in seed)
+pages = [p.relative_to(ROOT).as_posix() for p in (ROOT / 'src').rglob('*.html') if p.name != 'body.html']
+rounds = (ROOT / 'src' / 'js' / '21-rounds.js').read_text(encoding='utf-8')
+ok(f'the wizard opens at its own address, and no page of it ships in the tool ({pages or "no other page"})',
+   not pages and 'https://abdurrahmankh.github.io/decision-wizard/' in rounds)
 
 # the knowledge, the rules and the skills travel with the code
 claude = (ROOT / 'CLAUDE.md').read_text(encoding='utf-8') if (ROOT / 'CLAUDE.md').exists() else ''

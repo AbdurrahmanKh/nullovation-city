@@ -168,7 +168,7 @@ def check_tasks(data, errors, warnings):
     return report(errors, warnings, f'{n} tasks' + (f' for the milestone "{ms}"' if ms else ', milestone picked when loading') + '.')
 
 
-CHANGES = {'done', 'add-note', 'add-tasks', 'edit-description', 'add-link', 'replace-plan'}
+CHANGES = {'done', 'add-note', 'add-tasks', 'edit-description', 'add-link', 'replace-plan', 'add-round'}
 
 
 def check_change(data, errors, warnings):
@@ -188,7 +188,7 @@ def check_change(data, errors, warnings):
             continue
         do = c['do']
         kinds.append(do)
-        if do in ('done', 'edit-description') and (not isinstance(c.get('task'), str) or not c['task'].strip()):
+        if do in ('done', 'edit-description', 'add-round') and (not isinstance(c.get('task'), str) or not c['task'].strip()):
             errors.append(f'{where} ({do}) needs "task": the task title, exactly as in the summary')
         if do == 'edit-description' and (not isinstance(c.get('description'), str) or not c['description'].strip()):
             errors.append(f'{where} (edit-description) needs the whole new "description"')
@@ -203,6 +203,12 @@ def check_change(data, errors, warnings):
             else:
                 for j, task in enumerate(tasks):
                     check_task(task, f'{where}, task {j + 1}', errors, warnings, seen, where)
+        if do == 'add-round':
+            name = c.get('file')
+            if not isinstance(name, str) or not name.strip().lower().endswith('.json') or any(x in name for x in '/\\:'):
+                errors.append(f'{where} (add-round) needs "file": the round file\'s name in wizard-rounds, such as 2026-10-22-draw-the-beds-round1.json')
+            if 'round' in c and not (isinstance(c['round'], dict) and isinstance(c['round'].get('config'), dict) and isinstance(c['round'].get('questions'), list)):
+                errors.append(f'{where} (add-round): "round", when given, is the round itself: {{ "config": {{...}}, "questions": [...] }}')
         if do == 'replace-plan' and not isinstance(c.get('plan'), dict):
             errors.append(f'{where} (replace-plan) needs a "plan" object with the About, milestones and tasks')
     ask = [k for k in kinds if k in ('done', 'edit-description', 'replace-plan')]

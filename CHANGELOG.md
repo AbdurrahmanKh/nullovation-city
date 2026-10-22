@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.55 (2026-10-22)
+
+Wizard rounds in a task, the third of the task ideas (Tasks, Round 2, W1 to W6), designed in Wizard Rounds in a Task, Rounds 1 to 3.
+- A task can keep one decision wizard round: its questions, its answers as they come, and its file in `wizard-rounds` inside the Claude folder, which the city and the wizard share (W2, F1). A new round replaces the old one (W6).
+- Make a wizard round: a second row in a task's Open in Claude menu, under Chat, Cowork, Claude Code and Terminal, with the same four (M1). Each sends the task's copy ending with a line asking Claude for a round with the d-wizard skill, sent back with the nullovation-city skill, and not to start the task yet. Code and Terminal need a folder link, as above them.
+- Back from Claude Code: the skill writes the round into `wizard-rounds` and sends an `add-round` change, which applies at once with Undo, a toast and a line in Activity (W1). From a chat: drop the round file Claude gives you on the task's panel; a line lights up only while a file is dragged over it (P2).
+- The card, under Pin and Star in the task panel (P1): its hat, Wizard round, where it stands ("Waiting: 3 of 8 answered", "Answered: 8 of 8", "Answered: 3 of 8, 5 skipped"), its title and file, Wizard it (Open in wizard once answered), Mark answered, Remove, and the answers, folded until Show the answers (P1a).
+- Wizard it opens your wizard in a tab of its own and makes sure the round's file is in `wizard-rounds`; the wizard, given that folder once, opens it by itself and saves the answers into it. With no Claude folder it downloads the file, and its answers file is dropped back on the task. Settings, Links, has the wizard's address, the hosted wizard when empty.
+- The answers come back into the task as the wizard saves them, read with the rest of the Claude folder, and a toast says "Answers in for Draw the beds: 7 of 8." with Open once they stop arriving.
+- A round counts as answered when nothing is open, or when you press Mark answered, which counts the open questions as skipped on purpose, with Undo (A1, S1).
+- The hat: the wizard's own, flat and in one color (H1), gray while its round waits for answers and teal once answered (A2). It shows on an open task's rows in the project view, the status card and All tasks, in the hover's next-task line, and in What is next as a chip, "4 of 8" or "Answered" (X1). A click on it is Wizard it.
+- Copy task names the round with where it stands, and points to its file; a copy sent to a chat writes its answers in, since a chat cannot read the file (A2, C1). A milestone's copy names it; the city summary gives each open task's round.
+- Remove takes the round off the task with Undo; its file stays in the folder. Dropping, answering, marking and removing are not work: Updated, urgency and Activity stay. Claude's add-round writes its line in Activity, as its other changes do.
+- The nullovation-city skill writes the round and the `add-round` change; `check_plan.py` checks it. The claude.ai plugin needs it reinstalled.
+- Data: a task may carry `round` (title, file, folder, questions, answers, marked). `21-rounds.js` holds the model, `61-rounds.js` the card, hats, files and answers.
+- Tests: test37_task_rounds, 122 checks. test17_source no longer forbids the word wizard in the tool: it checks that no copy of the d-wizard skill or the wizard is in the repo, that a new city has no Decision Wizard project, and that the wizard opens at its own address.
+
 ## 0.1.54 (2026-10-22)
 
 Abdurrahman's task "Turn tasks into Ideas(Notes)", in Task Improvements: some tasks are better kept as open ideas, and links come before notes.

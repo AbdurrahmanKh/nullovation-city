@@ -1379,3 +1379,56 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .at-more:hover, .at-more:focus-visible { color: var(--ink); outline: none; }
 .at-bld { display: flex; flex-direction: column; }
 .at-empty { margin: 4px 0; }
+
+/* ---------- wizard rounds in a task (0.1.55) ---------- */
+/* The hat: the Decision Wizard's own, flat and in one color, gray until the round is answered, teal after (H1). */
+.hat { display: inline-flex; flex: none; }
+.hat svg { display: block; }
+.hat-open { color: #8A83A3; }
+.hat-done { color: #2DB5A9; }
+.hover-task .hat-open { color: #8A83A3; }
+.hover-task .hat-done { color: #1E9A8F; }
+.round-hat { flex: none; width: 22px; height: 22px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.round-hat:hover, .round-hat:focus-visible { background: var(--hover); }
+li.task .round-hat { margin-inline-start: 2px; }
+.b-todos li .round-hat { margin-top: -1px; }
+.at-meta .round-hat { width: 18px; height: 18px; margin-inline-end: 2px; }
+.round-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; font: inherit; font-size: 12px; color: var(--ink-soft); background: rgba(0, 0, 0, .18); border: 0; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); cursor: pointer; }
+.round-chip:hover, .round-chip:focus-visible { color: var(--ink); background: rgba(0, 0, 0, .3); outline: none; }
+/* The card in the task panel (P1), like What is next; teal edged once the round is answered. */
+.pv-round { display: grid; gap: 8px; padding: 10px 12px 12px; background: #2E2748; box-shadow: inset 0 0 0 2px #40376A; }
+.pv-round.done { box-shadow: inset 0 0 0 2px #2DB5A9; }
+.pv-round-head { display: flex; align-items: center; gap: 8px; }
+.pv-round-lbl { font: 400 13px/1.2 var(--f-pixel); color: var(--muted); font-variant-ligatures: no-common-ligatures; }
+.pv-round-state { margin-left: auto; font-size: 12.5px; color: var(--ink-soft); text-align: right; }
+.pv-round.done .pv-round-state { color: #7FD6CE; }
+.pv-round-title { margin: 0; font-weight: 600; font-size: 15px; color: var(--ink); overflow-wrap: anywhere; }
+.pv-round-file { margin: 0; font: 12px/1.4 ui-monospace, Consolas, monospace; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-round-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pv-round-btns .btn { display: inline-flex; align-items: center; gap: 6px; }
+.pv-round-btns .pv-round-remove { margin-left: auto; }
+.pv-round-fold { display: inline-flex; align-items: center; gap: 6px; justify-self: start; background: none; border: 0; padding: 2px 0; color: var(--ink-soft); font: inherit; font-size: 13px; cursor: pointer; }
+.pv-round-fold:hover, .pv-round-fold:focus-visible { color: var(--ink); text-decoration: underline; outline: none; }
+.pv-round-ans { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pv-round-ans li { display: grid; grid-template-columns: 30px 1fr; gap: 2px 8px; font-size: 13px; line-height: 1.4; }
+.pv-round-ans .id { font-size: 12px; line-height: 1.6; color: var(--muted); }
+.pv-round-ans .q { color: var(--ink-soft); overflow-wrap: anywhere; }
+.pv-round-ans .a, .pv-round-ans .n, .pv-round-ans .sub { grid-column: 2; overflow-wrap: anywhere; }
+.pv-round-ans .a { color: var(--ink); font-weight: 500; }
+.pv-round-ans .n, .pv-round-ans .sub { color: var(--muted); font-size: 12.5px; }
+.pv-round-ans li.open .a { color: var(--muted); font-weight: 400; font-style: italic; }
+.pv-round-ans li.skip .a { color: var(--muted); font-weight: 400; }
+.pv-round-slot { display: grid; gap: 8px; }
+.pv-round-slot:empty { display: none; }
+/* A round file over the panel (P2): the line shows only while dragging. */
+.pv-round-drop { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 2px dashed #2DB5A9; background: #2E2748; color: var(--ink); font-size: 13px; pointer-events: none; }
+/* Open in Claude's second row: Make a wizard round (M1). */
+.oc-wiz { border-top: 2px solid var(--line); padding: 8px 12px 10px; display: grid; gap: 8px; }
+.oc-wiz-head { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); }
+.oc-wiz-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.oc-wiz-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 4px 6px; font-size: 12px; color: var(--ink); text-decoration: none; background: #2A2440; box-shadow: inset 0 0 0 1px #3A3354; }
+.oc-wiz-item .ic { display: inline-flex; }
+a.oc-wiz-item:hover, a.oc-wiz-item:focus-visible { background: var(--hover); box-shadow: inset 0 0 0 1px var(--accent); outline: none; }
+.oc-wiz-item.off { color: var(--muted); opacity: .6; cursor: default; }
+/* Settings, Links: the wizard's address. */
+.set-field { display: grid; gap: 6px; font-size: 13.5px; color: var(--ink-soft); }

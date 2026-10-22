@@ -701,10 +701,11 @@ const MapView = (() => {
     if (!t || !hoverGeo || hoverGeo.id !== p.id) { el.hidden = true; return; }
     const text = t.text.length > HOVER_CHARS ? t.text.slice(0, HOVER_CHARS - 1).trimEnd() + '…' : t.text;
     const mark = isStarred(p, t) ? 'star' : isPinned(p, t) ? 'pin' : '';
-    const key = mark + '|' + text;
+    const hat = wearsHat(t) ? (roundState(t).done ? 'done' : 'open') : '';      // its wizard round's hat (0.1.55, X1)
+    const key = mark + '|' + hat + '|' + text;
     if (el.dataset.key !== key) {
       el.dataset.key = key;
-      el.replaceChildren(...[mark ? iconEl(mark, 12) : null, h('span', { dir: 'auto' }, text)].filter(Boolean));
+      el.replaceChildren(...[mark ? iconEl(mark, 12) : null, hat ? hatEl(t, 12) : null, h('span', { dir: 'auto' }, text)].filter(Boolean));
       el.title = t.text;
     }
     el.dataset.id = p.id;

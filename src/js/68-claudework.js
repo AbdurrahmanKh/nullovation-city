@@ -104,6 +104,7 @@ const ClaudeWork = (() => {
     const writer = typeof DataFile === 'undefined' || DataFile.isWriter();
     if (canWrite && !summaryAt) writeSummary();
     if (canWrite && typeof ClaudeInbox !== 'undefined' && await ClaudeInbox.poll(dir, writer)) moved = true;
+    if (state === 'on' && typeof Rounds !== 'undefined') await Rounds.poll(dir, writer);   // a round's answers, as the wizard saves them (0.1.55)
     const placed = place();
     if (writer) logFinishes();
     if (placed || moved) redraw();
@@ -308,7 +309,8 @@ const ClaudeWork = (() => {
           urgency: { system: urgencyName(p), state: u.color || 'calm', reasons: u.reasons },
           next: next ? next.text : null,
           milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)
-            open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}), ...(t.shift ? { shift: shiftName(t.shift) } : {}) })),
+            open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}), ...(t.shift ? { shift: shiftName(t.shift) } : {}),
+              ...(t.round ? { round: { title: t.round.title, file: ROUNDS_DIR + '/' + t.round.file, state: roundWords(roundState(t)) } } : {}) })),   // its wizard round (0.1.55)
             ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
             done: g.todos.filter(t => t.done && !t.archived).map(t => t.text) })),
           notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),

@@ -1394,6 +1394,59 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .at-bld { display: flex; flex-direction: column; }
 .at-empty { margin: 4px 0; }
 
+/* ---------- wizard rounds in a task (0.1.55) ---------- */
+/* The hat: the Decision Wizard's own, flat and in one color, gray until the round is answered, teal after (H1). */
+.hat { display: inline-flex; flex: none; }
+.hat svg { display: block; }
+.hat-open { color: #8A83A3; }
+.hat-done { color: #2DB5A9; }
+.hover-task .hat-open { color: #8A83A3; }
+.hover-task .hat-done { color: #1E9A8F; }
+.round-hat { flex: none; width: 22px; height: 22px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.round-hat:hover, .round-hat:focus-visible { background: var(--hover); }
+li.task .round-hat { margin-inline-start: 2px; }
+.b-todos li .round-hat { margin-top: -1px; }
+.at-meta .round-hat { width: 18px; height: 18px; margin-inline-end: 2px; }
+.round-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; font: inherit; font-size: 12px; color: var(--ink-soft); background: rgba(0, 0, 0, .18); border: 0; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); cursor: pointer; }
+.round-chip:hover, .round-chip:focus-visible { color: var(--ink); background: rgba(0, 0, 0, .3); outline: none; }
+/* The card in the task panel (P1), like What is next; teal edged once the round is answered. */
+.pv-round { display: grid; gap: 8px; padding: 10px 12px 12px; background: #2E2748; box-shadow: inset 0 0 0 2px #40376A; }
+.pv-round.done { box-shadow: inset 0 0 0 2px #2DB5A9; }
+.pv-round-head { display: flex; align-items: center; gap: 8px; }
+.pv-round-lbl { font: 400 13px/1.2 var(--f-pixel); color: var(--muted); font-variant-ligatures: no-common-ligatures; }
+.pv-round-state { margin-left: auto; font-size: 12.5px; color: var(--ink-soft); text-align: right; }
+.pv-round.done .pv-round-state { color: #7FD6CE; }
+.pv-round-title { margin: 0; font-weight: 600; font-size: 15px; color: var(--ink); overflow-wrap: anywhere; }
+.pv-round-file { margin: 0; font: 12px/1.4 ui-monospace, Consolas, monospace; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-round-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pv-round-btns .btn { display: inline-flex; align-items: center; gap: 6px; }
+.pv-round-btns .pv-round-remove { margin-left: auto; }
+.pv-round-fold { display: inline-flex; align-items: center; gap: 6px; justify-self: start; background: none; border: 0; padding: 2px 0; color: var(--ink-soft); font: inherit; font-size: 13px; cursor: pointer; }
+.pv-round-fold:hover, .pv-round-fold:focus-visible { color: var(--ink); text-decoration: underline; outline: none; }
+.pv-round-ans { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pv-round-ans li { display: grid; grid-template-columns: 30px 1fr; gap: 2px 8px; font-size: 13px; line-height: 1.4; }
+.pv-round-ans .id { font-size: 12px; line-height: 1.6; color: var(--muted); }
+.pv-round-ans .q { color: var(--ink-soft); overflow-wrap: anywhere; }
+.pv-round-ans .a, .pv-round-ans .n, .pv-round-ans .sub { grid-column: 2; overflow-wrap: anywhere; }
+.pv-round-ans .a { color: var(--ink); font-weight: 500; }
+.pv-round-ans .n, .pv-round-ans .sub { color: var(--muted); font-size: 12.5px; }
+.pv-round-ans li.open .a { color: var(--muted); font-weight: 400; font-style: italic; }
+.pv-round-ans li.skip .a { color: var(--muted); font-weight: 400; }
+.pv-round-slot { display: grid; gap: 8px; }
+.pv-round-slot:empty { display: none; }
+/* A round file over the panel (P2): the line shows only while dragging. */
+.pv-round-drop { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 2px dashed #2DB5A9; background: #2E2748; color: var(--ink); font-size: 13px; pointer-events: none; }
+/* Open in Claude's second row: Make a wizard round (M1). */
+.oc-wiz { border-top: 2px solid var(--line); padding: 8px 12px 10px; display: grid; gap: 8px; }
+.oc-wiz-head { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); }
+.oc-wiz-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.oc-wiz-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 4px 6px; font-size: 12px; color: var(--ink); text-decoration: none; background: #2A2440; box-shadow: inset 0 0 0 1px #3A3354; }
+.oc-wiz-item .ic { display: inline-flex; }
+a.oc-wiz-item:hover, a.oc-wiz-item:focus-visible { background: var(--hover); box-shadow: inset 0 0 0 1px var(--accent); outline: none; }
+.oc-wiz-item.off { color: var(--muted); opacity: .6; cursor: default; }
+/* Settings, Links: the wizard's address. */
+.set-field { display: grid; gap: 6px; font-size: 13.5px; color: var(--ink-soft); }
+
 </style>
 </head>
 <body>
@@ -1401,7 +1454,7 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.54</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.55</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1626,6 +1679,11 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
             <p class="note">Windows only, after a one-time setup on this PC. <button id="btnFolderSetup" class="linkish" type="button">Get the setup</button></p>
             <div class="set-line"><button id="btnFolderTest" class="btn btn-small" type="button">Test folder links</button></div>
             <p class="note">Opens C:\Windows through a folder link. If nothing opens, the setup has not run on this PC.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Decision wizard</h3>
+            <label class="set-row set-field" data-set="wizard"><span>Your wizard's address</span><input id="optWizard" class="field" type="url" autocomplete="off" spellcheck="false"></label>
+            <p class="note">Wizard it opens a task's round there. Leave it empty for the hosted wizard. Give your wizard the Claude folder's wizard-rounds folder once, and a task's round opens there by itself.</p>
           </section>
           <section class="set-group">
             <h3 class="set-h">Claude Code at work</h3>
@@ -2492,8 +2550,10 @@ function ensureMilestones(p) {
 /* Every copy for Claude ends with this line, so work started from the city reports back by itself (Even Better Claude
    Connections, Round 1, A2: from the copy). The nullovation-city skill writes the change into the city's inbox. */
 const REPORT_LINE = 'When you finish, send Nullovation City an update with the nullovation-city skill.';
-/* One task as text for a Claude chat: what it is, and where it sits. */
-function taskForClaude(p, t, now = Date.now()) {
+/* One task as text for a Claude chat: what it is, and where it sits. Its wizard round (0.1.55) follows the description:
+   through its file wherever Claude can read it (A2), with the answers written in for a chat (kind 'chat', C1) and when
+   no Claude folder is connected. Make a wizard round's copy (ask) ends with its request instead of the update line. */
+function taskForClaude(p, t, now = Date.now(), { kind = '', ask = false } = {}) {
   const L = [];
   const ms = p.milestones.find(m => m.id === t.milestoneId);
   const g = ms ? groupsOf(p).find(x => x.ms && x.ms.id === ms.id) : null;
@@ -2509,7 +2569,8 @@ function taskForClaude(p, t, now = Date.now()) {
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
-  L.push('', REPORT_LINE);
+  if (t.round) L.push(...roundForClaude(t, { inline: kind === 'chat' || !(typeof ClaudeWork !== 'undefined' && ClaudeWork.folder()) }));
+  L.push('', ask ? ROUND_LINE : REPORT_LINE);
   return L.join('\n');
 }
 /* A note, ready to paste into a Claude chat. */
@@ -2536,6 +2597,7 @@ function milestoneForClaude(p, m, now = Date.now()) {
     if (d) L.push(d.text);
     if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
     if (t.shift) L.push('Shift: ' + shiftName(t.shift));
+    if (t.round) L.push('Wizard round: ' + t.round.title + ' (' + roundWords(roundState(t)).replace(/^./, c => c.toLowerCase()) + ')');
     L.push((t.description || '').trim() || 'No description yet.');
   }
   if (waiting.length) { L.push('', '## Repeats waiting for their next date'); for (const t of waiting) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')'); }
@@ -2636,7 +2698,7 @@ function sanitizeProjects(raw) {
         id: typeof t.id === 'string' && t.id ? t.id : uid('t'), text: t.text.slice(0, 500), description: typeof t.description === 'string' ? t.description.slice(0, 8000) : '',
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
-        ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}),
+        ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}), ...readRound(t),
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed, ...(m.archiveCollapsed === true ? { archiveCollapsed: true } : {}),
@@ -2947,6 +3009,163 @@ function applyPlan(p, plan, now = Date.now()) {
   logActivity(p, 'Loaded a plan: ' + plural(plan.milestones.length, 'milestone', 'milestones') + ', ' + plural(tasks, 'task', 'tasks') + (ideas ? ', ' + plural(ideas, 'idea', 'ideas') : ''));
   return { milestones: plan.milestones.length, tasks, ideas, links };
 }
+
+/* A task's decision wizard round (0.1.55): idea 3 of the task ideas, from Tasks, Round 2 (W1 to W6) and Wizard Rounds
+   in a Task, Rounds 1 to 3. A round is a questions file for Abdurrahman's Decision Wizard, which Claude writes with the
+   d-wizard skill. The task keeps it, and its answers, in the city's data (W2, W4); its file sits in the Claude folder's
+   wizard-rounds, which the city and the wizard share (F1); and a hat on the task's rows says where it stands: gray
+   until it is answered, teal once it is (A2, H1). A new round replaces the old one (W6).
+   This file is the model: reading a wizard's files, a round's state, its words for Claude, and the hat. */
+const ROUNDS_DIR = 'wizard-rounds';
+const WIZARD_HOSTED = 'https://abdurrahmankh.github.io/decision-wizard/';
+const WIZARD_KEY = 'nullovation-city:wizard';
+const ROUND_MAX = 300000;                  // characters a round and its answers may take in a task
+/* The last line of Make a wizard round's copy, in place of the update line (Wizard Rounds in a Task, Round 1). */
+const ROUND_LINE = 'Plan this task further with a decision wizard round: write it with the d-wizard skill, asking only what is still open, then send it to Nullovation City with the nullovation-city skill so it attaches to this task (from a chat, give it to me as a file). Do not start the task itself yet.';
+
+/* Where Wizard it opens the wizard: the hosted one, unless Settings, Links names your own copy. */
+function wizardSetting() { try { return (localStorage.getItem(WIZARD_KEY) || '').trim(); } catch (e) { return ''; } }
+function wizardUrl() { const v = wizardSetting(); return /^(https?|file):\/\//i.test(v) ? v : WIZARD_HOSTED; }
+
+/* What a wizard's file holds: a round ({ config, questions }), its answers ({ meta, answers }, with the round under
+   `round` when the wizard saved them), or neither (null). */
+function readWizardFile(d) {
+  if (!d || typeof d !== 'object') return null;
+  const isRound = r => !!(r && typeof r === 'object' && r.config && typeof r.config === 'object' && typeof r.config.title === 'string' && r.config.title.trim()
+    && Array.isArray(r.questions) && r.questions.length && r.questions.every(q => q && typeof q === 'object' && typeof q.id === 'string'));
+  if (d.meta && typeof d.meta === 'object' && d.meta.tool === 'decision-wizard' && Array.isArray(d.answers))
+    return { round: isRound(d.round) ? { config: d.round.config, questions: d.round.questions } : null, answers: { meta: d.meta, answers: d.answers } };
+  if (isRound(d)) return { round: { config: d.config, questions: d.questions }, answers: null };
+  return null;
+}
+const roundTitleOf = q => String(q.config.title).trim().slice(0, 200);
+/* A file name the folder can hold: a name only, never a path. */
+function safeRoundFile(name) {
+  const n = String(name || '').split(/[\\/]/).pop().trim();
+  return /^[^:*?"<>|]{1,150}\.json$/i.test(n) ? n : '';
+}
+const roundFileName = title => ymd() + '-' + slug(title) + '.json';
+/* A round as a task keeps it: its title, its file in wizard-rounds, the folder it names (its full path, when Claude
+   Code wrote it), the questions, the answers, and whether you marked it answered with questions skipped (S1). */
+function makeRound(w, file = '') {
+  const c = w.round.config;
+  return { title: roundTitleOf(w.round), file: safeRoundFile(file) || roundFileName(c.title), folder: typeof c.folder === 'string' ? c.folder.trim().slice(0, 400) : '',
+    q: w.round, a: answersFit(w.answers, w.round) ? w.answers : null, marked: false, at: Date.now() };
+}
+/* Answers belong to a round when the wizard named it, or named nothing. */
+function answersFit(a, q) {
+  if (!a) return false;
+  const named = String(a.meta.wizard_title || '').trim();
+  return !named || named === roundTitleOf(q);
+}
+/* A task's round as read from saved data: whole, or not at all. */
+function readRound(t) {
+  const r = t && t.round;
+  if (!r || typeof r !== 'object') return {};
+  const q = readWizardFile(r.q), a = r.a ? readWizardFile(r.a) : null;
+  if (!q || !q.round) return {};
+  const out = { title: roundTitleOf(q.round), file: safeRoundFile(r.file) || roundFileName(q.round.config.title), folder: typeof r.folder === 'string' ? r.folder.slice(0, 400) : '',
+    q: q.round, a: a && a.answers ? a.answers : null, marked: r.marked === true, at: typeof r.at === 'number' ? r.at : Date.now() };
+  try { if (JSON.stringify(out).length > ROUND_MAX) return {}; } catch (e) { return {}; }
+  return { round: out };
+}
+
+/* ---------- where a round stands ---------- */
+const isBatchDone = a => a.status === 'batch' && a.total_items > 0 && a.answered_items >= a.total_items;
+const isAnswered = a => !!a && (['picked', 'custom', 'ranked'].includes(a.status) || isBatchDone(a));
+/* How many questions, how many answered, how many open, and whether it counts as answered: nothing open (A1), or
+   marked answered with the rest skipped on purpose (S1). */
+function roundState(t) {
+  const r = t && t.round;
+  if (!r) return null;
+  let total = r.q.questions.length, answered = 0;
+  if (r.a) {
+    const m = r.a.meta || {};
+    answered = Number.isFinite(m.answered) ? m.answered : r.a.answers.filter(isAnswered).length;
+    if (Number.isFinite(m.total) && m.total > 0) total = m.total;
+  }
+  answered = clamp(answered, 0, total);
+  const open = total - answered;
+  const done = (open === 0 && total > 0) || (r.marked && answered > 0);
+  return { total, answered, open, done, marked: r.marked && open > 0, skipped: r.marked ? open : 0 };
+}
+/* In the card: "Waiting: 3 of 8 answered", "Answered: 8 of 8", "Answered: 6 of 8, 2 skipped". */
+function roundStateText(st) {
+  if (!st.done) return 'Waiting: ' + st.answered + ' of ' + st.total + ' answered';
+  return 'Answered: ' + st.answered + ' of ' + st.total + (st.skipped ? ', ' + st.skipped + ' skipped' : '');
+}
+/* For Claude: "Waiting for answers (8 questions)", "3 of 8 answered", "Answered, 8 of 8", "6 of 8 answered, 2 skipped on purpose". */
+function roundWords(st) {
+  if (!st.done) return st.answered ? st.answered + ' of ' + st.total + ' answered' : 'Waiting for answers (' + plural(st.total, 'question', 'questions') + ')';
+  return st.skipped ? st.answered + ' of ' + st.total + ' answered, ' + st.skipped + ' skipped on purpose' : 'Answered, ' + st.answered + ' of ' + st.total;
+}
+
+/* ---------- a round's answers, in words ---------- */
+const endStop = s => (/[.!?:]$/.test(s) ? s : s + '.');
+/* One answer: what was picked or typed, the order of a ranking, a number with its unit; Open or Skipped when there is
+   none. */
+function answerWords(a, marked) {
+  const none = marked ? 'Skipped' : 'Open';
+  if (!a) return none;
+  if (a.status === 'picked' || a.status === 'custom') {
+    if (typeof a.answer === 'number') return a.answer + (a.unit ? ' ' + a.unit : '');
+    return String(a.answer == null ? '' : a.answer).trim() || none;
+  }
+  if (a.status === 'ranked') return Array.isArray(a.answer) && a.answer.length ? 'In this order: ' + a.answer.join(', ') : none;
+  if (a.status === 'not_needed') return 'Not needed';
+  if (a.status === 'batch') return (a.answered_items || 0) + ' of ' + (a.total_items || 0) + ' rows answered';
+  return none;
+}
+function answerLine(a, q, marked, indent = '') {
+  const id = a.id || (q && q.id) || '', title = String(a.issue || (q && q.title) || '').trim(), question = String(a.question || (q && q.question) || '').trim();
+  let s = indent + '- ' + [id, title].filter(Boolean).join(', ') + ': ' + (question ? question + ' ' : '') + endStop(answerWords(a, marked));
+  if (a.comment && String(a.comment).trim()) s += ' Note: ' + endStop(String(a.comment).trim());
+  const out = [s];
+  if (a.status === 'batch' && Array.isArray(a.items)) for (const it of a.items)
+    out.push(indent + '  - ' + String(it.label || it.id || '').trim() + ': ' + endStop(String(it.answer || '').trim() || (marked ? 'Skipped' : 'Open')) + (it.comment && String(it.comment).trim() ? ' Note: ' + endStop(String(it.comment).trim()) : ''));
+  if (Array.isArray(a.followups)) for (const f of a.followups) if (f && f.status !== 'not_needed') out.push(...answerLine(f, null, marked, indent + '  '));
+  return out;
+}
+/* Every question of the round with its answer, in the round's order; a question the answers do not have yet is open. */
+function roundAnswerLines(r) {
+  const st = roundState({ round: r }), byId = new Map((r.a ? r.a.answers : []).filter(a => a && a.id).map(a => [a.id, a]));
+  const out = [];
+  for (const q of r.q.questions) out.push(...answerLine(byId.get(q.id) || { id: q.id, status: 'open' }, q, st.marked));
+  return out;
+}
+/* The round's full path, when the round named its folder (Claude Code writes it so); else ''. */
+function roundPath(r) {
+  if (!r || !r.folder) return '';
+  const sep = r.folder.includes('\\') || /^[a-z]:/i.test(r.folder) ? '\\' : '/';
+  return r.folder.replace(/[\\/]+$/, '') + sep + r.file;
+}
+/* What a copy for Claude says about the task's round. Through its file (A2) wherever Claude can read the file; with
+   the answers written in for a chat, which cannot (C1), and on a computer with no Claude folder. */
+function roundForClaude(t, { inline = false } = {}) {
+  const r = t.round;
+  if (!r) return [];
+  const st = roundState(t);
+  const L = ['', '## Wizard round: ' + r.title, endStop(roundWords(st))];
+  if (!inline) {
+    const path = roundPath(r);
+    L.push(path ? 'Its questions and answers are in ' + path + ': read them there.'
+      : 'Its questions and answers are in ' + ROUNDS_DIR + '/' + r.file + ' in the Claude folder, which ~/.claude/nullovation-city.json names: read them there.');
+  } else if (r.a || st.marked) L.push(...roundAnswerLines(r));
+  return L;
+}
+
+/* ---------- the hat ---------- */
+/* The Decision Wizard's own hat, flat and in one color (H1): gray while the round waits for answers, teal once it is
+   answered. */
+const HAT_PATHS = '<path d="M5.2 17.2 10.4 4.1c.4-1 1.4-1.6 2.4-1.3 1.4.4 2.9 1.6 4.6 3.9.3.4-.2.9-.6.6-1.1-.8-2.2-1.2-3.2-1.1l3.3 11z"/><path d="M1.8 18.6c0-1.4 4.5-2.6 10.2-2.6s10.2 1.2 10.2 2.6S17.7 21 12 21 1.8 20 1.8 18.6z"/>';
+const hatSvg = size => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor" aria-hidden="true" focusable="false">${HAT_PATHS}</svg>`;
+function hatEl(t, size = 14) {
+  const st = roundState(t);
+  if (!st) return null;
+  return h('span', { class: 'hat ' + (st.done ? 'hat-done' : 'hat-open'), 'aria-hidden': 'true', html: hatSvg(size) });
+}
+/* A hat shows on an open task only: a ticked, waiting or archived task keeps its round, and wears none. */
+const wearsHat = t => !!(t && t.round && isOpenTask(t));
 
 /* ---------- recurring tasks and the one-line add (Tasks, Round 2: R1 to R4, O1, O2) ----------
    A task that repeats carries `repeat`, one of:
@@ -3387,7 +3606,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.54";
+const APP_VERSION = "0.1.55";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -4847,10 +5066,11 @@ const MapView = (() => {
     if (!t || !hoverGeo || hoverGeo.id !== p.id) { el.hidden = true; return; }
     const text = t.text.length > HOVER_CHARS ? t.text.slice(0, HOVER_CHARS - 1).trimEnd() + '…' : t.text;
     const mark = isStarred(p, t) ? 'star' : isPinned(p, t) ? 'pin' : '';
-    const key = mark + '|' + text;
+    const hat = wearsHat(t) ? (roundState(t).done ? 'done' : 'open') : '';      // its wizard round's hat (0.1.55, X1)
+    const key = mark + '|' + hat + '|' + text;
     if (el.dataset.key !== key) {
       el.dataset.key = key;
-      el.replaceChildren(...[mark ? iconEl(mark, 12) : null, h('span', { dir: 'auto' }, text)].filter(Boolean));
+      el.replaceChildren(...[mark ? iconEl(mark, 12) : null, hat ? hatEl(t, 12) : null, h('span', { dir: 'auto' }, text)].filter(Boolean));
       el.title = t.text;
     }
     el.dataset.id = p.id;
@@ -7970,6 +8190,7 @@ const Bubble = (() => {
           h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t),
             t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
             shiftTag(t, 'b-shift')),
+          ...[ticking.has(t.id) ? null : Rounds.hatButton(p, t, 'b-round')].filter(Boolean),   // its wizard round (0.1.55)
           ...(ticking.has(t.id) ? [] : markButtons(p, t, 'b-mark')),
           h('button', { class: 'icon-btn b-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));
         ul.append(li);
@@ -8398,7 +8619,7 @@ const FullView = (() => {
         : p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
       return box;
     }
-    marks.append(...markButtons(p, t, 'next-mark', { chip: true }),
+    marks.append(...[Rounds.chip(p, t)].filter(Boolean), ...markButtons(p, t, 'next-mark', { chip: true }),
       ...(starred ? [h('span', { class: 'pv-starred', title: 'Starred for the city: set it in the task' }, iconEl('star', 12), 'Starred')] : []));
     const g = groupsOf(p).find(x => x.ms && x.ms.id === t.milestoneId) || currentGroup(p), ms = g.ms;
     const d = dueInfo(t), late = d && d.tone === 'late';
@@ -8411,7 +8632,7 @@ const FullView = (() => {
       late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
     box.append(h('div', { class: 'pv-next-row' },
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
-      OpenInClaude.button({ id: 'pvNextClaude', text: () => taskForClaude(p, t), project: p, quiet: true })));
+      OpenInClaude.button({ id: 'pvNextClaude', ...taskClaude(p, t), project: p, quiet: true })));
     const others = p.todos.filter(x => isOpenTask(x) && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;
     if (others) box.append(h('p', { class: 'pv-late-note' }, '! ' + plural(others, 'other task is', 'other tasks are') + ' overdue'));
     return box;
@@ -8533,9 +8754,10 @@ const FullView = (() => {
       changed(p); render();
       const again = $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     });
-    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark')) return; dragTask(e, p, li); });
+    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark, .round-hat')) return; dragTask(e, p, li); });
     const d = t.done || wait ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
+      Rounds.hatButton(p, t, 'row-round'),                                      // its wizard round (0.1.55)
       t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
       shiftTag(t, 'row-shift'),
       wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
@@ -8752,6 +8974,7 @@ const FullView = (() => {
     if (side) closeSide();
     const t = p.todos.find(x => x.id === id); if (!t) return;
     sideTask = id; taskSnap = clone(t); sideTicked = false;
+    Rounds.foldAll();                                                           // its round's answers start folded (P1a)
     openSide('task');
     const f = $('#pvTaskDesc', side); if (f) f.focus();
   }
@@ -8772,7 +8995,11 @@ const FullView = (() => {
   function cancelTask() {
     const p = P(); if (!p || !sideTask) return;
     const i = p.todos.findIndex(x => x.id === sideTask);
-    if (i >= 0 && taskSnap) p.todos[i] = taskSnap;
+    if (i >= 0 && taskSnap) {
+      const live = p.todos[i].round;                // a round came, went or was answered while open: Esc leaves it, as it leaves pins
+      p.todos[i] = taskSnap;
+      if (live) taskSnap.round = live; else delete taskSnap.round;
+    }
     changed(p, { touch: false });
     sideTask = null; taskSnap = null; sideTicked = false;
     side.remove(); side = null; sideMode = null;
@@ -8819,10 +9046,11 @@ const FullView = (() => {
       ].map(([kind, on, yes, no, title, set]) => h('button', { class: 'btn btn-quiet btn-small pv-mark' + (on ? ' on' : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
         'aria-pressed': String(on), title: on ? title + '. Click to take it off.' : title,
         onclick: () => { set(!on); render(); const b = side && $(`[data-mark="${kind}"]`, side); if (b) b.focus(); } }, iconEl(kind, 14, on ? undefined : 'transparent'), on ? yes : no))),
+      h('div', { class: 'pv-round-slot' }, Rounds.card(p, t)),                 // its wizard round (0.1.55, P1)
       h('span', { class: 'lbl' }, 'Description'), desc,
       h('div', { class: 'pv-claude-row' },
         h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
-        OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
+        OpenInClaude.button({ id: 'pvTaskClaude', ...taskClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' },
         h('button', { id: 'pvTaskToNote', class: 'btn btn-small', type: 'button', title: 'Keep it as an idea in Notes: its title and description stay; its date, repeat and shift go',
           onclick: () => turnIntoNote(p, t.id) }, iconEl('doc', 14), 'Turn into a note'),
@@ -8858,11 +9086,12 @@ const FullView = (() => {
           onclick: () => { restoreByHand(p, t); const b = side && $('#pvTaskArchive', side); if (b) b.focus(); } }, 'Restore'),
         h('button', { id: 'pvTaskBackArch', class: 'btn btn-quiet btn-small', type: 'button', onclick: () => backToArchive() }, iconEl('back', 14), 'Back to the archive')),
       t.due ? h('p', { class: 'note' }, 'It was due ' + weekdayOf(t.due) + ' ' + fmtDate(parseYmd(t.due)) + '.') : null,
+      t.round ? h('div', { class: 'pv-round-slot' }, Rounds.card(p, t, { readOnly: true })) : null,
       h('span', { class: 'lbl' }, 'Description'),
       desc ? h('div', { id: 'pvTaskDesc', class: 'note-text pv-arch-desc', tabindex: '-1' }, ...paragraphs(desc)) : h('p', { id: 'pvTaskDesc', class: 'fv-empty', tabindex: '-1' }, 'No description.'),
       h('div', { class: 'pv-claude-row' },
         h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
-        OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
+        OpenInClaude.button({ id: 'pvTaskClaude', text: kind => taskForClaude(p, t, Date.now(), { kind }), files: () => Rounds.files(t), project: p })),
       h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
   }
@@ -9396,6 +9625,7 @@ const FullView = (() => {
     if (!side) {
       side = h('aside', { id: 'pvSide', class: 'pv-side', role: 'region', tabindex: '-1' });
       $('#mapWrap').append(side);
+      dropOn(side);
     }
     sideMode = mode;
     renderSide();
@@ -9416,6 +9646,39 @@ const FullView = (() => {
     if (Math.abs(root.offsetWidth - was) > 1) render();    // the banner redraws at the new width
   }
   window.addEventListener('resize', () => placeSide());
+  /* A round file from a chat, or its answers, dropped on a task's panel (W1, P2): the line lights up while a file is
+     over the panel, and the drop attaches it. An archived task is to read, so it takes none. */
+  function dropOn(el) {
+    const task = () => { const p = P(), t = p && sideMode === 'task' && p.todos.find(x => x.id === sideTask); return t && !t.archived ? { p, t } : null; };
+    const files = e => !!(e.dataTransfer && [...e.dataTransfer.types].includes('Files'));
+    const show = on => {
+      const slot = $('.pv-round-slot', el), had = slot && $('.pv-round-drop', slot), at = task();
+      if (on && slot && !had && at) slot.prepend(Rounds.dropLine(at.t));
+      if (!on && had) had.remove();
+    };
+    el.addEventListener('dragover', e => { if (!files(e) || !task()) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; show(true); });
+    el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) show(false); });
+    el.addEventListener('drop', async e => {
+      if (!files(e)) return;
+      e.preventDefault();
+      show(false);
+      const at = task(); if (!at) return;
+      await Rounds.dropFile(at.p, at.t, e.dataTransfer.files[0]);
+    });
+  }
+  /* What Open in Claude sends for a task: its copy (the round's answers written in for a chat, C1), Make a wizard round's
+     request (M1), and the round's file for Cowork when its path is known. */
+  const taskClaude = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }),
+    round: isOpenTask(t) ? kind => taskForClaude(p, t, Date.now(), { kind, ask: true }) : null, files: () => Rounds.files(t) });
+  /* A round came, changed or went: its card and its hats, redrawn in place, so a description being typed keeps its place. */
+  function refreshRounds() {
+    const p = P(); if (!p || !root) return;
+    const typing = document.activeElement && side && side.contains(document.activeElement) && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if (!typing) { render(); return; }
+    const t = sideMode === 'task' && p.todos.find(x => x.id === sideTask), slot = side && $('.pv-round-slot', side);
+    if (t && slot) slot.replaceChildren(...[Rounds.card(p, t, { readOnly: !!t.archived })].filter(Boolean));
+    for (const b of $$('li.task .round-hat', root)) { const x = p.todos.find(y => y.id === b.dataset.task), nu = x && Rounds.hatButton(p, x, 'row-round'); if (nu) b.replaceWith(nu); else b.remove(); }
+  }
   function closeSide() {
     if (!side) return;
     if (sideMode === 'note') finishNote();
@@ -9687,8 +9950,262 @@ const FullView = (() => {
     scrollBy: dy => { const el = side && side.matches(':hover') ? side : root; if (el) el.scrollTop += dy; },
     isOpen: () => !!root, currentId: () => openId, shows: id => !!root && openId === id, rightEdge,
     openTask: (pid, tid) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid); },   // from the bubble: the view, with the task open beside it
-    popoverOpen: () => !!pop, closePopover,
+    popoverOpen: () => !!pop, closePopover, refreshRounds,
   };
+})();
+
+/* Wizard rounds in a task (0.1.55), in the city: the card in the task panel, the hats on the rows, Wizard it, a round
+   file dropped on the task, and the answers read back from the Claude folder's wizard-rounds.
+   How a round travels (Wizard Rounds in a Task, Rounds 1 to 3):
+   - Make a wizard round, in Open in Claude's second row, sends the task's copy asking Claude for a round. From Claude
+     Code it comes back through the inbox (add-round, applied at once with Undo), its file already in wizard-rounds;
+     from a chat, you drop the file Claude gives you on the task's panel (W1, P2).
+   - Wizard it (or a click on a hat) opens your wizard in a tab of its own, and makes sure the round's file is in
+     wizard-rounds, where the wizard, given that folder once, opens it by itself and saves the answers as you go (W3, F1).
+     With no Claude folder it downloads the file instead, and the answers file is dropped back on the task.
+   - The answers come back into the task as the wizard saves them, with a toast once they stop arriving (X1), and the
+     hat turns teal once nothing is open, or once you mark the round answered with the rest skipped (A1, S1). */
+const Rounds = (() => {
+  const unfolded = new Set();            // the cards showing their answers; every panel opens folded (P1a)
+  const stamps = new Map();              // task id -> the round file's stamp when last read
+  const waits = new Map();               // task id -> the toast waiting for its answers to stop arriving
+  const HINT_KEY = 'nullovation-city:wizardHint';
+  let wiz = null;                        // the wizard's tab
+  const clone = x => JSON.parse(JSON.stringify(x));
+
+  /* ---------- files ---------- */
+  /* What goes in a round's file: the questions alone, or the answers with the round under them, as the wizard saves. */
+  const fileText = r => JSON.stringify(r.a ? { meta: r.a.meta, answers: r.a.answers, round: r.q } : r.q, null, 2) + '\n';
+  async function roundsDir(dir, create) { return dir.getDirectoryHandle(ROUNDS_DIR, create ? { create: true } : undefined); }
+  async function readFile(dir, name) {
+    const n = safeRoundFile(name);
+    if (!n) return null;
+    try {
+      const f = await (await (await roundsDir(dir, false)).getFileHandle(n)).getFile();
+      return { w: readWizardFile(JSON.parse(await f.text())), stamp: f.lastModified + ':' + f.size };
+    } catch (e) { return null; }
+  }
+  async function writeFile(dir, r) {
+    const w = await (await (await roundsDir(dir, true)).getFileHandle(r.file, { create: true })).createWritable();
+    await w.write(fileText(r)); await w.close();
+  }
+  async function hasFile(dir, name) {
+    try { await (await roundsDir(dir, false)).getFileHandle(name); return true; } catch (e) { return false; }
+  }
+
+  /* ---------- the wizard ---------- */
+  /* Opens the wizard in its own tab, the same tab each time. Called straight from the click, so the browser lets it. */
+  function openWizard() {
+    try { if (wiz && !wiz.closed) { wiz.focus(); return true; } } catch (e) { /* a tab from before: open it again */ }
+    try { wiz = window.open(wizardUrl(), 'nullovation-wizard'); } catch (e) { wiz = null; }
+    return !!wiz;
+  }
+  /* Wizard it: the wizard opens, and the round's file is in wizard-rounds for it (written again when it is gone); with no
+     Claude folder, the file downloads, to load in the wizard. */
+  function wizard(p, t) {
+    const r = t && t.round;
+    if (!r) return;
+    const opened = openWizard(), dir = typeof ClaudeWork !== 'undefined' ? ClaudeWork.folder() : null;
+    const blocked = opened ? '' : ' The browser kept the wizard from opening: open it at ' + wizardUrl() + '.';
+    if (!dir) {
+      downloadBlob(new Blob([fileText(r)], { type: 'application/json' }), r.file);
+      toast('Downloaded ' + r.file + '. Load it in your wizard, then drop its answers file on this task.' + blocked);
+      return;
+    }
+    (async () => {
+      try { if (!(await hasFile(dir, r.file))) { await writeFile(dir, r); stamps.delete(t.id); } }
+      catch (e) { toast('The round could not be written in the Claude folder, so it downloaded instead.', 'error'); downloadBlob(new Blob([fileText(r)], { type: 'application/json' }), r.file); return; }
+      let hinted = false;
+      try { hinted = localStorage.getItem(HINT_KEY) === '1'; localStorage.setItem(HINT_KEY, '1'); } catch (e) { /* say it each time */ }
+      toast((hinted ? 'Opening your wizard on ' + r.title + '.'
+        : 'Opening your wizard. Give it the Claude folder\'s ' + ROUNDS_DIR + ' folder once, and ' + r.title + ' opens there by itself.') + blocked);
+    })();
+  }
+
+  /* ---------- taking a file into a task ---------- */
+  /* A round file attaches its round, replacing another (W6) or updating the same one by its title; an answers file
+     brings the answers of the round the task has. Returns what happened, or an error starting with '!'. */
+  function take(t, w, file) {
+    const r = t.round;
+    if (w.round) {
+      if (r && r.title === roundTitleOf(w.round)) {
+        r.q = w.round;
+        if (answersFit(w.answers, w.round)) r.a = w.answers;
+        return 'updated';
+      }
+      t.round = makeRound(w, file);
+      return 'new';
+    }
+    const named = String(w.answers.meta.wizard_title || '').trim();
+    if (!r) return '!Those are answers to ' + (named || 'a round') + ', and this task has no round. Drop the round\'s own file first.';
+    if (!answersFit(w.answers, r.q)) return '!Those answers are for ' + named + ', not ' + r.title + '.';
+    r.a = w.answers;
+    return 'answers';
+  }
+  /* A file dropped on the task's panel. With the Claude folder, its round goes into wizard-rounds too, so Claude and the
+     wizard read the same file. Not work: Updated, urgency and Activity stay as they are. */
+  async function dropFile(p, t, file) {
+    if (!file) return false;
+    if (!/\.json$/i.test(file.name)) { toast('That is not a round: drop the .json file Claude gave you, or its answers.', 'error'); return false; }
+    let w = null;
+    try { w = readWizardFile(JSON.parse(await file.text())); } catch (e) { w = null; }
+    if (!w) { toast(file.name + ' is not a decision wizard round or its answers.', 'error'); return false; }
+    const was = t.round ? clone(t.round) : null, oldTitle = was && was.title;
+    const res = take(t, w, file.name);
+    if (res.startsWith('!')) { toast(res.slice(1), 'error'); return false; }
+    changed(p, { touch: false });
+    refresh(p);
+    const dir = typeof ClaudeWork !== 'undefined' ? ClaudeWork.folder() : null;
+    if (dir) writeFile(dir, t.round).then(() => stamps.delete(t.id), () => {});
+    const st = roundState(t);
+    const said = res === 'new' ? 'Attached ' + t.round.title + ' to ' + t.text + '.' + (oldTitle ? ' It replaces ' + oldTitle + '.' : '')
+      : res === 'updated' ? 'Updated ' + t.round.title + ' in ' + t.text + (t.round.a ? ': ' + st.answered + ' of ' + st.total + ' answered.' : '.')
+      : 'Answers in for ' + t.text + ': ' + st.answered + ' of ' + st.total + '.';
+    toast(said, '', { label: 'Undo', run: () => putBack(p, t, was) });
+    return true;
+  }
+  function putBack(p, t, was) {
+    if (was) t.round = was; else delete t.round;
+    changed(p, { touch: false });
+    refresh(p);
+  }
+
+  /* ---------- the answers coming back ---------- */
+  /* Reads each round's file in wizard-rounds, every few seconds with the rest of the Claude folder. The wizard saves the
+     answers into it as you go; the task takes them, and a toast says so once they stop arriving for a moment. One tab
+     takes them: the one that writes the data file. */
+  let busy = false;
+  async function poll(dir, writer) {
+    if (!dir || !writer || busy) return false;
+    busy = true;
+    let moved = false;
+    try {
+      let d = null;
+      try { d = await roundsDir(dir, false); } catch (e) { d = null; }
+      if (d) for (const p of DB.projects) for (const t of p.todos) {
+        const r = t.round;
+        if (!r || t.archived) continue;
+        let f;
+        try { f = await (await d.getFileHandle(r.file)).getFile(); } catch (e) { continue; }
+        const stamp = f.lastModified + ':' + f.size;
+        if (stamps.get(t.id) === stamp) continue;
+        stamps.set(t.id, stamp);
+        let w = null;
+        try { w = readWizardFile(JSON.parse(await f.text())); } catch (e) { continue; }   // half written: its next stamp
+        if (!w || !w.answers || (w.round && roundTitleOf(w.round) !== r.title) || !answersFit(w.answers, r.q)) continue;
+        if (JSON.stringify(w.answers) === JSON.stringify(r.a || null)) continue;
+        r.a = w.answers;
+        if (w.round) r.q = w.round;
+        changed(p, { touch: false });
+        moved = true;
+        announce(p, t);
+      }
+    } catch (e) { /* the folder went: the Claude folder's own state says so */ }
+    busy = false;
+    if (moved) refresh();
+    return moved;
+  }
+  function announce(p, t) {
+    clearTimeout(waits.get(t.id));
+    waits.set(t.id, setTimeout(() => {
+      waits.delete(t.id);
+      const st = roundState(t);
+      if (!st) return;
+      toast('Answers in for ' + t.text + ': ' + st.answered + ' of ' + st.total + '.', '', { label: 'Open', run: () => FullView.openTask(p.id, t.id) });
+    }, ANNOUNCE_MS));
+  }
+  const ANNOUNCE_MS = 4000;
+
+  /* ---------- in the change files Claude sends (add-round) ---------- */
+  /* A change naming a task and its round's file in wizard-rounds, or carrying the round itself. */
+  async function fromChange(dir, c) {
+    if (c && c.round && typeof c.round === 'object') { const w = readWizardFile(c.round); return w && w.round ? { w, file: safeRoundFile(c.file) } : null; }
+    const got = dir && c && c.file ? await readFile(dir, c.file) : null;
+    return got && got.w && got.w.round ? { w: got.w, file: safeRoundFile(c.file) } : null;
+  }
+
+  /* ---------- marking and removing ---------- */
+  function mark(p, t) {
+    const r = t.round; if (!r) return;
+    r.marked = true;
+    changed(p, { touch: false }); refresh(p);
+    const st = roundState(t);
+    toast('Marked answered: ' + plural(st.skipped, 'question', 'questions') + ' skipped.', '', { label: 'Undo', run: () => { r.marked = false; changed(p, { touch: false }); refresh(p); } });
+  }
+  function remove(p, t) {
+    const was = t.round; if (!was) return;
+    delete t.round;
+    changed(p, { touch: false }); refresh(p);
+    toast('Took ' + was.title + ' off this task. Its file stays in the folder.', '', { label: 'Undo', run: () => putBack(p, t, was) });
+  }
+  /* Everything showing a round, redrawn: the panel's card and the rows (the status card and the side bar redraw on any
+     change already). */
+  function refresh() { if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }
+
+  /* ---------- what shows it ---------- */
+  const hatTitle = st => st.done ? 'Wizard round answered. Click to open it in your wizard' : 'Wizard round: ' + st.answered + ' of ' + st.total + ' answered. Click to answer it in your wizard';
+  /* The hat on a task's row: gray until the round is answered, teal after (A2, H1); a click is Wizard it (X1). */
+  function hatButton(p, t, cls = '') {
+    if (!wearsHat(t)) return null;
+    const st = roundState(t);
+    return h('button', { class: 'icon-btn round-hat ' + (st.done ? 'hat-done' : 'hat-open') + (cls ? ' ' + cls : ''), type: 'button', 'data-task': t.id,
+      'aria-label': (st.done ? 'Wizard round answered, for ' : 'Wizard round, ' + st.answered + ' of ' + st.total + ' answered, for ') + t.text + '. Open it in your wizard',
+      title: hatTitle(st), html: hatSvg(14), onclick: e => { e.stopPropagation(); wizard(p, t); } });
+  }
+  /* What is next's chip, beside Pinned and Starred: the count while open, Answered after. */
+  function chip(p, t) {
+    if (!wearsHat(t)) return null;
+    const st = roundState(t);
+    return h('button', { id: 'pvNextRound', class: 'round-chip', type: 'button', title: hatTitle(st), onclick: () => wizard(p, t) },
+      h('span', { class: 'hat ' + (st.done ? 'hat-done' : 'hat-open'), 'aria-hidden': 'true', html: hatSvg(12) }), st.done ? 'Answered' : st.answered + ' of ' + st.total);
+  }
+  /* The card in the task panel, under Pin and Star (P1): the state, the title, the file, Wizard it, Mark answered,
+     Remove, and the answers, folded until asked for (P1a). An archived task's card is to read. */
+  function card(p, t, { readOnly = false } = {}) {
+    const r = t && t.round;
+    if (!r) return null;
+    const st = roundState(t), open = unfolded.has(t.id), hasAnswers = !!r.a || st.marked;
+    const el = h('section', { class: 'pv-round' + (st.done ? ' done' : ''), 'aria-label': 'Wizard round' });
+    const fold = hasAnswers ? h('button', { class: 'pv-round-fold', type: 'button', 'aria-expanded': String(open),
+      onclick: () => { if (open) unfolded.delete(t.id); else unfolded.add(t.id); const nu = card(p, t, { readOnly }); el.replaceWith(nu); const b = $('.pv-round-fold', nu); if (b) b.focus(); } },
+      h('span', { 'aria-hidden': 'true', html: iconSvg(open ? 'caretD' : 'caretR', 9) }), open ? 'Answers' : 'Show the answers') : null;
+    el.append(
+      h('div', { class: 'pv-round-head' }, hatEl(t, 16), h('span', { class: 'pv-round-lbl' }, 'Wizard round'), h('span', { class: 'pv-round-state' }, roundStateText(st))),
+      h('p', { class: 'pv-round-title', dir: 'auto' }, r.title),
+      h('p', { class: 'pv-round-file', dir: 'ltr', title: roundPath(r) || ROUNDS_DIR + '\\' + r.file + ', in the Claude folder' }, ROUNDS_DIR + '\\' + r.file),
+      h('div', { class: 'pv-round-btns' },
+        h('button', { id: 'pvRoundWizard', class: 'btn btn-small' + (st.done ? '' : ' btn-accent'), type: 'button', title: st.done ? 'Opens it in your wizard' : 'Answers it in your wizard',
+          onclick: () => wizard(p, t) }, h('span', { class: 'hat', 'aria-hidden': 'true', html: hatSvg(14) }), st.done ? 'Open in wizard' : 'Wizard it'),
+        !readOnly && !st.done && st.answered > 0 ? h('button', { id: 'pvRoundMark', class: 'btn btn-quiet btn-small', type: 'button', title: 'Every open question counts as skipped on purpose, and the hat turns teal',
+          onclick: () => { mark(p, t); const b = side() && $('#pvRoundWizard', side()); if (b) b.focus(); } }, 'Mark answered') : null,
+        !readOnly ? h('button', { id: 'pvRoundRemove', class: 'btn btn-quiet btn-small pv-round-remove', type: 'button', title: 'Takes the round off this task; its file stays in the folder',
+          onclick: () => remove(p, t) }, 'Remove') : null),
+      ...[fold, open && hasAnswers ? answersList(r, st) : null].filter(Boolean));
+    return el;
+  }
+  const side = () => $('#pvSide');
+  function answersList(r, st) {
+    const byId = new Map((r.a ? r.a.answers : []).filter(a => a && a.id).map(a => [a.id, a]));
+    return h('ul', { class: 'pv-round-ans' }, r.q.questions.map(q => {
+      const a = byId.get(q.id), got = isAnswered(a);
+      const li = h('li', { class: got ? null : st.marked ? 'skip' : 'open' },
+        h('span', { class: 'id' }, q.id),
+        h('span', { class: 'q', dir: 'auto' }, [q.title, q.question].filter(Boolean).join(': ')),
+        h('span', { class: 'a', dir: 'auto' }, a && a.status === 'batch' && !got ? answerWords(a, st.marked) : got ? answerWords(a, false) : st.marked ? 'Skipped' : 'Open'));
+      if (a && a.status === 'batch' && Array.isArray(a.items)) for (const it of a.items) if (it.answer) li.append(h('span', { class: 'sub', dir: 'auto' }, String(it.label || it.id) + ': ' + it.answer + (it.comment ? ' (' + it.comment + ')' : '')));
+      if (a && Array.isArray(a.followups)) for (const f of a.followups) if (isAnswered(f)) li.append(h('span', { class: 'sub', dir: 'auto' }, (f.issue || f.id) + ': ' + answerWords(f, false)));
+      if (a && a.comment && String(a.comment).trim()) li.append(h('span', { class: 'n', dir: 'auto' }, 'Note: ' + String(a.comment).trim()));
+      return li;
+    }));
+  }
+  /* The line a round file dragged over the panel lights up (P2: only while dragging). */
+  const dropLine = t => h('div', { class: 'pv-round-drop', 'aria-hidden': 'true' }, h('span', { class: 'hat hat-done', html: hatSvg(16) }),
+    t && t.round ? 'Drop a round or its answers file here' : 'Drop the round file to attach it to this task');
+  /* The round's file for Cowork, when its full path is known. */
+  const files = t => (t && t.round && roundPath(t.round) ? [roundPath(t.round)] : []);
+
+  return { wizard, openWizard, take, dropFile, poll, fromChange, mark, remove, hatButton, chip, card, dropLine, files, fileText, writeFile, readFile,
+    foldAll: () => unfolded.clear(), ANNOUNCE_MS };
 })();
 
 /* The building picker: every generic building, live, in one grid. It opens as a dialog when a new
@@ -10391,7 +10908,10 @@ const QuickAdd = (() => {
    claude:// links. Chat starts a new chat; Cowork starts a task with the project's local folders and files attached;
    Claude Code starts a session in the project's first folder. Terminal (0.1.37) opens Claude Code in a terminal in that
    folder, through Claude Code's own claude-cli:// link. The text is only filled in, never sent, and it goes on the
-   clipboard too, for when the app is not on this computer. */
+   clipboard too, for when the app is not on this computer.
+   For a task (0.1.55), a second row under the four, Make a wizard round, sends the same places the task's copy asking
+   Claude for a decision wizard round about it (Wizard Rounds in a Task, Round 1, M1). A copy's text may differ by where
+   it goes: a chat gets a round's answers written in, since it cannot read the round's file (C1). */
 const OpenInClaude = (() => {
   const MAX_Q = 13500;                      // the app fills in about 14,000 characters; anything longer goes by clipboard
   const MAX_TERM = 5000;                    // Claude Code's terminal links fill in at most 5,000
@@ -10443,8 +10963,11 @@ const OpenInClaude = (() => {
   }
   function open(btn, opts) {
     close();
-    const text = opts.text(), pl = opts.project ? places(opts.project) : { folders: [], files: [] };
-    const pick = kind => () => hand(text, kind), term = termFolder(pl);
+    const base0 = opts.project ? places(opts.project) : { folders: [], files: [] }, extra = opts.files ? opts.files() : [];
+    const pl = { folders: base0.folders, files: base0.files.concat(extra.filter(f => !base0.files.includes(f))) };
+    const textOf = kind => opts.text(kind);
+    const text = textOf('chat'), term = termFolder(pl);
+    const pick = kind => () => hand(textOf(kind), kind);
     const where = pl.folders.concat(pl.files);
     // with several places, a long first name gives way before 'and N more' does
     const coworkNote = !where.length ? (opts.project ? 'no folder link' : 'no project folder')
@@ -10452,14 +10975,15 @@ const OpenInClaude = (() => {
       : [h('span', { class: 'oc-name' }, 'with ' + base(where[0])), h('span', { class: 'oc-more' }, ' and ' + (where.length - 1) + ' more')];
     menu = h('div', { class: 'pv-menu oc-menu', role: 'menu', 'aria-label': 'Open in Claude' },
       item('chat', 'Chat', 'chat', 'new chat', href('chat', text), 'A new Claude chat with this filled in', pick('chat')),
-      item('cowork', 'Cowork', 'folder', coworkNote, href('cowork', text, pl),
+      item('cowork', 'Cowork', 'folder', coworkNote, href('cowork', textOf('cowork'), pl),
         where.length ? 'A new Cowork task with this filled in and ' + where.join(', ') + ' attached' : 'A new Cowork task with this filled in', pick('cowork')),
-      item('code', 'Claude Code', 'code', pl.folders[0] ? 'in ' + base(pl.folders[0]) : 'needs a folder link', pl.folders[0] ? href('code', text, pl) : null,
+      item('code', 'Claude Code', 'code', pl.folders[0] ? 'in ' + base(pl.folders[0]) : 'needs a folder link', pl.folders[0] ? href('code', textOf('code'), pl) : null,
         pl.folders[0] ? 'A new Claude Code session in ' + pl.folders[0] + ' with this filled in'
           : (opts.project ? 'Add a link to a folder on this computer to open Claude Code there' : 'Opens from a project that links a folder on this computer'), pick('code')),
-      item('terminal', 'Terminal', 'terminal', term ? 'in ' + base(term) : 'needs a folder link', term ? href('terminal', text, pl) : null,
+      item('terminal', 'Terminal', 'terminal', term ? 'in ' + base(term) : 'needs a folder link', term ? href('terminal', textOf('terminal'), pl) : null,
         term ? 'Claude Code in a new terminal in ' + term + ' with this filled in. Works once Claude Code has had a prompt in a terminal on this computer.'
-          : (opts.project ? 'Add a link to a folder on this computer to open Claude Code in a terminal there' : 'Opens from a project that links a folder on this computer'), pick('terminal')));
+          : (opts.project ? 'Add a link to a folder on this computer to open Claude Code in a terminal there' : 'Opens from a project that links a folder on this computer'), pick('terminal')),
+      opts.round ? roundRow(opts.round, pl, term) : null);
     document.body.append(menu);
     const r = btn.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;
     menu.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - mw - 8))) + 'px';
@@ -10467,12 +10991,27 @@ const OpenInClaude = (() => {
     owner = btn; btn.setAttribute('aria-expanded', 'true');
     menu.firstChild.focus();
     menu.addEventListener('keydown', e => {
-      const items = $$('a.oc-item', menu), i = items.indexOf(document.activeElement);
+      const items = $$('a.oc-item, a.oc-wiz-item', menu), i = items.indexOf(document.activeElement);
       if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
       else if (e.key === 'Tab') close();
     });
     setTimeout(() => { document.addEventListener('mousedown', outside, true); window.addEventListener('scroll', onScroll, true); window.addEventListener('resize', onScroll); }, 0);
+  }
+  /* Make a wizard round: the same four places, each sending the task's copy that asks Claude for a round about it. */
+  function roundRow(ask, pl, term) {
+    const one = (kind, label, icon, ok, title) => {
+      const kids = [h('span', { class: 'ic', html: iconSvg(icon, 16) }), h('span', null, label)];
+      if (!ok) return h('span', { class: 'oc-wiz-item off', role: 'menuitem', 'aria-disabled': 'true', 'data-kind': kind, title: 'Needs a link to a folder on this computer' }, kids);
+      return h('a', { class: 'oc-wiz-item', role: 'menuitem', href: href(kind, ask(kind), pl), 'data-kind': kind, title, onclick: () => { hand(ask(kind), kind); setTimeout(close, 0); } }, kids);
+    };
+    return h('div', { class: 'oc-wiz', role: 'group', 'aria-label': 'Make a wizard round' },
+      h('div', { class: 'oc-wiz-head' }, h('span', { class: 'hat hat-done', 'aria-hidden': 'true', html: hatSvg(16) }), 'Make a wizard round'),
+      h('div', { class: 'oc-wiz-row' },
+        one('chat', 'Chat', 'chat', true, 'A new chat asking Claude for a wizard round about this task; it gives you the round as a file to drop on the task'),
+        one('cowork', 'Cowork', 'folder', true, 'A new Cowork task asking Claude for a wizard round about this task'),
+        one('code', 'Code', 'code', !!pl.folders[0], 'Claude Code in ' + (pl.folders[0] || '') + ', asked for a wizard round about this task; it comes back to the task by itself'),
+        one('terminal', 'Terminal', 'terminal', !!term, 'Claude Code in a terminal in ' + (term || '') + ', asked for a wizard round about this task; it comes back to the task by itself')));
   }
   function outside(e) { if (menu && !menu.contains(e.target) && !(owner && owner.contains(e.target))) close(); }
   function onScroll() { close(); }
@@ -10485,7 +11024,8 @@ const OpenInClaude = (() => {
     owner = null;
     return true;
   }
-  /* The button that sits beside a Copy for Claude. opts: { text: () => string, project, id, quiet, small } */
+  /* The button that sits beside a Copy for Claude. opts: { text: kind => string, project, id, quiet, small }, and for a
+     task round: kind => string (Make a wizard round) and files: () => [path] (more files for Cowork). */
   function button(opts) {
     const btn = h('button', { id: opts.id, class: 'btn oc-btn' + (opts.small === false ? '' : ' btn-small') + (opts.quiet ? ' btn-quiet' : ''), type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false',
       title: 'Opens this in Claude, filled in and ready to send: a chat, a Cowork task, Claude Code, or Claude Code in a terminal' },
@@ -10602,6 +11142,7 @@ const ClaudeWork = (() => {
     const writer = typeof DataFile === 'undefined' || DataFile.isWriter();
     if (canWrite && !summaryAt) writeSummary();
     if (canWrite && typeof ClaudeInbox !== 'undefined' && await ClaudeInbox.poll(dir, writer)) moved = true;
+    if (state === 'on' && typeof Rounds !== 'undefined') await Rounds.poll(dir, writer);   // a round's answers, as the wizard saves them (0.1.55)
     const placed = place();
     if (writer) logFinishes();
     if (placed || moved) redraw();
@@ -10806,7 +11347,8 @@ const ClaudeWork = (() => {
           urgency: { system: urgencyName(p), state: u.color || 'calm', reasons: u.reasons },
           next: next ? next.text : null,
           milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)
-            open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}), ...(t.shift ? { shift: shiftName(t.shift) } : {}) })),
+            open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}), ...(t.shift ? { shift: shiftName(t.shift) } : {}),
+              ...(t.round ? { round: { title: t.round.title, file: ROUNDS_DIR + '/' + t.round.file, state: roundWords(roundState(t)) } } : {}) })),   // its wizard round (0.1.55)
             ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
             done: g.todos.filter(t => t.done && !t.archived).map(t => t.text) })),
           notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),
@@ -10905,7 +11447,7 @@ const ClaudeWork = (() => {
   Claude updates the city (0.1.36): Claude drops a change file into inbox/ in the Claude folder, and the city picks it
   up within a few seconds, with no Load plan or tasks. Each kind of change follows its own rule, as decided in Even
   Better Claude Connections, Round 1 (A1):
-    applies at once, with a toast and Undo:   add-tasks, add-note, add-link
+    applies at once, with a toast and Undo:   add-tasks, add-note, add-link, add-round (0.1.55)
     asks first, with Apply and Dismiss:       done (tick tasks), edit-description, replace-plan
   A change file is { app: 'nullovation-city', kind: 'change', version: 1, project, summary, changes: [{ do, ... }] }.
   What applies at once is applied, what asks first waits in inbox/pending/, and the file itself moves to inbox/done/
@@ -10913,7 +11455,7 @@ const ClaudeWork = (() => {
   One tab takes new files: the one that writes the data file.
 */
 const ClaudeInbox = (() => {
-  const AT_ONCE = new Set(['add-tasks', 'add-note', 'add-link']);
+  const AT_ONCE = new Set(['add-tasks', 'add-note', 'add-link', 'add-round']);
   const ASK = new Set(['done', 'edit-description', 'replace-plan']);
   const KEEP_DAYS = 14;                       // done and rejected files are cleared after two weeks
   let pending = [], pendingSig = '', busy = false, prunedDay = '';
@@ -10974,6 +11516,7 @@ const ClaudeInbox = (() => {
     }
     const now = data.changes.filter(c => c && AT_ONCE.has(c.do)), later = data.changes.filter(c => c && ASK.has(c.do));
     let undo = null;
+    for (const c of now) if (c.do === 'add-round') c._got = await Rounds.fromChange(dir, c);   // its round, read from wizard-rounds
     if (now.length) undo = applyNow(p, now, str(data.summary, 300));
     if (later.length) await put(await sub(dir, 'inbox/pending'), name, JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: p.name, summary: str(data.summary, 300), changes: later, received: Date.now() }, null, 1));
     await move(inbox, name, await sub(dir, 'inbox/done'), text);
@@ -10994,7 +11537,7 @@ const ClaudeInbox = (() => {
   /* ---------- what applies at once: adding, never removing ---------- */
   function applyNow(p, changes, summary) {
     const before = { todos: new Set(p.todos.map(t => t.id)), ms: new Set(p.milestones.map(m => m.id)) };
-    const added = { notes: [], links: [] };
+    const added = { notes: [], links: [], rounds: [] };
     let tasks = 0;
     for (const c of changes) {
       if (c.do === 'add-tasks') {
@@ -11017,12 +11560,20 @@ const ClaudeInbox = (() => {
         const l = { id: uid('l'), label: str(c.label, 120), url, icon: LINK_ICONS.includes(c.icon) ? c.icon : guessIcon(url), shortcut: true };
         p.links.push(l); added.links.push(l.id);
         logActivity(p, 'Claude added a link: ' + (l.label || suggestLabel(url)));
+      } else if (c.do === 'add-round') {
+        /* a wizard round for a task (0.1.55, W1): it replaces any round the task had (W6) */
+        const t = taskNamed(p, c.task) || taskNamed(p, c.task, false), got = c._got;
+        if (!t || !got) continue;
+        added.rounds.push({ id: t.id, was: t.round ? JSON.parse(JSON.stringify(t.round)) : null });
+        t.round = makeRound(got.w, got.file);
+        logActivity(p, 'Claude attached a wizard round to ' + t.text + ': ' + t.round.title);
       }
     }
-    const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links'))].filter(Boolean);
+    const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links')),
+      added.rounds.length && (added.rounds.length === 1 ? 'attached a wizard round' : 'attached ' + added.rounds.length + ' wizard rounds')].filter(Boolean);
     const what = bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] || '';
     if (what && summary) logActivity(p, 'Claude: ' + summary);
-    if (what) window.changed(p);
+    if (what) { window.changed(p); if (added.rounds.length && typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }
     return { what, todos: p.todos.filter(t => !before.todos.has(t.id)).map(t => t.id), ms: p.milestones.filter(m => !before.ms.has(m.id)).map(m => m.id), ...added };
   }
   function undoNow(p, u) {
@@ -11030,6 +11581,7 @@ const ClaudeInbox = (() => {
     p.todos = p.todos.filter(t => !drop.has(t.id));
     p.notes = p.notes.filter(n => !notes.has(n.id));
     p.links = p.links.filter(l => !links.has(l.id));
+    for (const r of u.rounds || []) { const t = p.todos.find(x => x.id === r.id); if (!t) continue; if (r.was) t.round = r.was; else delete t.round; }
     p.milestones = p.milestones.filter(m => !u.ms.includes(m.id) || p.todos.some(t => t.milestoneId === m.id));
     logActivity(p, 'Undid what Claude added');
     window.changed(p);
@@ -11369,6 +11921,8 @@ const Settings = (() => {
     cardSize: { tab: 'look', get: () => MapView.card().size, def: () => MapView.CARD_DEFAULT.size, set: v => MapView.setCard({ size: v }) },
     rest: { tab: 'projects', ...city('rest') }, away: { tab: 'projects', ...city('away') },
     explorer: { tab: 'links', get: () => explorerLinks(), def: () => false, set: v => { try { localStorage.setItem(EXPLORER_KEY, v ? '1' : '0'); } catch (e) { /* this visit only */ } if (FullView.isOpen()) FullView.render(); } },
+    /* where Wizard it opens the decision wizard (0.1.55): empty for the hosted one, or your own copy's address */
+    wizard: { tab: 'links', get: () => wizardSetting(), def: () => '', set: v => { try { if (v) localStorage.setItem(WIZARD_KEY, v); else localStorage.removeItem(WIZARD_KEY); } catch (e) { /* this visit only */ } } },
   };
   const changedFromDefault = k => !same(DEFS[k].get(), DEFS[k].def());
   function setCity(k, v) {
@@ -11500,6 +12054,12 @@ const Settings = (() => {
     $('#btnAwayClear').addEventListener('click', () => set('away', ''));
     /* Links */
     check('optExplorer', 'explorer');
+    $('#optWizard').placeholder = WIZARD_HOSTED;
+    $('#optWizard').addEventListener('change', e => {
+      const v = e.target.value.trim();
+      if (v && !/^(https?|file):\/\//i.test(v)) { toast('The wizard\'s address starts with https://, or file:// for a copy on this computer.', 'error'); e.target.value = wizardSetting(); return; }
+      set('wizard', v);
+    });
     $('#btnFolderSetup').addEventListener('click', () => {
       downloadBlob(new Blob([FOLDER_SETUP_PS1], { type: 'text/plain' }), 'nullovation-folder-links.ps1');
       toast('Saved nullovation-folder-links.ps1. Right-click it, choose Run with PowerShell, then turn on the setting.');
@@ -11528,7 +12088,7 @@ const Settings = (() => {
     life: () => { DEFS.traffic.set(true); for (const k of LIFE) DEFS[k].set(DEFS[k].def()); },
     look: () => { for (const k of ['light', 'hours', 'bubbles', 'garbage', 'ghosts', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
     projects: () => { DEFS.rest.set([]); DEFS.away.set(''); },
-    links: () => DEFS.explorer.set(false),
+    links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); },
   };
   function resetTab(id) { if (TAB_RESET[id]) { TAB_RESET[id](); refresh(); } }
 
@@ -11566,6 +12126,7 @@ const Settings = (() => {
     if (document.activeElement !== $('#optAway')) $('#optAway').value = c.away;
     $('#btnAwayClear').disabled = !c.away;
     $('#optExplorer').checked = explorerLinks();
+    if (document.activeElement !== $('#optWizard')) $('#optWizard').value = wizardSetting();
     /* the dots */
     const tabs = new Set();
     for (const row of $$('#setBody [data-set]')) {
@@ -11712,7 +12273,7 @@ const AllTasks = (() => {
     /* A change elsewhere in the city redraws it only when something it shows changed, so a row under the pointer
        stays put, and its buttons with it. */
     const sig = JSON.stringify([ymd(now), shift, building, words, [...unfolded], all.map(x => [x.t.id, x.t.text, x.due, x.t.shift || '',
-      !!x.t.repeat, ticking.has(x.t.id), x.pin, x.star, (msOf(x.p, x.t) || {}).name || '']),
+      !!x.t.repeat, ticking.has(x.t.id), x.pin, x.star, (msOf(x.p, x.t) || {}).name || '', x.t.round ? roundStateText(roundState(x.t)) : '']),
       DB.projects.map(p => [p.id, p.name, p.generic, p.art.has, p.flip, behind(p)])]);
     if (!force && sig === lastSig) return;
     lastSig = sig;
@@ -11794,7 +12355,7 @@ const AllTasks = (() => {
     const due = !d || !chip ? null : d.tone === 'late' ? h('span', { class: 'due late' }, '! ' + d.text)
       : h('span', { class: 'due ' + (d.tone || '') }, chip === 'full' ? dueWords(on, now) : weekdayOf(on) + ' ' + fmtDate(parseYmd(on)));
     const where = proj ? p.name + (ms ? ' · ' + ms.name : '') : ms ? ms.name : '';
-    const meta = h('span', { class: 'at-meta' }, shift && shift !== 'none' ? null : shiftTag(t), due, where ? h('span', { class: 'at-where', dir: 'auto' }, where) : null);
+    const meta = h('span', { class: 'at-meta' }, held ? null : Rounds.hatButton(p, t, 'at-round'), shift && shift !== 'none' ? null : shiftTag(t), due, where ? h('span', { class: 'at-where', dir: 'auto' }, where) : null);
     const li = h('li', { class: 'at-row' + (held ? ' ticked' : ''), 'data-id': t.id, 'data-p': p.id,
       onpointerenter: () => MapView.light(p.id), onpointerleave: () => MapView.light(null) });
     li.addEventListener('focusin', () => MapView.light(p.id));

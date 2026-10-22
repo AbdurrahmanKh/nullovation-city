@@ -2,7 +2,10 @@
    claude:// links. Chat starts a new chat; Cowork starts a task with the project's local folders and files attached;
    Claude Code starts a session in the project's first folder. Terminal (0.1.37) opens Claude Code in a terminal in that
    folder, through Claude Code's own claude-cli:// link. The text is only filled in, never sent, and it goes on the
-   clipboard too, for when the app is not on this computer. */
+   clipboard too, for when the app is not on this computer.
+   For a task (0.1.55), a second row under the four, Make a wizard round, sends the same places the task's copy asking
+   Claude for a decision wizard round about it (Wizard Rounds in a Task, Round 1, M1). A copy's text may differ by where
+   it goes: a chat gets a round's answers written in, since it cannot read the round's file (C1). */
 const OpenInClaude = (() => {
   const MAX_Q = 13500;                      // the app fills in about 14,000 characters; anything longer goes by clipboard
   const MAX_TERM = 5000;                    // Claude Code's terminal links fill in at most 5,000
@@ -54,8 +57,11 @@ const OpenInClaude = (() => {
   }
   function open(btn, opts) {
     close();
-    const text = opts.text(), pl = opts.project ? places(opts.project) : { folders: [], files: [] };
-    const pick = kind => () => hand(text, kind), term = termFolder(pl);
+    const base0 = opts.project ? places(opts.project) : { folders: [], files: [] }, extra = opts.files ? opts.files() : [];
+    const pl = { folders: base0.folders, files: base0.files.concat(extra.filter(f => !base0.files.includes(f))) };
+    const textOf = kind => opts.text(kind);
+    const text = textOf('chat'), term = termFolder(pl);
+    const pick = kind => () => hand(textOf(kind), kind);
     const where = pl.folders.concat(pl.files);
     // with several places, a long first name gives way before 'and N more' does
     const coworkNote = !where.length ? (opts.project ? 'no folder link' : 'no project folder')
@@ -63,14 +69,15 @@ const OpenInClaude = (() => {
       : [h('span', { class: 'oc-name' }, 'with ' + base(where[0])), h('span', { class: 'oc-more' }, ' and ' + (where.length - 1) + ' more')];
     menu = h('div', { class: 'pv-menu oc-menu', role: 'menu', 'aria-label': 'Open in Claude' },
       item('chat', 'Chat', 'chat', 'new chat', href('chat', text), 'A new Claude chat with this filled in', pick('chat')),
-      item('cowork', 'Cowork', 'folder', coworkNote, href('cowork', text, pl),
+      item('cowork', 'Cowork', 'folder', coworkNote, href('cowork', textOf('cowork'), pl),
         where.length ? 'A new Cowork task with this filled in and ' + where.join(', ') + ' attached' : 'A new Cowork task with this filled in', pick('cowork')),
-      item('code', 'Claude Code', 'code', pl.folders[0] ? 'in ' + base(pl.folders[0]) : 'needs a folder link', pl.folders[0] ? href('code', text, pl) : null,
+      item('code', 'Claude Code', 'code', pl.folders[0] ? 'in ' + base(pl.folders[0]) : 'needs a folder link', pl.folders[0] ? href('code', textOf('code'), pl) : null,
         pl.folders[0] ? 'A new Claude Code session in ' + pl.folders[0] + ' with this filled in'
           : (opts.project ? 'Add a link to a folder on this computer to open Claude Code there' : 'Opens from a project that links a folder on this computer'), pick('code')),
-      item('terminal', 'Terminal', 'terminal', term ? 'in ' + base(term) : 'needs a folder link', term ? href('terminal', text, pl) : null,
+      item('terminal', 'Terminal', 'terminal', term ? 'in ' + base(term) : 'needs a folder link', term ? href('terminal', textOf('terminal'), pl) : null,
         term ? 'Claude Code in a new terminal in ' + term + ' with this filled in. Works once Claude Code has had a prompt in a terminal on this computer.'
-          : (opts.project ? 'Add a link to a folder on this computer to open Claude Code in a terminal there' : 'Opens from a project that links a folder on this computer'), pick('terminal')));
+          : (opts.project ? 'Add a link to a folder on this computer to open Claude Code in a terminal there' : 'Opens from a project that links a folder on this computer'), pick('terminal')),
+      opts.round ? roundRow(opts.round, pl, term) : null);
     document.body.append(menu);
     const r = btn.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;
     menu.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - mw - 8))) + 'px';
@@ -78,12 +85,27 @@ const OpenInClaude = (() => {
     owner = btn; btn.setAttribute('aria-expanded', 'true');
     menu.firstChild.focus();
     menu.addEventListener('keydown', e => {
-      const items = $$('a.oc-item', menu), i = items.indexOf(document.activeElement);
+      const items = $$('a.oc-item, a.oc-wiz-item', menu), i = items.indexOf(document.activeElement);
       if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
       else if (e.key === 'Tab') close();
     });
     setTimeout(() => { document.addEventListener('mousedown', outside, true); window.addEventListener('scroll', onScroll, true); window.addEventListener('resize', onScroll); }, 0);
+  }
+  /* Make a wizard round: the same four places, each sending the task's copy that asks Claude for a round about it. */
+  function roundRow(ask, pl, term) {
+    const one = (kind, label, icon, ok, title) => {
+      const kids = [h('span', { class: 'ic', html: iconSvg(icon, 16) }), h('span', null, label)];
+      if (!ok) return h('span', { class: 'oc-wiz-item off', role: 'menuitem', 'aria-disabled': 'true', 'data-kind': kind, title: 'Needs a link to a folder on this computer' }, kids);
+      return h('a', { class: 'oc-wiz-item', role: 'menuitem', href: href(kind, ask(kind), pl), 'data-kind': kind, title, onclick: () => { hand(ask(kind), kind); setTimeout(close, 0); } }, kids);
+    };
+    return h('div', { class: 'oc-wiz', role: 'group', 'aria-label': 'Make a wizard round' },
+      h('div', { class: 'oc-wiz-head' }, h('span', { class: 'hat hat-done', 'aria-hidden': 'true', html: hatSvg(16) }), 'Make a wizard round'),
+      h('div', { class: 'oc-wiz-row' },
+        one('chat', 'Chat', 'chat', true, 'A new chat asking Claude for a wizard round about this task; it gives you the round as a file to drop on the task'),
+        one('cowork', 'Cowork', 'folder', true, 'A new Cowork task asking Claude for a wizard round about this task'),
+        one('code', 'Code', 'code', !!pl.folders[0], 'Claude Code in ' + (pl.folders[0] || '') + ', asked for a wizard round about this task; it comes back to the task by itself'),
+        one('terminal', 'Terminal', 'terminal', !!term, 'Claude Code in a terminal in ' + (term || '') + ', asked for a wizard round about this task; it comes back to the task by itself')));
   }
   function outside(e) { if (menu && !menu.contains(e.target) && !(owner && owner.contains(e.target))) close(); }
   function onScroll() { close(); }
@@ -96,7 +118,8 @@ const OpenInClaude = (() => {
     owner = null;
     return true;
   }
-  /* The button that sits beside a Copy for Claude. opts: { text: () => string, project, id, quiet, small } */
+  /* The button that sits beside a Copy for Claude. opts: { text: kind => string, project, id, quiet, small }, and for a
+     task round: kind => string (Make a wizard round) and files: () => [path] (more files for Cowork). */
   function button(opts) {
     const btn = h('button', { id: opts.id, class: 'btn oc-btn' + (opts.small === false ? '' : ' btn-small') + (opts.quiet ? ' btn-quiet' : ''), type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false',
       title: 'Opens this in Claude, filled in and ready to send: a chat, a Cowork task, Claude Code, or Claude Code in a terminal' },

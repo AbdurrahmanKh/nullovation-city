@@ -230,8 +230,10 @@ function ensureMilestones(p) {
 /* Every copy for Claude ends with this line, so work started from the city reports back by itself (Even Better Claude
    Connections, Round 1, A2: from the copy). The nullovation-city skill writes the change into the city's inbox. */
 const REPORT_LINE = 'When you finish, send Nullovation City an update with the nullovation-city skill.';
-/* One task as text for a Claude chat: what it is, and where it sits. */
-function taskForClaude(p, t, now = Date.now()) {
+/* One task as text for a Claude chat: what it is, and where it sits. Its wizard round (0.1.55) follows the description:
+   through its file wherever Claude can read it (A2), with the answers written in for a chat (kind 'chat', C1) and when
+   no Claude folder is connected. Make a wizard round's copy (ask) ends with its request instead of the update line. */
+function taskForClaude(p, t, now = Date.now(), { kind = '', ask = false } = {}) {
   const L = [];
   const ms = p.milestones.find(m => m.id === t.milestoneId);
   const g = ms ? groupsOf(p).find(x => x.ms && x.ms.id === ms.id) : null;
@@ -247,7 +249,8 @@ function taskForClaude(p, t, now = Date.now()) {
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
-  L.push('', REPORT_LINE);
+  if (t.round) L.push(...roundForClaude(t, { inline: kind === 'chat' || !(typeof ClaudeWork !== 'undefined' && ClaudeWork.folder()) }));
+  L.push('', ask ? ROUND_LINE : REPORT_LINE);
   return L.join('\n');
 }
 /* A note, ready to paste into a Claude chat. */
@@ -274,6 +277,7 @@ function milestoneForClaude(p, m, now = Date.now()) {
     if (d) L.push(d.text);
     if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
     if (t.shift) L.push('Shift: ' + shiftName(t.shift));
+    if (t.round) L.push('Wizard round: ' + t.round.title + ' (' + roundWords(roundState(t)).replace(/^./, c => c.toLowerCase()) + ')');
     L.push((t.description || '').trim() || 'No description yet.');
   }
   if (waiting.length) { L.push('', '## Repeats waiting for their next date'); for (const t of waiting) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')'); }
@@ -374,7 +378,7 @@ function sanitizeProjects(raw) {
         id: typeof t.id === 'string' && t.id ? t.id : uid('t'), text: t.text.slice(0, 500), description: typeof t.description === 'string' ? t.description.slice(0, 8000) : '',
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
-        ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}),
+        ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}), ...readRound(t),
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed, ...(m.archiveCollapsed === true ? { archiveCollapsed: true } : {}),
