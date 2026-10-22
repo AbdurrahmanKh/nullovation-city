@@ -9,6 +9,8 @@ function weekLabel(start, withYear = false) {
   const f = (ts, y) => new Date(ts).toLocaleDateString('en-GB', y ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' });
   return f(start) + ' to ' + f(addDays(start, 6), withYear);
 }
+/* A task added, from its Activity line: added, or turned from a note (0.1.54). */
+const addedTodo = s => s.startsWith('Added todo: ') ? s.slice(12) : s.startsWith('Turned into a task: ') ? s.slice(20) : null;
 /* What happened in one week, per project, from the activity log and the tasks and notes themselves. */
 function weekOf(start) {
   const end = addDays(start, 7);
@@ -20,7 +22,7 @@ function weekOf(start) {
     for (const e of log) if (e.text.startsWith('Done: ')) doneMap.set(e.text.slice(6), e.at);
     for (const t of p.todos) if (t.done && inWeek(t.doneAt) && !doneMap.has(t.text)) doneMap.set(t.text, t.doneAt);
     const done = [...doneMap.entries()].map(([text, at]) => ({ text, at })).sort((x, y) => x.at - y.at);
-    const added = log.filter(e => e.text.startsWith('Added todo: ')).map(e => ({ text: e.text.slice(12), at: e.at }));
+    const added = log.map(e => ({ text: addedTodo(e.text), at: e.at })).filter(e => e.text != null);
     const worked = log.filter(e => e.text === 'I worked!').length;
     const notes = p.notes.filter(n => inWeek(n.at)).sort((x, y) => x.at - y.at);
     const ms = p.milestones.filter(m => {

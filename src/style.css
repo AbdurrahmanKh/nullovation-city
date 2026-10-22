@@ -627,7 +627,7 @@ kbd { background: var(--paper); border-color: var(--edge); box-shadow: 0 2px 0 0
 .pv-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); column-gap: 32px; align-items: start; }
 .pv .fv-desc p { max-width: 76ch; }
 
-/* ---------- project view layout: the picture beside About, then Todos beside Notes and Links ---------- */
+/* ---------- project view layout: the picture beside About, then Todos beside Links and Notes ---------- */
 .pv { container-type: inline-size; }
 .pv-hero { display: grid; grid-template-columns: 440px 1fr; gap: 22px; align-items: stretch; margin-top: 4px; }
 .pv-hero-pic { display: flex; flex-direction: column; }
@@ -899,7 +899,6 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .pv-note-cell:hover .pv-note-copy, .pv-note-copy:focus-visible { opacity: 1; }
 @media (hover: none) { .pv-note-copy { opacity: .85; } }
 .pv-note-cell .pv-note-h { padding-inline-end: 30px; }
-.pv-foot-actions { gap: 8px; }
 
 /* ---------- the milestone view: its tasks, to read ---------- */
 .pv-ms-tasks { list-style: none; margin: 4px 0 14px; padding: 0; display: grid; gap: 2px; }

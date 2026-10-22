@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.54 (2026-10-22)
+
+Abdurrahman's task "Turn tasks into Ideas(Notes)", in Task Improvements: some tasks are better kept as open ideas, and links come before notes.
+- Turn into a note, at the foot of a task's panel, left of Delete task: the task becomes a note, its title the note's title and its description the note's text. Its milestone, due date, repeat, shift, pin and star go with the task. The note opens in the panel in the task's place.
+- Turn into a task, at the foot of a note's panel, left of Delete note: the note becomes a task where a task added without @ goes (the current milestone, else the last, else a new To do), named by its title, or by its first line when it has none, the rest its description. The task opens in the panel in the note's place. An empty note has nothing to turn, so the button waits for words.
+- Each shows a toast, "Turned Water the beds into a note." or "Turned Seed library into a task in First release.", with Undo, which puts back exactly what was there: the task in its place with its date, repeat, shift, pin and star, or the note with its date, and its panel again.
+- A task's title longer than a note's 200 characters is not cut: the note opens with it.
+- Activity says "Turned into a note: ..." or "Turned into a task: ...". Neither is work, so urgency stays; Updated moves, as for any new task or note. The week's recap counts a note turned into a task as a task added.
+- An archived task is to read, so it has no Turn into a note until it is restored. A done task has one.
+- Links now sit above Notes in the project view, level with Todos.
+- The note panel's foot is laid out like the task panel's: Turn into a task on the left, Delete note on the right, and when it was written under them.
+- Fixed: opening a note while a task's or a milestone's panel was open skipped closing that panel, so a tick or an edit made there wrote no line in Activity.
+- Tests: test36_notes_tasks, 65 checks.
+
 ## 0.1.53 (2026-10-21)
 
 All tasks, the eighth of the task ideas, designed in All tasks, Rounds 1 to 3, with shifts, and built ahead of the third at Abdurrahman's call.

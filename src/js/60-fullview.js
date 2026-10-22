@@ -199,7 +199,7 @@ const FullView = (() => {
     const top = root.scrollTop;
     root.replaceChildren(topBar(p),
       h('div', { class: 'pv-hero' }, heroPicture(p), about(p)),
-      h('div', { class: 'pv-cols' }, h('div', { class: 'pv-col' }, todos(p)), h('div', { class: 'pv-col' }, notes(p), links(p))));
+      h('div', { class: 'pv-cols' }, h('div', { class: 'pv-col' }, todos(p)), h('div', { class: 'pv-col' }, links(p), notes(p))));   // links first: the app runs on them (0.1.54)
     root.scrollTop = top;
     const inp = adding && $('[data-adding] .field', root); if (inp) inp.focus();
     if (side) renderSide();
@@ -462,11 +462,7 @@ const FullView = (() => {
   }
   function restoreByHand(p, t) {
     const s = restoreTask(t);
-    if (!p.milestones.some(m => m.id === t.milestoneId)) {     // its milestone is gone: where a new task would go
-      let id = defaultMilestone(p);
-      if (!id) { const m = { id: uid('m'), name: 'To do', collapsed: false }; p.milestones.push(m); id = m.id; }
-      t.milestoneId = id; normalizeOrder(p);
-    }
+    if (!p.milestones.some(m => m.id === t.milestoneId)) { t.milestoneId = homeMilestone(p).ms.id; normalizeOrder(p); }   // its milestone is gone
     const ms = p.milestones.find(m => m.id === t.milestoneId);
     if (ms) ms.collapsed = false;
     changed(p, { touch: false }); render(); Bubble.refresh();
@@ -474,6 +470,15 @@ const FullView = (() => {
       putBackArchive(s); changed(p, { touch: false });
       if (root && openId === p.id) render();
     } });
+  }
+  /* Where a task with no milestone of its own goes, as one added without @ does: the current milestone, else the last
+     one not in the archive, else a new To do. made says the milestone is new. */
+  function homeMilestone(p) {
+    const id = defaultMilestone(p);
+    if (id) return { ms: p.milestones.find(m => m.id === id), made: false };
+    const ms = { id: uid('m'), name: 'To do', collapsed: false };
+    p.milestones.push(ms);
+    return { ms, made: true };
   }
   /* The Archive view (A1, C3), beside the project view: by milestone, newest first, each task with Restore. */
   function openArchive(p, msId = null, taskId = null) {
@@ -712,6 +717,8 @@ const FullView = (() => {
         h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
         OpenInClaude.button({ id: 'pvTaskClaude', text: () => taskForClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' },
+        h('button', { id: 'pvTaskToNote', class: 'btn btn-small', type: 'button', title: 'Keep it as an idea in Notes: its title and description stay; its date, repeat and shift go',
+          onclick: () => turnIntoNote(p, t.id) }, iconEl('doc', 14), 'Turn into a note'),
         deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'Saves as you type. Done closes it; Esc undoes everything since it opened.'));
   }
@@ -1015,7 +1022,7 @@ const FullView = (() => {
   let sideNote = null, noteSnap = null;
   function openNote(p, id) {
     finishEdit(); adding = null;
-    if (side && sideMode === 'note') finishNote();
+    if (side) closeSide();                                // a task or milestone open there closes as always first
     let n = id ? p.notes.find(x => x.id === id) : null;
     if (!n) { n = { id: uid('n'), title: '', text: '', at: Date.now() }; p.notes.push(n); noteSnap = null; }
     else noteSnap = clone(n);
@@ -1051,26 +1058,30 @@ const FullView = (() => {
   function noteEditor(p) {
     const n = p.notes.find(x => x.id === sideNote);
     if (!n) return h('p', { class: 'fv-empty' }, 'This note is gone.');
+    const goes = p.milestones.find(m => m.id === defaultMilestone(p));
+    const toTask = h('button', { id: 'pvNoteToTask', class: 'btn btn-small', type: 'button', disabled: !(n.title.trim() || n.text.trim()),
+      title: 'Make it a task in ' + (goes ? goes.name : 'a new To do milestone') + ': the title names it, the text describes it',
+      onclick: () => turnIntoTask(p, n.id) }, iconEl('task', 14), 'Turn into a task');
+    const typed = () => { toTask.disabled = !(n.title.trim() || n.text.trim()); };   // an empty note has nothing to turn
     const title = h('input', { id: 'pvNoteTitle', class: 'field pv-note-title', type: 'text', dir: 'auto', maxlength: '200', value: n.title, placeholder: 'Title', 'aria-label': 'Note title', autocomplete: 'off',
-      oninput: e => { n.title = e.target.value; changed(p, { touch: false }); refreshCard(n); },
+      oninput: e => { n.title = e.target.value; changed(p, { touch: false }); refreshCard(n); typed(); },
       onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); const b = $('#pvNoteBody', side); if (b) b.focus(); } } });
     const body = h('textarea', { id: 'pvNoteBody', class: 'field pv-note-body', dir: 'auto', rows: '16', placeholder: 'Write the note', 'aria-label': 'Note text',
-      oninput: e => { n.text = e.target.value.slice(0, 8000); changed(p, { touch: false }); refreshCard(n); } }, n.text);
+      oninput: e => { n.text = e.target.value.slice(0, 8000); changed(p, { touch: false }); refreshCard(n); typed(); } }, n.text);
     return h('div', { class: 'pv-note-ed' }, title, body,
       h('div', { class: 'pv-claude-row' },
         h('button', { id: 'pvNoteCopy', class: 'btn btn-small', type: 'button', title: 'Copies this note for a Claude chat', onclick: () => copyNote(p, n) }, iconEl('copy', 14), 'Copy for Claude'),
         OpenInClaude.button({ id: 'pvNoteClaude', text: () => noteForClaude(p, n), project: p })),
-      h('div', { class: 'pv-note-foot' },
-        h('span', { class: 'note' }, 'Written ' + fmtStamp(n.at) + '. Saves as you type; Esc undoes.'),
-        h('span', { class: 'inline pv-foot-actions' },
-        h('button', { class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
+      h('div', { class: 'pv-note-foot' }, toTask,                        // as in the task panel: turn it on the left, delete on the right
+        h('button', { id: 'pvNoteDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
           p.notes.splice(p.notes.indexOf(n), 1);
           if (noteSnap) logActivity(p, 'Deleted a note');
           changed(p, { touch: false });
           sideNote = null; noteSnap = null;
           closeSide(); render();
           toast('Note deleted.');
-        } }, 'Delete note'))));
+        } }, 'Delete note')),
+      h('p', { class: 'note' }, 'Written ' + fmtStamp(n.at) + '. Saves as you type; Esc undoes.'));
   }
   function refreshCard(n) {
     const card = root && $(`.pv-note-card[data-id="${n.id}"]`, root);
@@ -1083,6 +1094,78 @@ const FullView = (() => {
     const old = $('[data-sec="notes"]', root);
     if (old) old.replaceWith(notes(p));
     root.scrollTop = top;
+  }
+
+  /* ---------- a task into a note, and a note into a task (0.1.54) ----------
+     Some tasks are better kept as open ideas. A task's title and description become the note's; its milestone, date,
+     repeat, shift, pin and star belong to a task, so they go. A note becomes a task where one added without @ goes,
+     named by its title, or by its first line when it has none, with the rest as its description. The panel closes as
+     it always does, the new one opens in its place, and the toast's Undo puts back exactly what was there. Neither is
+     work: urgency stays. */
+  const logged = (p, text) => { logActivity(p, text); return p.activity[p.activity.length - 1]; };
+  const unlog = (p, e) => { const k = p.activity.indexOf(e); if (k >= 0) p.activity.splice(k, 1); };
+  /* Undo puts back what the side panel showed, so the panel goes without closing as usual. */
+  function dropSide() {
+    sideTask = null; taskSnap = null; sideTicked = false; sideNote = null; noteSnap = null; sideMs = null; msSnap = null;
+    if (side) { side.remove(); side = null; sideMode = null; }
+    if (root && root.style.width) root.style.width = '';
+  }
+  function turnIntoNote(p, id) {
+    closeSide();                                          // the task's Done and edit lines first, as for any close
+    const i = p.todos.findIndex(x => x.id === id); if (i < 0) return;
+    const t = p.todos[i], was = clone(t), pinned = p.pin === t.id, starred = p.star === t.id;
+    const text = t.text.trim(), desc = (t.description || '').trim(), long = text.length > 200;    // a note's title holds 200
+    const n = { id: uid('n'), title: long ? '' : text, text: (long ? text + (desc ? '\n\n' + desc : '') : desc).slice(0, 8000), at: Date.now() };
+    p.todos.splice(i, 1); p.notes.push(n);
+    if (pinned) p.pin = '';
+    if (starred) p.star = '';
+    const line = logged(p, 'Turned into a note: ' + text);
+    changed(p); render(); Bubble.refresh();
+    openNote(p, n.id);
+    toast('Turned ' + text + ' into a note.', '', { label: 'Undo', run: () => {
+      if (!getProject(p.id) || p.todos.some(x => x.id === was.id)) return;
+      const showing = !!side && sideMode === 'note' && sideNote === n.id && openId === p.id;
+      if (showing) dropSide();
+      p.notes = p.notes.filter(x => x.id !== n.id);
+      p.todos.splice(Math.min(i, p.todos.length), 0, was);
+      if (!p.milestones.some(m => m.id === was.milestoneId)) was.milestoneId = homeMilestone(p).ms.id;   // its milestone is gone
+      normalizeOrder(p);
+      if (pinned && !pinnedTask(p)) p.pin = was.id;
+      if (starred && !starredTask()) p.star = was.id;
+      unlog(p, line);
+      changed(p);
+      if (root && openId === p.id) render();
+      if (showing) { openTask(p, was.id); const b = side && $('#pvTaskToNote', side); if (b) b.focus(); }
+    } });
+  }
+  function turnIntoTask(p, id) {
+    closeSide();                                          // the note's Wrote or Edited line first, as for any close
+    const i = p.notes.findIndex(x => x.id === id); if (i < 0) return;
+    const n = p.notes[i], was = clone(n);
+    const title = n.title.trim(), body = n.text.trim(), first = body.split('\n')[0].trim(), head = title || first;
+    if (!head) return;
+    const description = (title || head.length > 500 ? body : body.split('\n').slice(1).join('\n').trim()).slice(0, 8000);
+    const lines = [], home = homeMilestone(p), ms = home.ms, folded = ms.collapsed;
+    if (home.made) lines.push(logged(p, 'New milestone: ' + ms.name));
+    ms.collapsed = false;
+    const t = Object.assign(todo(head.slice(0, 500), ms.id), { description });
+    p.notes.splice(i, 1); p.todos.push(t); normalizeOrder(p);
+    lines.push(logged(p, 'Turned into a task: ' + t.text));
+    changed(p); render(); Bubble.refresh();
+    openTask(p, t.id);
+    toast('Turned ' + t.text + ' into a task in ' + ms.name + '.', '', { label: 'Undo', run: () => {
+      if (!getProject(p.id) || p.notes.some(x => x.id === was.id)) return;
+      const showing = !!side && sideMode === 'task' && sideTask === t.id && openId === p.id;
+      if (showing) dropSide();
+      p.todos = p.todos.filter(x => x.id !== t.id);
+      if (home.made && !p.todos.some(x => x.milestoneId === ms.id)) p.milestones = p.milestones.filter(m => m !== ms);
+      else if (folded) ms.collapsed = true;
+      p.notes.splice(Math.min(i, p.notes.length), 0, was);
+      lines.forEach(e => unlog(p, e));
+      changed(p);
+      if (root && openId === p.id) render();
+      if (showing) { openNote(p, was.id); const b = side && $('#pvNoteToTask', side); if (b) b.focus(); }
+    } });
   }
 
   /* ---------- the more menu ---------- */
