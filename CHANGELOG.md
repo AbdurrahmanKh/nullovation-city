@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.65 (2026-10-24)
+
+Wizard it, after Abdurrahman's test: it opened the wizard in a browser tab, on whatever round the wizard had open last.
+- Wizard it opens the wizard through a link rather than a window the page opens itself, so Chrome and Edge open it in the installed Decision Wizard app, in the window it already has. Without the app it opens in a tab.
+- The link carries the task's round, its file's name and its answers so far, so the wizard opens that round whatever it had open. It needs wizard 0.11.1, which reads the round from the link and keeps the app to one window.
+- With no Claude folder the round no longer downloads: it arrives in the link, and its answers file is dropped back on the task as before.
+- Tests: test37_task_rounds checks the link, what it carries, Arabic in it, and that nothing downloads.
+
 ## 0.1.64 (2026-10-23)
 
 SideBar Cleanup, Abdurrahman's task in Nullovation City Hall, UX Mastery: the side bar is level 0, and what holds too much for it opens at level 1, a panel docked on the map's left like the project view.

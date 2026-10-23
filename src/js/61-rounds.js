@@ -4,9 +4,9 @@
    - Make a wizard round, in Open in Claude's second row, sends the task's copy asking Claude for a round. From Claude
      Code it comes back through the inbox (add-round, applied at once with Undo), its file already in wizard-rounds;
      from a chat, you drop the file Claude gives you on the task's panel (W1, P2).
-   - Wizard it (or a click on a hat) opens your wizard in a tab of its own, and makes sure the round's file is in
-     wizard-rounds, where the wizard, given that folder once, opens it by itself and saves the answers as you go (W3, F1).
-     With no Claude folder it downloads the file instead, and the answers file is dropped back on the task.
+   - Wizard it (or a click on a hat) opens your wizard on the round, in the installed app when there is one (0.1.65),
+     and makes sure the round's file is in wizard-rounds, where the wizard, given that folder once, saves the answers
+     as you go (W3, F1). With no Claude folder, the answers file is dropped back on the task.
    - The answers come back into the task as the wizard saves them, with a toast once they stop arriving (X1), and the
      hat turns teal once nothing is open, or once you mark the round answered with the rest skipped (A1, S1). */
 const Rounds = (() => {
@@ -14,7 +14,6 @@ const Rounds = (() => {
   const stamps = new Map();              // task id -> the round file's stamp when last read
   const waits = new Map();               // task id -> the toast waiting for its answers to stop arriving
   const HINT_KEY = 'nullovation-city:wizardHint';
-  let wiz = null;                        // the wizard's tab
   const clone = x => JSON.parse(JSON.stringify(x));
 
   /* ---------- files ---------- */
@@ -38,31 +37,35 @@ const Rounds = (() => {
   }
 
   /* ---------- the wizard ---------- */
-  /* Opens the wizard in its own tab, the same tab each time. Called straight from the click, so the browser lets it. */
-  function openWizard() {
-    try { if (wiz && !wiz.closed) { wiz.focus(); return true; } } catch (e) { /* a tab from before: open it again */ }
-    try { wiz = window.open(wizardUrl(), 'nullovation-wizard'); } catch (e) { wiz = null; }
-    return !!wiz;
+  /* The wizard's address with the round after #open= (0.1.65): its file's name, the round and its answers so far, as
+     JSON in base64url, so the wizard opens this round, whatever it had open (wizard 0.11.1). */
+  function openLink(r) {
+    const bytes = new TextEncoder().encode(JSON.stringify({ app: 'nullovation-city', kind: 'open-round', file: r.file, round: r.q, answers: r.a || null }));
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return wizardUrl().replace(/#.*$/, '') + '#open=' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
-  /* Wizard it: the wizard opens, and the round's file is in wizard-rounds for it (written again when it is gone); with no
-     Claude folder, the file downloads, to load in the wizard. */
+  /* Opens the wizard on the round through a link, not window.open: Chrome and Edge take a link into the installed app,
+     which focuses the window it has and opens the round there; without the app it opens in a tab. Called straight
+     from the click. */
+  function openWizard(r) {
+    const a = h('a', { href: openLink(r), target: '_blank', rel: 'noopener', hidden: true });
+    document.body.append(a); a.click(); a.remove();
+  }
+  /* Wizard it: the wizard opens on the round, and the round's file is in wizard-rounds, where the wizard saves its
+     answers (written again when it is gone). With no Claude folder, its answers come back as a file dropped here. */
   function wizard(p, t) {
     const r = t && t.round;
     if (!r) return;
-    const opened = openWizard(), dir = typeof ClaudeWork !== 'undefined' ? ClaudeWork.folder() : null;
-    const blocked = opened ? '' : ' The browser kept the wizard from opening: open it at ' + wizardUrl() + '.';
-    if (!dir) {
-      downloadBlob(new Blob([fileText(r)], { type: 'application/json' }), r.file);
-      toast('Downloaded ' + r.file + '. Load it in your wizard, then drop its answers file on this task.' + blocked);
-      return;
-    }
+    openWizard(r);
+    const dir = typeof ClaudeWork !== 'undefined' ? ClaudeWork.folder() : null, opening = 'Opening ' + r.title + ' in your wizard.';
+    if (!dir) { toast(opening + ' Once it is answered, save its file there and drop it on this task.'); return; }
     (async () => {
       try { if (!(await hasFile(dir, r.file))) { await writeFile(dir, r); stamps.delete(t.id); } }
-      catch (e) { toast('The round could not be written in the Claude folder, so it downloaded instead.', 'error'); downloadBlob(new Blob([fileText(r)], { type: 'application/json' }), r.file); return; }
+      catch (e) { toast(opening + ' Its file could not be written in the Claude folder, so save its file in the wizard once it is answered, and drop it on this task.', 'error'); return; }
       let hinted = false;
       try { hinted = localStorage.getItem(HINT_KEY) === '1'; localStorage.setItem(HINT_KEY, '1'); } catch (e) { /* say it each time */ }
-      toast((hinted ? 'Opening your wizard on ' + r.title + '.'
-        : 'Opening your wizard. Give it the Claude folder\'s ' + ROUNDS_DIR + ' folder once, and ' + r.title + ' opens there by itself.') + blocked);
+      toast(hinted ? opening : opening + ' Give it the Claude folder\'s ' + ROUNDS_DIR + ' folder once, and your answers come back here as you go.');
     })();
   }
 
@@ -254,6 +257,6 @@ const Rounds = (() => {
   /* The round's file for Cowork, when its full path is known. */
   const files = t => (t && t.round && roundPath(t.round) ? [roundPath(t.round)] : []);
 
-  return { wizard, openWizard, take, dropFile, poll, fromChange, mark, remove, hatButton, chip, card, dropLine, files, fileText, writeFile, readFile,
+  return { wizard, openWizard, openLink, take, dropFile, poll, fromChange, mark, remove, hatButton, chip, card, dropLine, files, fileText, writeFile, readFile,
     foldAll: () => unfolded.clear(), ANNOUNCE_MS };
 })();

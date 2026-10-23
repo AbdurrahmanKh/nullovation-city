@@ -1,8 +1,10 @@
 """Wizard rounds in a task (0.1.55): idea 3 of the task ideas, from Tasks, Round 2 (W1 to W6) and Wizard Rounds in a
 Task, Rounds 1 to 3. A task carries its own decision wizard round: made through Open in Claude's second row, attached
 from Claude Code's inbox or by a file dropped on the task's panel, answered in the wizard through the Claude folder's
-wizard-rounds or a download, its answers kept in the task, and a hat on the task's rows, gray until answered, teal after."""
-import json, pathlib
+wizard-rounds or an answers file dropped back, its answers kept in the task, and a hat on the task's rows, gray until
+answered, teal after. Since 0.1.65 Wizard it opens the wizard through a link carrying the round, which the installed app
+takes, so the wizard opens this round whatever it had open."""
+import base64, json, pathlib
 from urllib.parse import unquote
 from playwright.sync_api import sync_playwright
 from testkit import FILE, SHOTS, TEST_CITY, open_settings
@@ -71,9 +73,10 @@ window.__cdir = { kind: 'directory', name: 'Claude',
   getDirectoryHandle: async (n, o) => subdirOf(n, o),
   entries: async function* () { yield ['README-nullovation-city.txt', { kind: 'file', name: 'README-nullovation-city.txt', getFile: async () => new File(['x'], 'README-nullovation-city.txt') }]; } };
 window.showDirectoryPicker = async () => window.__cdir;
-/* the wizard's tab: every open is recorded, and none stays open, so each Wizard it opens again */
+/* the wizard: Wizard it is a link to it, opened by a click; every one is recorded here rather than followed */
 window.__opened = [];
-window.open = (url, name) => { window.__opened.push([url, name]); return { get closed() { return true; }, focus() {} }; };
+const anchorClick = HTMLAnchorElement.prototype.click;
+HTMLAnchorElement.prototype.click = function () { if (this.target === '_blank') { window.__opened.push([this.href, this.target, this.rel]); return; } return anchorClick.call(this); };
 """
 
 with sync_playwright() as p:
@@ -84,6 +87,8 @@ with sync_playwright() as p:
     ctx.add_init_script(FAKE)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(str(e))); pg.on('console', lambda m: errors.append(m.text) if m.type in ('error', 'warning') else None)
+    downloads = []
+    pg.on('download', lambda d: downloads.append(d.suggested_filename))
     pg.goto(FILE); pg.wait_for_timeout(2200)
     ev = pg.evaluate
     gp = ev("() => DB.projects.find(p => p.name === 'Garden planner').id")
@@ -114,6 +119,11 @@ with sync_playwright() as p:
         pg.wait_for_timeout(300)
         return r
     opened = lambda: ev("() => window.__opened.slice()")
+    def unlink(href):
+        """The wizard's address and what a Wizard it link carries after #open=, as the wizard reads it."""
+        base, _, code = href.partition('#open=')
+        return base, json.loads(base64.urlsafe_b64decode(code + '=' * (-len(code) % 4)).decode('utf-8'))
+    sent = lambda: unlink(opened()[-1][0])
     hat = lambda sel: ev(f"() => {{ const b = document.querySelector({json.dumps(sel)}); return b ? (b.classList.contains('hat-done') || !!b.querySelector('.hat-done') ? 'done' : 'open') : null; }}")
     quiet()
 
@@ -212,19 +222,28 @@ with sync_playwright() as p:
     ok('Undo takes it off again', undo() and not get(T1).get('round') and pg.locator('#pvSide .pv-round').count() == 0)
     drop('2026-10-22-draw-the-beds-round1.json', ROUND); quiet()
 
-    # Wizard it with no Claude folder: the file downloads, and the wizard opens in its own tab
-    with pg.expect_download() as dl:
-        pg.click('#pvRoundWizard')
-    got = json.loads(pathlib.Path(dl.value.path()).read_text(encoding='utf-8'))
-    ok('with no Claude folder, Wizard it downloads the round as its file', dl.value.suggested_filename == '2026-10-22-draw-the-beds-round1.json' and got['config']['title'] == TITLE and len(got['questions']) == 8)
-    ok(f'and opens the hosted wizard in a tab of its own ({opened()})', opened()[-1] == ['https://abdurrahmankh.github.io/decision-wizard/', 'nullovation-wizard'])
-    ok(f'saying what to do with it ({said()})', said().startswith('Downloaded 2026-10-22-draw-the-beds-round1.json. Load it in your wizard, then drop its answers file on this task.'))
+    # Wizard it with no Claude folder: the wizard opens on the round, through a link the installed app takes (0.1.65)
+    n_dl = len(downloads)
+    pg.click('#pvRoundWizard'); pg.wait_for_timeout(300)
+    base, got = sent()
+    ok(f'Wizard it opens the hosted wizard through a link to a new tab, which the installed app takes ({opened()[-1][1:]})',
+       base == 'https://abdurrahmankh.github.io/decision-wizard/' and opened()[-1][1:] == ['_blank', 'noopener'])
+    ok("the link carries the round and its file's name, with no answers yet", got['app'] == 'nullovation-city' and got['kind'] == 'open-round'
+       and got['file'] == '2026-10-22-draw-the-beds-round1.json' and got['round'] == ROUND and got['answers'] is None)
+    ok('nothing downloads, and the link leaves nothing in the page', len(downloads) == n_dl and pg.locator('body > a[target="_blank"]').count() == 0)
+    ok(f'saying what to do with its answers ({said()})', said() == 'Opening ' + TITLE + ' in your wizard. Once it is answered, save its file there and drop it on this task.')
+    ar = ev("() => Rounds.openLink({ file: 'r.json', q: { config: { title: 'خطة الحديقة' }, questions: [{ id: 'A', question: 'أين؟' }] }, a: null })")
+    ok('Arabic travels whole in the link', unlink(ar)[1]['round']['questions'][0]['question'] == 'أين؟' and unlink(ar)[1]['round']['config']['title'] == 'خطة الحديقة')
     quiet()
 
     # the answers dropped back
     drop('Draw the beds, Round 1-answers-2026-10-22.json', answers(3))
     ok(f'its answers file dropped on the task brings the answers in ({said()})', said() == 'Answers in for ' + T1 + ': 3 of 8.' and get(T1)['round']['a']['meta']['answered'] == 3)
     ok('the card says 3 of 8, the hat still gray', pg.text_content('#pvSide .pv-round-state') == 'Waiting: 3 of 8 answered' and hat('#pvSide .pv-round-head .hat') == 'open')
+    pg.click('#pvRoundWizard'); pg.wait_for_timeout(200)
+    ok('Wizard it now carries the answers so far, so a wizard without the round gets them too', sent()[1]['answers']['meta']['answered'] == 3
+       and sent()[1]['answers'] == answers(3) and sent()[1]['round']['config']['title'] == TITLE)
+    quiet()
     ok('with Mark answered now, and the answers folded (P1a)', pg.is_visible('#pvRoundMark') and pg.text_content('#pvSide .pv-round-fold').strip() == 'Show the answers'
        and pg.locator('#pvSide .pv-round-ans').count() == 0 and pg.get_attribute('#pvSide .pv-round-fold', 'aria-expanded') == 'false')
     pg.screenshot(path=str(SHOTS / '372-card-folded.png'), clip=pg.query_selector('#pvSide').bounding_box())
@@ -388,9 +407,8 @@ with sync_playwright() as p:
     ok(f'one that is not an address is refused ({said()})', 'starts with https://' in said() and pg.input_value('#optWizard') == 'file:///D:/Tools/decision-wizard/index.html')
     quiet()
     open_task(T1)
-    with pg.expect_download():
-        pg.click('#pvRoundWizard')
-    ok('Wizard it opens your own copy', opened()[-1] == ['file:///D:/Tools/decision-wizard/index.html', 'nullovation-wizard'])
+    pg.click('#pvRoundWizard'); pg.wait_for_timeout(200)
+    ok('Wizard it opens your own copy, with the round', sent()[0] == 'file:///D:/Tools/decision-wizard/index.html' and sent()[1]['round']['config']['title'] == TITLE)
     quiet()
     ev("() => FullView.close()"); pg.wait_for_timeout(200)
     open_settings(pg, 'links')
@@ -422,11 +440,11 @@ with sync_playwright() as p:
     f = ev("() => window.__subjson('wizard-rounds/2026-10-22-draw-the-beds-round1.json')")
     ok('Wizard it writes the round\'s file in wizard-rounds when it is not there, with its answers so far', f and f['round']['config']['title'] == TITLE and f['meta']['answered'] == 5)
     ok(f'and opens the wizard, the first time saying to give it that folder ({said()})', len(opened()) == n0 + 1
-       and said() == "Opening your wizard. Give it the Claude folder's wizard-rounds folder once, and " + TITLE + ' opens there by itself.')
+       and said() == 'Opening ' + TITLE + " in your wizard. Give it the Claude folder's wizard-rounds folder once, and your answers come back here as you go.")
     quiet()
     w0 = ev("() => window.__writes")
     pg.click('#pvRoundWizard'); pg.wait_for_timeout(500)
-    ok(f'the next time it is shorter, and a file already there is left as it is ({said()})', said() == 'Opening your wizard on ' + TITLE + '.' and ev("() => window.__writes") == w0)
+    ok(f'the next time it is shorter, and a file already there is left as it is ({said()})', said() == 'Opening ' + TITLE + ' in your wizard.' and ev("() => window.__writes") == w0)
     quiet()
 
     # the wizard saves the answers into the file as you go, and the task takes them
