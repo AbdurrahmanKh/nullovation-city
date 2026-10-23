@@ -47,6 +47,50 @@ function leaderLine(p) {
 function setLeader(p, id) {
   p.leader = getLeader(id) ? id : '';
 }
+/* ---------- the leaders' lines (0.1.58) ---------- */
+/* One shared set for every leader, and for Proxima when she brings the news of a building with no leader, approved
+   word for word in Leader UX, Round 4 (L1 to L3): one line per moment, until each leader gets lines of its own with the
+   personality update. A line speaks for its building as "we" and never names it, since the bubble or the card round it
+   shows the leader and the building. The moments that open by themselves, that wait with their leader, and that are
+   not news are in Leader UX, M1; the greeting and the working line are not news, and show on the cards only. */
+const LEADER_LINES = {
+  behind: 'We slipped behind our pace. {task} puts us back on track.',          // its bubble turns yellow
+  behind_more: "We're falling further behind. {task} pulls us back.",           // red, under One task per N days
+  behind_day: 'Nothing finished here for a day. {task} gets us moving.',        // red, under Work until finished
+  due: '{task} is due today.',
+  due_many: '{n} tasks are due today. First up: {task}.',
+  one_left: '{milestone} is one task from done: {task}. Finish it and we throw a street party.',
+  added: 'Claude added {what}.',
+  round: 'Claude attached a wizard round to {task}: {round}.',
+  waiting: 'Claude is waiting for you on {task}.',
+  asks: 'Claude wants your OK first: {change}.',
+  failed: 'Claude stopped on an error while working on {task}.',
+  finished: 'Claude finished {task}.',
+  answers: 'Your answers are in for {round}: {n} of {total}.',
+  week: 'Last week we finished {n} tasks. Next up: {task}.',
+  week_quiet: 'Quiet week: nothing finished. {task} is a good start.',
+  working: 'Claude is working on {task}. Started {ago}.',                       // the status card only
+  greet: 'Welcome back. Next up: {task}.',                                      // the leader card only
+  greet_empty: 'Nothing open here yet. Add the next task.',
+};
+const LEADER_TITLE_MAX = 60;                                 // a task's title in a line is cut short past this, as Gus cuts his
+const lineTitle = s => (s.length > LEADER_TITLE_MAX ? s.slice(0, LEADER_TITLE_MAX - 1).trimEnd() + '\u2026' : s);
+/* A moment's line with its blanks filled: {task} cut short past 60 characters, "{n} tasks" in the singular for one,
+   a blank with nothing for it left as it is, and the line's first letter a capital, since a task's title may start it. */
+function leaderSay(moment, v = {}) {
+  const text = LEADER_LINES[moment];
+  if (!text) return '';
+  const out = text.replace('{n} tasks', () => plural(v.n, 'task', 'tasks'))
+    .replace(/\{(\w+)\}/g, (all, k) => (v[k] == null ? all : k === 'task' ? lineTitle(String(v[k])) : String(v[k])));
+  return out.charAt(0).toUpperCase() + out.slice(1);
+}
+/* The greeting on the leader card, when its building has no news waiting: the next task, pinned or the current
+   milestone's first open one, else that nothing is open. */
+function leaderGreeting(p) {
+  const t = nextTask(p);
+  return t ? leaderSay('greet', { task: t.text }) : leaderSay('greet_empty');
+}
+
 /* A signature color, darker or lighter: f below 0 mixes in black, above 0 white. */
 function shadeHex(hex, f) {
   const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255];

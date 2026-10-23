@@ -1336,6 +1336,8 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-card-text b { font: 400 17px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; overflow-wrap: anywhere; }
 .ld-card-text span { font-size: 13px; color: var(--muted); }
 .ld-card .ld-change { margin-left: auto; flex: none; }
+/* what the leader says (0.1.58): a quote with a bar in its signature color, as Gus's and Proxima's lines have theirs */
+.ld-card-text .ld-says { margin-top: 6px; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
 .ld-card.empty { color: var(--ink-soft); border: 0; cursor: pointer; text-align: left; box-shadow: var(--px-edge); }
 .ld-card.empty:hover, .ld-card.empty:focus-visible { background: var(--hover); outline: none; }
 .ld-card.empty .ld-card-text b { font-size: 15px; color: var(--ink-soft); }

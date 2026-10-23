@@ -257,13 +257,16 @@ const Leaders = (() => {
 
   /* ---------- where a leader shows ---------- */
   /* the leader card under the building's picture in the project view: the face at 96 px (64 until 0.1.57), the name in
-     its color and the role */
+     its color, the role, and what the leader says (0.1.58): its greeting with the next task, in a quote with a bar in
+     its color. The full title is the line's tooltip when the line cuts it short. */
   function card(p, onPick) {
     const l = leaderOf(p);
     if (!l) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
       noFace(48), h('span', { class: 'ld-card-text' }, h('b', null, 'No leader yet'), h('span', null, 'Pick a leader')));
+    const t = nextTask(p), says = leaderGreeting(p);
     const box = h('div', { id: 'pvLeader', class: 'ld-card' }, face(l, 96),
-      h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null),
+      h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null,
+        h('span', { class: 'ld-says', dir: 'auto', title: t && t.text.length > LEADER_TITLE_MAX ? t.text : null }, says)),
       h('button', { class: 'btn btn-quiet btn-small ld-change', type: 'button', title: 'Pick another leader, or edit this one', onclick: onPick }, 'Change'));
     box.style.setProperty('--ld', l.color);
     return box;

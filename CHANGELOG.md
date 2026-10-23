@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.58 (2026-10-23)
+
+The leaders' lines, the second piece of the leader UX (Leader UX, Rounds 1 to 4: A2, V1, L1 to L3).
+- Every leader shares one set of lines, one per moment, approved word for word: falling behind its pace, a task due today, a milestone one task from done, Claude's work and changes, a wizard round's answers, the week, and the greeting. A line speaks for its building as "we" and never names it. Proxima will say the same lines for a building with no leader.
+- The leader card in the project view now says its greeting under the name and role, in a quote with a bar in the leader's color: "Welcome back. Next up: <task>.", the pinned task first, or "Nothing open here yet. Add the next task." It follows ticks and pins.
+- A task's title in a line is cut short past 60 characters, the full title as the line's tooltip; a count of one reads in the singular.
+- The other moments' lines wait for the next piece, the bubbles and the News section. Nothing new is saved in the city.
+- Tests: test39_leader_lines.
+
 ## 0.1.57 (2026-10-23)
 
 Clearer leader faces, the first piece of the leader UX: Abdurrahman's task "Think the leader UX" in Nullovation City Hall, designed in Leader UX, Rounds 1 to 4 (D1, D2, and B1's note).
