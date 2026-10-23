@@ -356,8 +356,8 @@ const News = (() => {
       n > 1 ? h('span', { id: 'ldSayCount', class: 'ld-say-count' }, (bub.i + 1) + ' of ' + n) : null,
       n > 1 && bub.i < n - 1 ? h('button', { id: 'ldSayNext', class: 'btn btn-small ld-next', type: 'button', onclick: () => { hold(); next(); } }, 'Next') : null].filter(Boolean));
     MapView.light(p.id);
-    const view = typeof FullView !== 'undefined' && FullView.isOpen();      // beside the project view, as Proxima's
-    b.style.left = view ? Math.round(FullView.rightEdge() + 22) + 'px' : '';
+    const edge = panelEdge();                                                 // beside the project view or All tasks, as Proxima's
+    b.style.left = edge ? Math.round(edge + 22) + 'px' : '';
     fitSay(b);
     if (keep) { const back = $(keep, b); if (back) back.focus({ preventScroll: true }); }
   }
@@ -401,7 +401,7 @@ const News = (() => {
   }
   function goTo(pid) {
     if (!getProject(pid)) return;
-    MapView.glideBeside(pid, typeof FullView !== 'undefined' && FullView.isOpen() ? FullView.rightEdge() : 0);
+    MapView.glideBeside(pid, panelEdge());
   }
 
   /* ---------- talking (0.1.62, Leader UX E1): the line types out and the face bobs with it, then settles ---------- */

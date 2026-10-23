@@ -34,6 +34,7 @@ with sync_playwright() as p:
     ok('B4 with nothing to say, the News section that took Urgent\'s place hides (0.1.59)', not pg.is_visible('#sbNews') and not js("() => !!document.querySelector('#sbUrgent')"))
     ok('E1 with nothing due, Due this week hides', not pg.is_visible('#sbDue'))
     ok('E1 the week card shows this week in numbers', 'This week' in pg.text_content('#btnRecap') and 'Nothing done yet this week' in pg.text_content('#weekNumbers'))
+    ok('SideBar Cleanup: the card no longer says Open the week (0.1.64)', 'Open the week' not in pg.text_content('#btnRecap') and not js("() => !!document.querySelector('.week-open')"))
     # C1: weeks start on Saturday
     starts = js("""() => [0, 1, 2, 3, 4, 5, 6].map(k => { const d = new Date(2026, 8, 26 + k); return new Date(weekStartOf(d.getTime())).getDay(); })""")
     ok(f'C1 every day of a week maps back to its Saturday ({set(starts)})', set(starts) == {6})
@@ -45,11 +46,18 @@ with sync_playwright() as p:
     ok('B1 to B3 Urgent is gone (Leader UX, 0.1.59): a building\'s urgent news is its leader\'s, and the count line still counts the red',
        js("() => urgencyOf(DB.projects.find(p => p.name === 'Nullovation City')).color") == 'yellow' and not js("() => !!document.querySelector('#sbUrgent, #urgentList')")
        and '1 red' in pg.text_content('#count') and '1 yellow' in pg.text_content('#count'))
-    # E1: due this week, overdue first, each with a copy for Claude; a click opens the task
+    # E1: due this week, overdue first, each with its Open in Claude (the Claude icon since 0.1.64); a click opens the task
     rows = pg.locator('#dueList .due-item')
     ok(f'E1 due tasks list the next 7 days, overdue first ({rows.count()})', rows.count() == 2 and 'overdue' in pg.text_content('#dueList .due-item >> nth=0 >> .due'))
-    pg.click('#dueList .due-item >> nth=0 >> .due-copy'); pg.wait_for_timeout(150)
-    ok('E1 the small copy icon copies the task for Claude', clip().startswith('# Task: Save a plan as a file'))
+    ok('SideBar Cleanup: each row has the Claude icon in place of the copy button',
+       js("() => [...document.querySelectorAll('#dueList .due-item')].every(li => !li.querySelector('.due-copy') && li.querySelector('.due-claude.oc-icon svg'))")
+       and js("() => document.querySelector('#dueList .due-claude').getAttribute('aria-label')") == 'Open in Claude: Save a plan as a file')
+    pg.click('#dueList .due-item >> nth=0 >> .due-claude'); pg.wait_for_timeout(200)
+    ok('it opens the Open in Claude panel, with Build it and Think, as a task\'s does', pg.is_visible('.oc-panel') and pg.is_visible('#ocTabBuild') and pg.is_visible('#ocTabThink')
+       and js("() => [...document.querySelectorAll('.oc-panel .oc-tiles .oc-tile')].map(t => t.dataset.kind).join(',')") == 'chat,cowork,code,terminal,copy')
+    pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(150)
+    ok('E1 its Copy copies the task for Claude, by the new standard', clip().startswith('# Task: Save a plan as a file') and 'Task copied for Claude' in (pg.text_content('#toast') or '')
+       and not pg.is_visible('.oc-panel'))
     pg.click('#dueList .due-item >> nth=0 >> .due-task'); pg.wait_for_timeout(700)
     ok('a due task opens in the project view', pg.is_visible('#pvSide #pvTaskDesc'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
@@ -61,12 +69,15 @@ with sync_playwright() as p:
     pg.click('#bubble .b-todos li >> nth=0 >> .cb'); pg.wait_for_timeout(900)
     ok('a tick in the status bubble is logged', js(f"() => DB.projects.find(p => p.id === '{nc}').activity.some(e => e.text.startsWith('Done: '))"))
     ok('and the week card counts it', '1 task done' in pg.text_content('#weekNumbers'))
+    ok('SideBar Cleanup: tasks done wear a small tick beside the words (0.1.64)', js("() => { const n = document.querySelector('#weekNumbers .week-num'); return !!n && n.textContent === '1 task done' && !!n.querySelector('svg') && n.querySelector('svg').getBoundingClientRect().width <= 13; }"))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
 
     # C2, C3, C4: the week dialog with arrows and a list, and the kept parts only
     setp(nc, "p.notes.push({ id: uid('n'), title: 'Moving in', text: 'Imported my city file.', at: Date.now() }); iWorked(p); p.todos.push(todo('Write the side bar tests', p.milestones[0].id)); logActivity(p, 'Added todo: Write the side bar tests')")
     js("""() => { const p = DB.projects.find(p => p.name.startsWith('Garden')); const t = addDays(weekStartOf(Date.now()), -4) + 36e5 * 10;
       p.activity.push({ at: t, text: 'Done: An older task' }); p.activity.sort((x, y) => x.at - y.at); changed(p); }""")
+    nums = lambda: js("() => [...document.querySelectorAll('#weekNumbers .week-num')].map(n => [n.textContent, n.querySelector('svg') ? n.querySelector('svg').innerHTML.length > 0 : false])")
+    ok(f'SideBar Cleanup: a note written this week shows with its own icon ({nums()})', nums() == [['1 task done', True], ['1 note', True]])
     pg.click('#btnRecap'); pg.wait_for_timeout(400)
     ok('C4 the week opens as a dialog over the city', pg.is_visible('.modal.panel .recap'))
     sum_ = pg.text_content('.recap-sum')
@@ -84,11 +95,24 @@ with sync_playwright() as p:
     c = clip()
     ok('C3 Copy the week copies it as text', c.startswith('# Nullovation City, week of ') and 'Finished:' in c and 'Notes:' in c)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    # a milestone finished this week: the third number, with a milestone's flag, and the three icons differ
+    setp(nc, "const t = p.todos.find(x => x.text === 'Try the project view for a week'); tickTask(p, t)")
+    pg.wait_for_timeout(150)
+    ok(f'SideBar Cleanup: a milestone finished shows with a flag ({nums()})', [n[0] for n in nums()] == ['2 tasks done', '1 note', '1 milestone'] and all(n[1] for n in nums())
+       and len(set(js("() => [...document.querySelectorAll('#weekNumbers .week-num svg')].map(s => s.innerHTML)"))) == 3)
+    pg.screenshot(path=str(SH / '100-week-icons.png'), clip={'x': 0, 'y': 200, 'width': 300, 'height': 140})
 
-    # A1: the status brief, with its Open in Claude, sits with the week, outside Settings; the palette is in Settings
-    ok('A1 the status brief\'s Open in Claude sits with the week, outside Settings, its Copy in the panel (0.1.63)', not js("() => !!document.querySelector('#btnBrief')") and pg.is_visible('#btnBriefClaude') and not pg.is_visible('#btnPalette'))
-    pg.click('#btnBriefClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(150)
-    ok('A1 the status brief still copies every project', clip().startswith('# Nullovation City status'))
+    # A1: the status brief, one button with the week, outside Settings; its panel starts with Copy status brief (0.1.64)
+    ok('A1 the status brief sits with the week, outside Settings, as one button named Status brief (0.1.64)', not js("() => !!document.querySelector('#btnBrief')") and pg.is_visible('#btnBriefClaude')
+       and pg.text_content('#btnBriefClaude').strip() == 'Status brief' and not pg.is_visible('#btnPalette'))
+    pg.click('#btnBriefClaude'); pg.wait_for_timeout(200)
+    order = js("() => [...document.querySelectorAll('.oc-panel .oc-tile')].map(t => (t.dataset.kind) + (t.classList.contains('oc-wide') ? ':wide' : ''))")
+    ok(f'SideBar Cleanup: its panel shows Copy status brief first, then the Claude tiles, and no second Copy ({order})', order == ['copy:wide', 'chat', 'cowork', 'code', 'terminal']
+       and pg.text_content('.oc-panel .oc-wide').strip() == 'Copy status brief')
+    ok('the focus starts on Copy status brief', js("() => document.activeElement.classList.contains('oc-wide')"))
+    pg.screenshot(path=str(SH / '101-status-brief.png'), clip={'x': 0, 'y': 260, 'width': 400, 'height': 260})
+    pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(150)
+    ok('A1 the status brief still copies every project', clip().startswith('# Nullovation City status') and 'Status brief copied' in (pg.text_content('#toast') or ''))
     # D2: backup tools and the saved line live in Settings, Saving; the side bar shows only what is wrong
     ok('D2 backup tools and the saved line are in Settings, out of the lists', not pg.is_visible('#btnExport') and not pg.is_visible('#saveStatus'))
     ok('D2 nothing shows in the side bar while all is well', not pg.is_visible('#saveAlert') and not pg.is_visible('#fileAlert') and not pg.is_visible('#backupAlert'))
@@ -132,5 +156,9 @@ with sync_playwright() as p2:
     tops = q.evaluate("""() => ['#btnNew', '#search', '#btnRecap', '#btnBriefClaude', '#sbNews', '#sbDue', '#btnOpenSettings']
       .map(s => { const e = document.querySelector(s); return e && !e.hidden ? e.getBoundingClientRect().top : null; })""")
     ok('F1 top to bottom: new, search, the week with the status brief, News (in Urgent\'s place), due, and Settings at the bottom', all(x is not None for x in tops) and tops == sorted(tops))
+    sizes = q.evaluate("() => [...document.querySelectorAll('.sb-foot .btn')].map(b => { const r = b.getBoundingClientRect(); return [b.id, Math.round(r.width), Math.round(r.height)]; })")
+    ok(f'SideBar Cleanup: the four buttons at the foot are one size, two by two ({sizes})', len(sizes) == 4 and len({(w, h) for _, w, h in sizes}) == 1
+       and [x[0] for x in sizes] == ['btnOpenAllTasks', 'btnOpenLeaders', 'btnOpenReports', 'btnOpenSettings'])
+    box = q.locator('.sb-foot').bounding_box(); q.screenshot(path=str(SH / '102-foot.png'), clip={'x': 0, 'y': box['y'] - 10, 'width': 292, 'height': box['height'] + 20})
     b2.close()
 print(errors or 'no console errors')

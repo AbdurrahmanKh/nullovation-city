@@ -108,13 +108,16 @@ const OpenInClaude = (() => {
           'Make a brainstorming round'));
       }
       const f = st.folder, need = p ? 'Add a link to a folder on this computer to open it there' : 'Opens from a project that links a folder on this computer';
-      kids.push(h('div', { class: 'oc-tiles' },
+      /* The status brief's Copy comes first, as its own row, then the Claude tiles (SideBar Cleanup, 0.1.64). */
+      if (opts.copyFirst) kids.push(h('button', { class: 'oc-tile oc-wide', type: 'button', 'data-kind': 'copy', title: 'Copies it, to paste anywhere', onclick: () => copyNow() },
+        h('span', { class: 'ic', html: iconSvg('copy', 18) }), h('span', { class: 'oc-tile-label' }, opts.copyFirst)));
+      kids.push(h('div', { class: 'oc-tiles' + (opts.copyFirst ? ' four' : '') },
         tile('chat', 'Chat', 'chat', { note: 'no folder', title: 'A new Claude chat ' + what() }),
         tile('cowork', 'Cowork', 'cowork', { title: 'A new Cowork task ' + what() + (f ? ', in ' + f : '') }),
         tile('code', 'Code', 'code', { ok: !!f, off: need, title: 'A new Claude Code session in ' + f + ', ' + what() }),
         tile('terminal', 'Terminal', 'terminal', { ok: termOk(f), off: f ? 'A terminal opens only in a folder on this computer' : need,
           title: 'Claude Code in a new terminal in ' + f + ', ' + what() + '. Works once Claude Code has had a prompt in a terminal on this computer.' }),
-        tile('copy', 'Copy', 'copy', { title: 'Copies it, to paste anywhere' })));
+        opts.copyFirst ? null : tile('copy', 'Copy', 'copy', { title: 'Copies it, to paste anywhere' })));
       const line = h('div', { class: 'oc-folder' });
       if (!f) line.append(h('span', { class: 'oc-folder-none' }, p ? 'No folder link: Code and Terminal need one.' : 'No project folder: Chat, Cowork or Copy.'));
       else if (folders.length < 2) line.append(h('b', null, 'Folder:'), ' ', h('span', { class: 'oc-folder-path', dir: 'ltr', title: f }, f));
@@ -162,13 +165,22 @@ const OpenInClaude = (() => {
     owner = null;
     return true;
   }
-  /* The one button for a copy for Claude: it opens the panel. */
+  /* The one button for a copy for Claude: it opens the panel. Its words are Open in Claude, or opts.label (the status
+     brief's); with opts.icon it is the Claude icon alone, as in a list's rows (SideBar Cleanup, 0.1.64). */
   function button(opts) {
-    const btn = h('button', { id: opts.id, class: 'btn oc-btn' + (opts.small === false ? '' : ' btn-small') + (opts.quiet ? ' btn-quiet' : ''), type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
-      title: opts.think ? 'Opens this in Claude, or copies it: build it, or think it through with a wizard round first' : 'Opens this in Claude, filled in and ready to send, or copies it' },
-      iconEl('claude', 14), 'Open in Claude');
+    const title = opts.think ? 'Opens this in Claude, or copies it: build it, or think it through with a wizard round first' : 'Opens this in Claude, filled in and ready to send, or copies it';
+    const btn = opts.icon
+      ? h('button', { id: opts.id, class: 'icon-btn oc-btn oc-icon' + (opts.cls ? ' ' + opts.cls : ''), type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
+          'aria-label': 'Open in Claude' + (opts.name ? ': ' + opts.name : ''), title, html: iconSvg('claude', 14) })
+      : h('button', { id: opts.id, class: 'btn oc-btn' + (opts.small === false ? '' : ' btn-small') + (opts.quiet ? ' btn-quiet' : '') + (opts.cls ? ' ' + opts.cls : ''), type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
+          title: opts.title || title }, iconEl('claude', 14), opts.label || 'Open in Claude');
     btn.addEventListener('click', e => { e.stopPropagation(); if (owner === btn) close(); else open(btn, opts); });
     return btn;
   }
-  return { button, go, places, close, isOpen: () => !!panel };
+  /* A task's panel: Build it sends the task; Think, on an open task, asks for a round or a brainstorm about it (Open in
+     Claude Panel, A2, A3); Copy copies either; Cowork gets the round's file. The project view, Due this week and All
+     tasks share it. */
+  const forTask = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', project: p, name: t.text,
+    think: isOpenTask(t) ? (kind, o = {}) => taskForClaude(p, t, Date.now(), { kind, ask: o.brainstorm ? 'brainstorm' : true }) : null, files: () => Rounds.files(t) });
+  return { button, forTask, go, places, close, isOpen: () => !!panel };
 })();

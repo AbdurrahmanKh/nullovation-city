@@ -1,5 +1,6 @@
-"""All tasks (All tasks, Rounds 1 to 3): every open task in the city in one list, in the side bar like Settings and
-Reports, with shifts: Create, Think or Errand on a task, one or none."""
+"""All tasks (All tasks, Rounds 1 to 3): every open task in the city in one list, with shifts: Create, Think or Errand on
+a task, one or none. Since 0.1.64 (SideBar Cleanup) a large panel docked on the map's left like the project view, with
+the side bar's lists beside it, rather than in the side bar."""
 import json
 from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
@@ -22,7 +23,8 @@ with sync_playwright() as p:
     get = lambda pid, text: ev(f"() => JSON.parse(JSON.stringify({task(pid, text)} || null))")
     quiet = lambda: ev("() => { const t = document.querySelector('#toast'); t.className = 'toast'; t.textContent = ''; document.querySelectorAll('#gusSay, #pxSay').forEach(e => e.hidden = true); }")
     rows = lambda: ev("() => [...document.querySelectorAll('#atList .at-row')].map(r => r.querySelector('.at-task').firstChild.textContent)")
-    groups = lambda: ev("() => [...document.querySelectorAll('#atList > section .at-gh, #atList > .at-gh')].map(h => h.firstChild.nodeType === 3 ? h.firstChild.textContent : h.textContent.replace(/\\d+$/, ''))")
+    groups = lambda: ev("() => [...document.querySelectorAll('#atList > .at-col > section .at-gh, #atList > .at-col > .at-gh')].map(h => h.firstChild.nodeType === 3 ? h.firstChild.textContent : h.textContent.replace(/\\d+$/, ''))")
+    blur = lambda: ev("() => document.activeElement && document.activeElement.blur()")
     def settle(js):                                      # the words field redraws once typing pauses: wait for it, up to 3 seconds
         try: pg.wait_for_function(js, timeout=3000)
         except Exception: pass
@@ -121,30 +123,36 @@ with sync_playwright() as p:
     ev("() => document.querySelector('#menu').scrollTop = 1e6"); pg.wait_for_timeout(150)
     box = pg.locator('.sb-foot').bounding_box(); pg.screenshot(path=str(SHOTS / '351-foot.png'), clip={'x': 0, 'y': box['y'] - 30, 'width': 292, 'height': box['height'] + 60})
     pg.click('#btnOpenAllTasks'); pg.wait_for_timeout(300)
-    ok('L1 the side bar turns into All tasks, with the map in view', pg.is_visible('#allTasks') and not pg.is_visible('#sbLists') and pg.is_visible('#map'))
+    geo = ev("() => { const a = document.querySelector('#allTasks').getBoundingClientRect(), w = document.querySelector('#mapWrap').getBoundingClientRect(); return [Math.round(a.left - w.left), Math.round(a.width), Math.round(a.height - w.height), document.querySelector('#mapWrap').contains(document.querySelector('#allTasks'))]; }")
+    ok(f'SideBar Cleanup: it opens as a large panel docked on the map\'s left, like the project view ({geo})', pg.is_visible('#allTasks') and geo == [0, 880, 0, True])
+    ok('and the side bar keeps its lists beside it (level 0), the map in view past it', pg.is_visible('#sbLists') and pg.is_visible('#btnRecap') and pg.is_visible('#map')
+       and ev("() => document.querySelector('#btnOpenAllTasks').getAttribute('aria-expanded')") == 'true')
     ok('the focus goes to the panel, not the field, so L closes it again', ev("() => document.activeElement.id") == 'allTasks')
-    pg.click('#atBack'); pg.wait_for_timeout(200)
-    ok('the back arrow brings the lists back, the focus on the button', not pg.is_visible('#allTasks') and pg.is_visible('#sbLists') and ev("() => document.activeElement.id") == 'btnOpenAllTasks')
-    pg.mouse.click(1000, 120); pg.keyboard.press('Escape')
+    pg.click('#atClose'); pg.wait_for_timeout(200)
+    ok('its close button closes it, the focus back on the button', not pg.is_visible('#allTasks') and pg.is_visible('#sbLists') and ev("() => document.activeElement.id") == 'btnOpenAllTasks')
+    pg.click('#btnOpenAllTasks'); pg.wait_for_timeout(250); pg.click('#btnOpenAllTasks'); pg.wait_for_timeout(250)
+    ok('the button opens it and closes it again', not pg.is_visible('#allTasks'))
+    blur(); pg.keyboard.press('Escape')
     pg.keyboard.press('KeyL'); pg.wait_for_timeout(250)
     ok('A1 L opens it', pg.is_visible('#allTasks'))
-    pg.mouse.click(1000, 120); pg.keyboard.press('KeyL'); pg.wait_for_timeout(250)
+    blur(); pg.keyboard.press('KeyL'); pg.wait_for_timeout(250)
     ok('and L again closes it', not pg.is_visible('#allTasks'))
-    pg.keyboard.press('KeyL'); pg.wait_for_timeout(200); pg.mouse.click(1000, 120); pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    pg.keyboard.press('KeyL'); pg.wait_for_timeout(200); blur(); pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     ok('Esc closes it', not pg.is_visible('#allTasks'))
     pg.click('#search'); pg.keyboard.press('KeyL'); pg.wait_for_timeout(200)
     ok('L typed in a field does nothing', not pg.is_visible('#allTasks') and ev("() => document.querySelector('#search').value") == 'l')
-    pg.fill('#search', ''); pg.mouse.click(1000, 120)
+    pg.fill('#search', ''); blur()
     pg.keyboard.press('KeyL'); pg.wait_for_timeout(200); pg.keyboard.press('KeyL'); pg.wait_for_timeout(200)
     ok('L, then L again with nothing in between: open, then closed', not pg.is_visible('#allTasks'))
-    pg.mouse.click(1000, 120); pg.keyboard.press('KeyL'); pg.keyboard.press('Comma'); pg.wait_for_timeout(250)
-    ok('Settings closes it, as they share the side bar', pg.is_visible('#settings') and not pg.is_visible('#allTasks'))
-    pg.mouse.click(1000, 120); pg.keyboard.press('KeyL'); pg.wait_for_timeout(250)
-    ok('and it closes Settings', pg.is_visible('#allTasks') and not pg.is_visible('#settings'))
-    pg.mouse.click(1000, 120); pg.keyboard.press('KeyR'); pg.wait_for_timeout(250)
-    ok('Reports closes it, and back', pg.is_visible('#reports') and not pg.is_visible('#allTasks'))
-    pg.mouse.click(1000, 120); pg.keyboard.press('KeyL'); pg.wait_for_timeout(250)
-    ok('it closes Reports', pg.is_visible('#allTasks') and not pg.is_visible('#reports') and not pg.is_visible('#sbLists'))
+    blur(); pg.keyboard.press('KeyL'); pg.keyboard.press('Comma'); pg.wait_for_timeout(250)
+    ok('SideBar Cleanup: Settings opens in the side bar and leaves it open on the map, a level apart', pg.is_visible('#settings') and pg.is_visible('#allTasks'))
+    blur(); pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    ok('Esc closes All tasks first, over the side bar\'s panel', not pg.is_visible('#allTasks') and pg.is_visible('#settings'))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    blur(); pg.keyboard.press('KeyR'); pg.wait_for_timeout(250); blur(); pg.keyboard.press('KeyL'); pg.wait_for_timeout(250)
+    ok('Reports and All tasks show together too', pg.is_visible('#reports') and pg.is_visible('#allTasks') and not pg.is_visible('#sbLists'))
+    blur(); pg.keyboard.press('KeyR'); pg.wait_for_timeout(250)
+    ok('and R closes Reports, the lists back beside All tasks', not pg.is_visible('#reports') and pg.is_visible('#sbLists') and pg.is_visible('#allTasks'))
     ev("() => AllTasks.close()"); pg.wait_for_timeout(150)
     ok('the controls guide names L', 'L opens and closes the list' in ev("() => document.querySelector('#setHelp').textContent"))
 
@@ -171,10 +179,13 @@ with sync_playwright() as p:
     ok('an undated row says its milestone only', meta('Make block art for each project') == 'Block art')
     pg.click('#atList .at-more'); pg.wait_for_timeout(200)
     ok('Show all opens the rest in place', ev("() => [...document.querySelectorAll('#atList .at-bld')][0].querySelectorAll('.at-row').length") == 5 and not ev("() => !![...document.querySelectorAll('#atList .at-bld')][0].querySelector('.at-more')"))
+    cols = ev("() => [...document.querySelectorAll('#atList > .at-col')].map(c => { const r = c.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), c.querySelector('.at-gh').firstChild.textContent || c.querySelector('.at-gh').textContent]; })")
+    ok(f'SideBar Cleanup: the dated tasks and the undated ones sit side by side in the panel ({cols})', len(cols) == 2 and cols[1][0] > cols[0][0] + 300 and abs(cols[1][1] - cols[0][1]) <= 2
+       and cols[1][2].startswith('No due date'))
     pg.screenshot(path=str(SHOTS / '352-all-tasks.png'))
-    hgt = ev("() => document.getElementById('allTasks').getBoundingClientRect().height")
-    pg.set_viewport_size({'width': 1440, 'height': int(hgt) + 160}); pg.wait_for_timeout(300)
-    pg.screenshot(path=str(SHOTS / '353-all-tasks-list.png'), clip={'x': 0, 'y': 0, 'width': 292, 'height': int(hgt) + 120})
+    hgt = ev("() => document.getElementById('atList').getBoundingClientRect().bottom")
+    pg.set_viewport_size({'width': 1440, 'height': max(900, int(hgt) + 60)}); pg.wait_for_timeout(300)
+    pg.screenshot(path=str(SHOTS / '353-all-tasks-list.png'), clip={'x': 290, 'y': 0, 'width': 882, 'height': max(900, int(hgt) + 40)})
     pg.set_viewport_size({'width': 1440, 'height': 900}); pg.wait_for_timeout(200)
     ev("() => AllTasks.close(); AllTasks.open()"); pg.wait_for_timeout(200)
     ok('it opens on everything each time, folds and all (L1: opening on the last pick left out)', ev("() => [...document.querySelectorAll('#atList .at-bld')][0].querySelectorAll('.at-row').length") == 3)
@@ -235,7 +246,7 @@ with sync_playwright() as p:
     # D1 pointing at a row lights its building; the arrows, Enter and Space
     pg.locator('#atList .at-row', has_text='Publish the app').hover(); pg.wait_for_timeout(150)
     ok('D1 pointing at a row lights its building on the map', ev("() => MapView._lit()") == gp)
-    pg.mouse.move(900, 500); pg.wait_for_timeout(150)
+    pg.mouse.move(1350, 500); pg.wait_for_timeout(150)
     ok('and moving off puts it out', ev("() => MapView._lit()") is None)
     cam0 = ev(f"() => MapView.anchors('{gp}')")
     pg.focus('#atFind'); pg.keyboard.press('ArrowDown')
@@ -257,13 +268,37 @@ with sync_playwright() as p:
     pg.focus('#atFind'); pg.keyboard.press('ArrowDown'); pg.keyboard.press('ArrowDown'); pg.keyboard.press('Enter'); pg.wait_for_timeout(500)
     enter_ok = ev(f"() => FullView.shows('{gp}')") and ev("() => document.querySelector('#pvTaskTitle').value") == 'Draw the beds on a grid'
     ok('Enter opens the task in its project', enter_ok)
-    ev("() => FullView.close()"); pg.wait_for_timeout(200)
-    # tagging with the project view open shows there too
-    ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
+    # SideBar Cleanup: the project view opens over All tasks, and All tasks is back once it closes
+    over = ev("() => { const a = document.querySelector('#allTasks').getBoundingClientRect(), v = document.querySelector('#pv').getBoundingClientRect(); const on = x => !!document.elementFromPoint(x, a.top + 300).closest('#pv, #pvSide'); return [!document.querySelector('#allTasks').hidden, Math.round(v.left - a.left), on(a.left + 100), on(a.left + a.width / 2), on(a.right - 10)]; }")
+    ok(f'SideBar Cleanup: the project view and its task panel open over All tasks, in its place ({over})', over == [True, 0, True, True, True])
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
+    ok('Esc closes the task, then the view: All tasks is back as it was, the focus on the row it opened', not ev("() => FullView.isOpen()") and pg.is_visible('#allTasks')
+       and ev("() => document.activeElement.textContent") == 'Draw the beds on a grid')
+    blur(); pg.keyboard.press('KeyL'); pg.wait_for_timeout(200)
+    ok('L closes it then', not pg.is_visible('#allTasks'))
+    ev(f"() => {{ AllTasks.open(); FullView.open('{gp}'); }}"); pg.wait_for_timeout(400)
+    ok('under the project view, it is open but not shown', ev("() => AllTasks.isOpen() && !AllTasks.shown()"))
+    blur(); pg.keyboard.press('KeyL'); pg.wait_for_timeout(300)
+    ok('so L brings it to the front, the view closing', pg.is_visible('#allTasks') and not ev("() => FullView.isOpen()") and ev("() => document.activeElement.id") == 'allTasks')
+    # a building selected with it open glides into the open part of the map, right of the panel
+    ev(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(700)
+    a = ev(f"() => MapView.anchors('{nc}')")
+    ok(f'a building selected with it open glides beside it ({round(a["topX"])})', a['topX'] > 880)
+    ev("() => MapView.deselect()"); pg.wait_for_timeout(150)
+    # the Claude icon on a row: the Open in Claude panel, by the new standard
+    row = pg.locator('#atList .at-row', has_text='Publish the app'); row.hover(); pg.wait_for_timeout(100)
+    ok('SideBar Cleanup: a row shows the Claude icon in place of Copy task', row.locator('.at-claude.oc-icon').is_visible() and not ev("() => !!document.querySelector('#atList .at-copy')"))
+    row.locator('.at-claude').click(); pg.wait_for_timeout(200)
+    ok('it opens the Open in Claude panel with Build it, Think and Copy', pg.is_visible('.oc-panel') and pg.is_visible('#ocTabThink')
+       and ev("() => !!document.querySelector('.oc-panel .oc-tile[data-kind=\"copy\"]')"))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    ok('Esc closes the panel first, All tasks staying', not pg.is_visible('.oc-panel') and pg.is_visible('#allTasks'))
+    # tagging here shows in the project view
     pg.click('#atShifts [data-shift="none"]'); pg.wait_for_timeout(200)
     row = pg.locator('#atList .at-row', has_text='Add plant icons'); row.hover(); row.locator('.at-tag', has_text='Create').click(); pg.wait_for_timeout(200)
-    ok('tagging with the project view open shows the tag there at once', ev("() => { const r = [...document.querySelectorAll('.task')].find(l => l.textContent.includes('Add plant icons')); return !!r && !!r.querySelector('.shift-tag.shift-create'); }"))
     pg.click('#atShifts [data-shift="none"]'); pg.wait_for_timeout(200)
+    ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
+    ok('a tag given here shows in the project view', ev("() => { const r = [...document.querySelectorAll('.task')].find(l => l.textContent.includes('Add plant icons')); return !!r && !!r.querySelector('.shift-tag.shift-create'); }"))
     ev("() => FullView.close()"); pg.wait_for_timeout(200)
 
     # a tick with the square, a repeat, and what stays out
@@ -304,11 +339,12 @@ with sync_playwright() as p:
     pg.reload(); pg.wait_for_timeout(2200)
     ok('a shift is kept after a reload', get(gp, 'Publish the app')['shift'] == 'errand' and get(nc, 'Make block art for each project')['shift'] == 'errand')
 
-    # a narrow window: L opens the drawer on All tasks
+    # a narrow window: L opens All tasks over the map, the drawer closed
     pg.set_viewport_size({'width': 700, 'height': 900}); pg.wait_for_timeout(300)
-    pg.mouse.click(600, 300); pg.keyboard.press('KeyL'); pg.wait_for_timeout(400)
-    ok('on a narrow window L opens the drawer on All tasks', ev("() => document.querySelector('#menu').classList.contains('open')") and pg.is_visible('#allTasks'))
-    ok('with nothing past its edge', ev("() => { const m = document.querySelector('#menu'); return m.scrollWidth <= m.clientWidth + 1; }"))
+    ev("() => Menu.toggleDrawer(true)"); blur(); pg.keyboard.press('KeyL'); pg.wait_for_timeout(400)
+    ok('on a narrow window L opens All tasks over the whole map, the drawer closing', not ev("() => document.querySelector('#menu').classList.contains('open')") and pg.is_visible('#allTasks')
+       and ev("() => Math.round(document.querySelector('#allTasks').getBoundingClientRect().width)") == 700)
+    ok('with nothing past its edge', ev("() => { const m = document.querySelector('#allTasks'); return m.scrollWidth <= m.clientWidth + 1; }"))
     pg.screenshot(path=str(SHOTS / '356-narrow.png'))
 
     print('errors:', errors)

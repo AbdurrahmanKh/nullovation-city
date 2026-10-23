@@ -177,6 +177,8 @@ with sync_playwright() as p:
     ok('the arrows go back no further than the first month with a tick', pg.is_disabled('[data-k="prev"]'))
     pg.click('[data-k="kind-week"]'); pg.wait_for_timeout(100)
     ok('back to Week opens this week again', 'this week' in pg.text_content('#rpPeriod'))
+    if not ev("() => !!document.querySelector('#rpByProject .rp-name')"):   # a Saturday before its first tick: this week has no rows yet
+        pg.click('[data-k="prev"]'); pg.wait_for_timeout(100)
     first = ev("() => document.querySelector('#rpByProject .rp-name').textContent")
     pg.click('#rpByProject .rp-row >> nth=0'); pg.wait_for_timeout(200)
     ok('a project row shows its building on the map', ev("() => App.selectedId && getProject(App.selectedId).name") == first)

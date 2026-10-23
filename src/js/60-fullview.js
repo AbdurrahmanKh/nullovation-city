@@ -56,6 +56,17 @@ function dataUrlToBlob(url) {
   return new Blob([bytes], { type: mime });
 }
 
+/* The right edge of the panels docked on the map's left, in the map's pixels: the project view and its side panel, All
+   tasks and a leader's editor (0.1.64); 0 with none open. The bubbles that speak at the map's top left sit beside it,
+   and a building glides into the open part of the map, right of it. */
+function panelEdge() {
+  const wrap = $('#mapWrap'); if (!wrap) return 0;
+  let r = FullView.isOpen() ? FullView.rightEdge() : 0;
+  const left = wrap.getBoundingClientRect().left;
+  for (const el of $$('#mapWrap > .lv1')) if (!el.hidden) r = Math.max(r, el.getBoundingClientRect().right - left);
+  return r;
+}
+
 /* The Project view: a panel docked on the left of the map. Each section edits on its own. */
 const FullView = (() => {
   let root = null, side = null, sideMode = null, menu = null, pop = null;
@@ -75,6 +86,7 @@ const FullView = (() => {
   /* ---------- open, close, Esc ---------- */
   function open(id, { section = null } = {}) {
     if (!getProject(id)) return;
+    if (typeof Leaders !== 'undefined') Leaders.closeEditor(false);   // the view comes to the front: a leader's editor over it closes (0.1.64)
     if (root && openId !== id) { finishEdit(); closeMenu(); closeSide(); adding = null; }
     if (!root) {
       lastFocus = document.activeElement;
@@ -103,7 +115,10 @@ const FullView = (() => {
     Bubble.refresh(); Bubble.position();
     MapView.invalidate();
     const enter = $('#enterBtn');
-    if (enter && !enter.hidden && enter.offsetParent) enter.focus();
+    if (typeof AllTasks !== 'undefined' && AllTasks.isOpen()) {   // back in All tasks, which the view covered (0.1.64)
+      const at = $('#allTasks');
+      (lastFocus && document.contains(lastFocus) && at.contains(lastFocus) ? lastFocus : at).focus({ preventScroll: true });
+    } else if (enter && !enter.hidden && enter.offsetParent) enter.focus();
     else if (lastFocus && document.contains(lastFocus) && lastFocus.focus) lastFocus.focus();
   }
   /* Esc peels one layer at a time: a popover, the more menu, an open section (undone), the side panel, the view. */
@@ -1334,12 +1349,8 @@ const FullView = (() => {
       await Rounds.dropFile(at.p, at.t, e.dataTransfer.files[0]);
     });
   }
-  /* What Open in Claude sends for a task: its copy (the round's answers written in for a chat, C1), Make a wizard round's
-     request (M1), and the round's file for Cowork when its path is known. */
-  /* Open in Claude on a task: Build it sends the task; Think, on an open task, asks for a round or a brainstorm about it
-     (Open in Claude Panel, A2, A3); Copy copies either; Cowork gets the round's file. */
-  const taskClaude = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.',
-    think: isOpenTask(t) ? (kind, o = {}) => taskForClaude(p, t, Date.now(), { kind, ask: o.brainstorm ? 'brainstorm' : true }) : null, files: () => Rounds.files(t) });
+  /* Open in Claude on a task: Build it, Think, Copy, and the round's file for Cowork (OpenInClaude.forTask). */
+  const taskClaude = (p, t) => OpenInClaude.forTask(p, t);
   /* A round came, changed or went: its card and its hats, redrawn in place, so a description being typed keeps its place. */
   function refreshRounds() {
     const p = P(); if (!p || !root) return;

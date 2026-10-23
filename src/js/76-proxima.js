@@ -257,8 +257,8 @@ const Proxima = (() => {
     act.textContent = party ? 'Go to it' : 'Read';
     act.onclick = party ? () => { hush(false); goTo(r.pid); pump(); }
       : () => { hush(false); if (typeof Reports !== 'undefined') Reports.open(); openReport(r.kind); pump(); };
-    const view = typeof FullView !== 'undefined' && FullView.isOpen();            // beside the project view, over the map it leaves open
-    box.style.left = view ? Math.round(FullView.rightEdge() + 22) + 'px' : '';
+    const edge = panelEdge();                                                       // beside the panels on the map, over the map they leave open
+    box.style.left = edge ? Math.round(edge + 22) + 'px' : '';
     box.hidden = false;
     fitSay(box);
     requestAnimationFrame(() => box.classList.add('show'));
@@ -290,7 +290,7 @@ const Proxima = (() => {
   }
   function goTo(pid) {
     if (!getProject(pid)) return;
-    MapView.glideBeside(pid, typeof FullView !== 'undefined' && FullView.isOpen() ? FullView.rightEdge() : 0);
+    MapView.glideBeside(pid, panelEdge());
   }
 
   function init() {

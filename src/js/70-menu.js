@@ -36,9 +36,11 @@ const Menu = (() => {
     $('#bannerCancel').addEventListener('click', () => MapView.cancelMode());
 
     $('#btnRecap').addEventListener('click', () => { closeDrawer(); openRecap(); });
-    /* The status brief starts a planning chat, so it sits with the week rather than in Settings: Open in Claude, with
-       Copy in its panel (0.1.63; Copy status brief beside it until then). */
-    $('#briefRow').append(OpenInClaude.button({ id: 'btnBriefClaude', text: () => statusBrief(), copied: 'Status brief copied. Paste it into any Claude chat.', small: true }));
+    /* The status brief starts a planning chat, so it sits with the week rather than in Settings: one button, Status brief,
+       whose panel starts with Copy status brief, then the Claude tiles (SideBar Cleanup, 0.1.64; Open in Claude with Copy
+       last until then, and Copy status brief beside it until 0.1.63). */
+    $('#briefRow').append(OpenInClaude.button({ id: 'btnBriefClaude', label: 'Status brief', copyFirst: 'Copy status brief',
+      title: 'The status of every project, for a Claude chat: copy it, or open it in Claude', text: () => statusBrief(), copied: 'Status brief copied. Paste it into any Claude chat.', small: true }));
     /* Edit City's bar: the ring as before, and Done */
     $('#btnGrow').addEventListener('click', () => { if (MapView.resizeWorld(1)) toast('Added a ring of plots.'); });
     $('#btnShrink').addEventListener('click', () => {
@@ -56,13 +58,14 @@ const Menu = (() => {
     setSaveStatus(Store.persistent());
     refresh();
   }
-  /* The side bar's panels: All tasks, Leaders, Reports and Settings take its place one at a time; the lists come back
-     once none is open. */
-  const PANELS = ['#settings', '#reports', '#allTasks', '#leadersPanel'];
+  /* The side bar's panels: Leaders, Reports and Settings take its place one at a time; the lists come back once none is
+     open. All tasks is on the map since 0.1.64. */
+  const PANELS = ['#settings', '#reports', '#leadersPanel'];
   function listsBack() { if (PANELS.every(s => !$(s) || $(s).hidden)) $('#sbLists').hidden = false; }
   function hideNew() { $('#newWrap').hidden = true; $('#btnNew').hidden = false; }
 
-  /* Open tasks due in the next 7 days, overdue first, each with a copy for Claude. */
+  /* Open tasks due in the next 7 days, overdue first, each with its Open in Claude: the Claude icon, opening the panel
+     with Build it, Think and Copy (SideBar Cleanup, 0.1.64; a copy button until then). */
   function renderDue() {
     const sec = $('#sbDue'), list = $('#dueList');
     if (!sec) return;
@@ -79,7 +82,7 @@ const Menu = (() => {
       h('button', { class: 'due-task', type: 'button', title: 'Open this task', onclick: () => { closeDrawer(); FullView.openTask(p.id, t.id); } },
         h('span', { class: 'due-text', dir: 'auto' }, t.text),
         h('span', { class: 'due-meta' }, h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text), h('span', { class: 'due-proj', dir: 'auto' }, p.name))),
-      h('button', { class: 'icon-btn due-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }))),
+      OpenInClaude.button({ icon: true, cls: 'due-claude', ...OpenInClaude.forTask(p, t) }))),
       ...(items.length > shown.length ? [h('li', { class: 'due-more' }, h('button', { class: 'due-more-btn', type: 'button', title: 'Every open task: All tasks (L)',
         onclick: () => AllTasks.open() }, 'and ' + (items.length - shown.length) + ' more'))] : []));
   }
@@ -101,15 +104,18 @@ const Menu = (() => {
         h('span', { class: 'star-text', dir: 'auto', title: t.text }, t.text),
         h('span', { class: 'star-proj', dir: 'auto' }, p.name)));
   }
-  /* This week in numbers; the card opens the week. */
+  /* This week in numbers, each with its small icon: a tick for tasks done, a note, a milestone's flag (SideBar Cleanup,
+     0.1.64). The card opens the week. */
   function renderWeek() {
     const btn = $('#btnRecap');
     if (!btn) return;
-    const cur = weekStartOf(Date.now()), parts = weekNumbers(weekOf(cur).tot);
+    const cur = weekStartOf(Date.now()), tot = weekOf(cur).tot, parts = weekNumbers(tot);
+    const icons = [tot.done ? 'tick' : null, tot.notes ? 'doc' : null, tot.ms ? 'flag' : null].filter(Boolean);
     btn.replaceChildren(
       h('span', { class: 'week-top' }, iconEl('recap', 16), h('span', { class: 'sb-h' }, 'This week'), h('span', { class: 'week-dates' }, weekLabel(cur))),
-      h('span', { id: 'weekNumbers', class: 'week-nums' }, parts.length ? parts.join(' \u00b7 ') : 'Nothing done yet this week'),
-      h('span', { class: 'week-open' }, 'Open the week'));
+      h('span', { id: 'weekNumbers', class: 'week-nums' }, ...(parts.length
+        ? parts.map((x, i) => h('span', { class: 'week-num' }, iconEl(icons[i], 12), x))
+        : ['Nothing done yet this week'])));
   }
   function refresh() {
     if (!countEl) return;

@@ -225,9 +225,10 @@ with sync_playwright() as p:
     js("() => FullView.close()"); pg.wait_for_timeout(300)
 
     # the side bar: the status brief of every project
-    ok('Open in Claude sits with the week, and Copy status brief is gone', pg.is_visible('#btnBriefClaude') and not js("() => !!document.querySelector('#btnBrief')"))
+    ok('Status brief sits with the week, one button (0.1.64), and the old Copy status brief is gone', pg.is_visible('#btnBriefClaude') and not js("() => !!document.querySelector('#btnBrief')"))
     pg.click('#btnBriefClaude'); pg.wait_for_timeout(250)
-    chat, cowork, code, term, copy = js(TILES)
+    copy, chat, cowork, code, term = js(TILES)
+    ok('its panel starts with Copy status brief, then the four Claude tiles (0.1.64)', copy['kind'] == 'copy' and [t['kind'] for t in (chat, cowork, code, term)] == ['chat', 'cowork', 'code', 'terminal'])
     ok('the status brief fills in a new chat', q_of(chat) == proj("statusBrief()") and q_of(chat).startswith('# Nullovation City status'))
     ok('with no project, Code and Terminal have no folder to open', code['off'] and term['off'] and js(FOLDER) == 'No project folder: Chat, Cowork or Copy.')
     pg.screenshot(path=str(SHOTS / 'oc-5-brief-panel.png'))

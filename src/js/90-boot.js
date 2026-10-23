@@ -48,7 +48,8 @@
   Backups.init();
   ClaudeWork.init();
 
-  /* Esc backs out of one layer at a time. The full view always closes on Esc. Edit City ends before Settings closes. */
+  /* Esc backs out of one layer at a time: a leader's editor, the project view, All tasks, then the side bar's panels.
+     Edit City ends before Settings closes. */
   window.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (OpenInClaude.close(true)) return;
@@ -56,14 +57,15 @@
     if (Ghosts.closeCard()) return;
     if (Confirm.isOpen()) { Confirm.cancel(); return; }
     if (Panel.isOpen()) { Panel.close(); return; }
+    if (Leaders.editorOpen()) { Leaders.escape(); return; }  // a leader's editor sits over the project view and All tasks (0.1.64)
     if (FullView.isOpen()) { FullView.escape(); return; }
     if (MapView.cancelMode()) return;
     if (MapView.setEditing(false)) return;
     if (MapView.deselect()) return;
+    if (AllTasks.close()) return;                          // on the map, over the side bar's panels (0.1.64)
     if (Settings.close()) return;
     if (Reports.close()) return;
-    if (AllTasks.close()) return;
-    if (Leaders.escape()) return;                          // its editor goes back to the list, the list closes (0.1.61)
+    if (Leaders.escape()) return;                          // the list closes (0.1.61)
     Menu.closeDrawer();
   });
   /* The comma key opens and closes Settings, unless you are typing or a dialog is open. */

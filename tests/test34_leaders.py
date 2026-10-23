@@ -51,7 +51,7 @@ with sync_playwright() as p:
     lead = lambda pid: ev(f"() => getProject('{pid}').leader")
     def panel():
         """The Leaders panel, open on its list (0.1.61)."""
-        ev("() => { if (!Leaders.isOpen()) document.querySelector('#btnOpenLeaders').click(); else if (Leaders.editing()) document.querySelector('#ldBack').click(); }"); pg.wait_for_timeout(200)
+        ev("() => { if (!Leaders.isOpen()) document.querySelector('#btnOpenLeaders').click(); else if (Leaders.editing()) document.querySelector('#ldClose').click(); }"); pg.wait_for_timeout(200)
     def row(lid):
         panel(); pg.click(f'.ld-row[data-id="{lid}"]'); pg.wait_for_timeout(250)
     leaders = lambda: ev("() => DB.leaders.map(l => [l.name, l.role, l.color, l.portrait, leaderProjects(l).map(p => p.name).sort()])")
@@ -91,24 +91,28 @@ with sync_playwright() as p:
     pg.click('#btnOpenLeaders'); pg.wait_for_timeout(250)
     sec = ev("""() => ({ shown: !document.querySelector('#leadersPanel').hidden, lists: !document.querySelector('#sbLists').hidden, title: document.querySelector('#ldTitle').textContent,
         btn: document.querySelector('#btnNewLeader').textContent.trim(), empty: (document.querySelector('#ldList .ld-empty') || {}).textContent, focus: document.activeElement.id })""")
-    ok(f'it turns the side bar into the Leaders panel, as All tasks does, with New leader at its top ({sec})', sec['shown'] and not sec['lists'] and sec['title'] == 'Leaders'
+    ok(f'it turns the side bar into the Leaders panel, as Reports does, with New leader at its top ({sec})', sec['shown'] and not sec['lists'] and sec['title'] == 'Leaders'
        and sec['btn'] == 'New leader' and sec['focus'] == 'leadersPanel')
     ok('with none, it says how to start', sec['empty'] == 'No leaders yet. Add one with a portrait, then give it a building.')
     pg.screenshot(path=str(SHOTS / '340-leaders-empty.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 200})
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     ok('Esc closes it, the focus back on its button', ev("() => !Leaders.isOpen() && !document.querySelector('#sbLists').hidden && document.activeElement.id === 'btnOpenLeaders'"))
-    pg.click('#btnOpenAllTasks'); pg.wait_for_timeout(200); pg.click('#atBack'); pg.wait_for_timeout(150)
-    pg.click('#btnOpenLeaders'); pg.wait_for_timeout(200)
-    ok('it shares the side bar with All tasks, Reports and Settings: opening one closes the other', ev("() => Leaders.isOpen() && document.querySelector('#allTasks').hidden")
-       and (pg.click('#ldBack'), pg.wait_for_timeout(150), ev("() => (AllTasks.open(), !Leaders.isOpen() && !document.querySelector('#allTasks').hidden)"))[2])
+    ev("() => { Reports.open(); Leaders.open(); }"); pg.wait_for_timeout(200)
+    ok('it shares the side bar with Reports and Settings: opening one closes the other', ev("() => Leaders.isOpen() && document.querySelector('#reports').hidden")
+       and (ev("() => Settings.open()"), pg.wait_for_timeout(150), ev("() => !Leaders.isOpen() && !document.querySelector('#settings').hidden"))[2])
+    ev("() => Settings.close()"); pg.wait_for_timeout(100)
+    ev("() => AllTasks.open()"); pg.wait_for_timeout(150); panel()
+    ok('SideBar Cleanup: All tasks, on the map since 0.1.64, stays open beside it', ev("() => Leaders.isOpen() && AllTasks.isOpen()"))
     ev("() => AllTasks.close()"); pg.wait_for_timeout(100)
     panel()
 
     # ---------- a new leader ----------
     g0 = ev(f"() => [getProject('{gp}').updatedAt, getProject('{gp}').activity.length]")
     pg.click('#btnNewLeader'); pg.wait_for_timeout(250)
-    ok('New leader opens the editor in the panel, in the list\'s place', pg.is_visible('.ld-panel') and pg.text_content('#ldTitle') == 'New leader' and not pg.is_visible('#ldList')
-       and not pg.is_visible('#btnNewLeader') and not ev("() => Panel.isOpen()"))
+    geo = ev("() => { const v = document.querySelector('#ldView').getBoundingClientRect(), w = document.querySelector('#mapWrap').getBoundingClientRect(); return [Math.round(v.left - w.left), Math.round(v.width), Math.round(v.height - w.height), document.querySelector('#mapWrap').contains(document.querySelector('#ldEdit'))]; }")
+    ok(f'SideBar Cleanup: New leader opens the editor at level 1, a panel docked on the map\'s left like the project view ({geo})', pg.is_visible('.ld-panel') and pg.is_visible('#ldView')
+       and geo == [0, 880, 0, True] and pg.text_content('#ldEditTitle') == 'New leader' and not ev("() => Panel.isOpen()"))
+    ok('the list stays in the side bar beside it (level 0), with New leader', pg.is_visible('#ldList') and pg.is_visible('#btnNewLeader') and pg.text_content('#ldTitle') == 'Leaders')
     ok('the name has the focus', ev("() => document.activeElement.id") == 'ldName')
     sil = ev("() => { const f = document.querySelector('.ld-big .ld-face'); return { svg: !!f.querySelector('svg'), img: !!f.querySelector('img'), w: Math.round(f.getBoundingClientRect().width) }; }")
     ok(f'with no portrait, a silhouette on its signature color, 128 px ({sil})', sil['svg'] and not sil['img'] and sil['w'] == 128)
@@ -205,7 +209,8 @@ with sync_playwright() as p:
 
     # a second leader, made from the picker, with no portrait: it takes this building
     pg.click('#ldPickNew'); pg.wait_for_timeout(250)
-    ok('New leader from the picker opens the editor in the side bar\'s panel, beside the view, with this building ticked', pg.is_visible('.ld-panel') and pg.is_visible('#pv')
+    top = ev("() => { const r = document.querySelector('#pv').getBoundingClientRect(); return !!document.elementFromPoint(r.left + 200, r.top + 200).closest('#ldView'); }")
+    ok('New leader from the picker opens the editor over the project view, the list in the side bar, with this building ticked', pg.is_visible('.ld-panel') and ev("() => FullView.isOpen()") and top
        and ev("() => Leaders.isOpen()") and ev(f"() => document.querySelector('.ld-bld[data-id=\"{gp}\"] input').checked"))
     ok('a building led by another says by whom', ev(f"() => (document.querySelector('.ld-bld[data-id=\"{gp}\"] .ld-bld-other') || {{}}).textContent") is None
        and ev(f"() => !document.querySelector('.ld-bld[data-id=\"{nc}\"] .ld-bld-other')"))
@@ -252,7 +257,11 @@ with sync_playwright() as p:
 
     # ---------- editing: every change applies at once ----------
     row(gid)
-    ok('a click on a leader opens it to edit, in the panel', pg.is_visible('.ld-panel') and pg.text_content('#ldTitle') == 'Leader: Gus Grimsby' and pg.is_visible('#ldDelete') and pg.is_visible('#ldDone'))
+    ok('a click on a leader opens it to edit, at level 1', pg.is_visible('.ld-panel') and pg.text_content('#ldEditTitle') == 'Leader: Gus Grimsby' and pg.is_visible('#ldDelete') and pg.is_visible('#ldDone'))
+    ok('SideBar Cleanup: its row in the list is marked while it is edited', ev(f"() => document.querySelector('.ld-row[data-id=\"{gid}\"]').getAttribute('aria-current')") == 'true'
+       and ev("() => document.querySelectorAll('.ld-row[aria-current]').length") == 1)
+    lay = ev("() => { const f = document.querySelector('.ld-big').getBoundingClientRect(), n = document.querySelector('#ldName').getBoundingClientRect(), l = document.querySelector('.ld-leads').getBoundingClientRect(); return [n.left > f.right, Math.abs(n.top - f.top) < 40, l.top > f.bottom]; }")
+    ok(f'with the room, the name, role and color sit beside the face, and the buildings it leads under them ({lay})', lay == [True, True, True])
     ok('its buildings ticked', ev("() => [...document.querySelectorAll('.ld-bld input')].map(i => i.checked)") == [True, False])
     pg.fill('#ldName', 'Gus'); pg.fill('#ldRole', 'Chief of the cleanup crew'); pg.wait_for_timeout(300)
     ok('the name and role change as they are typed', leaders()[0][:2] == ['Gus', 'Chief of the cleanup crew'])
@@ -419,7 +428,7 @@ with sync_playwright() as p:
     nar = ev("() => { const p = document.querySelector('#leadersPanel').getBoundingClientRect(); return [document.querySelector('#menu').classList.contains('open'), Leaders.isOpen(), Math.round(p.right) <= 700, document.documentElement.scrollWidth <= 700]; }")
     ok(f'on a narrow window it opens in the drawer, with nothing past its edge ({nar})', nar == [True, True, True, True])
     pg.click('#btnNewLeader'); pg.wait_for_timeout(250)
-    ok('and the editor fits there too', ev("() => { const e = document.querySelector('#ldEdit').getBoundingClientRect(); return !document.querySelector('#ldEdit').hidden && e.right <= 700 && e.width > 200; }"))
+    ok('and the editor covers the map, the drawer closing, with nothing past its edge', ev("() => { const e = document.querySelector('#ldView').getBoundingClientRect(); return !document.querySelector('#ldView').hidden && Math.round(e.right) <= 700 && e.width > 600 && !document.querySelector('#menu').classList.contains('open') && document.querySelector('#ldView').scrollWidth <= document.querySelector('#ldView').clientWidth + 1; }"))
     pg.screenshot(path=str(SHOTS / '349-leaders-narrow.png'))
     b.close()
 

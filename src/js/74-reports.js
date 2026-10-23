@@ -102,8 +102,7 @@ const Reports = (() => {
   const isOpen = () => !!$('#reports') && !$('#reports').hidden;
   function open(tab) {
     if (tab && TABS.some(t => t.id === tab)) ui.tab = tab;
-    if (typeof Settings !== 'undefined') Settings.close(false);
-    if (typeof AllTasks !== 'undefined') AllTasks.close(false);
+    if (typeof Settings !== 'undefined') Settings.close(false);   // the three share the side bar; All tasks is on the map (0.1.64)
     if (typeof Leaders !== 'undefined') Leaders.close(false);
     Menu.toggleDrawer(true);
     $('#sbLists').hidden = true; $('#reports').hidden = false;

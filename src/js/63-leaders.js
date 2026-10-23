@@ -109,24 +109,29 @@ const Leaders = (() => {
   }
 
   /* ---------- the Leaders panel (0.1.61, Leader UX C1 and L3): a Leaders button beside All tasks at the side bar's foot
-     turns the side bar into every leader, as All tasks, Reports and Settings do; New leader at its top, and a click on a
-     leader opens the editor there, in place of the list. ---------- */
+     turns the side bar into every leader, as Reports and Settings do; New leader at its top. The side bar is level 0, and
+     since 0.1.64 (SideBar Cleanup) a click on a leader opens its editor at level 1, a panel docked on the left of the
+     map like the project view, with room for all a leader will hold; its row stays marked in the list. It opens over
+     the project view or All tasks, and they are back as they were once it closes. ---------- */
   let editing = null;                                        // the leader the editor shows, while it shows
   const isOpen = () => !!$('#leadersPanel') && !$('#leadersPanel').hidden;
   function init() {
     $('#ldPlus').innerHTML = iconSvg('plus', 12); $('#ldPlus').style.display = 'inline-flex';
     $('#sbLeaderIcon').innerHTML = iconSvg('leader', 16); $('#sbLeaderIcon').style.display = 'inline-flex';
     $('#ldBack').innerHTML = iconSvg('back', 18);
+    $('#ldClose').innerHTML = iconSvg('close', 18);
     $('#btnNewLeader').addEventListener('click', () => create());
     $('#btnOpenLeaders').addEventListener('click', () => { open(); showList(); });
-    $('#ldBack').addEventListener('click', () => { if (editing) showList(editing.id); else close(); });
-    $('#leadersPanel').addEventListener('keydown', e => { if (e.key === 'Escape' && escape()) { e.preventDefault(); e.stopPropagation(); } });
+    $('#ldBack').addEventListener('click', () => close());
+    $('#ldClose').addEventListener('click', () => { if (editing) showList(editing.id); });
+    const esc = e => { if (e.key === 'Escape' && escape()) { e.preventDefault(); e.stopPropagation(); } };
+    $('#leadersPanel').addEventListener('keydown', esc);
+    $('#ldView').addEventListener('keydown', esc);
     renderSection();
   }
   function open() {
-    if (typeof Settings !== 'undefined') Settings.close(false);  // the four share the side bar
+    if (typeof Settings !== 'undefined') Settings.close(false);  // the three share the side bar; All tasks is on the map (0.1.64)
     if (typeof Reports !== 'undefined') Reports.close(false);
-    if (typeof AllTasks !== 'undefined') AllTasks.close(false);
     Menu.toggleDrawer(true);
     $('#sbLists').hidden = true; $('#leadersPanel').hidden = false;
     $('#menu').classList.add('in-leaders');
@@ -134,8 +139,7 @@ const Leaders = (() => {
   }
   function close(refocus = true) {
     if (!isOpen()) return false;
-    editing = null;
-    $('#ldEdit').replaceChildren(); $('#ldEdit').hidden = true;
+    closeEditor();                                           // its editor goes with it
     $('#leadersPanel').hidden = true;
     $('#menu').classList.remove('in-leaders');
     Menu.listsBack();
@@ -144,18 +148,22 @@ const Leaders = (() => {
   }
   /* Esc: the editor goes back to the list, the list closes. */
   function escape() {
-    if (!isOpen()) return false;
     if (editing) { showList(editing.id); return true; }
+    if (!isOpen()) return false;
     return close();
   }
-  /* The list, with the focus on the leader just edited when there is one, else on the panel. */
-  function showList(focusId = null) {
-    if (!isOpen()) open();
+  /* The editor closes, back to whatever it covered on the map. */
+  function closeEditor() {
+    if (!editing) return false;
     editing = null;
-    $('#ldEdit').replaceChildren(); $('#ldEdit').hidden = true;
-    $('#ldList').hidden = false; $('#btnNewLeader').hidden = false;
-    $('#ldTitle').replaceChildren('Leaders');
-    $('#ldBack').setAttribute('aria-label', 'Back to the lists'); $('#ldBack').title = 'Back to the lists';
+    $('#ldView').hidden = true; $('#ldEdit').replaceChildren();
+    renderSection();
+    return true;
+  }
+  /* The list, with the editor closed and the focus on the leader just edited when there is one, else on the panel. */
+  function showList(focusId = null) {
+    closeEditor();
+    if (!isOpen()) open();
     renderSection();
     const row = focusId && $(`.ld-row[data-id="${focusId}"]`);
     (row || $('#leadersPanel')).focus({ preventScroll: true });
@@ -167,7 +175,7 @@ const Leaders = (() => {
     const a = document.activeElement, keep = a && list.contains(a) && a.dataset ? a.dataset.id : null;
     list.replaceChildren(...DB.leaders.map(l => {
       const ps = leaderProjects(l);
-      const b = h('button', { class: 'ld-row', type: 'button', 'data-id': l.id,
+      const b = h('button', { class: 'ld-row', type: 'button', 'data-id': l.id, 'aria-current': editing && editing.id === l.id ? 'true' : null,
         title: 'Edit ' + leaderName(l) + '. ' + (ps.length ? 'Leads ' + plural(ps.length, 'building', 'buildings') : 'Leads no building yet') + '.',
         onclick: () => edit(l.id) },
         face(l, 48),
@@ -291,25 +299,27 @@ const Leaders = (() => {
           h('button', { id: 'ldAdd', class: 'btn btn-accent', type: 'button', onclick: add }, 'Add leader'))
       : h('div', { class: 'confirm-actions ld-actions' }, h('button', { id: 'ldDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: remove }, 'Delete leader'),
           h('button', { id: 'ldDone', class: 'btn btn-accent', type: 'button', onclick: () => showList(l.id) }, 'Done'));
-    /* the editor, in the panel in the list's place */
+    /* the editor, at level 1 on the map (0.1.64), with the list still in the side bar and its row marked; on a narrow
+       window the drawer closes, as the editor covers the map */
     if (!isOpen()) open();
     editing = l;
-    $('#ldList').hidden = true; $('#btnNewLeader').hidden = true;
-    $('#ldTitle').replaceChildren(...(isNew ? ['New leader'] : ['Leader: ', h('bdi', null, leaderName(l))]));
-    $('#ldBack').setAttribute('aria-label', 'Back to the leaders'); $('#ldBack').title = 'Back to the leaders';
-    $('#menu').scrollTop = 0;
-    $('#ldEdit').hidden = false;
+    renderSection();
+    if (window.matchMedia('(max-width: 760px)').matches) Menu.closeDrawer();
+    $('#ldEditTitle').replaceChildren(...(isNew ? ['New leader'] : ['Leader: ', h('bdi', null, leaderName(l))]));
+    $('#ldView').hidden = false;
+    $('#ldView').scrollTop = 0;
     $('#ldEdit').replaceChildren(
       h('div', { class: 'ld-form' },
         h('div', { class: 'ld-top' }, faceBox, h('div', { class: 'ld-portrait' }, portraitBtns,
           h('p', { class: 'note' }, 'A PNG, GIF, JPEG or WebP, up to 1024 px. 256 by 256 pixel art on a see-through background fits best.'), file)),
-        err,
-        h('label', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Name'), name),
-        h('label', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Role'), role),
-        h('div', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Signature color'), swatches),
-        h('div', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Leads'), blds,
+        h('div', { class: 'ld-fields' },
+          err,
+          h('label', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Name'), name),
+          h('label', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Role'), role),
+          h('div', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Signature color'), swatches)),
+        h('div', { class: 'ld-field ld-leads' }, h('span', { class: 'lbl' }, 'Leads'), blds,
           h('p', { class: 'note' }, 'One leader per building; a leader can lead several.')),
-        live ? h('p', { class: 'note' }, 'Changes save as you make them.') : null),
+        live ? h('p', { class: 'note ld-saves' }, 'Changes save as you make them.') : null),
       foot);
     name.focus({ preventScroll: true }); if (isNew) name.select();
   }
@@ -434,6 +444,6 @@ const Leaders = (() => {
     return lead;
   }
 
-  return { init, loadAll, renderSection, refreshAll, create, edit, open, close, escape, isOpen, editing: () => editing, pickList, card, redrawCard, statusLine, hub, face, breathe, toastLead,
+  return { init, loadAll, renderSection, refreshAll, create, edit, open, close, closeEditor, escape, isOpen, editing: () => editing, editorOpen: () => !!editing, pickList, card, redrawCard, statusLine, hub, face, breathe, toastLead,
     url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt };
 })();

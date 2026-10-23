@@ -1023,7 +1023,7 @@ const MapView = (() => {
     if (typeof Ghosts !== 'undefined') Ghosts.closeCard();   // and so does a ghost's card
     App.selectedId = id; hideTip();
     Bubble.open(id);
-    if (glide) { if (FullView.isOpen()) glideBeside(id, FullView.rightEdge()); else glideTo(id); }   // with the view open, into the open strip
+    if (glide) { const edge = panelEdge(); if (edge) glideBeside(id, edge); else glideTo(id); }   // with a panel open, into the open strip
     invalidate();
   }
   function deselect() {
@@ -1247,6 +1247,7 @@ const MapView = (() => {
     lastAnchor = [mx, my];
   }
   function onWheel(e) {
+    if (e.target.closest && e.target.closest('.lv1')) return;      // All tasks and a leader's editor scroll themselves (0.1.64)
     if (FullView.isOpen()) {
       if (e.target.closest && e.target.closest('#pv, #pvSide')) return;   // the panels scroll themselves
       e.preventDefault();
@@ -1316,8 +1317,11 @@ const MapView = (() => {
   function setEditing(on) {
     on = !!on;
     if (on === editing) return false;
-    if (on) { cancelMode(); deselect(); hideTip(); }
-    else { if (mode.name === 'move') { if (gesture) { clearTimeout(gesture.hold); gesture = null; } finishMove(false); } editHover = null; hideTip(); }
+    if (on) {
+      cancelMode(); deselect(); hideTip();
+      if (typeof AllTasks !== 'undefined') AllTasks.close(false);    // Edit City frames the whole map: the panels on it close (0.1.64)
+      if (typeof Leaders !== 'undefined') Leaders.closeEditor(false);
+    } else { if (mode.name === 'move') { if (gesture) { clearTimeout(gesture.hold); gesture = null; } finishMove(false); } editHover = null; hideTip(); }
     editing = on;
     $('#editBar').hidden = !on; $('#editArrows').hidden = !on;
     canvas.classList.toggle('editing', on);

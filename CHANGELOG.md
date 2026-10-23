@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.64 (2026-10-23)
+
+SideBar Cleanup, Abdurrahman's task in Nullovation City Hall, UX Mastery: the side bar is level 0, and what holds too much for it opens at level 1, a panel docked on the map's left like the project view.
+- This week: each number has a small icon beside it, a tick for tasks done, a note for notes and a flag for milestones. "Open the week" is gone; the card still opens the week.
+- Status brief: one button, Status brief. Its panel starts with Copy status brief, then Chat, Cowork, Code and Terminal.
+- Due this week: the copy button on each task is now the Claude icon, which opens Open in Claude with Build it, Think and Copy, as a task's does anywhere else. All tasks' rows have it too, in place of Copy task.
+- The four buttons at the side bar's foot, All tasks, Leaders, Reports and Settings, are all one size, two by two.
+- All tasks opens as a large panel on the map, 880 px wide like the project view, and the side bar keeps its lists beside it. The dated tasks and the undated ones sit side by side. A task opened from it opens the project view over it, and All tasks is back as it was once the view closes, the focus on the row. L or its button bring it to the front, or close it. Reports and Settings no longer close it; Esc closes it before them.
+- A leader's editor opens at level 1 on the map, with the Leaders list still in the side bar and the leader's row marked. The face and portrait sit beside the name, role and color, and the buildings it leads under them. It opens over the project view or All tasks, which are back once it closes.
+- A building selected while a panel is on the map glides into the open part beside it, and the leaders' and Proxima's bubbles sit beside All tasks as they do beside the project view.
+- On a narrow window All tasks and a leader's editor cover the map, and the drawer closes.
+- Tests: test10_sidebar checks the week's icons, Status brief, Due this week's Claude icon and the foot; test35_all_tasks and test34_leaders follow the panels onto the map; test18_open_in_claude follows the status brief's panel; test29_reports no longer stops on a Saturday before the week's first tick.
+
 ## 0.1.63 (2026-10-23)
 
 Open in Claude becomes a panel, from Open in Claude Panel, Round 1, and Abdurrahman's notes and diagram.
