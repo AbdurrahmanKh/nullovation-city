@@ -97,7 +97,9 @@ const FullView = (() => {
     finishEdit();
     persistSoon.flush();
     closePopover(); closeMenu(); closeSide(); OpenInClaude.close();
+    const was = openId;
     root.remove(); root = null; openId = null; editing = null;
+    News.release(was);                                     // its leader card's news, read
     Bubble.refresh(); Bubble.position();
     MapView.invalidate();
     const enter = $('#enterBtn');

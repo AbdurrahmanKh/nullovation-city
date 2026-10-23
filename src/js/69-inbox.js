@@ -75,8 +75,20 @@ const ClaudeInbox = (() => {
     if (now.length) undo = applyNow(p, now, str(data.summary, 300));
     if (later.length) await put(await sub(dir, 'inbox/pending'), name, JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: p.name, summary: str(data.summary, 300), changes: later, received: Date.now() }, null, 1));
     await move(inbox, name, await sub(dir, 'inbox/done'), text);
-    if (undo && undo.what) toast('Claude ' + undo.what + ' in ' + p.name + '.' + (later.length ? ' It asks about more on the building.' : ''), '', { label: 'Undo', run: () => undoNow(p, undo) });
-    else if (later.length) toast('Claude asks about changes to ' + p.name + ': see its building.');
+    if (undo && undo.what) tell(p, undo);
+    /* what asks first is its leader's news too, once the pending file is read (News.claude) */
+  }
+  /* Its leader says what Claude added, in place of the toast (Leader UX, T1, 0.1.59): the tasks, notes and links as one
+     item, each wizard round as one of its own, each with its own Undo. */
+  function tell(p, u) {
+    const none = { todos: [], ms: [], notes: [], links: [], rounds: [] };
+    const bits = [u.todos.length && plural(u.todos.length, 'task', 'tasks'), u.notes.length && (u.notes.length === 1 ? 'a note' : plural(u.notes.length, 'note', 'notes')),
+      u.links.length && plural(u.links.length, 'link', 'links')].filter(Boolean);
+    if (bits.length) News.add(p, 'added', { what: bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] }, { undo: { ...none, todos: u.todos, ms: u.ms, notes: u.notes, links: u.links } });
+    for (const r of u.rounds) {
+      const t = p.todos.find(x => x.id === r.id);
+      if (t && t.round) News.add(p, 'round', { task: t.text, round: t.round.title }, { ref: { tid: t.id }, undo: { ...none, rounds: [r] } });
+    }
   }
   async function prune(inbox) {
     const cutoff = Date.now() - KEEP_DAYS * 86400e3;
@@ -186,17 +198,16 @@ const ClaudeInbox = (() => {
     ClaudeWork.redraw();
   }
 
-  /* What waits for this building, for its card and its bubble. */
+  /* What waits for this building: its leader says it in its status card and its bubble (Leader UX, 0.1.59), with each
+     change listed under the line, then Apply and Dismiss. */
   const forProject = p => pending.filter(x => keyOf(x.project) === keyOf(p.name));
-  function cards(p) {
-    return forProject(p).map(entry => h('div', { class: 'b-claude b-claude-asks' },
-      h('p', { class: 'b-claude-line' }, h('span', { class: 'b-claude-dot', 'aria-hidden': 'true' }),
-        h('span', null, 'Claude asks first' + (entry.summary ? ': ' : '.'), entry.summary ? h('bdi', null, entry.summary.replace(/[.!?]+$/, '')) : null, entry.summary ? '. ' : ' ',
-          h('span', { class: 'b-claude-when' }, 'Sent ' + relAgo(entry.at) + '.'))),
-      h('ul', { class: 'b-claude-list' }, entry.changes.map(c => { const r = readable(p, c); return h('li', { class: r.ok ? null : 'off', dir: 'auto', title: r.why || null }, r.text, r.ok ? null : ' (' + r.why + ')'); })),
-      h('div', { class: 'b-claude-acts' },
-        h('button', { class: 'btn btn-small b-claude-apply', type: 'button', onclick: () => apply(entry) }, 'Apply'),
-        h('button', { class: 'btn btn-small btn-quiet b-claude-dismiss', type: 'button', onclick: () => dismiss(entry) }, 'Dismiss'))));
+  /* The change Claude asks about, for the leader's line: its summary, else the first change and how many more. */
+  function gist(p, entry) {
+    if (entry.summary) return entry.summary.replace(/[.!?]+$/, '');
+    const c = entry.changes[0] || {}, more = entry.changes.length - 1;
+    const one = c.do === 'done' ? 'tick off ' + str(c.task, 200) : c.do === 'edit-description' ? 'a new description for ' + str(c.task, 200) : c.do === 'replace-plan' ? 'a new plan' : 'a change';
+    return one + (more > 0 ? ' and ' + plural(more, 'more change', 'more changes') : '');
   }
-  return { poll, cards, count: p => forProject(p).length, total: () => pending.length, pending: () => pending, AT_ONCE, ASK };
+  const list = (p, entry) => h('ul', { class: 'b-claude-list' }, entry.changes.map(c => { const r = readable(p, c); return h('li', { class: r.ok ? null : 'off', dir: 'auto', title: r.why || null }, r.text, r.ok ? null : ' (' + r.why + ')'); }));
+  return { poll, gist, list, apply, dismiss, undo: undoNow, count: p => forProject(p).length, total: () => pending.length, pending: () => pending, AT_ONCE, ASK };
 })();

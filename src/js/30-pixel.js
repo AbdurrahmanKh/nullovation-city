@@ -596,8 +596,10 @@ const Art = (() => {
     cache.set(id, entry);
     MapView.dropCache(id);
     MapView.invalidate();
+    for (const fn of listeners) { try { fn(id); } catch (e) { /* a listener's own trouble */ } }
     return entry;
   }
+  const listeners = [];                                    // who redraws a building's picture once its art has loaded (0.1.60)
   /* Draws frame i at (x, y) scaled to (w, h). */
   function draw(g, a, i, x, y, w, h) {
     const s = w / a.w;
@@ -617,5 +619,5 @@ const Art = (() => {
     if (!url) return null;   // keep the flag: storage may only be busy, and the next load retries
     try { return await set(id, url); } catch (e) { return null; }
   }
-  return { set, load, probe, indexAt, draw, get: id => cache.get(id) || null, drop: id => { cache.delete(id); MapView.dropCache(id); }, MAX_W };
+  return { set, load, probe, indexAt, draw, onLoad: fn => listeners.push(fn), get: id => cache.get(id) || null, drop: id => { cache.delete(id); MapView.dropCache(id); }, MAX_W };
 })();

@@ -846,15 +846,9 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .urg-red { color: #FF8FB0; }
 .urg-yel { color: #FFE38A; }
 
-/* ---------- side bar: urgent, due this week, the week, and the collapsibles ---------- */
+/* ---------- side bar: due this week, the week, and the collapsibles ---------- */
 .sb-sec { margin-top: 16px; }
 .sb-h { margin: 0 0 8px; font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); }
-.urgent-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.urgent-item { position: relative; display: grid; place-items: end center; width: 64px; height: 64px; padding: 2px; background: var(--field); border: 0; box-shadow: var(--px-edge); cursor: pointer; }
-.urgent-item:hover, .urgent-item:focus-visible { background: var(--hover); outline: none; }
-.urgent-item canvas.thumb { width: 58px; height: auto; max-height: 58px; object-fit: contain; image-rendering: auto; }
-.urgent-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center;
-  font: 400 12px/1 var(--f-pixel); color: #fff; background: #E0356F; box-shadow: 0 0 0 2px #5A1030; }
 .due-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .due-item { display: flex; align-items: flex-start; gap: 6px; }
 .due-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
@@ -1086,9 +1080,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .wheel-enter:active { transform: translate(calc(-50% + 2px), 2px); }
 .wheel-empty { position: absolute; left: 0; top: 52px; width: 230px; margin: 0; transform: translateX(-50%); padding: 6px 10px; text-align: center; font-size: 12.5px; color: var(--ink-soft); background: var(--paper); box-shadow: var(--px-edge); }
 
-/* ---------- Gus Grimsby, the Garbage Man: his part of the side bar, and his speech bubble over the map ---------- */
-.gus { padding: 10px 12px 9px; background: var(--field); box-shadow: var(--px-edge); }
-.gus[hidden] { display: none; }
+/* ---------- Gus Grimsby, the Garbage Man: his speech bubble over the map, with his report (0.1.59) ---------- */
 .gus-head { display: flex; align-items: center; gap: 10px; }
 /* a face: the portrait, 256 px, shrunk smooth into its frame, as the map shrinks its buildings; bigger in a speech bubble */
 .gus-face { --face: 64px; flex: none; display: block; width: var(--face); height: var(--face); overflow: hidden; background: #3E2233; box-shadow: 0 0 0 2px #7A3A4E; }
@@ -1097,19 +1089,9 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .gus-name { display: grid; gap: 1px; }
 .gus-name b { font: 400 15px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: #FFB797; }
 .gus-name span { font-size: 12px; color: var(--muted); }
-.gus-min { flex: none; align-self: flex-start; width: 26px; height: 26px; margin: -4px -6px 0 auto; color: var(--muted); }
-.gus-min:hover, .gus-min:focus-visible { color: var(--ink); }
-.gus.min { padding: 0; background: none; box-shadow: none; }
-.gus-mini { position: relative; display: block; margin: 2px 0 0 2px; padding: 0; background: none; border: 0; cursor: pointer; }
-.gus-mini:hover .gus-face, .gus-mini:focus-visible .gus-face { box-shadow: 0 0 0 2px #F29A74; }
-.gus-mini:focus-visible { outline: none; }
-.gus-mini[hidden], #gusFull[hidden] { display: none; }
-.gus-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center;
-  font: 400 12px/1 var(--f-pixel); color: #2B2542; background: #F29A74; box-shadow: 0 0 0 2px #7A3A4E; }
-.gus-line { margin: 9px 0 0; padding-left: 8px; font-size: 13px; line-height: 1.4; color: var(--ink-soft); box-shadow: inset 2px 0 0 #F29A74; }
-.gus-report { margin: 8px 0 0; font-size: 13.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
+.gus-report { margin: 4px 0 0; font-size: 13.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
 .gus-fix { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--ink-soft); }
-.gus-line[hidden], .gus-report[hidden], .gus-fix[hidden] { display: none; }
+.gus-say-text[hidden], .gus-report[hidden], .gus-fix[hidden] { display: none; }
 .gus-rows { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 1px; }
 .gus-rows:empty { display: none; }
 .gus-row { padding: 2px 0; background: none; border: 0; color: var(--muted); font: inherit; font-size: 12.5px; line-height: 1.35; text-align: left; cursor: pointer; }
@@ -1122,7 +1104,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .gus-say.show { opacity: 1; }
 .gus-say[hidden] { display: none; }
 .gus-say::before { content: ''; position: absolute; left: -10px; top: 18px; border: 6px solid transparent; border-right: 6px solid var(--edge); border-left: 0; }
-.gus-say-body { display: grid; gap: 4px; min-width: 0; padding-top: 1px; }
+.gus-say-body { display: grid; gap: 4px; min-width: 0; padding-top: 1px; max-height: calc(100vh - 160px); overflow-y: auto; }
 .gus-say-text { font-size: 14.5px; line-height: 1.4; color: var(--ink); }
 .gus-say-close { flex: none; width: 28px; height: 28px; padding: 0; }
 /* squeezed (0.1.57): the face and the close button on top, the words under them across the whole bubble */
@@ -1343,9 +1325,67 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-card.empty .ld-card-text b { font-size: 15px; color: var(--ink-soft); }
 
 .b-leader { display: flex; align-items: center; gap: 9px; margin: -4px 0 10px; }
-.b-leader-text { display: grid; gap: 1px; min-width: 0; }
+.b-leader.has-news { align-items: flex-start; }
+.b-leader-text { display: grid; gap: 1px; min-width: 0; flex: 1; }
 .b-leader-text b { font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
-.b-leader-text span { font-size: 12px; color: var(--muted); }
+.b-leader-role { font-size: 12px; color: var(--muted); }
+.b-leader.px-voice .ld-name { color: #8FD0F7; }
+
+/* ---------- what a leader says (0.1.59): a line in a quote with a bar in its color, and its buttons ---------- */
+.ld-line { min-width: 0; }
+.ld-line .ld-says { margin: 6px 0 0; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
+.ld-line .b-claude-when { font-size: 12px; color: var(--muted); }
+.ld-line .b-claude-said { margin: 3px 0 0 10px; }
+.ld-line .b-claude-list { margin: 4px 0 0 10px; }
+.ld-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0 10px; }
+.ld-line.b-claude.working .ld-says { box-shadow: inset 2px 0 0 #F5B39A; }
+.ld-card.has-news { align-items: flex-start; }
+.ld-card-text .ld-line .ld-says { margin-top: 6px; }
+
+/* ---------- the side bar's News section (0.1.59): Gus and the leaders with news, as faces with ! or a count ---------- */
+.news-list { display: flex; flex-wrap: wrap; gap: 10px 8px; }
+.news-tile { position: relative; width: 64px; }
+.news-face { position: relative; display: grid; justify-items: center; gap: 6px; width: 100%; padding: 6px 2px 4px; background: none; border: 0; cursor: pointer; color: var(--ink-soft); min-width: 0; }
+.news-face:hover .ld-face, .news-face:focus-visible .ld-face, .news-face:hover .gus-face, .news-face:focus-visible .gus-face { box-shadow: 0 0 0 2px #FFFFFF; }
+.news-face:focus-visible { outline: none; }
+.news-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.news-face:hover .news-name, .news-face:focus-visible .news-name { color: var(--ink); }
+.news-badge { position: absolute; top: 0; right: 2px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center;
+  font: 400 12px/1 var(--f-pixel); color: #2B2542; background: var(--ld, #F29A74); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ld, #F29A74) 40%, #000000); }
+.news-dismiss { position: absolute; top: 0; left: 0; width: 20px; height: 20px; padding: 0; background: var(--paper); box-shadow: var(--px-edge); color: var(--muted); opacity: 0; }
+.news-tile:hover .news-dismiss, .news-dismiss:focus-visible { opacity: 1; }
+.news-dismiss:hover, .news-dismiss:focus-visible { color: var(--ink); }
+@media (hover: none) { .news-dismiss { opacity: 1; } }
+
+/* ---------- a leader's bubble over the map, where Gus and Proxima speak (0.1.59) ---------- */
+.ld-say { box-shadow: 0 -2px 0 0 var(--ld), 0 2px 0 0 var(--ld), -2px 0 0 0 var(--ld), 2px 0 0 0 var(--ld), var(--px-drop-sm); }
+.ld-say::before { border-right-color: var(--ld); }
+.ld-say:focus { outline: none; }
+.ld-say-face { flex: none; display: block; }
+.ld-say-face .ld-face { --ld-ring: transparent; }
+.ld-say-name b { color: color-mix(in srgb, var(--ld, #ECE8F6) 55%, #FFFFFF); }
+.ld-say.px-voice .ld-say-name b { color: #8FD0F7; }
+.ld-say-name span[hidden] { display: none; }
+.ld-say-where { display: flex; min-width: 0; }
+/* the building, a click going to it on the map (0.1.60) */
+.ld-say-bld { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; padding: 0; background: none; border: 0; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); text-align: start; cursor: pointer; }
+.ld-say-bld bdi { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ld-say-bld:hover bdi, .ld-say-bld:focus-visible bdi { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.ld-say-bld:focus-visible { outline: none; }
+/* a task in a leader's line: its own color, a click opening it (0.1.60) */
+.ld-task { display: inline; padding: 0; background: none; border: 0; font: inherit; color: #FFD27A; text-align: start; text-decoration: underline dotted; text-underline-offset: 3px; text-decoration-thickness: 1px; cursor: pointer; overflow-wrap: anywhere; }
+.ld-task:hover, .ld-task:focus-visible { color: #FFE6A8; text-decoration-style: solid; outline: none; }
+.ld-say-thumb { flex: none; display: grid; place-items: end center; width: 24px; height: 22px; }
+.ld-say-thumb canvas.thumb { width: 24px; height: auto; max-height: 22px; object-fit: contain; image-rendering: auto; }
+.ld-say-more:empty { display: none; }
+.ld-say-more .b-claude-list { margin: 0 0 0 2px; }
+.ld-say-acts { flex-wrap: wrap; align-items: center; }
+.ld-say-count { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ld-say-acts .ld-go { padding: 4px 10px 3px; }
+
+/* the leader's face beside a building's row in Reports (0.1.59) */
+.rp-row .rp-leader { flex: none; }
+.px-list .rp-leader { align-self: center; }
 
 .wheel-hub.has-leader { background: var(--ld); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
 .wheel-hub .ld-face { position: absolute; left: 4px; top: 4px; box-shadow: none; }

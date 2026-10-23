@@ -305,14 +305,15 @@ with sync_playwright() as p:
     close_settings(pg)
     js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(800)
     line = pg.text_content('#bubble .b-claude') or ''
-    ok(f'the status card says Claude Code finished, what, and when ({line[:80]})', line.startswith('Claude Code finished: Fix the bubble.') and 'Finished 2 minutes ago' in line)
+    who = pg.text_content('#bubble .b-leader .ld-name') or ''
+    ok(f'the status card says Claude finished, and what, in the leaders\' line, Proxima saying it for a building with no leader (0.1.59) ({who}: {line[:80]})', who == 'Proxima Pace' and line.startswith('Claude finished Fix the bubble.'))
     ok('with the start of its reply', 'the bubble sits beside the red one now' in line)
     pg.screenshot(path=str(SH / '242-claude-card-done.png'), clip=pg.query_selector('#bubble').bounding_box())
     ok('looking at the card counts as seeing it: the tick goes', cb(nc) is None and js(f"() => MapView.bubbleAt('{nc}')['color']") == 'red')
     js("() => MapView.deselect()"); pg.wait_for_timeout(300)
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(800)
     line = pg.text_content('#bubble .b-claude') or ''
-    ok(f'a working session\'s card says so, with its task and start ({line[:70]})', line.startswith('Claude Code is working: Water the beds on time.') and 'Started 2 minutes ago' in line)
+    ok(f'a working session\'s card says so, with its task and start ({line[:70]})', line.startswith('Claude is working on Water the beds on time. Started 2 minutes ago.'))
     pg.screenshot(path=str(SH / '243-claude-card-working.png'), clip=pg.query_selector('#bubble').bounding_box())
     ok('a working session stays on the map while you look', cb(gp)['state'] == 'working')
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
@@ -324,7 +325,7 @@ with sync_playwright() as p:
     js(S('t1', 'done', 'C:\\Users\\me\\city', task='Build the block art skill', project='Nullovation City', reply='The skill is built.'))
     settle()
     js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(800)
-    acts = pg.locator('#bubble .b-claude-acts')
+    acts = pg.locator('#bubble .b-claude .ld-acts')
     ok(f'a finish from a city copy offers Tick it for its open task ({acts.count()})', acts.count() == 1 and pg.is_visible('#bubble .b-claude-tick'))
     pg.screenshot(path=str(SH / '246-claude-tick-it.png'), clip=pg.query_selector('#bubble').bounding_box())
     pg.click('#bubble .b-claude-tick'); pg.wait_for_timeout(500)
@@ -338,16 +339,18 @@ with sync_playwright() as p:
     js(S('t5', 'done', 'C:\\Users\\me\\city', task='Round 3: decide the block art loop', project='Nullovation City'))
     settle()
     js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(800)
-    fin = [x.strip() for x in pg.locator('#bubble .b-claude-fin').all_text_contents()]
-    ok(f'with a session still working, a finished one\'s Tick it names its task; another project\'s copy and a missing task offer none ({fin})',
-       fin == ['Finished: Round 3: decide the block art loop'] and pg.locator('#bubble .b-claude-tick').count() == 1 and (pg.text_content('#bubble .b-claude-line') or '').startswith('Claude Code is working'))
+    fin = [x.strip() for x in pg.locator('#bubble .b-claude .ld-says').all_text_contents()]
+    tick = pg.get_attribute('#bubble .b-claude-tick', 'title') or ''
+    ok(f'one line a session, the working one first; Tick it under its own finish only, another project\'s copy and a missing task offering none ({fin})',
+       fin[0] == 'Claude is working on Try the project view for a week. Started 2 minutes ago.' and 'Claude finished Round 3: decide the block art loop.' in fin
+       and pg.locator('#bubble .b-claude-tick').count() == 1 and 'Round 3: decide the block art loop' in tick and len(fin) <= 4)
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     for k in ('t1', 't2', 't3', 't4', 't5'):
         js(f"() => window.__cf.delete('{k}.json')")
     js(S('t6', 'working', 'C:\\Users\\me\\city', ask='<task-notification> a background task finished'))
     settle()
     js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(600)
-    ok('a turn Claude Code starts on its own shows no <task-notification> as its ask', '<task-notification>' not in (pg.text_content('#bubble .b-claude') or '') and (pg.text_content('#bubble .b-claude-line') or '').startswith('Claude Code is working.'))
+    ok('a turn Claude Code starts on its own shows no <task-notification> as its ask', '<task-notification>' not in (pg.text_content('#bubble .b-claude') or '') and (pg.text_content('#bubble .b-claude .ld-says') or '').startswith('Claude is working on a task.'))
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     js("() => window.__cf.delete('t6.json')"); settle()
 
@@ -365,13 +368,14 @@ with sync_playwright() as p:
     launch = js(f"() => {{ const p = getProject('{gp}'), m = p.milestones.find(m => m.name === 'Launch'); return p.todos.filter(t => t.milestoneId === m.id).map(t => t.text); }}")
     ok(f'adding tasks, a note and a link applies at once, in the milestone named, by the project\'s name in any case ({launch[-2:]})',
        launch[-2:] == ['Test the reminders on a phone', 'Write the reminder copy'] and 'Reminder timing' in st1['notes'] and 'https://github.com/me/garden/pull/12' in st1['links'] and st1['ms'] == st0['ms'])
-    tst = pg.text_content('#toast') or ''
-    ok(f'with a toast and Undo ({tst})', tst.startswith('Claude added 2 tasks, a note and 1 link in Garden planner.') and 'Undo' in tst)
+    said = js("() => document.querySelector('#ldSay').hidden ? null : [$('#ldSayName').textContent, $('#ldSayWhere').textContent, $('#ldSayText').textContent, [...document.querySelectorAll('#ldSayActs button')].map(b => b.textContent)]")
+    ok(f'its building\'s news says so, in place of the toast, with Undo (Leader UX, 0.1.59) ({said})', said == ['Proxima Pace', 'Garden planner', 'Claude added 2 tasks, a note and 1 link.', ['Undo', 'Go to it']]
+       and 'Claude added' not in (pg.text_content('#toast') or ''))
     ok('the file moves to inbox/done, so nothing applies twice', js("() => window.__sub.has('inbox/done/2026-10-14-0900-garden.json') && !window.__sub.has('inbox/2026-10-14-0900-garden.json')"))
     acts = js(f"() => getProject('{gp}').activity.slice(-6).map(e => e.text)")
     ok(f'and Activity says what Claude did ({acts[-3:]})', 'Claude: Reminders built' in acts and 'Claude wrote a note: Reminder timing' in acts and 'Added todo: Write the reminder copy' in acts)
-    pg.click('#toast .toast-act'); pg.wait_for_timeout(400)
-    ok('Undo takes back exactly what Claude added', gp_state() == st0)
+    pg.click('#ldSay .ld-undo'); pg.wait_for_timeout(400)
+    ok('Undo takes back exactly what Claude added', gp_state() == st0 and js("() => document.querySelector('#ldSay').hidden"))
 
     drop('2026-10-14-0910-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'Garden planner', 'summary': 'Plans save as files',
         'changes': [{'do': 'done', 'task': 'Save a plan as a file'}, {'do': 'edit-description', 'task': 'Draw the beds on a grid', 'description': 'Drawn at 1:50. Left: labels.'},
@@ -385,8 +389,9 @@ with sync_playwright() as p:
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(800)
     asks = pg.locator('#bubble .b-claude-asks')
     first = asks.nth(0).text_content() if asks.count() else ''
-    ok(f'the status card lists each, with Apply and Dismiss ({asks.count()} | {first[:90]})', asks.count() == 2 and 'Claude asks first: Plans save as files' in first and 'Tick off: Save a plan as a file' in first
-       and 'New description for Draw the beds on a grid: Drawn at 1:50.' in first and '(not open in this project)' in first and 'Replace the plan: 1 milestone, 1 task' in asks.nth(1).text_content())
+    ok(f'the status card lists each, in the leaders\' line, with Apply and Dismiss ({asks.count()} | {first[:90]})', asks.count() == 2 and 'Claude wants your OK first: Plans save as files.' in first and 'Tick off: Save a plan as a file' in first
+       and 'New description for Draw the beds on a grid: Drawn at 1:50.' in first and '(not open in this project)' in first and 'Claude wants your OK first: a new plan.' in asks.nth(1).text_content()
+       and 'Replace the plan: 1 milestone, 1 task' in asks.nth(1).text_content())
     pg.screenshot(path=str(SH / '248-claude-asks-first.png'), clip=pg.query_selector('#bubble').bounding_box())
     asks.nth(0).locator('.b-claude-apply').click(); pg.wait_for_timeout(700)
     g = js(f"() => {{ const p = getProject('{gp}'); return {{ done: p.todos.find(t => t.text === 'Save a plan as a file').done, desc: p.todos.find(t => t.text === 'Draw the beds on a grid').description }}; }}")

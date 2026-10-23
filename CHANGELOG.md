@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.1.60 (2026-10-23)
+
+Fixes and links in the leaders' news, from Abdurrahman's first test of 0.1.59.
+- A leader's bubble that opened as the city loaded showed the leader's silhouette, and its building as a generic one, because the portraits and the building's own art load a moment later. The bubble and the faces in News now draw again as soon as they load.
+- The task a leader's line names is a link, in its own gold color: a click opens the task in its project. From the bubble it counts as reading the news, and the bubble closes, as Open does; the rest waits with its leader. The status card and the leader card in the project view link it the same way.
+- The building named in the bubble is a button: a click goes to it on the map, as Go to it does, without opening it.
+- Tests: test40_leader_news checks the links and the pictures that load late.
+
+## 0.1.59 (2026-10-23)
+
+The leaders' news, the third piece of the leader UX (Leader UX, Rounds 1 to 4: A1, B1 to B3, C1, N1 to N3, T1, P1, P2, M1, G1, D1, X1).
+- A News section in the side bar takes the place of Urgent and of Gus's part, between This week and Due this week. Gus shows there while the city has garbage, then each leader with news waiting, then Proxima for the buildings with no leader: a face with its name, and ! for one item or a count for several.
+- A click on a leader's face opens its bubble at the map's top left, where Gus and Proxima speak: the face at 100 px, the name in its color, the building, lit on the map while it shows, and Go to it. Several items share one bubble, 1 of N with Next, the most pressing first.
+- Falling behind its pace, tasks due today (on the day's first open), a milestone one task from done, Claude's additions and wizard rounds, Claude waiting, asking first or stopped on an error open the bubble by themselves, after Gus and Proxima. It closes after 14 seconds and leaves the news waiting with its leader; once used, or opened by a click, it stays until closed. Claude finishing, a round's answers and the week wait with their leader.
+- An item is read once its bubble showed it and was closed, or Next went past it. Each waiting face has its own dismiss. News that stops being true (back on pace, nothing due today any more, a session no longer waiting) goes by itself.
+- The buttons by moment: Undo for Claude's additions and rounds, Apply and Dismiss for what Claude asks first, Tick it for a finished task still open, Open for a round's answers.
+- Claude's inbox toast and the answers-in toast are now the leader's news. Toasts for your own actions stay.
+- The status card's leader line says its building's news and Claude's lines in the leader's voice: working, waiting, finished with Tick it and the start of Claude's reply, stopped, and asking first with Apply and Dismiss. A building with no leader has Proxima say them. Opening the card reads the news it says.
+- The leader card in the project view says its building's news when it has some, else its greeting.
+- Gus's report moved into his bubble: a click on his face opens it, with his line, the overdue tasks, Start with, and his building rows; it stays until closed. His [-] is gone.
+- Reports show the leader's face beside each building's row in By project, and in Proxima's By building.
+- What was heard is kept in this browser; nothing new is saved in the city.
+- Tests: test40_leader_news; test10, test24, test26 and test37 follow the News section, the leader's voice and Gus's bubble.
+
 ## 0.1.58 (2026-10-23)
 
 The leaders' lines, the second piece of the leader UX (Leader UX, Rounds 1 to 4: A2, V1, L1 to L3).

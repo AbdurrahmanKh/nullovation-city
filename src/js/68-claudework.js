@@ -257,37 +257,23 @@ const ClaudeWork = (() => {
     else toast('Ticked off: ' + t.text + '.');
   }
 
-  /* The line in the status card. */
-  function line(p) {
+  /* What its leader says of Claude's sessions on the building, in the status card (Leader UX, B3, 0.1.59), for as long
+     as the card showed them before: one line a session, the most pressing first, at most four. A finish offers Tick it
+     for the open task a city copy started from, once per task, with the start of Claude's reply. */
+  function voice(p) {
     const st = statusOf(p, true);
-    if (!st) return null;
-    const s = st.session, what = s.task || s.ask;
-    const n = st.count > 1 ? st.count : 0;
-    const text = {
-      working: (n ? n + ' Claude Code sessions are working' : 'Claude Code is working') + (what ? ': ' : '.'),
-      waiting: (n ? n + ' Claude Code sessions need you' : 'Claude Code needs you') + (what ? ': ' : '.'),
-      done: 'Claude Code finished' + (what ? ': ' : '.'),
-      failed: 'Claude Code stopped on an error' + (what ? ': ' : '.'),
-    }[st.state];
-    const when = { working: 'Started ', waiting: 'Asked ', done: 'Finished ', failed: 'Stopped ' }[st.state] + relAgo(s.since) + '.';
-    return h('div', { class: 'b-claude ' + st.state },
-      h('p', { class: 'b-claude-line' }, h('span', { class: 'b-claude-dot', 'aria-hidden': 'true' }),
-        h('span', null, text, what ? h('bdi', null, what) : null, what ? '. ' : ' ', h('span', { class: 'b-claude-when' }, when))),
-      st.state === 'done' && s.reply ? h('p', { class: 'b-claude-said', dir: 'auto', title: s.reply }, s.reply) : null,
-      ...ticks(p, st, what));
-  }
-  /* Tick it, for each open task a finished session started from: the top line's own task without a name, the
-     others named, since a session still working on the building takes the line. */
-  function ticks(p, st, what) {
-    const out = [], done = new Set();
-    for (const s of st.sessions.filter(x => x.state === 'done').sort((a, b) => b.at - a.at)) {
-      const t = taskOf(p, s);
-      if (!t || done.has(t.id)) continue;
-      done.add(t.id);
-      const own = st.state === 'done' && t.text === what;
-      out.push(h('div', { class: 'b-claude-acts' },
-        own ? null : h('span', { class: 'b-claude-fin', dir: 'auto' }, 'Finished: ', h('bdi', null, t.text)),
-        h('button', { class: 'btn btn-small b-claude-tick', type: 'button', title: 'Tick off ' + t.text + ', the task this session started from', onclick: () => tick(p, t) }, 'Tick it')));
+    if (!st) return [];
+    const ticked = new Set(), out = [];
+    const ss = [...st.sessions].sort((a, b) => (RANK[b.state] || 0) - (RANK[a.state] || 0) || b.at - a.at).slice(0, 4);
+    for (const s of ss) {
+      const what = s.task || s.ask, task = what || 'a task';
+      const moment = { working: 'working', waiting: 'waiting', done: 'finished', failed: 'failed' }[s.state];
+      if (!moment) continue;
+      let t = s.state === 'done' ? taskOf(p, s) : null;
+      if (t && ticked.has(t.id)) t = null;
+      if (t) ticked.add(t.id);
+      out.push({ s, moment, v: { task, ago: relAgo(s.since) }, text: leaderSay(moment, { task, ago: relAgo(s.since) }),
+        reply: s.state === 'done' ? s.reply : '', tick: t });
     }
     return out;
   }
@@ -348,6 +334,7 @@ const ClaudeWork = (() => {
   function redraw() {
     render();
     title();
+    if (typeof News !== 'undefined') News.claude();      // Claude waiting, stopped, finished or asking first: its leader's news
     if (typeof MapView !== 'undefined') MapView.invalidate();
     if (typeof Bubble !== 'undefined') Bubble.refresh();
   }
@@ -400,7 +387,7 @@ const ClaudeWork = (() => {
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && state === 'on') poll(); });
 
-  return { init, poll, render, redraw, statusOf, mapStatus, line, markSeen, pathKey, taskOf, cityChanged, citySummary, writeSummary, waitingCount,
+  return { init, poll, render, redraw, statusOf, mapStatus, voice, tick, sessionsOf: p => byProject.get(p.id) || [], isSeen, markSeen, pathKey, taskOf, cityChanged, citySummary, writeSummary, waitingCount,
     canWrite: () => canWrite, folder: () => (state === 'on' && canWrite ? dir : null), state: () => state,
     sessions: () => [...files.values()].map(f => f.s).filter(Boolean), unplaced: () => unplaced, LASTS };
 })();

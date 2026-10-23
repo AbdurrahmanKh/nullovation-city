@@ -146,6 +146,8 @@ const Proxima = (() => {
      sky blue; the frame sets the size ---------- */
   const faceImg = () => h('img', { class: 'face-pic', alt: '', src: PORTRAITS.proxima, width: 256, height: 256, draggable: 'false' });
   const face = () => h('span', { class: 'gus-face px-face', 'aria-hidden': 'true' }, faceImg());
+  /* Her face at a size: 48 px in the News section, 100 in a leader's bubble, when she brings a building's news. */
+  const faceEl = (size = 48) => { const el = face(); el.style.setProperty('--face', size + 'px'); return el; };
   const nameTag = () => h('span', { class: 'gus-name px-name' }, h('b', null, 'Proxima Pace'), h('span', null, 'Productivity Inspector'));
 
   /* ---------- her card at the top of Reports (J1): her face, her latest line, and her three reports; Reports draws it
@@ -206,7 +208,7 @@ const Proxima = (() => {
         h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: () => { Panel.close(); FullView.open(x.p.id); } }, x.m.name), h('span', { class: 'px-proj', dir: 'auto' }, x.p.name))))
         : h('p', { class: 'px-none' }, 'None.')),
       kind === 'daily' ? null : [
-        sec('By building', r.buildings.length ? list(r.buildings.map(b => h('li', null, h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goP(b.p) }, b.p.name), h('b', { class: 'px-n' }, String(b.n)))))
+        sec('By building', r.buildings.length ? list(r.buildings.map(b => h('li', null, News.reportFace(b.p, 20), h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goP(b.p) }, b.p.name), h('b', { class: 'px-n' }, String(b.n)))))
           : h('p', { class: 'px-none' }, 'No tasks finished.')),
         r.busiest.length ? sec('Busiest building', h('p', { id: 'pxBusiest' }, r.busiest.map(b => b.p.name).join(' and ') + ', ' + plural(r.busiest[0].n, 'task', 'tasks') + (r.busiest.length > 1 ? ' each.' : '.'))) : null,
         r.quiet.length ? sec('Nothing finished', list(r.quiet.map(p => h('li', null, h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goP(p) }, p.name))))) : null,
@@ -238,7 +240,7 @@ const Proxima = (() => {
   function pump() {
     clearTimeout(waitTimer);
     if (saying || !queue.length) return;
-    if ((typeof Gus !== 'undefined' && Gus.isSaying()) || Panel.isOpen() || Confirm.isOpen()) { waitTimer = setTimeout(pump, 500); return; }
+    if ((typeof Gus !== 'undefined' && Gus.isSaying()) || (typeof News !== 'undefined' && News.isHeld()) || Panel.isOpen() || Confirm.isOpen()) { waitTimer = setTimeout(pump, 500); return; }
     const kind = queue.shift();
     if (typeof kind !== 'string') { if (getProject(kind.pid)) say(kind); else pump(); return; }   // a milestone's party
     const r = proximaReport(kind);
@@ -247,6 +249,7 @@ const Proxima = (() => {
   }
   function say(r) {
     const party = r.kind === 'milestone';
+    if (typeof News !== 'undefined') News.yieldTo();            // a leader's news waits for her (Leader UX, N3)
     saying = { kind: r.kind, key: party ? r.key : r.per.key, item: party ? r : null };
     const box = $('#pxSay'), act = $('#pxSayRead');
     $('#pxSayText').textContent = r.line;
@@ -298,6 +301,7 @@ const Proxima = (() => {
     check();
     setInterval(() => { refresh(); check(); }, 60000);        // a new day, week or month while the city stays open
   }
-  return { init, refresh, renderCard, renderDot, yieldToGus, openReport, check, hush, announce, isSaying: () => !!saying, saying: () => saying && saying.kind, report: proximaReport,
+  return { init, refresh, renderCard, renderDot, yieldToGus, openReport, check, hush, announce, faceEl, isSaying: () => !!saying, saying: () => saying && saying.kind, report: proximaReport,
+    busy: () => !!saying || queue.length > 0,
     _test: { sayMs: ms => { sayMs = ms; }, state: () => JSON.parse(JSON.stringify(state)), forget: () => { state = { read: {}, spoke: {} }; save(); queue = []; }, queue: () => [...queue] } };
 })();

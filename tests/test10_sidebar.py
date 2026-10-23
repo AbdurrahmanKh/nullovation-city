@@ -31,7 +31,7 @@ with sync_playwright() as p:
     setp = lambda pid, code: js(f"() => {{ const p = DB.projects.find(p => p.id === '{pid}'); {code}; changed(p); MapView.invalidate(); Menu.refresh(); }}")
 
     # B4: nothing red, no urgent section; the week card shows this week in numbers
-    ok('B4 with nothing red, the urgent section hides', not pg.is_visible('#sbUrgent'))
+    ok('B4 with nothing to say, the News section that took Urgent\'s place hides (0.1.59)', not pg.is_visible('#sbNews') and not js("() => !!document.querySelector('#sbUrgent')"))
     ok('E1 with nothing due, Due this week hides', not pg.is_visible('#sbDue'))
     ok('E1 the week card shows this week in numbers', 'This week' in pg.text_content('#btnRecap') and 'Nothing done yet this week' in pg.text_content('#weekNumbers'))
     # C1: weeks start on Saturday
@@ -42,14 +42,9 @@ with sync_playwright() as p:
     # B1 and B3: red only, a tiny building with its number and nothing else
     setp(wz, f"p.todos[0].due = '{day(1)}'; p.todos[1].due = '{day(-2)}'")
     setp(nc, "p.urgency.system = 'finish'; p.urgency.pickedAt = Date.now(); p.urgency.lastWorked = Date.now()")
-    ok('B1 red projects appear; yellow ones do not', js("() => urgencyOf(DB.projects.find(p => p.name === 'Nullovation City')).color") == 'yellow'
-       and pg.locator('#urgentList .urgent-item').count() == 1 and 'Garden planner' in pg.get_attribute('#urgentList .urgent-item', 'aria-label'))
-    ok('B3 a tiny full building with its bubble number, and no text beside it', pg.locator('#urgentList canvas.thumb').count() == 1
-       and pg.text_content('#urgentList .urgent-item').strip() == '2')
-    # B2: a click glides the map there and opens its status bubble
-    js("() => MapView.setCam({ x: -300, y: 100, z: 2 })"); pg.wait_for_timeout(200)
-    pg.click('#urgentList .urgent-item'); pg.wait_for_timeout(700)
-    ok('B2 clicking it selects that building and opens its status bubble', js("() => App.selectedId") == wz and pg.is_visible('#bubble') and not pg.is_visible('#pv'))
+    ok('B1 to B3 Urgent is gone (Leader UX, 0.1.59): a building\'s urgent news is its leader\'s, and the count line still counts the red',
+       js("() => urgencyOf(DB.projects.find(p => p.name === 'Nullovation City')).color") == 'yellow' and not js("() => !!document.querySelector('#sbUrgent, #urgentList')")
+       and '1 red' in pg.text_content('#count') and '1 yellow' in pg.text_content('#count'))
     # E1: due this week, overdue first, each with a copy for Claude; a click opens the task
     rows = pg.locator('#dueList .due-item')
     ok(f'E1 due tasks list the next 7 days, overdue first ({rows.count()})', rows.count() == 2 and 'overdue' in pg.text_content('#dueList .due-item >> nth=0 >> .due'))
@@ -133,9 +128,9 @@ with sync_playwright() as p2:
     q.add_init_script(TEST_CITY)
     q.goto(FILE); q.wait_for_timeout(1800)
     import datetime as _dt
-    q.evaluate("() => { const p = DB.projects.find(p => p.name.startsWith('Garden')); p.todos[0].due = '" + (_dt.date.today() + _dt.timedelta(days=1)).isoformat() + "'; changed(p); Menu.refresh(); }")
-    tops = q.evaluate("""() => ['#btnNew', '#search', '#btnRecap', '#btnBrief', '#sbUrgent', '#sbDue', '#btnOpenSettings']
+    q.evaluate("() => { const p = DB.projects.find(p => p.name.startsWith('Garden')); p.todos[0].due = '" + (_dt.date.today() + _dt.timedelta(days=1)).isoformat() + "'; changed(p); Menu.refresh(); News.add(p, 'answers', { round: 'Plan, Round 1', n: 1, total: 2 }); }")
+    tops = q.evaluate("""() => ['#btnNew', '#search', '#btnRecap', '#btnBrief', '#sbNews', '#sbDue', '#btnOpenSettings']
       .map(s => { const e = document.querySelector(s); return e && !e.hidden ? e.getBoundingClientRect().top : null; })""")
-    ok('F1 top to bottom: new, search, the week with the status brief, urgent, due, and Settings at the bottom', all(x is not None for x in tops) and tops == sorted(tops))
+    ok('F1 top to bottom: new, search, the week with the status brief, News (in Urgent\'s place), due, and Settings at the bottom', all(x is not None for x in tops) and tops == sorted(tops))
     b2.close()
 print(errors or 'no console errors')

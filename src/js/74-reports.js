@@ -188,7 +188,8 @@ const Reports = (() => {
             thumb(r.p),
             h('span', { class: 'rp-row-body' },
               h('span', { class: 'rp-row-top' }, h('span', { class: 'rp-name', dir: 'auto' }, r.p.name), h('b', { class: 'rp-n' }, String(r.n))),
-              h('span', { class: 'rp-meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + Math.max(4, Math.round(r.n / top * 100)) + '%' }))))))) :
+              h('span', { class: 'rp-meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + Math.max(4, Math.round(r.n / top * 100)) + '%' }))),
+            News.reportFace(r.p, 28))))) :
           h('p', { id: 'rpByProject', class: 'rp-empty' }, 'No tasks finished ' + (span.current ? 'this ' + ui.period + ' yet.' : 'that ' + ui.period + '.'))),
     ];
   }

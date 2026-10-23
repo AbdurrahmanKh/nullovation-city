@@ -58,16 +58,6 @@ const Menu = (() => {
   }
   function hideNew() { $('#newWrap').hidden = true; $('#btnNew').hidden = false; }
 
-  /* Red projects as tiny buildings with their bubble number; the section hides when none is red. */
-  function renderUrgent() {
-    const sec = $('#sbUrgent'), box = $('#urgentList');
-    if (!sec) return;
-    const reds = DB.projects.map(p => ({ p, u: urgencyOf(p) })).filter(x => x.u.color === 'red').sort((a, b) => b.u.count - a.u.count);
-    sec.hidden = !reds.length;
-    box.replaceChildren(...reds.map(({ p, u }) => h('button', { class: 'urgent-item', type: 'button', title: p.name + '. Red: ' + u.reasons.join('. ') + '.', 'aria-label': p.name + ', red, ' + u.count,
-      onclick: () => { closeDrawer(); MapView.select(p.id); } },
-      MapView.thumb(p), h('span', { class: 'urgent-badge', 'aria-hidden': 'true' }, u.count <= 1 ? '!' : String(Math.min(u.count, 99))))));
-  }
   /* Open tasks due in the next 7 days, overdue first, each with a copy for Claude. */
   function renderDue() {
     const sec = $('#sbDue'), list = $('#dueList');
@@ -119,8 +109,9 @@ const Menu = (() => {
   }
   function refresh() {
     if (!countEl) return;
-    renderStar(); renderUrgent(); renderDue(); renderWeek();
+    renderStar(); renderDue(); renderWeek();
     if (typeof Leaders !== 'undefined') Leaders.renderSection();
+    if (typeof News !== 'undefined') { News.check(); News.renderSection(); }   // the leaders' news and Gus, in place of Urgent (0.1.59)
     if (typeof Gus !== 'undefined') Gus.render();
     if (typeof Reports !== 'undefined') Reports.refresh();
     if (typeof AllTasks !== 'undefined') AllTasks.refresh();

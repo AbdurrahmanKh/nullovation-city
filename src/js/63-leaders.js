@@ -107,6 +107,7 @@ const Leaders = (() => {
   const refreshSoon = debounce(() => refreshAll(), 120);
   function refreshAll() {
     renderSection();
+    if (typeof News !== 'undefined') { News.renderSection(); News.redraw(); }   // the faces in News and its bubble, once portraits load (0.1.60)
     Bubble.refresh();
     if (typeof FullView !== 'undefined') FullView.render();
   }
@@ -257,26 +258,41 @@ const Leaders = (() => {
 
   /* ---------- where a leader shows ---------- */
   /* the leader card under the building's picture in the project view: the face at 96 px (64 until 0.1.57), the name in
-     its color, the role, and what the leader says (0.1.58): its greeting with the next task, in a quote with a bar in
-     its color. The full title is the line's tooltip when the line cuts it short. */
+     its color, the role, and what the leader says (0.1.58): its news for this building (0.1.59), else its greeting with
+     the next task, in a quote with a bar in its color. The full title is the line's tooltip when the line cuts it
+     short. */
+  let lastPick = null;
   function card(p, onPick) {
+    lastPick = { pid: p.id, onPick };
     const l = leaderOf(p);
     if (!l) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
       noFace(48), h('span', { class: 'ld-card-text' }, h('b', null, 'No leader yet'), h('span', null, 'Pick a leader')));
-    const t = nextTask(p), says = leaderGreeting(p);
-    const box = h('div', { id: 'pvLeader', class: 'ld-card' }, face(l, 96),
-      h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null,
-        h('span', { class: 'ld-says', dir: 'auto', title: t && t.text.length > LEADER_TITLE_MAX ? t.text : null }, says)),
+    const t = nextTask(p), news = News.viewLines(p);
+    const says = news.length ? news : [h('span', { class: 'ld-says', dir: 'auto', title: t && t.text.length > LEADER_TITLE_MAX ? t.text : null }, leaderGreeting(p))];
+    const box = h('div', { id: 'pvLeader', class: 'ld-card' + (news.length ? ' has-news' : '') }, face(l, 96),
+      h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null, ...says),
       h('button', { class: 'btn btn-quiet btn-small ld-change', type: 'button', title: 'Pick another leader, or edit this one', onclick: onPick }, 'Change'));
     box.style.setProperty('--ld', l.color);
     return box;
   }
-  /* the status card's line under the building's name: the face at 48 px (32 until 0.1.57), the name and the role */
+  /* The card again, in place, when its building's news changes while the project view shows it. */
+  function redrawCard() {
+    const el = $('#pvLeader');
+    if (!el || !lastPick || typeof FullView === 'undefined' || !FullView.shows(lastPick.pid)) return;
+    const p = getProject(lastPick.pid);
+    if (p) el.replaceWith(card(p, lastPick.onPick));
+  }
+  /* the status card's line under the building's name: the face at 48 px (32 until 0.1.57), the name and the role, then
+     what its leader says (0.1.59): the building's news, read as the card shows it, and Claude's lines in its voice. A
+     building with no leader has Proxima say it, when there is something to say. */
   function statusLine(p) {
-    const l = leaderOf(p);
-    if (!l) return null;
-    const line = h('p', { class: 'b-leader' }, face(l, 48), h('span', { class: 'b-leader-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null));
-    line.style.setProperty('--ld', l.color);
+    const l = leaderOf(p), lines = News.cardLines(p);
+    if (!l && !lines.length) return null;
+    const line = h('div', { class: 'b-leader' + (l ? '' : ' px-voice') + (lines.length ? ' has-news' : '') },
+      l ? face(l, 48) : Proxima.faceEl(48),
+      h('div', { class: 'b-leader-text' }, h('b', { class: 'ld-name', dir: 'auto' }, l ? leaderName(l) : 'Proxima Pace'),
+        (l ? l.role : 'Productivity Inspector') ? h('span', { class: 'b-leader-role', dir: 'auto' }, l ? l.role : 'Productivity Inspector') : null, ...lines));
+    line.style.setProperty('--ld', l ? l.color : '#8FD0F7');
     return line;
   }
   /* the shortcut wheel's middle, kept for the leader's face since 0.1.26 */
@@ -324,6 +340,6 @@ const Leaders = (() => {
     return l.id;
   }
 
-  return { init, loadAll, renderSection, refreshAll, create, edit, pickList, card, statusLine, hub, face,
+  return { init, loadAll, renderSection, refreshAll, create, edit, pickList, card, redrawCard, statusLine, hub, face,
     url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt };
 })();

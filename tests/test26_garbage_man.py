@@ -1,8 +1,9 @@
-"""Gus Grimsby, the Garbage Man: his place in the side bar and when he steps away, his report line in every case (overdue
-tasks only, never urgent or needs attention), the task to start with and the rows under it, his [-] shrinking him to his
-face with a ! and a click opening him again, a click going to a building, his lines with their blanks, the first open of
-the day, the alarms at 50 and 200 (once as the total climbs past, at most once a day, the worst only), the clean city,
-the speech bubble (where it sits, closing, going by itself), and the Garbage switch sending him away."""
+"""Gus Grimsby, the Garbage Man: his face in the side bar's News section and when he steps away, his report line in every
+case (overdue tasks only, never urgent or needs attention), the task to start with and the rows under it, all in his
+bubble (0.1.59: his own part of the side bar and its [-] are gone), a click on his face opening it to stay, a click on a
+row going to a building, his lines with their blanks, the first open of the day, the alarms at 50 and 200 (once as the
+total climbs past, at most once a day, the worst only), the clean city, the speech bubble (where it sits, closing, going
+by itself), and the Garbage switch sending him away."""
 from playwright.sync_api import sync_playwright
 from testkit import FILE, SH, TEST_CITY, FACE_OF, PORTRAIT_SUM, portrait_sum
 
@@ -27,7 +28,7 @@ STATE = """(specs) => {
   persistNow(); Garbage.refresh(); Gus.render();
 }"""
 HALL, LAB = 'Nullovation City', 'Garden planner'
-READ = "() => ({ shown: !document.querySelector('#sbGus').hidden, report: $('#gusReport').hidden ? '' : $('#gusReport').textContent, fix: $('#gusFix').hidden ? '' : $('#gusFix').textContent, rows: [...document.querySelectorAll('.gus-row')].map(b => b.textContent), line: $('#gusLine').hidden ? '' : $('#gusLine').textContent, saying: !document.querySelector('#gusSay').hidden, say: $('#gusSayText').textContent })"
+READ = "() => ({ shown: !!document.querySelector('#newsList .news-tile[data-k=\"gus\"]'), report: $('#gusReport').hidden ? '' : $('#gusReport').textContent, fix: $('#gusFix').hidden ? '' : $('#gusFix').textContent, rows: [...document.querySelectorAll('.gus-row')].map(b => b.textContent), line: Gus.line(), saying: !document.querySelector('#gusSay').hidden, say: $('#gusSayText').textContent, badge: (document.querySelector('#newsList .news-tile[data-k=\"gus\"] .news-badge') || {}).textContent || '' })"
 
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome')
@@ -43,11 +44,11 @@ with sync_playwright() as p:
     # ---------- away while the city is clean ----------
     r = js(READ)
     ok('a clean city: Gus is away, and says nothing on the first open of the day', not r['shown'] and not r['saying'] and js("() => Gus._test.days().open") == js("() => ymd(Date.now())"))
-    ok('his section sits between This week and Urgent', js("() => { const s = [...document.querySelectorAll('#sbLists > section')].map(x => x.id || x.getAttribute('aria-label')); return s.indexOf('sbGus') === s.indexOf('This week') + 1 && s.indexOf('sbUrgent') === s.indexOf('sbGus') + 1; }"))
+    ok('his own part of the side bar is gone: he shows in News, between This week and Due this week', js("() => { const s = [...document.querySelectorAll('#sbLists > section')].map(x => x.id || x.getAttribute('aria-label')); return !s.includes('sbGus') && s.indexOf('sbNews') === s.indexOf('This week') + 1; }"))
 
     # ---------- the report line, in every case approved ----------
     r = state([[HALL, None, [-2]]])
-    ok(f'one late task: he shows up, "You have 1 overdue task. Let\'s clean it up." ({r["report"]})', r['shown'] and r['report'] == "You have 1 overdue task. Let's clean it up.")
+    ok(f'one late task: he shows up in News with a !, his report "You have 1 overdue task. Let\'s clean it up." ({r["report"]})', r['shown'] and r['badge'] == '!' and r['report'] == "You have 1 overdue task. Let's clean it up.")
     ok(f'the task to start with, and its row ({r["fix"]} | {r["rows"]})', r['fix'] == 'Start with Round 3: decide the block art loop, in Nullovation City.' and r['rows'] == ['Nullovation City: 1 overdue task'])
     said = lambda r: ' '.join([r['report'], r['fix'], *r['rows']]).lower()
     quiet = []                                                 # urgent and needs attention are the map's bubbles' to show
@@ -66,6 +67,7 @@ with sync_playwright() as p:
     ok(f'the task to start with clears the most: the latest task, which also puts its project back on pace ({r["fix"]})', r['fix'] == 'Start with Draw the beds on a grid, in Garden planner.')
     rep = js("() => Gus.report()")
     ok(f'the tasks between the city and clean streets: every late task, a project behind with none counts one ({rep["tasks"]})', rep['tasks'] == 4)
+    ok(f'his face in News counts them ({r["badge"]})', r['badge'] == '4')
     r = state([[HALL, ['pace', 1, 2.5], []], [LAB, None, [-1]]])
     ok('a project behind with no late task adds one task to his count', js("() => Gus.report().tasks") == 2)
     ok('never pieces: the report, the fix and the rows count tasks and projects', not any('piece' in x for x in [r['report'], r['fix'], *r['rows']]))
@@ -89,60 +91,47 @@ with sync_playwright() as p:
     filled = js("() => Gus.LINES.open.map(l => Gus.fill(l, Gus.report()))")
     ok(f'and with three late tasks ({filled[0]})', filled[0] == "You're back. 3 tasks between this city and clean streets. Start with Save a plan as a file.")
 
-    # ---------- a click on a row goes to the building ----------
+    # ---------- his face in News opens his bubble, with his report ----------
+    ok('his face in News has no dismiss: what he says comes from the garbage itself', js("() => !document.querySelector('.news-tile[data-k=\"gus\"] .news-dismiss')"))
+    ok('no [-] any more', not js("() => !!document.querySelector('#gusMin, #gusMini, #sbGus')"))
+    js("() => Gus._test.sayMs(800)")
+    pg.click('.news-tile[data-k="gus"] .news-face'); pg.wait_for_timeout(300)
+    r = js(READ)
+    ok(f'a click on his face opens his bubble with his report and its rows ({r["report"]} | {r["rows"]})', r['saying'] and r['report'] == "You have 3 overdue tasks. Let's clean them up." and r['rows'] == ['Garden planner: 2 overdue tasks', 'Nullovation City: 1 overdue task'])
+    ok('the focus moves to his first row', js("() => document.activeElement.classList.contains('gus-row')"))
+    pg.wait_for_timeout(1100)
+    ok('opened from his face, the bubble stays until closed', js(READ)['saying'])
+    pg.screenshot(path=str(SH / '262-gus-report.png'))
     pg.click('.gus-row >> nth=0'); pg.wait_for_timeout(500)
     ok('a click on a row selects its building and opens its card', js("() => App.selectedId") == js("() => DB.projects.find(x => x.name === 'Garden planner').id") and pg.is_visible('#bubble'))
     js("() => MapView.deselect()")
-
-    # ---------- his [-]: shrunk to his face with a ! ----------
-    VIS = "() => ({ full: !!$('#gusFull').offsetParent, mini: !!$('#gusMini').offsetParent, badge: $('.gus-badge').textContent, min: Gus.isMinimized() })"
-    ok('open, his head has a [-] button and no small face', pg.is_visible('#gusMin') and js(VIS)['full'] and not js(VIS)['mini'] and js("() => $('#gusMin').title") == 'Minimize')
-    full_h = pg.locator('#sbGus').bounding_box()['height']
-    pg.click('#gusMin'); pg.wait_for_timeout(200)
-    v, mini = js(VIS), pg.locator('#gusMini').bounding_box()
-    ok(f'[-] shrinks him to his face with a ! on it, and nothing else ({v})', v['min'] and v['mini'] and not v['full'] and v['badge'] == '!' and pg.is_visible('.gus-badge'))
-    sec_h = pg.locator('#sbGus').bounding_box()['height']
-    ok(f'one small picture, his face: {mini["width"]:.0f} by {mini["height"]:.0f}, the section {sec_h:.0f} px tall (was {full_h:.0f})', mini['width'] <= 64 and mini['height'] <= 64 and sec_h <= 68)
-    f = js(FACE_OF, '#gusMiniFace')
-    ok(f'shrunk, his face is his portrait at 64 by 64 ({f and {k: f[k] for k in ("nat", "w", "h", "imgs")}})', f and f['url'] == js("() => PORTRAITS.gus") and f['nat'] == [256, 256] and f['w'] == f['h'] == 64 and f['imgs'] == 1)
-    ok('the focus moves to his face', js("() => document.activeElement.id") == 'gusMini')
-    ok('still between This week and Urgent', js("() => { const s = [...document.querySelectorAll('#sbLists > section')].map(x => x.id || x.getAttribute('aria-label')); return s.indexOf('sbGus') === s.indexOf('This week') + 1; }"))
-    pg.locator('#sbGus').screenshot(path=str(SH / '262-gus-min.png'))
-    state([[HALL, None, [-2]], [LAB, None, [-1, -3]]])
-    ok('the report changing keeps him shrunk', js(VIS)['mini'] and not js(VIS)['full'])
-    pg.reload(); pg.wait_for_timeout(1500)
-    ok('shrunk is kept on this computer, after a reload', js(VIS)['mini'] and js("() => localStorage.getItem('nullovation-city:gusMin')") == '1')
-    pg.click('#gusMini'); pg.wait_for_timeout(200)
-    v = js(VIS)
-    ok(f'a click on his face opens him again, with his report ({v})', v['full'] and not v['mini'] and not v['min'] and js(READ)['report'] != '' and js("() => localStorage.getItem('nullovation-city:gusMin')") is None)
-    ok('and the focus moves to his [-]', js("() => document.activeElement.id") == 'gusMin')
-    js("() => Gus.minimize(true)")
+    pg.focus('#gusSayClose'); pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    ok('Esc in his bubble closes it, and he stays in News', not js(READ)['saying'] and js(READ)['shown'])
+    js("() => Gus._test.sayMs(14000)")
 
     # ---------- the first open of the day ----------
     js("() => Gus._test.forget()")
     pg.reload(); pg.wait_for_timeout(1500)
     r = js(READ)
     ok(f'the first open of the day with garbage in it: he speaks ({r["say"]})', r['saying'] and r['say'] in [js(f"() => Gus.fill(Gus.LINES.open[{i}], Gus.report())") for i in range(3)])
-    ok('shrunk, his speech bubble still shows, and he stays shrunk in the side bar', r['saying'] and js(VIS)['mini'] and not js(VIS)['full'])
-    js("() => Gus.minimize(false)")
-    ok('his words show under his face in the side bar too', js(READ)['line'] == r['say'])
+    ok('his report shows under his words in the bubble', r['report'] == "You have 3 overdue tasks. Let's clean them up." and len(r['rows']) == 2)
 
     # ---------- his face: his portrait (0.1.48) ----------
     gus = js("() => PORTRAITS.gus")
     ok('the page carries his portrait as a PNG', isinstance(gus, str) and gus.startswith('data:image/png;base64,'))
     ok('it decodes pixel for pixel, every pixel solid or see-through', js(PORTRAIT_SUM, gus) == portrait_sum('gus'))
-    side, says = js(FACE_OF, '#gusFace'), js(FACE_OF, '#gusSayFace')
-    ok(f'in the side bar: his portrait, 256 px, shown at 64 by 64 and filling its frame ({side and {k: side[k] for k in ("nat", "w", "h", "fw", "fh")}})',
-       side and side['url'] == gus and side['imgs'] == 1 and side['nat'] == [256, 256] and side['w'] == side['h'] == side['fw'] == side['fh'] == 64)
+    side, says = js(FACE_OF, '.news-tile[data-k="gus"] .gus-face'), js(FACE_OF, '#gusSayFace')
+    ok(f'in News: his portrait, 256 px, shown at 48 by 48 like the leaders\' faces, filling its frame ({side and {k: side[k] for k in ("nat", "w", "h", "fw", "fh")}})',
+       side and side['url'] == gus and side['imgs'] == 1 and side['nat'] == [256, 256] and side['w'] == side['h'] == side['fw'] == side['fh'] == 48)
     ok(f'in his speech bubble: bigger, 100 by 100 (0.1.57; 80 before) ({says and {k: says[k] for k in ("w", "h", "fw")}})', says and says['url'] == gus and says['imgs'] == 1 and says['w'] == says['h'] == says['fw'] == 100)
     ok('shrunk smooth, as the map shrinks its buildings, on his dark coral', side['smooth'] and says['smooth'] and side['bg'] == says['bg'] == 'rgb(62, 34, 51)')
     box, wrap, menu = (pg.locator(s).bounding_box() for s in ('#gusSay', '#mapWrap', '#menu'))
     ok(f'the speech bubble sits at the map\'s top left, clear of the side bar ({box})', abs(box['x'] - wrap['x'] - 22) <= 2 and abs(box['y'] - wrap['y'] - 18) <= 2 and box['x'] >= menu['x'] + menu['width'])
     pg.screenshot(path=str(SH / '260-gus-says.png'))
-    js("() => document.activeElement.blur()"); pg.locator('#sbGus').screenshot(path=str(SH / '261-gus-side.png'))
+    js("() => document.activeElement.blur()"); pg.locator('#sbNews').screenshot(path=str(SH / '261-gus-side.png'))
     pg.click('#gusSayClose'); pg.wait_for_timeout(200)
     r = js(READ)
-    ok('the close button sends the bubble away, his line stays in the side bar', not r['saying'] and r['line'])
+    ok('the close button sends the bubble away; his line is kept for when his face is clicked', not r['saying'] and r['line'])
     pg.reload(); pg.wait_for_timeout(1500)
     ok('the second open of the day: he says nothing', not js(READ)['saying'])
 

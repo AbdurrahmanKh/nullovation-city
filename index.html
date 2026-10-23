@@ -860,15 +860,9 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .urg-red { color: #FF8FB0; }
 .urg-yel { color: #FFE38A; }
 
-/* ---------- side bar: urgent, due this week, the week, and the collapsibles ---------- */
+/* ---------- side bar: due this week, the week, and the collapsibles ---------- */
 .sb-sec { margin-top: 16px; }
 .sb-h { margin: 0 0 8px; font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); }
-.urgent-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.urgent-item { position: relative; display: grid; place-items: end center; width: 64px; height: 64px; padding: 2px; background: var(--field); border: 0; box-shadow: var(--px-edge); cursor: pointer; }
-.urgent-item:hover, .urgent-item:focus-visible { background: var(--hover); outline: none; }
-.urgent-item canvas.thumb { width: 58px; height: auto; max-height: 58px; object-fit: contain; image-rendering: auto; }
-.urgent-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center;
-  font: 400 12px/1 var(--f-pixel); color: #fff; background: #E0356F; box-shadow: 0 0 0 2px #5A1030; }
 .due-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .due-item { display: flex; align-items: flex-start; gap: 6px; }
 .due-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
@@ -1100,9 +1094,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .wheel-enter:active { transform: translate(calc(-50% + 2px), 2px); }
 .wheel-empty { position: absolute; left: 0; top: 52px; width: 230px; margin: 0; transform: translateX(-50%); padding: 6px 10px; text-align: center; font-size: 12.5px; color: var(--ink-soft); background: var(--paper); box-shadow: var(--px-edge); }
 
-/* ---------- Gus Grimsby, the Garbage Man: his part of the side bar, and his speech bubble over the map ---------- */
-.gus { padding: 10px 12px 9px; background: var(--field); box-shadow: var(--px-edge); }
-.gus[hidden] { display: none; }
+/* ---------- Gus Grimsby, the Garbage Man: his speech bubble over the map, with his report (0.1.59) ---------- */
 .gus-head { display: flex; align-items: center; gap: 10px; }
 /* a face: the portrait, 256 px, shrunk smooth into its frame, as the map shrinks its buildings; bigger in a speech bubble */
 .gus-face { --face: 64px; flex: none; display: block; width: var(--face); height: var(--face); overflow: hidden; background: #3E2233; box-shadow: 0 0 0 2px #7A3A4E; }
@@ -1111,19 +1103,9 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .gus-name { display: grid; gap: 1px; }
 .gus-name b { font: 400 15px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: #FFB797; }
 .gus-name span { font-size: 12px; color: var(--muted); }
-.gus-min { flex: none; align-self: flex-start; width: 26px; height: 26px; margin: -4px -6px 0 auto; color: var(--muted); }
-.gus-min:hover, .gus-min:focus-visible { color: var(--ink); }
-.gus.min { padding: 0; background: none; box-shadow: none; }
-.gus-mini { position: relative; display: block; margin: 2px 0 0 2px; padding: 0; background: none; border: 0; cursor: pointer; }
-.gus-mini:hover .gus-face, .gus-mini:focus-visible .gus-face { box-shadow: 0 0 0 2px #F29A74; }
-.gus-mini:focus-visible { outline: none; }
-.gus-mini[hidden], #gusFull[hidden] { display: none; }
-.gus-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center;
-  font: 400 12px/1 var(--f-pixel); color: #2B2542; background: #F29A74; box-shadow: 0 0 0 2px #7A3A4E; }
-.gus-line { margin: 9px 0 0; padding-left: 8px; font-size: 13px; line-height: 1.4; color: var(--ink-soft); box-shadow: inset 2px 0 0 #F29A74; }
-.gus-report { margin: 8px 0 0; font-size: 13.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
+.gus-report { margin: 4px 0 0; font-size: 13.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
 .gus-fix { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--ink-soft); }
-.gus-line[hidden], .gus-report[hidden], .gus-fix[hidden] { display: none; }
+.gus-say-text[hidden], .gus-report[hidden], .gus-fix[hidden] { display: none; }
 .gus-rows { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 1px; }
 .gus-rows:empty { display: none; }
 .gus-row { padding: 2px 0; background: none; border: 0; color: var(--muted); font: inherit; font-size: 12.5px; line-height: 1.35; text-align: left; cursor: pointer; }
@@ -1136,7 +1118,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .gus-say.show { opacity: 1; }
 .gus-say[hidden] { display: none; }
 .gus-say::before { content: ''; position: absolute; left: -10px; top: 18px; border: 6px solid transparent; border-right: 6px solid var(--edge); border-left: 0; }
-.gus-say-body { display: grid; gap: 4px; min-width: 0; padding-top: 1px; }
+.gus-say-body { display: grid; gap: 4px; min-width: 0; padding-top: 1px; max-height: calc(100vh - 160px); overflow-y: auto; }
 .gus-say-text { font-size: 14.5px; line-height: 1.4; color: var(--ink); }
 .gus-say-close { flex: none; width: 28px; height: 28px; padding: 0; }
 /* squeezed (0.1.57): the face and the close button on top, the words under them across the whole bubble */
@@ -1357,9 +1339,67 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-card.empty .ld-card-text b { font-size: 15px; color: var(--ink-soft); }
 
 .b-leader { display: flex; align-items: center; gap: 9px; margin: -4px 0 10px; }
-.b-leader-text { display: grid; gap: 1px; min-width: 0; }
+.b-leader.has-news { align-items: flex-start; }
+.b-leader-text { display: grid; gap: 1px; min-width: 0; flex: 1; }
 .b-leader-text b { font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
-.b-leader-text span { font-size: 12px; color: var(--muted); }
+.b-leader-role { font-size: 12px; color: var(--muted); }
+.b-leader.px-voice .ld-name { color: #8FD0F7; }
+
+/* ---------- what a leader says (0.1.59): a line in a quote with a bar in its color, and its buttons ---------- */
+.ld-line { min-width: 0; }
+.ld-line .ld-says { margin: 6px 0 0; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
+.ld-line .b-claude-when { font-size: 12px; color: var(--muted); }
+.ld-line .b-claude-said { margin: 3px 0 0 10px; }
+.ld-line .b-claude-list { margin: 4px 0 0 10px; }
+.ld-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0 10px; }
+.ld-line.b-claude.working .ld-says { box-shadow: inset 2px 0 0 #F5B39A; }
+.ld-card.has-news { align-items: flex-start; }
+.ld-card-text .ld-line .ld-says { margin-top: 6px; }
+
+/* ---------- the side bar's News section (0.1.59): Gus and the leaders with news, as faces with ! or a count ---------- */
+.news-list { display: flex; flex-wrap: wrap; gap: 10px 8px; }
+.news-tile { position: relative; width: 64px; }
+.news-face { position: relative; display: grid; justify-items: center; gap: 6px; width: 100%; padding: 6px 2px 4px; background: none; border: 0; cursor: pointer; color: var(--ink-soft); min-width: 0; }
+.news-face:hover .ld-face, .news-face:focus-visible .ld-face, .news-face:hover .gus-face, .news-face:focus-visible .gus-face { box-shadow: 0 0 0 2px #FFFFFF; }
+.news-face:focus-visible { outline: none; }
+.news-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.news-face:hover .news-name, .news-face:focus-visible .news-name { color: var(--ink); }
+.news-badge { position: absolute; top: 0; right: 2px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center;
+  font: 400 12px/1 var(--f-pixel); color: #2B2542; background: var(--ld, #F29A74); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ld, #F29A74) 40%, #000000); }
+.news-dismiss { position: absolute; top: 0; left: 0; width: 20px; height: 20px; padding: 0; background: var(--paper); box-shadow: var(--px-edge); color: var(--muted); opacity: 0; }
+.news-tile:hover .news-dismiss, .news-dismiss:focus-visible { opacity: 1; }
+.news-dismiss:hover, .news-dismiss:focus-visible { color: var(--ink); }
+@media (hover: none) { .news-dismiss { opacity: 1; } }
+
+/* ---------- a leader's bubble over the map, where Gus and Proxima speak (0.1.59) ---------- */
+.ld-say { box-shadow: 0 -2px 0 0 var(--ld), 0 2px 0 0 var(--ld), -2px 0 0 0 var(--ld), 2px 0 0 0 var(--ld), var(--px-drop-sm); }
+.ld-say::before { border-right-color: var(--ld); }
+.ld-say:focus { outline: none; }
+.ld-say-face { flex: none; display: block; }
+.ld-say-face .ld-face { --ld-ring: transparent; }
+.ld-say-name b { color: color-mix(in srgb, var(--ld, #ECE8F6) 55%, #FFFFFF); }
+.ld-say.px-voice .ld-say-name b { color: #8FD0F7; }
+.ld-say-name span[hidden] { display: none; }
+.ld-say-where { display: flex; min-width: 0; }
+/* the building, a click going to it on the map (0.1.60) */
+.ld-say-bld { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; padding: 0; background: none; border: 0; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); text-align: start; cursor: pointer; }
+.ld-say-bld bdi { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ld-say-bld:hover bdi, .ld-say-bld:focus-visible bdi { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.ld-say-bld:focus-visible { outline: none; }
+/* a task in a leader's line: its own color, a click opening it (0.1.60) */
+.ld-task { display: inline; padding: 0; background: none; border: 0; font: inherit; color: #FFD27A; text-align: start; text-decoration: underline dotted; text-underline-offset: 3px; text-decoration-thickness: 1px; cursor: pointer; overflow-wrap: anywhere; }
+.ld-task:hover, .ld-task:focus-visible { color: #FFE6A8; text-decoration-style: solid; outline: none; }
+.ld-say-thumb { flex: none; display: grid; place-items: end center; width: 24px; height: 22px; }
+.ld-say-thumb canvas.thumb { width: 24px; height: auto; max-height: 22px; object-fit: contain; image-rendering: auto; }
+.ld-say-more:empty { display: none; }
+.ld-say-more .b-claude-list { margin: 0 0 0 2px; }
+.ld-say-acts { flex-wrap: wrap; align-items: center; }
+.ld-say-count { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ld-say-acts .ld-go { padding: 4px 10px 3px; }
+
+/* the leader's face beside a building's row in Reports (0.1.59) */
+.rp-row .rp-leader { flex: none; }
+.px-list .rp-leader { align-self: center; }
 
 .wheel-hub.has-leader { background: var(--ld); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
 .wheel-hub .ld-face { position: absolute; left: 4px; top: 4px; box-shadow: none; }
@@ -1500,7 +1540,7 @@ a.oc-wiz-item:hover, a.oc-wiz-item:focus-visible { background: var(--hover); box
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.58</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.60</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1540,20 +1580,9 @@ a.oc-wiz-item:hover, a.oc-wiz-item:focus-visible { background: var(--hover); box
           <button id="btnBrief" class="btn btn-small" type="button" title="Copies a text summary of every project for a Claude chat">Copy status brief</button>
         </div>
       </section>
-      <section id="sbGus" class="sb-sec gus" aria-label="Gus Grimsby, the Garbage Man" hidden>
-        <div id="gusFull">
-          <div class="gus-head"><span id="gusFace" class="gus-face" aria-hidden="true"></span><span class="gus-name"><b>Gus Grimsby</b><span>Garbage Man</span></span>
-            <button id="gusMin" class="icon-btn gus-min" type="button" aria-label="Minimize Gus" title="Minimize"></button></div>
-          <p id="gusLine" class="gus-line" hidden></p>
-          <p id="gusReport" class="gus-report" hidden></p>
-          <p id="gusFix" class="gus-fix" hidden></p>
-          <ul id="gusRows" class="gus-rows"></ul>
-        </div>
-        <button id="gusMini" class="gus-mini" type="button" aria-label="Open Gus Grimsby, the Garbage Man" title="Gus Grimsby, Garbage Man" hidden><span id="gusMiniFace" class="gus-face" aria-hidden="true"></span><span class="gus-badge" aria-hidden="true">!</span></button>
-      </section>
-      <section id="sbUrgent" class="sb-sec" aria-label="Urgent projects" hidden>
-        <h2 class="sb-h">Urgent</h2>
-        <div id="urgentList" class="urgent-list"></div>
+      <section id="sbNews" class="sb-sec" aria-label="News" hidden>
+        <h2 class="sb-h">News</h2>
+        <div id="newsList" class="news-list"></div>
       </section>
       <section id="sbDue" class="sb-sec" aria-label="Due this week" hidden>
         <h2 class="sb-h">Due this week</h2>
@@ -1781,8 +1810,16 @@ a.oc-wiz-item:hover, a.oc-wiz-item:focus-visible { background: var(--hover); box
     </div>
     <div id="gusSay" class="gus-say" role="status" aria-live="polite" hidden>
       <span id="gusSayFace" class="gus-face" aria-hidden="true"></span>
-      <span class="gus-say-body"><span class="gus-name"><b>Gus Grimsby</b><span>Garbage Man</span></span><span id="gusSayText" class="gus-say-text"></span></span>
+      <div class="gus-say-body"><span class="gus-name"><b>Gus Grimsby</b><span>Garbage Man</span></span><span id="gusSayText" class="gus-say-text"></span>
+        <p id="gusReport" class="gus-report" hidden></p><p id="gusFix" class="gus-fix" hidden></p><ul id="gusRows" class="gus-rows"></ul></div>
       <button id="gusSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
+    </div>
+    <div id="ldSay" class="gus-say ld-say" role="status" aria-live="polite" tabindex="-1" hidden>
+      <span id="ldSayFace" class="ld-say-face" aria-hidden="true"></span>
+      <div class="gus-say-body"><span class="gus-name ld-say-name"><b id="ldSayName"></b><span id="ldSayRole"></span></span>
+        <span id="ldSayWhere" class="ld-say-where"></span><span id="ldSayText" class="gus-say-text" dir="auto"></span><div id="ldSayMore" class="ld-say-more"></div>
+        <span id="ldSayActs" class="px-say-actions ld-say-acts"></span></div>
+      <button id="ldSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
     </div>
     <div id="pxSay" class="gus-say px-say" role="status" aria-live="polite" hidden>
       <span id="pxSayFace" class="gus-face px-face" aria-hidden="true"></span>
@@ -3321,6 +3358,7 @@ function tickTask(p, t, { now = Date.now(), log = true } = {}) {
   if (log) logActivity(p, 'Done: ' + t.text);
   if (typeof Celebrate !== 'undefined') Celebrate.ticked(p, t);     // its particles, and a party for a finished milestone
   if (typeof Ghosts !== 'undefined') Ghosts.ticked(p, t);           // its ghost, if it haunts, rises and fades
+  if (typeof News !== 'undefined') News.ticked(p, t);               // a milestone one task from done is its leader's news
   return was;
 }
 function untickTask(p, t, was = null, { log = true } = {}) {
@@ -3570,11 +3608,25 @@ const lineTitle = s => (s.length > LEADER_TITLE_MAX ? s.slice(0, LEADER_TITLE_MA
 /* A moment's line with its blanks filled: {task} cut short past 60 characters, "{n} tasks" in the singular for one,
    a blank with nothing for it left as it is, and the line's first letter a capital, since a task's title may start it. */
 function leaderSay(moment, v = {}) {
+  return leaderParts(moment, v).map(x => x.text).join('');
+}
+/* The same line in parts (0.1.60): plain words, and each blank filled, with its name and its whole value, so a task in
+   it can be shown as a link. */
+function leaderParts(moment, v = {}) {
   const text = LEADER_LINES[moment];
-  if (!text) return '';
-  const out = text.replace('{n} tasks', () => plural(v.n, 'task', 'tasks'))
-    .replace(/\{(\w+)\}/g, (all, k) => (v[k] == null ? all : k === 'task' ? lineTitle(String(v[k])) : String(v[k])));
-  return out.charAt(0).toUpperCase() + out.slice(1);
+  if (!text) return [];
+  const out = [], re = /\{n\} tasks|\{(\w+)\}/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push({ text: text.slice(last, m.index) });
+    if (!m[1]) out.push(v.n == null ? { text: m[0] } : { text: plural(v.n, 'task', 'tasks'), blank: 'n' });
+    else if (v[m[1]] == null) out.push({ text: m[0] });
+    else { const full = String(v[m[1]]); out.push({ text: m[1] === 'task' ? lineTitle(full) : full, blank: m[1], full }); }
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push({ text: text.slice(last) });
+  out[0] = { ...out[0], text: out[0].text.charAt(0).toUpperCase() + out[0].text.slice(1) };
+  return out;
 }
 /* The greeting on the leader card, when its building has no news waiting: the next task, pinned or the current
    milestone's first open one, else that nothing is open. */
@@ -3711,7 +3763,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.58";
+const APP_VERSION = "0.1.60";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -4319,8 +4371,10 @@ const Art = (() => {
     cache.set(id, entry);
     MapView.dropCache(id);
     MapView.invalidate();
+    for (const fn of listeners) { try { fn(id); } catch (e) { /* a listener's own trouble */ } }
     return entry;
   }
+  const listeners = [];                                    // who redraws a building's picture once its art has loaded (0.1.60)
   /* Draws frame i at (x, y) scaled to (w, h). */
   function draw(g, a, i, x, y, w, h) {
     const s = w / a.w;
@@ -4340,7 +4394,7 @@ const Art = (() => {
     if (!url) return null;   // keep the flag: storage may only be busy, and the next load retries
     try { return await set(id, url); } catch (e) { return null; }
   }
-  return { set, load, probe, indexAt, draw, get: id => cache.get(id) || null, drop: id => { cache.delete(id); MapView.dropCache(id); }, MAX_W };
+  return { set, load, probe, indexAt, draw, onLoad: fn => listeners.push(fn), get: id => cache.get(id) || null, drop: id => { cache.delete(id); MapView.dropCache(id); }, MAX_W };
 })();
 
 /*
@@ -7782,18 +7836,20 @@ const Garbage = (() => {
   };
 })();
 
-/* Gus Grimsby, the Garbage Man: chief of the city's cleanup crew, grumpy but fair. He lives in the side bar beside This
-   week and Urgent while the city has garbage, with his overdue tasks in one line, the task to start with, and every
-   building with garbage, most first; a click on one goes to it. He leaves urgent and needs attention to the map's
-   bubbles. His [-] shrinks him to his face with a ! on it, kept on this computer until a click opens him again. He
-   speaks up by himself four times: the first time the city is opened each day with garbage in it, when the garbage
-   passes 50 pieces and again 200 (each once as it climbs past, at most once a day), and when the last piece goes,
-   just before he steps away. His words show in a speech bubble at the map's top left, and under his face in the side
-   bar. He never mentions pieces, only tasks. The Garbage switch
-   sends him away with the garbage. His face is his portrait, on his dark coral (0.1.48). */
+/* Gus Grimsby, the Garbage Man: chief of the city's cleanup crew, grumpy but fair. While the city has garbage his face
+   shows in the side bar's News section (0.1.59, Leader UX), with ! or the count of tasks between the city and clean
+   streets; a click opens his bubble with his report: his last line, his overdue tasks in one line, the task to start
+   with, and every building with garbage, most first, each going to its building. He leaves urgent and needs attention
+   to the map's bubbles. He speaks up by himself four times: the first time the city is opened each day with garbage in
+   it, when the garbage passes 50 pieces and again 200 (each once as it climbs past, at most once a day), and when the
+   last piece goes, just before he steps away. His words show in a speech bubble at the map's top left, with his
+   report under them; said by himself, the bubble closes after 14 seconds, and opened from his face it stays until
+   closed. He never mentions pieces, only tasks. The Garbage switch sends him away with the garbage. His face is his
+   portrait, on his dark coral (0.1.48). Until 0.1.58 he had his own part of the side bar, with a [-] that shrank him to
+   his face. */
 const Gus = (() => {
   const KEY = 'nullovation-city:gus';                          // the days he last spoke, on this computer
-  const MIN_KEY = 'nullovation-city:gusMin';                   // shrunk to his face, on this computer
+  const MIN_KEY = 'nullovation-city:gusMin';                   // his [-] until 0.1.58: tidied away
   const MARKS = [[200, 'filthy'], [50, 'dirty']];              // the worst first
   const SAY_MS = 14000;                                         // a speech bubble stays this long unless closed first
   const LINES = {
@@ -7806,7 +7862,6 @@ const Gus = (() => {
   };
   let days = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
   const saveDays = () => { try { localStorage.setItem(KEY, JSON.stringify(days)); } catch (e) { /* this visit only */ } };
-  let minimized = (() => { try { return localStorage.getItem(MIN_KEY) === '1'; } catch (e) { return false; } })();
   let line = '', sayTimer = 0, saying = false, lastTotal = null, lastOnMap = null, started = false, sayMs = SAY_MS;
   const armed = {};
 
@@ -7846,48 +7901,60 @@ const Gus = (() => {
      coral; the frame sets the size ---------- */
   const face = () => h('img', { class: 'face-pic', alt: '', src: PORTRAITS.gus, width: 256, height: 256, draggable: 'false' });
 
-  /* ---------- the side bar ---------- */
+  /* His face in a frame of its size: 48 px in the News section, 100 in his bubble. */
+  function faceEl(size = 48) {
+    const el = h('span', { class: 'gus-face', 'aria-hidden': 'true' }, face());
+    el.style.setProperty('--face', size + 'px');
+    return el;
+  }
+  /* While the city has garbage, on its map or owed by the rules, and while he speaks. */
+  const shows = () => Garbage.isOn() && (report().rows.length > 0 || Garbage.onMap() > 0 || saying);
+
+  /* ---------- his bubble: his line, then his report ---------- */
   function render() {
-    const sec = $('#sbGus');
-    if (!sec) return;
-    const r = report(), onMap = Garbage.onMap();
-    const show = Garbage.isOn() && (r.rows.length > 0 || onMap > 0 || saying);
-    sec.hidden = !show;
-    if (!show) return;
-    if (!$('#gusFace').firstChild) { $('#gusFace').append(face()); $('#gusMiniFace').append(face()); }
-    sec.classList.toggle('min', minimized);
-    $('#gusFull').hidden = minimized; $('#gusMini').hidden = !minimized;
-    if (minimized) return;
-    $('#gusLine').hidden = !line; $('#gusLine').textContent = line;
+    if (typeof News !== 'undefined') News.renderSection();
+    const r = report();
+    $('#gusSayText').hidden = !line; $('#gusSayText').textContent = line;
     const rl = reportLine(r);
     $('#gusReport').hidden = !rl; $('#gusReport').textContent = rl;
     const fl = fixLine(r);
     $('#gusFix').hidden = !fl; $('#gusFix').textContent = fl;
-    $('#gusRows').replaceChildren(...r.rows.map(row => h('li', null, h('button', { class: 'gus-row', type: 'button', title: 'Go to ' + row.p.name,
+    const a = document.activeElement, keep = a && a.classList.contains('gus-row') ? a.dataset.id : null;
+    $('#gusRows').replaceChildren(...r.rows.map(row => h('li', null, h('button', { class: 'gus-row', type: 'button', 'data-id': row.p.id, title: 'Go to ' + row.p.name,
       onclick: () => { Menu.closeDrawer(); MapView.select(row.p.id); } },
       h('span', { class: 'gus-proj', dir: 'auto' }, row.p.name), ': ' + rowText(row)))));
+    if (keep) { const b = $(`.gus-row[data-id="${keep}"]`); if (b) b.focus({ preventScroll: true }); }
   }
 
   /* ---------- speaking ---------- */
-  function say(text) {
-    line = text; saying = true;
+  /* By himself, the bubble closes after 14 seconds; opened from his face (stay), it stays until closed. */
+  function show(stay) {
+    saying = true;
     if (typeof Proxima !== 'undefined') Proxima.yieldToGus();   // never both at once: she says hers after him
+    if (typeof News !== 'undefined') News.yieldTo();            // nor a leader: its news waits for him
     const box = $('#gusSay');
-    $('#gusSayText').textContent = text;
     if (!$('#gusSayFace').firstChild) $('#gusSayFace').append(face());
     box.hidden = false;
+    render();
     fitSay(box);
     requestAnimationFrame(() => box.classList.add('show'));
     clearTimeout(sayTimer);
-    sayTimer = setTimeout(hush, sayMs);
-    render();
+    if (!stay) sayTimer = setTimeout(hush, sayMs);
+  }
+  function say(text) { line = text; show(false); }
+  function open() {
+    show(true);
+    const b = $('.gus-row', $('#gusSay')) || $('#gusSayClose');
+    if (b) b.focus({ preventScroll: true });
   }
   function hush() {
     clearTimeout(sayTimer);
-    const box = $('#gusSay');
+    const box = $('#gusSay'), had = box && box.contains(document.activeElement);
     if (box) { box.classList.remove('show'); box.hidden = true; }
     saying = false;
     render();
+    if (had) { const f = $('#newsList .news-face'); if (f) f.focus({ preventScroll: true }); }
+    if (typeof News !== 'undefined') setTimeout(() => News.pump(), 400);
   }
   const today = () => ymd(Date.now());
   /* On every change to the garbage: the alarms as the total climbs, and the clean city when the last piece goes. */
@@ -7908,20 +7975,12 @@ const Gus = (() => {
     render();
   }
 
-  /* ---------- shrunk to his face, and open again ---------- */
-  function minimize(on) {
-    minimized = on;
-    try { if (on) localStorage.setItem(MIN_KEY, '1'); else localStorage.removeItem(MIN_KEY); } catch (e) { /* this visit only */ }
-    render();
-    $(on ? '#gusMini' : '#gusMin').focus();
-  }
-
   function init() {
     $('#gusSayClose').innerHTML = iconSvg('close', 16);
     $('#gusSayClose').addEventListener('click', hush);
-    $('#gusMin').innerHTML = iconSvg('minus', 16);
-    $('#gusMin').addEventListener('click', () => minimize(true));
-    $('#gusMini').addEventListener('click', () => minimize(false));
+    $('#gusSay').addEventListener('pointerdown', () => clearTimeout(sayTimer));   // once you reach for it, it stays
+    $('#gusSay').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); hush(); } });
+    try { localStorage.removeItem(MIN_KEY); } catch (e) { /* nothing to tidy */ }
     Garbage.onChange(changed);
     started = true;
     lastTotal = null; lastOnMap = null;
@@ -7935,7 +7994,7 @@ const Gus = (() => {
     }
     setInterval(render, 60000);                                // a new day or a late task's new day, quietly
   }
-  return { init, render, report, reportLine, fixLine, fill, LINES, hush, minimize, isMinimized: () => minimized, isSaying: () => saying, line: () => line,
+  return { init, render, report, reportLine, fixLine, fill, LINES, say, hush, open, shows, faceEl, isSaying: () => saying, line: () => line,
     _test: { sayMs: ms => { sayMs = ms; }, days: () => ({ ...days }), forget: () => { days = {}; saveDays(); } } };
 })();
 
@@ -8242,16 +8301,20 @@ const Bubble = (() => {
   }
   function clearTicks() { for (const t of ticking.values()) clearTimeout(t); ticking.clear(); }
   function open(id) {
+    const was = openId;
     if (openId !== id) { shownIds = new Set(); clearTicks(); if (addIn) addIn.value = ''; }
     openId = id;
+    if (was && was !== id) News.release(was);               // the news the last card held, read
     el.hidden = false; enter.hidden = false;
     el.classList.remove('show');
     render(false); position();
     requestAnimationFrame(() => el.classList.add('show'));
   }
   function close() {
+    const was = openId;
     openId = null; clearTicks();
     el.hidden = true; enter.hidden = true; el.classList.remove('show');
+    News.release(was);
   }
   function refresh() {
     if (!openId) return;
@@ -8292,13 +8355,11 @@ const Bubble = (() => {
     const kids = [
       h('button', { class: 'icon-btn b-close', type: 'button', 'aria-label': 'Close status', html: iconSvg('close', 16), onclick: () => MapView.deselect() }),
       h('h2', { class: 'b-title', dir: 'auto' }, p.name),
-      Leaders.statusLine(p),                                   // who leads it (0.1.51, L1)
+      Leaders.statusLine(p),                                   // who leads it (0.1.51, L1), and what it says (0.1.59): its news and Claude's
     ];
     const urg = urgencyOf(p);
     if (urg.color) kids.push(h('p', { class: 'b-urg ' + urg.color }, h('span', { class: 'b-urg-dot', 'aria-hidden': 'true' }),
       h('span', null, (urg.color === 'red' ? 'Red: ' : 'Yellow: ') + urg.reasons.join('. ') + '.')));
-    if (typeof ClaudeWork !== 'undefined') kids.push(ClaudeWork.line(p));
-    if (typeof ClaudeInbox !== 'undefined') kids.push(...ClaudeInbox.cards(p));
     if (current && current.ms) kids.push(h('p', { class: 'b-ms' }, 'Milestone: ', h('bdi', null, current.ms.name)));
     if (visible.length) {
       const ul = h('ul', { class: 'b-todos', 'aria-label': 'Next todos' });
@@ -8390,7 +8451,7 @@ const Bubble = (() => {
     enter.style.transform = `translate(${Math.round(a.baseX - ew / 2)}px, ${Math.round(a.baseY + 12)}px)`;
   }
 
-  return { init, open, close, refresh, position, height, isOpen: () => !!openId };
+  return { init, open, close, refresh, position, height, isOpen: () => !!openId, openId: () => openId };
 })();
 
 const Confirm = (() => {
@@ -8546,7 +8607,9 @@ const FullView = (() => {
     finishEdit();
     persistSoon.flush();
     closePopover(); closeMenu(); closeSide(); OpenInClaude.close();
+    const was = openId;
     root.remove(); root = null; openId = null; editing = null;
+    News.release(was);                                     // its leader card's news, read
     Bubble.refresh(); Bubble.position();
     MapView.invalidate();
     const enter = $('#enterBtn');
@@ -10239,7 +10302,8 @@ const Rounds = (() => {
       waits.delete(t.id);
       const st = roundState(t);
       if (!st) return;
-      toast('Answers in for ' + t.text + ': ' + st.answered + ' of ' + st.total + '.', '', { label: 'Open', run: () => FullView.openTask(p.id, t.id) });
+      /* its leader says it, in place of the toast (Leader UX, T1, 0.1.59), with Open; it waits with its leader */
+      News.add(p, 'answers', { round: t.round.title, n: st.answered, total: st.total }, { ref: { tid: t.id }, key: 'answers:' + t.id });
     }, ANNOUNCE_MS));
   }
   const ANNOUNCE_MS = 4000;
@@ -10475,6 +10539,7 @@ const Leaders = (() => {
   const refreshSoon = debounce(() => refreshAll(), 120);
   function refreshAll() {
     renderSection();
+    if (typeof News !== 'undefined') { News.renderSection(); News.redraw(); }   // the faces in News and its bubble, once portraits load (0.1.60)
     Bubble.refresh();
     if (typeof FullView !== 'undefined') FullView.render();
   }
@@ -10625,26 +10690,41 @@ const Leaders = (() => {
 
   /* ---------- where a leader shows ---------- */
   /* the leader card under the building's picture in the project view: the face at 96 px (64 until 0.1.57), the name in
-     its color, the role, and what the leader says (0.1.58): its greeting with the next task, in a quote with a bar in
-     its color. The full title is the line's tooltip when the line cuts it short. */
+     its color, the role, and what the leader says (0.1.58): its news for this building (0.1.59), else its greeting with
+     the next task, in a quote with a bar in its color. The full title is the line's tooltip when the line cuts it
+     short. */
+  let lastPick = null;
   function card(p, onPick) {
+    lastPick = { pid: p.id, onPick };
     const l = leaderOf(p);
     if (!l) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
       noFace(48), h('span', { class: 'ld-card-text' }, h('b', null, 'No leader yet'), h('span', null, 'Pick a leader')));
-    const t = nextTask(p), says = leaderGreeting(p);
-    const box = h('div', { id: 'pvLeader', class: 'ld-card' }, face(l, 96),
-      h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null,
-        h('span', { class: 'ld-says', dir: 'auto', title: t && t.text.length > LEADER_TITLE_MAX ? t.text : null }, says)),
+    const t = nextTask(p), news = News.viewLines(p);
+    const says = news.length ? news : [h('span', { class: 'ld-says', dir: 'auto', title: t && t.text.length > LEADER_TITLE_MAX ? t.text : null }, leaderGreeting(p))];
+    const box = h('div', { id: 'pvLeader', class: 'ld-card' + (news.length ? ' has-news' : '') }, face(l, 96),
+      h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null, ...says),
       h('button', { class: 'btn btn-quiet btn-small ld-change', type: 'button', title: 'Pick another leader, or edit this one', onclick: onPick }, 'Change'));
     box.style.setProperty('--ld', l.color);
     return box;
   }
-  /* the status card's line under the building's name: the face at 48 px (32 until 0.1.57), the name and the role */
+  /* The card again, in place, when its building's news changes while the project view shows it. */
+  function redrawCard() {
+    const el = $('#pvLeader');
+    if (!el || !lastPick || typeof FullView === 'undefined' || !FullView.shows(lastPick.pid)) return;
+    const p = getProject(lastPick.pid);
+    if (p) el.replaceWith(card(p, lastPick.onPick));
+  }
+  /* the status card's line under the building's name: the face at 48 px (32 until 0.1.57), the name and the role, then
+     what its leader says (0.1.59): the building's news, read as the card shows it, and Claude's lines in its voice. A
+     building with no leader has Proxima say it, when there is something to say. */
   function statusLine(p) {
-    const l = leaderOf(p);
-    if (!l) return null;
-    const line = h('p', { class: 'b-leader' }, face(l, 48), h('span', { class: 'b-leader-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null));
-    line.style.setProperty('--ld', l.color);
+    const l = leaderOf(p), lines = News.cardLines(p);
+    if (!l && !lines.length) return null;
+    const line = h('div', { class: 'b-leader' + (l ? '' : ' px-voice') + (lines.length ? ' has-news' : '') },
+      l ? face(l, 48) : Proxima.faceEl(48),
+      h('div', { class: 'b-leader-text' }, h('b', { class: 'ld-name', dir: 'auto' }, l ? leaderName(l) : 'Proxima Pace'),
+        (l ? l.role : 'Productivity Inspector') ? h('span', { class: 'b-leader-role', dir: 'auto' }, l ? l.role : 'Productivity Inspector') : null, ...lines));
+    line.style.setProperty('--ld', l ? l.color : '#8FD0F7');
     return line;
   }
   /* the shortcut wheel's middle, kept for the leader's face since 0.1.26 */
@@ -10692,7 +10772,7 @@ const Leaders = (() => {
     return l.id;
   }
 
-  return { init, loadAll, renderSection, refreshAll, create, edit, pickList, card, statusLine, hub, face,
+  return { init, loadAll, renderSection, refreshAll, create, edit, pickList, card, redrawCard, statusLine, hub, face,
     url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt };
 })();
 
@@ -11708,37 +11788,23 @@ const ClaudeWork = (() => {
     else toast('Ticked off: ' + t.text + '.');
   }
 
-  /* The line in the status card. */
-  function line(p) {
+  /* What its leader says of Claude's sessions on the building, in the status card (Leader UX, B3, 0.1.59), for as long
+     as the card showed them before: one line a session, the most pressing first, at most four. A finish offers Tick it
+     for the open task a city copy started from, once per task, with the start of Claude's reply. */
+  function voice(p) {
     const st = statusOf(p, true);
-    if (!st) return null;
-    const s = st.session, what = s.task || s.ask;
-    const n = st.count > 1 ? st.count : 0;
-    const text = {
-      working: (n ? n + ' Claude Code sessions are working' : 'Claude Code is working') + (what ? ': ' : '.'),
-      waiting: (n ? n + ' Claude Code sessions need you' : 'Claude Code needs you') + (what ? ': ' : '.'),
-      done: 'Claude Code finished' + (what ? ': ' : '.'),
-      failed: 'Claude Code stopped on an error' + (what ? ': ' : '.'),
-    }[st.state];
-    const when = { working: 'Started ', waiting: 'Asked ', done: 'Finished ', failed: 'Stopped ' }[st.state] + relAgo(s.since) + '.';
-    return h('div', { class: 'b-claude ' + st.state },
-      h('p', { class: 'b-claude-line' }, h('span', { class: 'b-claude-dot', 'aria-hidden': 'true' }),
-        h('span', null, text, what ? h('bdi', null, what) : null, what ? '. ' : ' ', h('span', { class: 'b-claude-when' }, when))),
-      st.state === 'done' && s.reply ? h('p', { class: 'b-claude-said', dir: 'auto', title: s.reply }, s.reply) : null,
-      ...ticks(p, st, what));
-  }
-  /* Tick it, for each open task a finished session started from: the top line's own task without a name, the
-     others named, since a session still working on the building takes the line. */
-  function ticks(p, st, what) {
-    const out = [], done = new Set();
-    for (const s of st.sessions.filter(x => x.state === 'done').sort((a, b) => b.at - a.at)) {
-      const t = taskOf(p, s);
-      if (!t || done.has(t.id)) continue;
-      done.add(t.id);
-      const own = st.state === 'done' && t.text === what;
-      out.push(h('div', { class: 'b-claude-acts' },
-        own ? null : h('span', { class: 'b-claude-fin', dir: 'auto' }, 'Finished: ', h('bdi', null, t.text)),
-        h('button', { class: 'btn btn-small b-claude-tick', type: 'button', title: 'Tick off ' + t.text + ', the task this session started from', onclick: () => tick(p, t) }, 'Tick it')));
+    if (!st) return [];
+    const ticked = new Set(), out = [];
+    const ss = [...st.sessions].sort((a, b) => (RANK[b.state] || 0) - (RANK[a.state] || 0) || b.at - a.at).slice(0, 4);
+    for (const s of ss) {
+      const what = s.task || s.ask, task = what || 'a task';
+      const moment = { working: 'working', waiting: 'waiting', done: 'finished', failed: 'failed' }[s.state];
+      if (!moment) continue;
+      let t = s.state === 'done' ? taskOf(p, s) : null;
+      if (t && ticked.has(t.id)) t = null;
+      if (t) ticked.add(t.id);
+      out.push({ s, moment, v: { task, ago: relAgo(s.since) }, text: leaderSay(moment, { task, ago: relAgo(s.since) }),
+        reply: s.state === 'done' ? s.reply : '', tick: t });
     }
     return out;
   }
@@ -11799,6 +11865,7 @@ const ClaudeWork = (() => {
   function redraw() {
     render();
     title();
+    if (typeof News !== 'undefined') News.claude();      // Claude waiting, stopped, finished or asking first: its leader's news
     if (typeof MapView !== 'undefined') MapView.invalidate();
     if (typeof Bubble !== 'undefined') Bubble.refresh();
   }
@@ -11851,7 +11918,7 @@ const ClaudeWork = (() => {
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && state === 'on') poll(); });
 
-  return { init, poll, render, redraw, statusOf, mapStatus, line, markSeen, pathKey, taskOf, cityChanged, citySummary, writeSummary, waitingCount,
+  return { init, poll, render, redraw, statusOf, mapStatus, voice, tick, sessionsOf: p => byProject.get(p.id) || [], isSeen, markSeen, pathKey, taskOf, cityChanged, citySummary, writeSummary, waitingCount,
     canWrite: () => canWrite, folder: () => (state === 'on' && canWrite ? dir : null), state: () => state,
     sessions: () => [...files.values()].map(f => f.s).filter(Boolean), unplaced: () => unplaced, LASTS };
 })();
@@ -11933,8 +12000,20 @@ const ClaudeInbox = (() => {
     if (now.length) undo = applyNow(p, now, str(data.summary, 300));
     if (later.length) await put(await sub(dir, 'inbox/pending'), name, JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: p.name, summary: str(data.summary, 300), changes: later, received: Date.now() }, null, 1));
     await move(inbox, name, await sub(dir, 'inbox/done'), text);
-    if (undo && undo.what) toast('Claude ' + undo.what + ' in ' + p.name + '.' + (later.length ? ' It asks about more on the building.' : ''), '', { label: 'Undo', run: () => undoNow(p, undo) });
-    else if (later.length) toast('Claude asks about changes to ' + p.name + ': see its building.');
+    if (undo && undo.what) tell(p, undo);
+    /* what asks first is its leader's news too, once the pending file is read (News.claude) */
+  }
+  /* Its leader says what Claude added, in place of the toast (Leader UX, T1, 0.1.59): the tasks, notes and links as one
+     item, each wizard round as one of its own, each with its own Undo. */
+  function tell(p, u) {
+    const none = { todos: [], ms: [], notes: [], links: [], rounds: [] };
+    const bits = [u.todos.length && plural(u.todos.length, 'task', 'tasks'), u.notes.length && (u.notes.length === 1 ? 'a note' : plural(u.notes.length, 'note', 'notes')),
+      u.links.length && plural(u.links.length, 'link', 'links')].filter(Boolean);
+    if (bits.length) News.add(p, 'added', { what: bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] }, { undo: { ...none, todos: u.todos, ms: u.ms, notes: u.notes, links: u.links } });
+    for (const r of u.rounds) {
+      const t = p.todos.find(x => x.id === r.id);
+      if (t && t.round) News.add(p, 'round', { task: t.text, round: t.round.title }, { ref: { tid: t.id }, undo: { ...none, rounds: [r] } });
+    }
   }
   async function prune(inbox) {
     const cutoff = Date.now() - KEEP_DAYS * 86400e3;
@@ -12044,19 +12123,18 @@ const ClaudeInbox = (() => {
     ClaudeWork.redraw();
   }
 
-  /* What waits for this building, for its card and its bubble. */
+  /* What waits for this building: its leader says it in its status card and its bubble (Leader UX, 0.1.59), with each
+     change listed under the line, then Apply and Dismiss. */
   const forProject = p => pending.filter(x => keyOf(x.project) === keyOf(p.name));
-  function cards(p) {
-    return forProject(p).map(entry => h('div', { class: 'b-claude b-claude-asks' },
-      h('p', { class: 'b-claude-line' }, h('span', { class: 'b-claude-dot', 'aria-hidden': 'true' }),
-        h('span', null, 'Claude asks first' + (entry.summary ? ': ' : '.'), entry.summary ? h('bdi', null, entry.summary.replace(/[.!?]+$/, '')) : null, entry.summary ? '. ' : ' ',
-          h('span', { class: 'b-claude-when' }, 'Sent ' + relAgo(entry.at) + '.'))),
-      h('ul', { class: 'b-claude-list' }, entry.changes.map(c => { const r = readable(p, c); return h('li', { class: r.ok ? null : 'off', dir: 'auto', title: r.why || null }, r.text, r.ok ? null : ' (' + r.why + ')'); })),
-      h('div', { class: 'b-claude-acts' },
-        h('button', { class: 'btn btn-small b-claude-apply', type: 'button', onclick: () => apply(entry) }, 'Apply'),
-        h('button', { class: 'btn btn-small btn-quiet b-claude-dismiss', type: 'button', onclick: () => dismiss(entry) }, 'Dismiss'))));
+  /* The change Claude asks about, for the leader's line: its summary, else the first change and how many more. */
+  function gist(p, entry) {
+    if (entry.summary) return entry.summary.replace(/[.!?]+$/, '');
+    const c = entry.changes[0] || {}, more = entry.changes.length - 1;
+    const one = c.do === 'done' ? 'tick off ' + str(c.task, 200) : c.do === 'edit-description' ? 'a new description for ' + str(c.task, 200) : c.do === 'replace-plan' ? 'a new plan' : 'a change';
+    return one + (more > 0 ? ' and ' + plural(more, 'more change', 'more changes') : '');
   }
-  return { poll, cards, count: p => forProject(p).length, total: () => pending.length, pending: () => pending, AT_ONCE, ASK };
+  const list = (p, entry) => h('ul', { class: 'b-claude-list' }, entry.changes.map(c => { const r = readable(p, c); return h('li', { class: r.ok ? null : 'off', dir: 'auto', title: r.why || null }, r.text, r.ok ? null : ' (' + r.why + ')'); }));
+  return { poll, gist, list, apply, dismiss, undo: undoNow, count: p => forProject(p).length, total: () => pending.length, pending: () => pending, AT_ONCE, ASK };
 })();
 
 const Menu = (() => {
@@ -12119,16 +12197,6 @@ const Menu = (() => {
   }
   function hideNew() { $('#newWrap').hidden = true; $('#btnNew').hidden = false; }
 
-  /* Red projects as tiny buildings with their bubble number; the section hides when none is red. */
-  function renderUrgent() {
-    const sec = $('#sbUrgent'), box = $('#urgentList');
-    if (!sec) return;
-    const reds = DB.projects.map(p => ({ p, u: urgencyOf(p) })).filter(x => x.u.color === 'red').sort((a, b) => b.u.count - a.u.count);
-    sec.hidden = !reds.length;
-    box.replaceChildren(...reds.map(({ p, u }) => h('button', { class: 'urgent-item', type: 'button', title: p.name + '. Red: ' + u.reasons.join('. ') + '.', 'aria-label': p.name + ', red, ' + u.count,
-      onclick: () => { closeDrawer(); MapView.select(p.id); } },
-      MapView.thumb(p), h('span', { class: 'urgent-badge', 'aria-hidden': 'true' }, u.count <= 1 ? '!' : String(Math.min(u.count, 99))))));
-  }
   /* Open tasks due in the next 7 days, overdue first, each with a copy for Claude. */
   function renderDue() {
     const sec = $('#sbDue'), list = $('#dueList');
@@ -12180,8 +12248,9 @@ const Menu = (() => {
   }
   function refresh() {
     if (!countEl) return;
-    renderStar(); renderUrgent(); renderDue(); renderWeek();
+    renderStar(); renderDue(); renderWeek();
     if (typeof Leaders !== 'undefined') Leaders.renderSection();
+    if (typeof News !== 'undefined') { News.check(); News.renderSection(); }   // the leaders' news and Gus, in place of Urgent (0.1.59)
     if (typeof Gus !== 'undefined') Gus.render();
     if (typeof Reports !== 'undefined') Reports.refresh();
     if (typeof AllTasks !== 'undefined') AllTasks.refresh();
@@ -13040,7 +13109,8 @@ const Reports = (() => {
             thumb(r.p),
             h('span', { class: 'rp-row-body' },
               h('span', { class: 'rp-row-top' }, h('span', { class: 'rp-name', dir: 'auto' }, r.p.name), h('b', { class: 'rp-n' }, String(r.n))),
-              h('span', { class: 'rp-meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + Math.max(4, Math.round(r.n / top * 100)) + '%' }))))))) :
+              h('span', { class: 'rp-meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + Math.max(4, Math.round(r.n / top * 100)) + '%' }))),
+            News.reportFace(r.p, 28))))) :
           h('p', { id: 'rpByProject', class: 'rp-empty' }, 'No tasks finished ' + (span.current ? 'this ' + ui.period + ' yet.' : 'that ' + ui.period + '.'))),
     ];
   }
@@ -13265,6 +13335,8 @@ const Proxima = (() => {
      sky blue; the frame sets the size ---------- */
   const faceImg = () => h('img', { class: 'face-pic', alt: '', src: PORTRAITS.proxima, width: 256, height: 256, draggable: 'false' });
   const face = () => h('span', { class: 'gus-face px-face', 'aria-hidden': 'true' }, faceImg());
+  /* Her face at a size: 48 px in the News section, 100 in a leader's bubble, when she brings a building's news. */
+  const faceEl = (size = 48) => { const el = face(); el.style.setProperty('--face', size + 'px'); return el; };
   const nameTag = () => h('span', { class: 'gus-name px-name' }, h('b', null, 'Proxima Pace'), h('span', null, 'Productivity Inspector'));
 
   /* ---------- her card at the top of Reports (J1): her face, her latest line, and her three reports; Reports draws it
@@ -13325,7 +13397,7 @@ const Proxima = (() => {
         h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: () => { Panel.close(); FullView.open(x.p.id); } }, x.m.name), h('span', { class: 'px-proj', dir: 'auto' }, x.p.name))))
         : h('p', { class: 'px-none' }, 'None.')),
       kind === 'daily' ? null : [
-        sec('By building', r.buildings.length ? list(r.buildings.map(b => h('li', null, h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goP(b.p) }, b.p.name), h('b', { class: 'px-n' }, String(b.n)))))
+        sec('By building', r.buildings.length ? list(r.buildings.map(b => h('li', null, News.reportFace(b.p, 20), h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goP(b.p) }, b.p.name), h('b', { class: 'px-n' }, String(b.n)))))
           : h('p', { class: 'px-none' }, 'No tasks finished.')),
         r.busiest.length ? sec('Busiest building', h('p', { id: 'pxBusiest' }, r.busiest.map(b => b.p.name).join(' and ') + ', ' + plural(r.busiest[0].n, 'task', 'tasks') + (r.busiest.length > 1 ? ' each.' : '.'))) : null,
         r.quiet.length ? sec('Nothing finished', list(r.quiet.map(p => h('li', null, h('button', { class: 'px-link', type: 'button', dir: 'auto', onclick: goP(p) }, p.name))))) : null,
@@ -13357,7 +13429,7 @@ const Proxima = (() => {
   function pump() {
     clearTimeout(waitTimer);
     if (saying || !queue.length) return;
-    if ((typeof Gus !== 'undefined' && Gus.isSaying()) || Panel.isOpen() || Confirm.isOpen()) { waitTimer = setTimeout(pump, 500); return; }
+    if ((typeof Gus !== 'undefined' && Gus.isSaying()) || (typeof News !== 'undefined' && News.isHeld()) || Panel.isOpen() || Confirm.isOpen()) { waitTimer = setTimeout(pump, 500); return; }
     const kind = queue.shift();
     if (typeof kind !== 'string') { if (getProject(kind.pid)) say(kind); else pump(); return; }   // a milestone's party
     const r = proximaReport(kind);
@@ -13366,6 +13438,7 @@ const Proxima = (() => {
   }
   function say(r) {
     const party = r.kind === 'milestone';
+    if (typeof News !== 'undefined') News.yieldTo();            // a leader's news waits for her (Leader UX, N3)
     saying = { kind: r.kind, key: party ? r.key : r.per.key, item: party ? r : null };
     const box = $('#pxSay'), act = $('#pxSayRead');
     $('#pxSayText').textContent = r.line;
@@ -13417,8 +13490,564 @@ const Proxima = (() => {
     check();
     setInterval(() => { refresh(); check(); }, 60000);        // a new day, week or month while the city stays open
   }
-  return { init, refresh, renderCard, renderDot, yieldToGus, openReport, check, hush, announce, isSaying: () => !!saying, saying: () => saying && saying.kind, report: proximaReport,
+  return { init, refresh, renderCard, renderDot, yieldToGus, openReport, check, hush, announce, faceEl, isSaying: () => !!saying, saying: () => saying && saying.kind, report: proximaReport,
+    busy: () => !!saying || queue.length > 0,
     _test: { sayMs: ms => { sayMs = ms; }, state: () => JSON.parse(JSON.stringify(state)), forget: () => { state = { read: {}, spoke: {} }; save(); queue = []; }, queue: () => [...queue] } };
+})();
+
+/* The leaders' news (Leader UX, piece 3, 0.1.59): each leader brings its own buildings' news, news nobody else gives,
+   in the shared lines (LEADER_LINES); Proxima brings the news of a building with no leader, in the same lines. Gus and
+   Proxima keep their own jobs. Designed in Leader UX, Rounds 1 to 4:
+   - The moments (M1): behind its pace, due today, one task from done, Claude's additions and rounds, Claude waiting,
+     asking first or stopped on an error open a bubble by themselves; Claude finishing, a round's answers and the week
+     wait with their leader. A street party, Claude working and the greeting are not news.
+   - The side bar's News section (N1, N3, G1, D1) replaces Urgent and Gus's part: Gus while the city has garbage, then
+     each leader with news waiting, then Proxima for the buildings with none, each a face with ! for one item or a
+     count for several. A click opens its bubble; each waiting face has its own dismiss; there is no Dismiss all.
+   - The bubble (B1, N3) speaks where Gus and Proxima do, at the map's top left: the face at 100 px, the name in its
+     color, the building, lit on the map while it shows, and Go to it. Several at once share one bubble, 1 of N with
+     Next, the most pressing first. Gus and Proxima speak first. A bubble that opened by itself closes after 14 seconds
+     and leaves what it held waiting; one opened by a click stays until closed.
+   - Reading (D1): an item is read once its bubble showed it and was closed, or Next went past it. Opening a
+     building's status card reads its news too: the card says it, and keeps saying it while it stays open.
+   Kept in this browser (nullovation-city:news): nothing new in the city. Undo, for Claude's additions, lasts while the
+   page stays open, as a toast's does. */
+const NEWS_RANK = { behind_more: 0, behind_day: 0, behind: 0, waiting: 1, asks: 1, failed: 1, due: 2, due_many: 2, one_left: 3,
+  added: 4, round: 4, finished: 5, answers: 5, week: 6, week_quiet: 6, working: 7 };
+const NEWS_OPENS = new Set(['behind', 'behind_more', 'behind_day', 'due', 'due_many', 'one_left', 'added', 'round', 'waiting', 'asks', 'failed']);
+const NEWS_CLAUDE = new Set(['waiting', 'failed', 'finished', 'asks']);
+/* How far behind a building is (M1): its pace one period behind (the bubble yellow), two or more (red), or a day
+   without a tick under Work until finished (red). Work until finished's yellow is a fresh tick, not behind. */
+function behindLevel(p, now = Date.now()) {
+  const sys = p.urgency && p.urgency.system, u = urgencyOf(p, now);
+  if (sys === 'pace') return u.system === 'red' ? 2 : u.system === 'yellow' ? 1 : 0;
+  if (sys === 'finish') return u.system === 'red' ? 3 : 0;
+  return 0;
+}
+const BEHIND_MOMENT = { 1: 'behind', 2: 'behind_more', 3: 'behind_day' };
+/* The task a line points to: the next one, else any open task. */
+const newsTask = p => nextTask(p) || openTasks(p)[0] || null;
+
+const News = (() => {
+  const KEY = 'nullovation-city:news', SAY_MS = 14000, KEEP_RAISED = 21 * 86400e3;
+  const fresh = () => ({ items: [], raised: {}, lvl: {}, dueDay: '', week: '' });
+  function load() {
+    try { const v = JSON.parse(localStorage.getItem(KEY)); if (v && typeof v === 'object' && Array.isArray(v.items)) return Object.assign(fresh(), v); } catch (e) { /* a fresh start */ }
+    return fresh();
+  }
+  let st = load(), started = false, sayMs = SAY_MS;
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* this visit only */ } };
+  /* Another tab with the city open changes the same store: read it again first, so neither undoes the other. */
+  const edit = fn => { st = load(); const was = JSON.stringify(st), r = fn(); if (JSON.stringify(st) !== was) save(); return r; };
+  const undos = new Map();                                   // an item's id: what its Undo takes back, while the page is open
+  const held = new Map();                                    // a building's id: the news its status card or project view read
+
+  /* ---------- who says it ---------- */
+  function speakerOf(p) {
+    const l = p && leaderOf(p);
+    return l ? { k: 'ld:' + l.id, l, name: leaderName(l), role: l.role, color: l.color } : { k: 'px', l: null, name: 'Proxima Pace', role: 'Productivity Inspector', color: '#8FD0F7' };
+  }
+  const faceOf = (sp, size) => (sp.l ? Leaders.face(sp.l, size) : Proxima.faceEl(size));
+  const lineOf = it => leaderSay(it.moment, it.v);
+  /* The most pressing first; among the same, the leaders before Proxima, as in the side bar, then the oldest first. */
+  const proximaSays = it => { const p = getProject(it.pid); return p && !leaderOf(p) ? 1 : 0; };
+  const sortItems = list => [...list].sort((a, b) => (NEWS_RANK[a.moment] ?? 9) - (NEWS_RANK[b.moment] ?? 9) || proximaSays(a) - proximaSays(b) || a.at - b.at);
+  const live = () => st.items.filter(it => getProject(it.pid));
+
+  /* ---------- raising news ---------- */
+  function raise(p, moment, v, ref = {}, key = null) {
+    if (!p || !LEADER_LINES[moment]) return null;
+    const now = Date.now(), it = { id: uid('nw'), key: key || moment + ':' + p.id + ':' + now, pid: p.id, moment, v, ref, at: now, popped: false };
+    st.items = st.items.filter(x => x.key !== it.key);      // the same news again replaces the one waiting
+    st.items.push(it);
+    st.raised[it.key] = now;
+    return it;
+  }
+  const wasRaised = key => st.raised[key] != null;
+  function after() {
+    renderSection();
+    Bubble.refresh();
+    Leaders.redrawCard();
+    if (bub) { grow(); } else pumpSoon();
+  }
+  const pumpSoon = () => { clearTimeout(waitT); waitT = setTimeout(pump, 30); };
+  /* What reads an item: its bubble went past it or closed, its card showed it, or its face was dismissed. */
+  function readIds(ids) {
+    const set = new Set(ids);
+    if (!set.size) return;
+    edit(() => { st.items = st.items.filter(x => !set.has(x.id)); });
+    renderSection();
+  }
+
+  /* One add from outside: Claude's additions and rounds (the inbox), and a round's answers. Undo is kept for its item. */
+  function add(p, moment, v, { ref = {}, key = null, undo = null } = {}) {
+    const it = edit(() => raise(p, moment, v, ref, key));
+    if (it && undo) undos.set(it.id, undo);
+    if (it) after();
+    return it;
+  }
+
+  /* ---------- the moments the city sees for itself: behind, due today, the week, and stale news ---------- */
+  function check(now = Date.now()) {
+    if (!started) return;
+    let moved = false;
+    edit(() => {
+      const today = ymd(now), wk = ymd(weekStartOf(now));
+      const n0 = st.items.length;
+      st.items = st.items.filter(it => getProject(it.pid));
+      for (const p of DB.projects) {
+        /* behind its pace: on the change, and not when you picked the system or its days yourself */
+        const lv = behindLevel(p, now), u = p.urgency || {}, cfg = [u.system, u.days, u.pickedAt].join(':'), old = st.lvl[p.id];
+        if (!old || typeof old !== 'object') st.lvl[p.id] = { l: 0, cfg };            // first seen: behind already is news
+        else if (old.cfg !== cfg) st.lvl[p.id] = { l: lv, cfg };                       // your own change is not
+        const prev = st.lvl[p.id].l;
+        if (lv !== prev) {
+          const t = newsTask(p);
+          if (lv && t && (prev === 0 || (lv === 2 && prev === 1) || (lv === 3) !== (prev === 3))) { raise(p, BEHIND_MOMENT[lv], { task: t.text }, { level: lv, tid: t.id }, 'behind:' + p.id); moved = true; }
+          st.lvl[p.id].l = lv;
+        }
+        /* news that is no longer true goes: back on pace, nothing due today any more, a milestone no longer one task
+           from done, last week's news in a new week */
+        st.items = st.items.filter(it => {
+          if (it.pid !== p.id) return true;
+          if (it.moment.startsWith('behind')) return lv > 0 && (lv === 3) === (it.ref.level === 3);
+          if (it.moment === 'due' || it.moment === 'due_many') return it.ref.day === today && dueToday(p, today).length > 0;
+          if (it.moment === 'one_left') return oneLeft(p, it.ref.mid) != null;
+          if (it.moment === 'week' || it.moment === 'week_quiet') return it.ref.week === wk;
+          return true;
+        });
+      }
+      /* due today: the day's first open, one per building */
+      if (st.dueDay !== today) {
+        st.dueDay = today;
+        for (const p of DB.projects) {
+          const ts = dueToday(p, today);
+          if (!ts.length) continue;
+          raise(p, ts.length > 1 ? 'due_many' : 'due', { task: ts[0].text, n: ts.length }, { day: today, tid: ts[0].id }, 'due:' + p.id + ':' + today);
+          moved = true;
+        }
+      }
+      /* the week: the first open of a new Saturday-to-Friday week, one per building; the first week the city keeps
+         news only starts counting */
+      if (st.week !== wk) {
+        const first = !st.week;
+        st.week = wk;
+        if (!first) {
+          const ticks = typeof taskTicks === 'function' ? taskTicks(DB.projects, now) : [];
+          const byP = typeof ticksByProject === 'function' ? ticksByProject(ticks, addDays(weekStartOf(now), -7), weekStartOf(now)) : [];
+          for (const p of DB.projects) {
+            const t = newsTask(p);
+            if (!t) continue;
+            const row = byP.find(r => r.p === p), n = row ? row.n : 0;
+            raise(p, n ? 'week' : 'week_quiet', { n, task: t.text }, { week: wk, tid: t.id }, 'week:' + p.id + ':' + wk);
+            moved = true;
+          }
+        }
+      }
+      for (const [k, at] of Object.entries(st.raised)) if (now - at > KEEP_RAISED) delete st.raised[k];
+      for (const id of Object.keys(st.lvl)) if (!getProject(id)) delete st.lvl[id];
+      if (st.items.length !== n0) moved = true;
+    });
+    if (moved) after();
+  }
+  function dueToday(p, today = ymd()) {
+    const pin = pinnedTask(p);
+    const ts = openTasks(p).filter(t => t.due === today);
+    return pin && ts.includes(pin) ? [pin, ...ts.filter(t => t !== pin)] : ts;
+  }
+  /* A milestone of two tasks or more, with no repeat, one task from done: its last open task. */
+  function oneLeft(p, mid) {
+    const m = (p.milestones || []).find(x => x.id === mid);
+    const ts = p.todos.filter(t => t.milestoneId === mid);
+    if (!m || ts.length < 2 || ts.some(t => t.repeat)) return null;
+    const open = ts.filter(t => !t.done);
+    return open.length === 1 ? { m, t: open[0] } : null;
+  }
+  /* A tick anywhere (tickTask): a milestone it leaves one task from done, once a day. */
+  function ticked(p, t) {
+    if (!started || !p || !t || !t.milestoneId) return;
+    const x = oneLeft(p, t.milestoneId);
+    if (!x) return;
+    const key = 'one:' + x.m.id + ':' + ymd();
+    if (wasRaised(key)) return;
+    edit(() => raise(p, 'one_left', { milestone: x.m.name, task: x.t.text }, { mid: x.m.id, tid: x.t.id }, key));
+    setTimeout(after, 0);                                    // after the tick has redrawn
+  }
+
+  /* ---------- Claude's moments: its sessions, and the changes that ask first ---------- */
+  function claude() {
+    if (!started || typeof ClaudeWork === 'undefined') return;
+    let moved = false;
+    edit(() => {
+      const n0 = st.items.length;
+      for (const p of DB.projects) {
+        const ss = ClaudeWork.sessionsOf(p);
+        for (const s of ss) {
+          const task = s.task || s.ask || 'a task';
+          if (s.state === 'waiting') {
+            const key = 'waiting:' + s.session + ':' + s.since;
+            if (!wasRaised(key)) { raise(p, 'waiting', { task }, { session: s.session }, key); moved = true; }
+          } else if (s.state === 'failed' && !ClaudeWork.isSeen(s)) {
+            const key = 'failed:' + s.session + ':' + s.since;
+            if (!wasRaised(key)) { raise(p, 'failed', { task }, { session: s.session }, key); moved = true; }
+          } else if (s.state === 'done' && !ClaudeWork.isSeen(s)) {
+            const key = 'finished:' + s.session + ':' + task.trim().toLowerCase().slice(0, 160);
+            if (!wasRaised(key)) { raise(p, 'finished', { task }, { session: s.session, task: s.task, project: s.project }, key); moved = true; }
+          }
+        }
+        /* waiting is over once the session moves on; an error once it works again */
+        st.items = st.items.filter(it => {
+          if (it.pid !== p.id || (it.moment !== 'waiting' && it.moment !== 'failed')) return true;
+          const s = ss.find(x => x.session === it.ref.session);
+          return it.moment === 'waiting' ? !!s && s.state === 'waiting' : !s || s.state === 'failed';
+        });
+      }
+      /* what asks first: one item for each change file waiting in inbox/pending, gone once applied or dismissed */
+      if (typeof ClaudeInbox !== 'undefined') {
+        const pend = ClaudeInbox.pending(), names = new Set(pend.map(x => x.name));
+        for (const e of pend) {
+          const p = DB.projects.find(x => x.name.trim().toLowerCase() === e.project.trim().toLowerCase());
+          const key = 'asks:' + e.name;
+          if (!p || wasRaised(key)) continue;
+          raise(p, 'asks', { change: ClaudeInbox.gist(p, e) }, { entry: e.name }, key);
+          moved = true;
+        }
+        st.items = st.items.filter(it => it.moment !== 'asks' || names.has(it.ref.entry));
+      }
+      if (st.items.length !== n0) moved = true;
+    });
+    if (moved) after();
+  }
+
+  /* ---------- the side bar's News section ---------- */
+  function faces() {
+    const by = new Map();
+    for (const it of live()) {
+      const sp = speakerOf(getProject(it.pid));
+      if (!by.has(sp.k)) by.set(sp.k, { ...sp, items: [] });
+      by.get(sp.k).items.push(it);
+    }
+    const list = [...by.values()].map(f => ({ ...f, items: sortItems(f.items) }));
+    list.sort((a, b) => (a.k === 'px') - (b.k === 'px') || (NEWS_RANK[a.items[0].moment] ?? 9) - (NEWS_RANK[b.items[0].moment] ?? 9) || a.name.localeCompare(b.name));
+    return list;
+  }
+  /* Under a face, the first word of its name, so Gus and Proxima fit as the leaders do; the tooltip has it whole. */
+  const shortName = name => String(name).trim().split(/\s+/)[0] || name;
+  const badge = n => h('span', { class: 'news-badge', 'aria-hidden': 'true' }, n <= 1 ? '!' : String(Math.min(n, 99)));
+  function tile({ k, name, face, n, title, open, dismiss, color }) {
+    const t = h('div', { class: 'news-tile', 'data-k': k },
+      h('button', { class: 'news-face', type: 'button', title, 'aria-label': title, onclick: open }, face, badge(n), h('span', { class: 'news-name', dir: 'auto' }, shortName(name))),
+      dismiss ? h('button', { class: 'icon-btn news-dismiss', type: 'button', 'aria-label': 'Dismiss ' + name + '’s news', title: 'Dismiss ' + name + '’s news', html: iconSvg('close', 12), onclick: dismiss }) : null);
+    if (color) t.style.setProperty('--ld', color);
+    return t;
+  }
+  function renderSection() {
+    const sec = $('#sbNews'), box = $('#newsList');
+    if (!sec) return;
+    const a = document.activeElement, focus = a && box.contains(a) ? [a.closest('.news-tile') && a.closest('.news-tile').dataset.k, a.classList.contains('news-dismiss')] : null;
+    const tiles = [];
+    if (typeof Gus !== 'undefined' && Gus.shows()) {
+      const r = Gus.report();
+      tiles.push(tile({ k: 'gus', name: 'Gus Grimsby', face: Gus.faceEl(48), n: r.tasks, color: '#F29A74',
+        title: 'Gus Grimsby, Garbage Man' + (r.tasks ? ': ' + plural(r.tasks, 'task', 'tasks') + ' between the city and clean streets' : '') + '. Open his report.',
+        open: () => { Menu.closeDrawer(); Gus.open(); } }));
+    }
+    for (const f of faces()) {
+      const n = f.items.length;
+      tiles.push(tile({ k: f.k, name: f.name, face: faceOf(f, 48), n, color: f.color,
+        title: f.name + (f.role ? ', ' + f.role : '') + ': ' + plural(n, 'piece of news', 'pieces of news') + '. Hear it.',
+        open: () => { Menu.closeDrawer(); openFace(f.k); }, dismiss: () => dismiss(f.k) }));
+    }
+    sec.hidden = !tiles.length;
+    box.replaceChildren(...tiles.filter(Boolean));
+    if (focus && focus[0]) {
+      const t = $(`.news-tile[data-k="${focus[0]}"]`, box);
+      const b = t && (focus[1] ? $('.news-dismiss', t) : $('.news-face', t));
+      if (b) b.focus({ preventScroll: true }); else { const any = $('.news-face', box); if (any) any.focus({ preventScroll: true }); }
+    }
+  }
+  /* A face's dismiss: its news is read without being heard; what sticks for a reason (a bubble on the map, Claude's
+     changes in the status card) stays where it shows (N2). */
+  function dismiss(k) {
+    const ids = live().filter(it => speakerOf(getProject(it.pid)).k === k).map(it => it.id);
+    if (bub && bub.list.some(it => ids.includes(it.id))) hide();
+    readIds(ids);
+    const next = $('#newsList .news-face');
+    if (next) next.focus(); else { const s = $('#search'); if (s) s.focus({ preventScroll: true }); }
+  }
+
+  /* ---------- the bubble ---------- */
+  let bub = null, sayT = 0, waitT = 0;                       // { list, i, auto, k, from }
+  const box = () => $('#ldSay');
+  function blocked() {
+    return (typeof Gus !== 'undefined' && Gus.isSaying()) || (typeof Proxima !== 'undefined' && Proxima.busy())
+      || Panel.isOpen() || Confirm.isOpen();
+  }
+  /* What opens by itself: the news that opens by itself and has not shown yet, unless its building's card has it. */
+  function pump() {
+    clearTimeout(waitT);
+    if (!started || bub) return;
+    const due = sortItems(live().filter(it => !it.popped && NEWS_OPENS.has(it.moment)));
+    if (!due.length) return;
+    if (blocked()) { waitT = setTimeout(pump, 500); return; }
+    show(due, { auto: true });
+  }
+  /* New news while the bubble shows joins it, as one more of N. */
+  function grow() {
+    const have = new Set(bub.list.map(it => it.id));
+    const more = sortItems(live().filter(it => !it.popped && NEWS_OPENS.has(it.moment) && !have.has(it.id)));
+    if (!more.length) return;
+    bub.list.push(...more);
+    popped(more);
+    draw();
+  }
+  function popped(list) {
+    const ids = new Set(list.map(it => it.id));
+    edit(() => { for (const it of st.items) if (ids.has(it.id)) it.popped = true; });
+  }
+  function openFace(k) {
+    const list = sortItems(live().filter(it => speakerOf(getProject(it.pid)).k === k));
+    if (!list.length) return;
+    if (typeof Gus !== 'undefined' && Gus.isSaying()) Gus.hush();
+    show(list, { auto: false, k });
+    if (typeof Proxima !== 'undefined') Proxima.yieldToGus();       // her bubble goes, and comes back after this one
+    const b = box(), first = b && ($('.ld-say-acts .btn', b) || $('#ldSayClose'));
+    if (first) first.focus({ preventScroll: true });
+  }
+  function show(list, { auto, k = null }) {
+    clearTimeout(sayT);
+    bub = { list, i: 0, auto, k, from: auto ? null : document.activeElement };
+    popped(list);
+    const b = box();
+    b.hidden = false;
+    draw();
+    requestAnimationFrame(() => b.classList.add('show'));
+    if (auto) sayT = setTimeout(() => hide({ read: false }), sayMs);
+  }
+  /* Once you act on the bubble, it stays until you close it. */
+  const hold = () => { if (bub && bub.auto) { bub.auto = false; clearTimeout(sayT); } };
+  function draw() {
+    const b = box();
+    if (!bub || !b) return;
+    const it = bub.list[bub.i], p = getProject(it.pid);
+    if (!p) { next(); return; }
+    const sp = speakerOf(p), n = bub.list.length;
+    b.style.setProperty('--ld', sp.color);
+    b.classList.toggle('px-voice', !sp.l);
+    b.dataset.k = sp.k; b.dataset.moment = it.moment;
+    $('#ldSayFace').replaceChildren(faceOf(sp, 100));
+    $('#ldSayName').textContent = sp.name;
+    $('#ldSayRole').textContent = sp.role || '';
+    $('#ldSayRole').hidden = !sp.role;
+    const keep = b.contains(document.activeElement) ? keyOf(document.activeElement) : null;
+    /* the building: a click goes to it on the map, as Go to it does, without opening it (0.1.60) */
+    $('#ldSayWhere').replaceChildren(h('button', { class: 'ld-say-bld', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } },
+      h('span', { class: 'ld-say-thumb', 'aria-hidden': 'true' }, MapView.thumb(p)), h('bdi', null, p.name)));
+    $('#ldSayText').replaceChildren(...sayNodes(p, it.moment, it.v, taskFor(p, it), 'say', it));
+    $('#ldSayMore').replaceChildren(...extraOf(p, it, 'say'));
+    const acts = actsOf(p, it, 'say');
+    $('#ldSayActs').replaceChildren(...[...acts,
+      h('button', { class: 'btn btn-small btn-quiet ld-go', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } }, 'Go to it'),
+      n > 1 ? h('span', { id: 'ldSayCount', class: 'ld-say-count' }, (bub.i + 1) + ' of ' + n) : null,
+      n > 1 && bub.i < n - 1 ? h('button', { id: 'ldSayNext', class: 'btn btn-small ld-next', type: 'button', onclick: () => { hold(); next(); } }, 'Next') : null].filter(Boolean));
+    MapView.light(p.id);
+    const view = typeof FullView !== 'undefined' && FullView.isOpen();      // beside the project view, as Proxima's
+    b.style.left = view ? Math.round(FullView.rightEdge() + 22) + 'px' : '';
+    fitSay(b);
+    if (keep) { const back = $(keep, b); if (back) back.focus({ preventScroll: true }); }
+  }
+  /* A button in the bubble, found again after a redraw: by its id, else its first class. */
+  const keyOf = el => (el.id ? '#' + el.id : el.classList && el.classList.length ? '.' + el.classList[el.classList.length - 1] : null);
+  /* Draws the bubble again, as it is: its portraits or its building's art loaded after it opened. */
+  function redraw() { if (bub) draw(); }
+  function next() {
+    if (!bub) return;
+    const cur = bub.list[bub.i];
+    if (cur) readIds([cur.id]);
+    if (bub.i >= bub.list.length - 1) { hide({ read: false }); return; }
+    bub.i++;
+    draw();
+    const nb = $('#ldSayNext') || $('#ldSayClose');
+    if (nb && box().contains(document.activeElement) === false && !bub.auto) nb.focus({ preventScroll: true });
+  }
+  /* Closed: what it showed is read. Gone by itself, or given way to Gus or Proxima: what it showed waits, unread. */
+  function hide({ read = true } = {}) {
+    clearTimeout(sayT);
+    const b = box();
+    if (!bub) return false;
+    const was = bub;
+    bub = null;
+    if (read) readIds([was.list[was.i].id]);
+    if (b) { b.classList.remove('show'); b.hidden = true; }
+    if (MapView._lit() === (was.list[was.i] || {}).pid) MapView.light(null);
+    renderSection();
+    if (was.from && document.contains(was.from) && b && b.contains(document.activeElement)) was.from.focus({ preventScroll: true });
+    else if (b && b.contains(document.activeElement)) { const f = $('#newsList .news-face'); if (f) f.focus({ preventScroll: true }); }
+    waitT = setTimeout(pump, 400);
+    return true;
+  }
+  /* Gus or Proxima speaks: the bubble gives way, and what it had not read comes back after them. */
+  function yieldTo() {
+    if (!bub) return;
+    const left = bub.list.slice(bub.i).map(it => it.id), auto = bub.auto;
+    hide({ read: false });
+    if (auto) edit(() => { for (const it of st.items) if (left.includes(it.id)) it.popped = false; });
+  }
+  function goTo(pid) {
+    if (!getProject(pid)) return;
+    MapView.glideBeside(pid, typeof FullView !== 'undefined' && FullView.isOpen() ? FullView.rightEdge() : 0);
+  }
+
+  /* ---------- the line: its task a link that opens it (0.1.60) ---------- */
+  /* The task an item speaks of: the one it names by id, else by its title in the building. */
+  function taskFor(p, it) {
+    const byId = it.ref && it.ref.tid ? p.todos.find(t => t.id === it.ref.tid) : null;
+    if (byId) return byId;
+    const name = it.ref && it.ref.task || it.v && it.v.task;
+    return name ? taskNamed(p, name) : null;
+  }
+  const taskNamed = (p, name) => { const k = String(name).trim().toLowerCase(); return p.todos.find(t => !t.archived && t.text.trim().toLowerCase() === k) || p.todos.find(t => t.text.trim().toLowerCase() === k) || null; };
+  /* A line as nodes: the words, and the task in its own color, a click opening it in its project. From the bubble,
+     going to the task is acting on the news: it is read and the bubble closes, as Open does; what else it held waits. */
+  function sayNodes(p, moment, v, t, where, it = null) {
+    return leaderParts(moment, v).map(x => {
+      if (x.blank !== 'task' || !t) return x.text;
+      return h('button', { class: 'ld-task', type: 'button', dir: 'auto', title: 'Open ' + x.full, 'data-task': t.id, onclick: e => {
+        e.stopPropagation();
+        if (where === 'say' && it) { readIds([it.id]); hide({ read: false }); }
+        FullView.openTask(p.id, t.id);
+      } }, x.text);
+    });
+  }
+
+  /* ---------- what an item adds under its line, and its buttons ---------- */
+  function extraOf(p, it, where) {
+    if (it.moment === 'asks') {
+      const e = ClaudeInbox.pending().find(x => x.name === it.ref.entry);
+      return e ? [ClaudeInbox.list(p, e)] : [];
+    }
+    return [];
+  }
+  /* Each button acts, then the item is read and the bubble goes on to the next one. */
+  function actsOf(p, it, where) {
+    const done = () => {
+      if (where === 'say') next();
+      else { dropHeld(p.id, it.id); Bubble.refresh(); Leaders.redrawCard(); }
+    };
+    const btn = (label, cls, title, run) => h('button', { class: 'btn btn-small ' + cls, type: 'button', title, onclick: () => { hold(); run(); done(); } }, label);
+    const out = [];
+    if ((it.moment === 'added' || it.moment === 'round') && undos.has(it.id))
+      out.push(btn('Undo', 'ld-undo', 'Take back what Claude ' + (it.moment === 'round' ? 'attached' : 'added'), () => { ClaudeInbox.undo(p, undos.get(it.id)); undos.delete(it.id); }));
+    if (it.moment === 'asks') {
+      const e = ClaudeInbox.pending().find(x => x.name === it.ref.entry);
+      if (e) out.push(btn('Apply', 'b-claude-apply', 'Apply what Claude asks', () => ClaudeInbox.apply(e)),
+        btn('Dismiss', 'btn-quiet b-claude-dismiss', 'Dismiss what Claude asks: nothing changes', () => ClaudeInbox.dismiss(e)));
+    }
+    if (it.moment === 'finished') {
+      const t = it.ref.task && ClaudeWork.taskOf(p, { task: it.ref.task, project: it.ref.project || '' });
+      if (t) out.push(btn('Tick it', 'b-claude-tick', 'Tick off ' + t.text + ', the task this session started from', () => ClaudeWork.tick(p, t)));
+    }
+    if (it.moment === 'answers') {
+      const t = p.todos.find(x => x.id === it.ref.tid);
+      if (t) out.push(btn('Open', 'ld-open', 'Open ' + t.text + ' and its round', () => { if (where === 'say') { readIds([it.id]); hide({ read: false }); } FullView.openTask(p.id, t.id); }));
+    }
+    return out;
+  }
+
+  /* ---------- the status card and the project view: a building's news, read as they show it ---------- */
+  /* Its waiting news, read now, and held while its status card or project view shows it. */
+  function take(pid) {
+    const mine = live().filter(it => it.pid === pid);
+    if (mine.length) {
+      const have = held.get(pid) || [];
+      held.set(pid, [...have, ...mine.filter(it => !have.some(x => x.id === it.id))]);
+      if (bub && bub.list.some(it => it.pid === pid && mine.includes(it))) { /* the bubble keeps showing what it shows */ }
+      readIds(mine.map(it => it.id));
+    }
+    return sortItems(held.get(pid) || []);
+  }
+  const dropHeld = (pid, id) => { const l = held.get(pid); if (l) held.set(pid, l.filter(x => x.id !== id)); };
+  /* Let go of what a building held once neither its status card nor its project view shows it. */
+  function release(pid) {
+    if (!pid) return;
+    if (Bubble.openId() === pid || (typeof FullView !== 'undefined' && FullView.shows(pid))) return;
+    held.delete(pid);
+  }
+  /* One line the leader says, with what goes under it and its buttons. */
+  function lineEl(nodes, { more = [], acts = [], moment = '' } = {}) {
+    return h('div', { class: 'ld-line', 'data-moment': moment },
+      h('p', { class: 'ld-says', dir: 'auto' }, ...nodes), ...more, acts.length ? h('div', { class: 'ld-acts' }, acts) : null);
+  }
+  /* The status card: its news, then what Claude is doing there, in the leader's voice, for as long as the card showed
+     it before (B3): working, waiting, finished with Tick it and the start of its reply, stopped, asking first with
+     Apply and Dismiss. Claude's news the live lines already say is not said twice. */
+  function cardLines(p) {
+    const lines = [];
+    const voice = typeof ClaudeWork !== 'undefined' ? ClaudeWork.voice(p) : [];
+    const pend = typeof ClaudeInbox !== 'undefined' ? ClaudeInbox.pending().filter(e => e.project.trim().toLowerCase() === p.name.trim().toLowerCase()) : [];
+    /* under the project view the card is hidden: what it would say waits for the leader card, or the News section */
+    const mine = typeof FullView !== 'undefined' && FullView.shows(p.id) ? sortItems(held.get(p.id) || []) : take(p.id);
+    for (const it of mine) {
+      if (it.moment === 'asks' && pend.some(e => e.name === it.ref.entry)) continue;
+      if (NEWS_CLAUDE.has(it.moment) && it.moment !== 'asks' && voice.some(x => x.s.session === it.ref.session)) continue;
+      lines.push({ rank: NEWS_RANK[it.moment], el: lineEl(sayNodes(p, it.moment, it.v, taskFor(p, it), 'card'), { more: extraOf(p, it, 'card'), acts: actsOf(p, it, 'card'), moment: it.moment }) });
+    }
+    for (const e of pend) {
+      lines.push({ rank: NEWS_RANK.asks, el: h('div', { class: 'ld-line b-claude-asks', 'data-moment': 'asks' },
+        h('p', { class: 'ld-says', dir: 'auto' }, leaderSay('asks', { change: ClaudeInbox.gist(p, e) }), ' ', h('span', { class: 'b-claude-when' }, 'Sent ' + relAgo(e.at) + '.')),
+        ClaudeInbox.list(p, e),
+        h('div', { class: 'ld-acts' },
+          h('button', { class: 'btn btn-small b-claude-apply', type: 'button', onclick: () => ClaudeInbox.apply(e) }, 'Apply'),
+          h('button', { class: 'btn btn-small btn-quiet b-claude-dismiss', type: 'button', onclick: () => ClaudeInbox.dismiss(e) }, 'Dismiss'))) });
+    }
+    const VOICE_RANK = { waiting: 1, working: 1.2, failed: 1.4, finished: 5 };      // Claude's own order: waiting, working, stopped, finished
+    for (const x of voice) {
+      lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: h('div', { class: 'ld-line b-claude ' + x.s.state, 'data-moment': x.moment },
+        h('p', { class: 'ld-says', dir: 'auto' }, ...sayNodes(p, x.moment, x.v, x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null, 'card')),
+        x.reply ? h('p', { class: 'b-claude-said', dir: 'auto', title: x.reply }, x.reply) : null,
+        x.tick ? h('div', { class: 'ld-acts' }, h('button', { class: 'btn btn-small b-claude-tick', type: 'button', title: 'Tick off ' + x.tick.text + ', the task this session started from',
+          onclick: () => ClaudeWork.tick(p, x.tick) }, 'Tick it')) : null) });
+    }
+    return lines.sort((a, b) => a.rank - b.rank).map(x => x.el);
+  }
+  /* The leader card in the project view: its news for this building, else nothing (its greeting shows). */
+  function viewLines(p) {
+    return take(p.id).filter(it => !NEWS_CLAUDE.has(it.moment) || it.moment === 'finished')
+      .map(it => lineEl(sayNodes(p, it.moment, it.v, taskFor(p, it), 'view'), { more: extraOf(p, it, 'view'), acts: actsOf(p, it, 'view'), moment: it.moment }));
+  }
+
+  /* ---------- Reports: the leader's face beside a building's row ---------- */
+  function reportFace(p, size = 24) {
+    const l = leaderOf(p);
+    if (!l) return null;
+    const f = Leaders.face(l, size);
+    f.classList.add('rp-leader');
+    f.title = leaderName(l) + (l.role ? ', ' + l.role : '');
+    f.removeAttribute('aria-hidden');
+    f.setAttribute('role', 'img');
+    f.setAttribute('aria-label', 'Led by ' + leaderName(l));
+    return f;
+  }
+
+  function init() {
+    started = true;
+    const b = box();
+    $('#ldSayClose').innerHTML = iconSvg('close', 16);
+    $('#ldSayClose').addEventListener('click', () => hide());
+    b.addEventListener('keydown', e => { if (e.key === 'Escape' && bub) { e.stopPropagation(); e.preventDefault(); hide(); } });
+    b.addEventListener('pointerdown', () => hold());
+    window.addEventListener('storage', e => { if (e.key === KEY) { st = load(); renderSection(); } });
+    Art.onLoad(id => { if (bub && bub.list[bub.i] && bub.list[bub.i].pid === id) draw(); });   // its building's own art, loaded after it opened
+    check();
+    claude();
+    renderSection();
+    pump();
+    setInterval(check, 60000);                               // a new day, a new week, and pace slipping while the city stays open
+  }
+  return { init, check, claude, ticked, add, renderSection, take, release, cardLines, viewLines, reportFace, yieldTo, hide, pump, redraw,
+    isShowing: () => !!bub, isHeld: () => !!bub && !bub.auto, items: () => sortItems(live()), lineOf,
+    _test: { sayMs: ms => { sayMs = ms; }, state: () => JSON.parse(JSON.stringify(st)), bubble: () => bub && { ids: bub.list.map(x => x.id), i: bub.i, auto: bub.auto },
+      forget: () => { st = fresh(); save(); held.clear(); undos.clear(); }, held: pid => (held.get(pid) || []).map(x => x.id) } };
 })();
 
 (function boot() {
@@ -13447,6 +14076,7 @@ const Proxima = (() => {
   Garbage.refresh();                                       // the garbage already lying there, with no truck
   Gus.init();                                              // the Garbage Man, and his first word of the day
   Proxima.init();                                          // the Productivity Inspector: a weekly or monthly report, after Gus
+  News.init();                                             // the leaders' news, after Gus and Proxima (0.1.59)
   Menu.refresh();                                          // the side bar's tiny buildings need the map's ground art
 
   const ui = Store.loadUi();

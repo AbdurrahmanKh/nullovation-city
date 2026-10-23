@@ -58,16 +58,20 @@ const Bubble = (() => {
   }
   function clearTicks() { for (const t of ticking.values()) clearTimeout(t); ticking.clear(); }
   function open(id) {
+    const was = openId;
     if (openId !== id) { shownIds = new Set(); clearTicks(); if (addIn) addIn.value = ''; }
     openId = id;
+    if (was && was !== id) News.release(was);               // the news the last card held, read
     el.hidden = false; enter.hidden = false;
     el.classList.remove('show');
     render(false); position();
     requestAnimationFrame(() => el.classList.add('show'));
   }
   function close() {
+    const was = openId;
     openId = null; clearTicks();
     el.hidden = true; enter.hidden = true; el.classList.remove('show');
+    News.release(was);
   }
   function refresh() {
     if (!openId) return;
@@ -108,13 +112,11 @@ const Bubble = (() => {
     const kids = [
       h('button', { class: 'icon-btn b-close', type: 'button', 'aria-label': 'Close status', html: iconSvg('close', 16), onclick: () => MapView.deselect() }),
       h('h2', { class: 'b-title', dir: 'auto' }, p.name),
-      Leaders.statusLine(p),                                   // who leads it (0.1.51, L1)
+      Leaders.statusLine(p),                                   // who leads it (0.1.51, L1), and what it says (0.1.59): its news and Claude's
     ];
     const urg = urgencyOf(p);
     if (urg.color) kids.push(h('p', { class: 'b-urg ' + urg.color }, h('span', { class: 'b-urg-dot', 'aria-hidden': 'true' }),
       h('span', null, (urg.color === 'red' ? 'Red: ' : 'Yellow: ') + urg.reasons.join('. ') + '.')));
-    if (typeof ClaudeWork !== 'undefined') kids.push(ClaudeWork.line(p));
-    if (typeof ClaudeInbox !== 'undefined') kids.push(...ClaudeInbox.cards(p));
     if (current && current.ms) kids.push(h('p', { class: 'b-ms' }, 'Milestone: ', h('bdi', null, current.ms.name)));
     if (visible.length) {
       const ul = h('ul', { class: 'b-todos', 'aria-label': 'Next todos' });
@@ -206,7 +208,7 @@ const Bubble = (() => {
     enter.style.transform = `translate(${Math.round(a.baseX - ew / 2)}px, ${Math.round(a.baseY + 12)}px)`;
   }
 
-  return { init, open, close, refresh, position, height, isOpen: () => !!openId };
+  return { init, open, close, refresh, position, height, isOpen: () => !!openId, openId: () => openId };
 })();
 
 const Confirm = (() => {

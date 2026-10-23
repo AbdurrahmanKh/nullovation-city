@@ -78,11 +78,25 @@ const lineTitle = s => (s.length > LEADER_TITLE_MAX ? s.slice(0, LEADER_TITLE_MA
 /* A moment's line with its blanks filled: {task} cut short past 60 characters, "{n} tasks" in the singular for one,
    a blank with nothing for it left as it is, and the line's first letter a capital, since a task's title may start it. */
 function leaderSay(moment, v = {}) {
+  return leaderParts(moment, v).map(x => x.text).join('');
+}
+/* The same line in parts (0.1.60): plain words, and each blank filled, with its name and its whole value, so a task in
+   it can be shown as a link. */
+function leaderParts(moment, v = {}) {
   const text = LEADER_LINES[moment];
-  if (!text) return '';
-  const out = text.replace('{n} tasks', () => plural(v.n, 'task', 'tasks'))
-    .replace(/\{(\w+)\}/g, (all, k) => (v[k] == null ? all : k === 'task' ? lineTitle(String(v[k])) : String(v[k])));
-  return out.charAt(0).toUpperCase() + out.slice(1);
+  if (!text) return [];
+  const out = [], re = /\{n\} tasks|\{(\w+)\}/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push({ text: text.slice(last, m.index) });
+    if (!m[1]) out.push(v.n == null ? { text: m[0] } : { text: plural(v.n, 'task', 'tasks'), blank: 'n' });
+    else if (v[m[1]] == null) out.push({ text: m[0] });
+    else { const full = String(v[m[1]]); out.push({ text: m[1] === 'task' ? lineTitle(full) : full, blank: m[1], full }); }
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push({ text: text.slice(last) });
+  out[0] = { ...out[0], text: out[0].text.charAt(0).toUpperCase() + out[0].text.slice(1) };
+  return out;
 }
 /* The greeting on the leader card, when its building has no news waiting: the next task, pinned or the current
    milestone's first open one, else that nothing is open. */

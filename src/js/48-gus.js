@@ -1,15 +1,17 @@
-/* Gus Grimsby, the Garbage Man: chief of the city's cleanup crew, grumpy but fair. He lives in the side bar beside This
-   week and Urgent while the city has garbage, with his overdue tasks in one line, the task to start with, and every
-   building with garbage, most first; a click on one goes to it. He leaves urgent and needs attention to the map's
-   bubbles. His [-] shrinks him to his face with a ! on it, kept on this computer until a click opens him again. He
-   speaks up by himself four times: the first time the city is opened each day with garbage in it, when the garbage
-   passes 50 pieces and again 200 (each once as it climbs past, at most once a day), and when the last piece goes,
-   just before he steps away. His words show in a speech bubble at the map's top left, and under his face in the side
-   bar. He never mentions pieces, only tasks. The Garbage switch
-   sends him away with the garbage. His face is his portrait, on his dark coral (0.1.48). */
+/* Gus Grimsby, the Garbage Man: chief of the city's cleanup crew, grumpy but fair. While the city has garbage his face
+   shows in the side bar's News section (0.1.59, Leader UX), with ! or the count of tasks between the city and clean
+   streets; a click opens his bubble with his report: his last line, his overdue tasks in one line, the task to start
+   with, and every building with garbage, most first, each going to its building. He leaves urgent and needs attention
+   to the map's bubbles. He speaks up by himself four times: the first time the city is opened each day with garbage in
+   it, when the garbage passes 50 pieces and again 200 (each once as it climbs past, at most once a day), and when the
+   last piece goes, just before he steps away. His words show in a speech bubble at the map's top left, with his
+   report under them; said by himself, the bubble closes after 14 seconds, and opened from his face it stays until
+   closed. He never mentions pieces, only tasks. The Garbage switch sends him away with the garbage. His face is his
+   portrait, on his dark coral (0.1.48). Until 0.1.58 he had his own part of the side bar, with a [-] that shrank him to
+   his face. */
 const Gus = (() => {
   const KEY = 'nullovation-city:gus';                          // the days he last spoke, on this computer
-  const MIN_KEY = 'nullovation-city:gusMin';                   // shrunk to his face, on this computer
+  const MIN_KEY = 'nullovation-city:gusMin';                   // his [-] until 0.1.58: tidied away
   const MARKS = [[200, 'filthy'], [50, 'dirty']];              // the worst first
   const SAY_MS = 14000;                                         // a speech bubble stays this long unless closed first
   const LINES = {
@@ -22,7 +24,6 @@ const Gus = (() => {
   };
   let days = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
   const saveDays = () => { try { localStorage.setItem(KEY, JSON.stringify(days)); } catch (e) { /* this visit only */ } };
-  let minimized = (() => { try { return localStorage.getItem(MIN_KEY) === '1'; } catch (e) { return false; } })();
   let line = '', sayTimer = 0, saying = false, lastTotal = null, lastOnMap = null, started = false, sayMs = SAY_MS;
   const armed = {};
 
@@ -62,48 +63,60 @@ const Gus = (() => {
      coral; the frame sets the size ---------- */
   const face = () => h('img', { class: 'face-pic', alt: '', src: PORTRAITS.gus, width: 256, height: 256, draggable: 'false' });
 
-  /* ---------- the side bar ---------- */
+  /* His face in a frame of its size: 48 px in the News section, 100 in his bubble. */
+  function faceEl(size = 48) {
+    const el = h('span', { class: 'gus-face', 'aria-hidden': 'true' }, face());
+    el.style.setProperty('--face', size + 'px');
+    return el;
+  }
+  /* While the city has garbage, on its map or owed by the rules, and while he speaks. */
+  const shows = () => Garbage.isOn() && (report().rows.length > 0 || Garbage.onMap() > 0 || saying);
+
+  /* ---------- his bubble: his line, then his report ---------- */
   function render() {
-    const sec = $('#sbGus');
-    if (!sec) return;
-    const r = report(), onMap = Garbage.onMap();
-    const show = Garbage.isOn() && (r.rows.length > 0 || onMap > 0 || saying);
-    sec.hidden = !show;
-    if (!show) return;
-    if (!$('#gusFace').firstChild) { $('#gusFace').append(face()); $('#gusMiniFace').append(face()); }
-    sec.classList.toggle('min', minimized);
-    $('#gusFull').hidden = minimized; $('#gusMini').hidden = !minimized;
-    if (minimized) return;
-    $('#gusLine').hidden = !line; $('#gusLine').textContent = line;
+    if (typeof News !== 'undefined') News.renderSection();
+    const r = report();
+    $('#gusSayText').hidden = !line; $('#gusSayText').textContent = line;
     const rl = reportLine(r);
     $('#gusReport').hidden = !rl; $('#gusReport').textContent = rl;
     const fl = fixLine(r);
     $('#gusFix').hidden = !fl; $('#gusFix').textContent = fl;
-    $('#gusRows').replaceChildren(...r.rows.map(row => h('li', null, h('button', { class: 'gus-row', type: 'button', title: 'Go to ' + row.p.name,
+    const a = document.activeElement, keep = a && a.classList.contains('gus-row') ? a.dataset.id : null;
+    $('#gusRows').replaceChildren(...r.rows.map(row => h('li', null, h('button', { class: 'gus-row', type: 'button', 'data-id': row.p.id, title: 'Go to ' + row.p.name,
       onclick: () => { Menu.closeDrawer(); MapView.select(row.p.id); } },
       h('span', { class: 'gus-proj', dir: 'auto' }, row.p.name), ': ' + rowText(row)))));
+    if (keep) { const b = $(`.gus-row[data-id="${keep}"]`); if (b) b.focus({ preventScroll: true }); }
   }
 
   /* ---------- speaking ---------- */
-  function say(text) {
-    line = text; saying = true;
+  /* By himself, the bubble closes after 14 seconds; opened from his face (stay), it stays until closed. */
+  function show(stay) {
+    saying = true;
     if (typeof Proxima !== 'undefined') Proxima.yieldToGus();   // never both at once: she says hers after him
+    if (typeof News !== 'undefined') News.yieldTo();            // nor a leader: its news waits for him
     const box = $('#gusSay');
-    $('#gusSayText').textContent = text;
     if (!$('#gusSayFace').firstChild) $('#gusSayFace').append(face());
     box.hidden = false;
+    render();
     fitSay(box);
     requestAnimationFrame(() => box.classList.add('show'));
     clearTimeout(sayTimer);
-    sayTimer = setTimeout(hush, sayMs);
-    render();
+    if (!stay) sayTimer = setTimeout(hush, sayMs);
+  }
+  function say(text) { line = text; show(false); }
+  function open() {
+    show(true);
+    const b = $('.gus-row', $('#gusSay')) || $('#gusSayClose');
+    if (b) b.focus({ preventScroll: true });
   }
   function hush() {
     clearTimeout(sayTimer);
-    const box = $('#gusSay');
+    const box = $('#gusSay'), had = box && box.contains(document.activeElement);
     if (box) { box.classList.remove('show'); box.hidden = true; }
     saying = false;
     render();
+    if (had) { const f = $('#newsList .news-face'); if (f) f.focus({ preventScroll: true }); }
+    if (typeof News !== 'undefined') setTimeout(() => News.pump(), 400);
   }
   const today = () => ymd(Date.now());
   /* On every change to the garbage: the alarms as the total climbs, and the clean city when the last piece goes. */
@@ -124,20 +137,12 @@ const Gus = (() => {
     render();
   }
 
-  /* ---------- shrunk to his face, and open again ---------- */
-  function minimize(on) {
-    minimized = on;
-    try { if (on) localStorage.setItem(MIN_KEY, '1'); else localStorage.removeItem(MIN_KEY); } catch (e) { /* this visit only */ }
-    render();
-    $(on ? '#gusMini' : '#gusMin').focus();
-  }
-
   function init() {
     $('#gusSayClose').innerHTML = iconSvg('close', 16);
     $('#gusSayClose').addEventListener('click', hush);
-    $('#gusMin').innerHTML = iconSvg('minus', 16);
-    $('#gusMin').addEventListener('click', () => minimize(true));
-    $('#gusMini').addEventListener('click', () => minimize(false));
+    $('#gusSay').addEventListener('pointerdown', () => clearTimeout(sayTimer));   // once you reach for it, it stays
+    $('#gusSay').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); hush(); } });
+    try { localStorage.removeItem(MIN_KEY); } catch (e) { /* nothing to tidy */ }
     Garbage.onChange(changed);
     started = true;
     lastTotal = null; lastOnMap = null;
@@ -151,6 +156,6 @@ const Gus = (() => {
     }
     setInterval(render, 60000);                                // a new day or a late task's new day, quietly
   }
-  return { init, render, report, reportLine, fixLine, fill, LINES, hush, minimize, isMinimized: () => minimized, isSaying: () => saying, line: () => line,
+  return { init, render, report, reportLine, fixLine, fill, LINES, say, hush, open, shows, faceEl, isSaying: () => saying, line: () => line,
     _test: { sayMs: ms => { sayMs = ms; }, days: () => ({ ...days }), forget: () => { days = {}; saveDays(); } } };
 })();

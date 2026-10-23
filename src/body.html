@@ -42,20 +42,9 @@
           <button id="btnBrief" class="btn btn-small" type="button" title="Copies a text summary of every project for a Claude chat">Copy status brief</button>
         </div>
       </section>
-      <section id="sbGus" class="sb-sec gus" aria-label="Gus Grimsby, the Garbage Man" hidden>
-        <div id="gusFull">
-          <div class="gus-head"><span id="gusFace" class="gus-face" aria-hidden="true"></span><span class="gus-name"><b>Gus Grimsby</b><span>Garbage Man</span></span>
-            <button id="gusMin" class="icon-btn gus-min" type="button" aria-label="Minimize Gus" title="Minimize"></button></div>
-          <p id="gusLine" class="gus-line" hidden></p>
-          <p id="gusReport" class="gus-report" hidden></p>
-          <p id="gusFix" class="gus-fix" hidden></p>
-          <ul id="gusRows" class="gus-rows"></ul>
-        </div>
-        <button id="gusMini" class="gus-mini" type="button" aria-label="Open Gus Grimsby, the Garbage Man" title="Gus Grimsby, Garbage Man" hidden><span id="gusMiniFace" class="gus-face" aria-hidden="true"></span><span class="gus-badge" aria-hidden="true">!</span></button>
-      </section>
-      <section id="sbUrgent" class="sb-sec" aria-label="Urgent projects" hidden>
-        <h2 class="sb-h">Urgent</h2>
-        <div id="urgentList" class="urgent-list"></div>
+      <section id="sbNews" class="sb-sec" aria-label="News" hidden>
+        <h2 class="sb-h">News</h2>
+        <div id="newsList" class="news-list"></div>
       </section>
       <section id="sbDue" class="sb-sec" aria-label="Due this week" hidden>
         <h2 class="sb-h">Due this week</h2>
@@ -283,8 +272,16 @@
     </div>
     <div id="gusSay" class="gus-say" role="status" aria-live="polite" hidden>
       <span id="gusSayFace" class="gus-face" aria-hidden="true"></span>
-      <span class="gus-say-body"><span class="gus-name"><b>Gus Grimsby</b><span>Garbage Man</span></span><span id="gusSayText" class="gus-say-text"></span></span>
+      <div class="gus-say-body"><span class="gus-name"><b>Gus Grimsby</b><span>Garbage Man</span></span><span id="gusSayText" class="gus-say-text"></span>
+        <p id="gusReport" class="gus-report" hidden></p><p id="gusFix" class="gus-fix" hidden></p><ul id="gusRows" class="gus-rows"></ul></div>
       <button id="gusSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
+    </div>
+    <div id="ldSay" class="gus-say ld-say" role="status" aria-live="polite" tabindex="-1" hidden>
+      <span id="ldSayFace" class="ld-say-face" aria-hidden="true"></span>
+      <div class="gus-say-body"><span class="gus-name ld-say-name"><b id="ldSayName"></b><span id="ldSayRole"></span></span>
+        <span id="ldSayWhere" class="ld-say-where"></span><span id="ldSayText" class="gus-say-text" dir="auto"></span><div id="ldSayMore" class="ld-say-more"></div>
+        <span id="ldSayActs" class="px-say-actions ld-say-acts"></span></div>
+      <button id="ldSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
     </div>
     <div id="pxSay" class="gus-say px-say" role="status" aria-live="polite" hidden>
       <span id="pxSayFace" class="gus-face px-face" aria-hidden="true"></span>

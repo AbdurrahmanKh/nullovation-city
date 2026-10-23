@@ -155,7 +155,8 @@ const Rounds = (() => {
       waits.delete(t.id);
       const st = roundState(t);
       if (!st) return;
-      toast('Answers in for ' + t.text + ': ' + st.answered + ' of ' + st.total + '.', '', { label: 'Open', run: () => FullView.openTask(p.id, t.id) });
+      /* its leader says it, in place of the toast (Leader UX, T1, 0.1.59), with Open; it waits with its leader */
+      News.add(p, 'answers', { round: t.round.title, n: st.answered, total: st.total }, { ref: { tid: t.id }, key: 'answers:' + t.id });
     }, ANNOUNCE_MS));
   }
   const ANNOUNCE_MS = 4000;
