@@ -33,7 +33,7 @@ with sync_playwright() as p:
     unread = lambda: ev("() => News.items().map(it => it.moment + ':' + (getProject(it.pid) || {}).name)")
     settle = lambda ms=400: pg.wait_for_timeout(ms)
     close_say = lambda: (pg.click('#ldSayClose'), settle(300))
-    ev("() => { News._test.sayMs(1500); Garbage.setOn(false); }")             # Gus waits for his own part, below
+    ev("() => { News._test.sayMs(1500); News._test.typeMs(0); Garbage.setOn(false); }")   # Gus waits for his own part, below; lines show whole (their typing is test41's)
 
     # ---------- the side bar ----------
     order = ev("() => [...document.querySelectorAll('#sbLists > section')].map(s => s.id || s.getAttribute('aria-label'))")

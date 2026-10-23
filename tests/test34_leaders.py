@@ -292,8 +292,9 @@ with sync_playwright() as p:
         const faces = [Leaders.face(l, 64, { url: u.small }), Leaders.face(l, 128, { url: u.small }), Leaders.face(l, 64, { url: u.gus }), Leaders.face(l, 64, { url: u.gif })];
         box.append(...faces); document.body.append(box);
         const fig = (f, x0, y0, x1, y1) => { const i = f.querySelector('img'), r = i.getBoundingClientRect(), F = f.getBoundingClientRect(), k = r.width / i.naturalWidth;
-          return { top: r.top + y0 * k - F.top, bottom: r.top + y1 * k - F.top, left: r.left + x0 * k - F.left, right: r.left + x1 * k - F.left, size: F.width,
-            render: getComputedStyle(i).imageRendering, src: i.getAttribute('src').slice(0, 15) }; };
+          const by = new DOMMatrix(getComputedStyle(i).transform).m42;     // the breath (0.1.62): measured in its place, a pixel up from rest
+          return { top: r.top - by + y0 * k - F.top, bottom: r.top - by + y1 * k - F.top, left: r.left + x0 * k - F.left, right: r.left + x1 * k - F.left, size: F.width,
+            render: getComputedStyle(i).imageRendering, src: i.getAttribute('src').slice(0, 15), by, breathes: f.classList.contains('breathes') }; };
         const out = [fig(faces[0], 19, 17, 102, 112), fig(faces[1], 19, 17, 102, 112), fig(faces[2], 6, 8, 250, 256), fig(faces[3], 0, 0, 1, 1)];
         box.remove(); return out; }""", urls)
     a, big, g, gif = shown
@@ -303,12 +304,14 @@ with sync_playwright() as p:
        and abs(big['bottom'] - 128) < 0.5)
     ok('Gus\'s figure still fills his face, foot on the foot', abs(g['bottom'] - 64) < 0.5 and g['top'] < 4)
     ok('an animated GIF stays the GIF itself, framed by its first frame', gif['src'] == 'data:image/gif;')
+    ok(f'and every face breathes (0.1.62): the figure a pixel low at rest, in its place as it breathes in ({[x["by"] for x in shown]})', all(x['breathes'] and x['by'] in (0, 1) for x in shown))
     sizes = ev("""(u) => { const l = blankLeader({ color: '#B9A3E3' }), box = document.createElement('div');
         box.style.cssText = 'position:fixed;left:0;top:0;z-index:99999;display:flex;gap:8px';
         const faces = [Leaders.face(l, 96, { url: u.small }), Leaders.face(l, 48, { url: u.small }), Leaders.face(l, 96, { url: u.gus }), Leaders.face(l, 48, { url: u.gus })];
         box.append(...faces); document.body.append(box);
         const fig = (f, y0, y1) => { const i = f.querySelector('img'), r = i.getBoundingClientRect(), F = f.getBoundingClientRect(), k = r.width / i.naturalWidth;
-          return { size: Math.round(F.width), top: r.top + y0 * k - F.top, bottom: r.top + y1 * k - F.top, render: getComputedStyle(i).imageRendering }; };
+          const by = new DOMMatrix(getComputedStyle(i).transform).m42;
+          return { size: Math.round(F.width), top: r.top - by + y0 * k - F.top, bottom: r.top - by + y1 * k - F.top, render: getComputedStyle(i).imageRendering }; };
         const out = [fig(faces[0], 17, 112), fig(faces[1], 17, 112), fig(faces[2], 8, 256), fig(faces[3], 8, 256)];
         box.remove(); return out; }""", urls)
     ok(f'at the leader card\'s 96 px and the status card\'s 48 px (0.1.57) the figure still fills the face, foot on the foot, shrunk smooth ({[(s["size"], round(s["top"], 1), round(s["bottom"], 1)) for s in sizes]})',

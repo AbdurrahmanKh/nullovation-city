@@ -146,10 +146,15 @@ const Motion = (() => {
   let chosen = (() => { try { const v = localStorage.getItem(KEY); return MODES.includes(v) ? v : null; } catch (e) { return null; } })();
   const dflt = () => reducedMotion() ? 'still' : 'full';
   const mode = () => chosen || dflt();
+  /* The page wears m-still while nothing may move, so what moves in CSS (the leaders' faces, 0.1.62) holds still too. */
+  const mark = () => document.documentElement.classList.toggle('m-still', mode() === 'still');
   function set(v) {
     chosen = MODES.includes(v) ? v : null;                         // null: follow the system again
     try { if (chosen) localStorage.setItem(KEY, chosen); else localStorage.removeItem(KEY); } catch (e) { /* this visit only */ }
+    mark();
   }
+  mark();
+  try { const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)'); if (mq && mq.addEventListener) mq.addEventListener('change', mark); } catch (e) { /* no system setting to follow */ }
   return { mode, dflt, set, still: () => mode() === 'still', saver: () => mode() === 'saver', MODES };
 })();
 function shadeData(d) {

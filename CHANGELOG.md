@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.62 (2026-10-23)
+
+The leaders come alive, the fifth and last piece of the leader UX (Leader UX, Round 1 E1).
+- A breathing face: wherever a leader's face shows, it rises a pixel and back every few seconds, each leader on its own slow rhythm, its faces in step. The picture rests a pixel low in its frame, so no gap opens under it.
+- Talking in its bubble: the line types out, a long one in under 2 seconds, while the face bobs, then it settles and breathes. The bubble keeps its size from the first letter, a screen reader hears the line whole, and the task stays a link.
+- Proxima breathes and talks the same way while she brings a building's news in the leaders' place. Gus, and Proxima's own bubble, are as they were.
+- Motion on Still holds both: the faces rest and a line shows whole at once. It follows the system's reduced motion too, as the map does.
+- Tests: test41_leaders_alive, new; test40_leader_news shows its lines whole.
+
 ## 0.1.61 (2026-10-23)
 
 The Leaders panel, the fourth piece of the leader UX (Leader UX, Round 1 C1 and Round 4 L3).

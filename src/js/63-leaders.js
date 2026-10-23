@@ -26,8 +26,30 @@ const Leaders = (() => {
     const src = url !== undefined ? url : (l.portrait ? urls.get(l.id) : null);
     if (src) el.append(placed(h('img', { class: 'face-pic', alt: '', src, draggable: 'false' }), frames.get(src), size));
     else el.innerHTML = silhouette(l.color);
+    return breathe(el, l.id);
+  }
+  /* Alive (0.1.62, Leader UX E1): wherever a leader's face shows, it rises a pixel and back every few seconds, each
+     leader on its own slow rhythm. The rhythm and its place in it come from the leader and the page's clock, so its
+     faces breathe together, and a face drawn again carries on where it was. Motion on Still holds it (m-still). */
+  const breathMs = k => 3400 + (k % 2001);                  // 3.4 to 5.4 seconds a breath
+  function breathe(el, key) {
+    const k = hashStr('breath:' + key);
+    el.classList.add('breathes');
+    el.dataset.breath = String(k);
+    el.style.setProperty('--breath', breathMs(k) + 'ms');
+    inStep(el);
     return el;
   }
+  function inStep(el) {
+    const k = Number(el.dataset.breath), dur = breathMs(k);
+    el.style.setProperty('--breath-at', -Math.round((performance.now() + Math.floor(k / 2048) % dur) % dur) + 'ms');
+  }
+  /* A face drawn while hidden starts breathing only once it shows, and one that stops talking starts again: each
+     time, it falls back in step with the leader's other faces. */
+  document.addEventListener('animationstart', e => {
+    const el = e.animationName === 'face-breathe' && e.target.parentElement;
+    if (el && el.dataset.breath) inStep(el);
+  }, true);
   /* The figure's frame: a square round the portrait's drawn pixels, its foot on the frame's foot and the head a
      little under its top, as Gus and Proxima fill theirs. A picture with no see-through pixels is cropped square,
      from the top when it is tall. Read from the first frame, so an animated GIF keeps playing. */
@@ -350,7 +372,7 @@ const Leaders = (() => {
     const l = leaderOf(p), lines = News.cardLines(p);
     if (!l && !lines.length) return null;
     const line = h('div', { class: 'b-leader' + (l ? '' : ' px-voice') + (lines.length ? ' has-news' : '') },
-      l ? face(l, 48) : Proxima.faceEl(48),
+      l ? face(l, 48) : breathe(Proxima.faceEl(48), 'proxima'),
       h('div', { class: 'b-leader-text' }, h('b', { class: 'ld-name', dir: 'auto' }, l ? leaderName(l) : 'Proxima Pace'),
         (l ? l.role : 'Productivity Inspector') ? h('span', { class: 'b-leader-role', dir: 'auto' }, l ? l.role : 'Productivity Inspector') : null, ...lines));
     line.style.setProperty('--ld', l ? l.color : '#8FD0F7');
@@ -401,6 +423,6 @@ const Leaders = (() => {
     return l.id;
   }
 
-  return { init, loadAll, renderSection, refreshAll, create, edit, open, close, escape, isOpen, editing: () => editing, pickList, card, redrawCard, statusLine, hub, face,
+  return { init, loadAll, renderSection, refreshAll, create, edit, open, close, escape, isOpen, editing: () => editing, pickList, card, redrawCard, statusLine, hub, face, breathe,
     url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt };
 })();

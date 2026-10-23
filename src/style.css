@@ -1391,6 +1391,18 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-say-count { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ld-say-acts .ld-go { padding: 4px 10px 3px; }
 
+/* Alive (0.1.62, Leader UX E1). A breath: the picture sits a pixel low in its frame, its foot hidden under the frame's
+   edge, and rises to its place for a moment every few seconds, in whole pixels; each leader's rhythm comes with the
+   face (--breath, --breath-at). Talking, in its bubble, the face bobs faster while the line types out, then settles.
+   Motion on Still holds both, at rest. */
+.breathes > * { transform: translateY(1px); animation: face-breathe var(--breath, 4400ms) steps(1, end) var(--breath-at, 0ms) infinite; }
+@keyframes face-breathe { 0% { transform: translateY(1px); } 60% { transform: translateY(0); } 94% { transform: translateY(1px); } }
+.ld-say-face.talking .breathes > * { animation: face-talk 620ms steps(1, end) infinite; }
+@keyframes face-talk { 0% { transform: translateY(0); } 18% { transform: translateY(1px); } 34% { transform: translateY(0); } 58% { transform: translateY(1px); } 70% { transform: translateY(0); } 88% { transform: translateY(1px); } }
+.m-still .breathes > *, .m-still .ld-say-face.talking .breathes > * { animation: none; }
+#ldSayText.typing .ty { opacity: 0; }
+#ldSayText.typing .ty.on { opacity: 1; }
+
 /* the leader's face beside a building's row in Reports (0.1.59) */
 .rp-row .rp-leader { flex: none; }
 .px-list .rp-leader { align-self: center; }
