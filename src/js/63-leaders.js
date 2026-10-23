@@ -423,6 +423,17 @@ const Leaders = (() => {
     return l.id;
   }
 
-  return { init, loadAll, renderSection, refreshAll, create, edit, open, close, escape, isOpen, editing: () => editing, pickList, card, redrawCard, statusLine, hub, face, breathe,
+  /* A toast its leader says (0.1.56): the face at 40 px, its name in its color over the building's; null with no leader.
+     The line over the map's Task added, and since 0.1.63 Tick it's Ticked off (Open in Claude Panel, D1). */
+  function toastLead(p) {
+    const l = typeof leaderOf === 'function' ? leaderOf(p) : null;
+    if (!l) return null;
+    const lead = h('span', { class: 'toast-lead' }, face(l, 40),
+      h('span', { class: 'toast-who' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), h('span', { dir: 'auto' }, p.name)));
+    lead.style.setProperty('--ld', l.color);
+    return lead;
+  }
+
+  return { init, loadAll, renderSection, refreshAll, create, edit, open, close, escape, isOpen, editing: () => editing, pickList, card, redrawCard, statusLine, hub, face, breathe, toastLead,
     url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt };
 })();

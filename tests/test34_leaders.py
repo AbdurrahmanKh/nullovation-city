@@ -345,7 +345,7 @@ with sync_playwright() as p:
        {'name': 'Proxima Pace', 'role': 'Productivity Inspector', 'projects': []}])
     ok('and each project its leader, or null', sm['gp'] == {'name': 'Gus Grimsby', 'role': 'Chief of the cleanup crew'} and sm['nc'] is None)
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
-    pg.click('#pv button:has-text("Copy task")')
+    pg.click('#pvNextClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]')   # Copy, in Open in Claude's panel (0.1.63)
     pg.wait_for_timeout(300)
     clip = ev("() => navigator.clipboard.readText()").replace('\r\n', '\n')
     ok('Copy task under What is next carries it', LINE in clip.split('\n')[:4])

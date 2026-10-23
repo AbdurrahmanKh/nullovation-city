@@ -324,34 +324,44 @@ with sync_playwright() as p:
     ok('a ticked task keeps its round and wears no hat', get(T2)['round'] and pg.locator(f'li.task[data-id="{tid(T2)}"] .round-hat').count() == 0)
     pg.click(f'li.task[data-id="{tid(T2)}"] .task-title'); pg.wait_for_timeout(300)
     ok('its panel still shows the card', pg.is_visible('#pvSide .pv-round'))
-    ok('a done task\'s Open in Claude has no Make a wizard round', ev("() => { document.querySelector('#pvTaskClaude').click(); return !!document.querySelector('.oc-menu') && !document.querySelector('.oc-menu .oc-wiz'); }"))
+    ok('a done task\'s Open in Claude has no Think tab (A2)', ev("() => { document.querySelector('#pvTaskClaude').click(); return !!document.querySelector('.oc-panel') && !document.querySelector('.oc-panel .oc-tabs'); }"))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
     ev(f"() => {{ const p = getProject('{gp}'), t = {task(T2)}; untickTask(p, t); delete t.round; changed(p); }}")
 
-    # ---------- Open in Claude: Make a wizard round, the second row (M1) ----------
+    # ---------- Open in Claude: the Think tab, a wizard round or a brainstorm (0.1.63) ----------
+    TILES = "() => [...document.querySelectorAll('.oc-panel .oc-tile')].map(a => [a.dataset.kind, a.tagName, a.getAttribute('href') || ''])"
     open_task(T1)
     pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
-    row = ev("() => [...document.querySelectorAll('.oc-menu .oc-wiz-item')].map(a => [a.dataset.kind, a.textContent, a.tagName, a.getAttribute('href') || ''])")
-    ok(f'under the four, a row: Make a wizard round, with Chat, Cowork, Code and Terminal ({[r[:3] for r in row]})',
-       pg.text_content('.oc-menu .oc-wiz-head').strip() == 'Make a wizard round' and [r[0] for r in row] == ['chat', 'cowork', 'code', 'terminal'] and [r[1] for r in row] == ['Chat', 'Cowork', 'Code', 'Terminal'])
-    ok('Code and Terminal wait for a folder link, as above them', row[2][2] == 'SPAN' and row[3][2] == 'SPAN' and row[0][2] == 'A' and row[1][2] == 'A')
-    chat_q = unquote(row[0][3].split('q=', 1)[1].split('&')[0])
+    ok('an open task\'s panel opens on Build it, with Think beside it', ev("() => [...document.querySelectorAll('.oc-panel .oc-tab')].map(t => t.textContent.trim() + (t.classList.contains('on') ? '*' : '')).join()") == 'Build it*,Think')
+    main_chat = unquote(ev("() => document.querySelector('.oc-panel .oc-tile[data-kind=\"chat\"]').getAttribute('href')").split('q=', 1)[1])
+    ok('Build it\'s Chat sends the copy with the answers written in', main_chat.endswith('When you finish, send Nullovation City an update with the nullovation-city skill.') and '- B8, Export: Which file should a plan save as? JSON.' in main_chat)
+    pg.click('#ocTabThink'); pg.wait_for_timeout(150)
+    row = ev(TILES)
+    ok(f'Think has the same tiles: Chat, Cowork, Code, Terminal and Copy ({[r[:2] for r in row]})', [r[0] for r in row] == ['chat', 'cowork', 'code', 'terminal', 'copy'])
+    ok('Code and Terminal wait for a folder link there too', row[2][1] == 'SPAN' and row[3][1] == 'SPAN' and row[0][1] == 'A' and row[1][1] == 'A')
+    ok('Think has the brainstorm box, unticked', pg.is_visible('#ocBrainstorm') and not pg.is_checked('#ocBrainstorm'))
+    chat_q = unquote(row[0][2].split('q=', 1)[1].split('&')[0])
     ok('its Chat sends the task asking for a round, the answers so far written in (C1)', chat_q.endswith(ev("() => ROUND_LINE")) and '- B1, Bed layout:' in chat_q and chat_q.startswith('# Task: ' + T1))
-    main_chat = unquote(ev("() => document.querySelector('.oc-menu .oc-item[data-kind=\"chat\"]').getAttribute('href')").split('q=', 1)[1])
-    ok('and the plain Chat above sends the copy with the answers written in', main_chat.endswith('When you finish, send Nullovation City an update with the nullovation-city skill.') and '- B8, Export: Which file should a plan save as? JSON.' in main_chat)
     pg.screenshot(path=str(SHOTS / '379-menu.png'))
-    pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
+    pg.click('#ocBrainstorm'); pg.wait_for_timeout(150)
+    row = ev(TILES)
+    bs_q = unquote(row[0][2].split('q=', 1)[1].split('&')[0])
+    ok('ticked, it asks for a brainstorm instead', bs_q.endswith(ev("() => BRAINSTORM_LINE")) and bs_q.startswith('# Task: ' + T1) and pg.is_checked('#ocBrainstorm'))
+    ev("() => { window.__clip = ''; navigator.clipboard.writeText = t => { window.__clip = t; return Promise.resolve(); }; }")
+    pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(200)
+    ok('and Copy copies that, saying so', ev("() => window.__clip").endswith(ev("() => BRAINSTORM_LINE")) and 'a brainstorm on this task' in pg.text_content('#toast') and not pg.is_visible('.oc-panel'))
     ev(f"() => {{ getProject('{gp}').links.push({{ id: 'l_g', label: '', url: 'C:\\\\Users\\\\me\\\\garden', icon: 'folder', shortcut: true }}); changed(getProject('{gp}'), {{ touch: false }}); }}")
     open_task(T1)
     pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
-    row = ev("() => [...document.querySelectorAll('.oc-menu .oc-wiz-item')].map(a => [a.dataset.kind, a.tagName, a.getAttribute('href') || ''])")
+    ok('the panel opens on Build it again, the box unticked', ev("() => document.querySelector('#ocTabBuild').classList.contains('on')"))
+    pg.click('#ocTabThink'); pg.wait_for_timeout(150)
+    row = ev(TILES)
     ok('with a folder link, Code and Terminal open Claude Code there, asked for a round', row[2][1] == 'A' and 'folder=C%3A%5CUsers%5Cme%5Cgarden' in row[2][2] and row[3][1] == 'A' and 'cwd=' in row[3][2]
        and unquote(row[3][2].split('q=', 1)[1].split('&')[0]).endswith(ev("() => ROUND_LINE")))
-    ok('the arrow keys reach the second row', ev("() => { const m = document.querySelector('.oc-menu'); const last = [...m.querySelectorAll('a.oc-item, a.oc-wiz-item')].pop(); return last.classList.contains('oc-wiz-item'); }"))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
-    ok('What is next\'s Open in Claude has the row too', ev("() => { document.querySelector('#pvNextClaude').click(); const ok = !!document.querySelector('.oc-menu .oc-wiz'); return ok; }"))
+    ok('What is next\'s Open in Claude has Think too', ev("() => { document.querySelector('#pvNextClaude').click(); return !!document.querySelector('.oc-panel #ocTabThink'); }"))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
-    ok('a note\'s and a milestone\'s do not', ev("""() => { document.querySelector('.ms-name-btn').click(); return new Promise(r => setTimeout(() => { document.querySelector('#pvMsClaude').click(); r(!document.querySelector('.oc-menu .oc-wiz')); }, 200)); }"""))
+    ok('a note\'s and a milestone\'s do not', ev("""() => { document.querySelector('.ms-name-btn').click(); return new Promise(r => setTimeout(() => { document.querySelector('#pvMsClaude').click(); r(!!document.querySelector('.oc-panel') && !document.querySelector('.oc-panel .oc-tabs')); }, 200)); }"""))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
 
     # a new round replaces the old one (W6)
@@ -400,12 +410,12 @@ with sync_playwright() as p:
     ok('a round whose folder is known is named by its full path', 'Its questions and answers are in D:\\City\\Claude\\wizard-rounds\\2026-10-22-draw-the-beds-round1.json: read them there.' in ev(f"() => taskForClaude(getProject('{gp}'), {task(T1)})"))
     open_task(T1)
     pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
-    cw = unquote(ev("() => document.querySelector('.oc-menu .oc-item[data-kind=\"cowork\"]').getAttribute('href')"))
+    cw = unquote(ev("() => document.querySelector('.oc-panel .oc-tile[data-kind=\"cowork\"]').getAttribute('href')"))
     ok('and Cowork gets the round\'s file attached', 'file=D:\\City\\Claude\\wizard-rounds\\2026-10-22-draw-the-beds-round1.json' in cw)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
     summ = ev("() => ClaudeWork.citySummary()")
     open_ = [t for pr in summ['projects'] if pr['name'] == 'Garden planner' for ms in pr['milestones'] for t in ms['open'] if t['task'] == T1][0]
-    ok(f'the city summary names an open task\'s round ({open_.get("round")})', open_.get('round') == {'title': TITLE, 'file': 'wizard-rounds/2026-10-22-draw-the-beds-round1.json', 'state': '5 of 8 answered'})
+    ok(f'the city summary names an open task\'s round ({open_.get("round")})', open_.get('round') == {'title': TITLE, 'kind': 'round', 'file': 'wizard-rounds/2026-10-22-draw-the-beds-round1.json', 'state': '5 of 8 answered'})
     quiet()
     n0 = len(opened())
     pg.click('#pvRoundWizard'); pg.wait_for_timeout(500)
@@ -480,6 +490,114 @@ with sync_playwright() as p:
     pg.wait_for_timeout(300)
     ok('a round dropped with the Claude folder connected is written into wizard-rounds', (ev("() => window.__subjson('wizard-rounds/2026-10-22-save-round1.json')") or {}).get('config', {}).get('title') == 'Saving, Round 1')
     pg.screenshot(path=str(SHOTS / '382-panel.png'), clip=pg.query_selector('#pvSide').bounding_box())
+
+
+    # ---------- a brainstorm, Think's Make a brainstorming round (0.1.63, A3): it attaches like a round ----------
+    HATS = ['blue', 'white', 'red', 'yellow', 'black', 'green']
+    BT = 'Plant icons, Brainstorm 1'
+    BS1 = {'config': {'title': BT, 'tagline': 'Round 1: your ideas first', 'product': 'Garden planner', 'kind': 'brainstorm', 'round': 1, 'needs_wizard': '0.9.0'},
+           'topic': {'title': 'Plant icons', 'question': 'What could the plant icons be?', 'context': 'The planner shows plants as names only.'},
+           'hold': [{'hat': h, 'question': 'Your turn, ' + h} for h in HATS],
+           'sparks': [{'hat': 'yellow', 'line': 'One to start.', 'sparks': [{'id': 's1', 'text': 'What if the icon grew with the plant?'}]},
+                      {'hat': 'green', 'line': 'One more.', 'sparks': [{'id': 's2', 'text': 'Icons you could smell?'}]}],
+           'suggest': [{'hat': h, 'line': 'A few.', 'question': "What's within reach?" if h == 'white' else 'More?', 'ideas': [{'id': h[0] + '1', 'text': 'An idea from ' + h}]} for h in HATS],
+           'recap': {'line': "That's round 1."}}
+    def bs_answers(seen, last=False, title=BT):
+        a = [{'id': 'h-blue', 'step': 'hold', 'hat': 'blue', 'issue': 'Blue: your turn', 'status': 'brainstorm', 'seen': True, 'question': 'Where is this going?',
+              'yours': [{'text': 'Icons a child can read.'}, {'text': 'Photos of each plant.', 'killed': True}]},
+             {'id': 's-yellow', 'step': 'spark', 'hat': 'yellow', 'issue': 'Yellow: sparks', 'status': 'brainstorm', 'seen': True, 'question': 'What do these set off?',
+              'sparks': [{'id': 's1', 'text': 'What if the icon grew with the plant?', 'yours': [{'text': 'A sprout, then a leaf, then a flower.'}]}]},
+             {'id': 'g-white', 'step': 'suggest', 'hat': 'white', 'issue': 'White: suggests', 'status': 'brainstorm', 'seen': True, 'question': "What's within reach?",
+              'ideas': [{'id': 'w1', 'text': 'Leaf shapes for herbs.', 'killed': False}, {'id': 'w2', 'text': 'Emoji for everything.', 'killed': True}]},
+             {'id': 'recap', 'step': 'recap', 'hat': 'blue', 'issue': 'Blue: recap', 'status': 'brainstorm', 'seen': last, 'question': "What's standing after round 1?"}]
+        return {'meta': {'tool': 'decision-wizard', 'kind': 'brainstorm', 'round': 1, 'wizard_version': '0.10.1', 'wizard_title': title, 'exported_at': '2026-10-23T10:00:00.000Z',
+                         'total': 17, 'seen': seen, 'yours': 3, 'killed': 2, 'suggested': 6}, 'topic': {'title': 'Plant icons', 'question': 'What could the plant icons be?'}, 'answers': a}
+    w = ev(f"() => readWizardFile({json.dumps(BS1)})")
+    ok('a brainstorm file reads as a round, kept whole: its topic, hats, sparks, suggestions and recap', w and w['round'] == BS1 and w['answers'] is None)
+    ok('a brainstorm with no topic, or no suggestions or ideas, is not one', ev(f"""() => [readWizardFile({{ ...{json.dumps(BS1)}, topic: null }}), readWizardFile({{ config: {json.dumps(BS1['config'])}, topic: {json.dumps(BS1['topic'])} }})].every(x => x === null)"""))
+    open_task(T3)
+    old = get(T3)['round']['title']
+    drop('2026-10-23-plant-icons-brainstorm1.json', BS1)
+    t3 = get(T3)
+    ok(f'dropped on a task, it attaches like a round, replacing the one there ({said()})', t3['round']['title'] == BT and t3['round']['q']['config']['kind'] == 'brainstorm'
+       and said() == 'Attached ' + BT + ' to ' + T3 + '. It replaces ' + old + '.')
+    quiet()
+    lbl = ev("() => [document.querySelector('#pvSide .pv-round-lbl').textContent, document.querySelector('#pvSide .pv-round-state').textContent, document.querySelector('#pvSide .pv-round').classList.contains('brainstorm')]")
+    ok(f'its card says Brainstorm, round 1, counting the cards it holds ({lbl})', lbl == ['Brainstorm, round 1', 'Waiting: 0 of 15 cards seen', True])
+    st = state(T3)
+    ok('where it stands: 15 cards (6 hats, 2 sparks, 6 suggestions and the recap), none seen', st['total'] == 15 and st['answered'] == 0 and not st['done'] and st['brainstorm'] == 1)
+    cp = ev(f"() => taskForClaude(getProject('{gp}'), {task(T3)})")
+    ok('Copy says Brainstorm, round 1, waiting for answers, its cards in its file', '## Brainstorm, round 1: ' + BT in cp and 'Waiting for answers (15 cards).' in cp
+       and 'Its cards and answers are in wizard-rounds/2026-10-23-plant-icons-brainstorm1.json in the Claude folder' in cp)
+    ok('its row wears the gray hat, saying brainstorm', hat(f'li.task[data-id="{tid(T3)}"] .round-hat') == 'open'
+       and 'Brainstorm' in ev(f"() => document.querySelector('li.task[data-id=\"{tid(T3)}\"] .round-hat').getAttribute('aria-label')"))
+    drop('2026-10-23-plant-icons-brainstorm1-answers.json', bs_answers(5))
+    pg.wait_for_timeout(200)
+    st = state(T3)
+    ok(f'its answers count the cards seen, of the wizard\'s total ({st["answered"]} of {st["total"]})', st['answered'] == 5 and st['total'] == 17 and not st['done']
+       and pg.text_content('#pvSide .pv-round-state') == 'Waiting: 5 of 17 cards seen')
+    quiet()
+    chat = ev(f"() => taskForClaude(getProject('{gp}'), {task(T3)}, Date.now(), {{ kind: 'chat' }})")
+    ok('a chat gets them written in: your cards, what you killed, the sparks and what the hats suggested', all(x in chat for x in [
+        '- Blue, your turn: Where is this going? "Icons a child can read."; "Photos of each plant." (killed).',
+        "- Yellow's sparks:", '  - What if the icon grew with the plant? "A sprout, then a leaf, then a flower."',
+        "- White suggests: What's within reach?", '  - "Leaf shapes for herbs." (kept)', '  - "Emoji for everything." (killed)']) and '5 of 17 cards seen.' in chat)
+    pg.click('#pvSide .pv-round-fold'); pg.wait_for_timeout(150)
+    lines = ev("() => [...document.querySelectorAll('#pvSide .pv-round-brain li')].map(l => (l.classList.contains('sub') ? '> ' : '') + l.textContent)")
+    ok(f'Show the answers lists them card by card ({len(lines)} lines)', lines[:2] == ['Blue, your turn: Where is this going? "Icons a child can read."; "Photos of each plant." (killed).', "Yellow's sparks:"]
+       and '> "Leaf shapes for herbs." (kept)' in lines)
+    pg.screenshot(path=str(SHOTS / '383-brainstorm-card.png'), clip=pg.query_selector('#pvSide').bounding_box())
+    pg.click('#pvRoundMark'); pg.wait_for_timeout(200)
+    ok(f'Mark answered counts the cards not seen as skipped ({said()})', said() == 'Marked answered: 12 cards skipped.' and state(T3)['done'] and state(T3)['skipped'] == 12)
+    undo(); pg.wait_for_timeout(150); quiet()
+    drop('2026-10-23-plant-icons-brainstorm1-answers.json', bs_answers(16, last=True))
+    st = state(T3)
+    ok('once its recap is seen it counts as answered, a card skipped on the way or not, and the hat turns teal', st['done'] and not st['marked'] and st['skipped'] == 0
+       and hat(f'li.task[data-id="{tid(T3)}"] .round-hat') == 'done' and pg.text_content('#pvSide .pv-round-state') == 'Answered: 16 of 17 cards seen')
+    ok('a copy says so', 'Answered, 16 of 17 cards seen.' in ev(f"() => taskForClaude(getProject('{gp}'), {task(T3)})"))
+    quiet()
+    ok('answers to another brainstorm are refused, naming it', drop('other.json', bs_answers(3, title='Something else, Brainstorm 1')) is not None and 'Something else, Brainstorm 1' in said() and state(T3)['answered'] == 16)
+    quiet()
+    summ = ev("() => ClaudeWork.citySummary()")
+    r3 = [t for pr in summ['projects'] if pr['name'] == 'Garden planner' for ms in pr['milestones'] for t in ms['open'] if t['task'] == T3][0].get('round')
+    ok(f'the city summary gives its kind ({r3})', r3 == {'title': BT, 'kind': 'brainstorm', 'file': 'wizard-rounds/2026-10-23-plant-icons-brainstorm1.json', 'state': 'Answered, 16 of 17 cards seen'})
+    # round 2, written from round 1's answers, comes back through the inbox and replaces it
+    BS2 = {'config': {'title': BT + ', Round 2', 'tagline': 'From ' + BT, 'kind': 'brainstorm', 'round': 2, 'needs_wizard': '0.10.0', 'folder': 'D:\\City\\Claude\\wizard-rounds'},
+           'topic': BS1['topic'], 'aims': {'line': 'Round 2.', 'goals': ['Icons a child can read.']},
+           'extras': {'line': 'A few more.', 'ideas': [{'id': 'x1', 'hat': 'red', 'text': 'Icons that smile when watered.'}]},
+           'ideas': [{'id': 'i1', 'text': 'A sprout, then a leaf, then a flower.', 'by': 'you', 'hat': 'yellow'}, {'id': 'i2', 'text': 'Leaf shapes for herbs.', 'by': 'white', 'hat': 'white'}],
+           'order': {'line': 'These made it through.'}}
+    ev(f"() => window.__subput('wizard-rounds/2026-10-23-plant-icons-brainstorm1-round2.json', {json.dumps(BS2)})")
+    ev(f"""() => window.__subput('inbox/2026-10-23-1100-garden.json', {{ app: 'nullovation-city', kind: 'change', version: 1, project: 'Garden planner', summary: 'Round 2 of the icons brainstorm',
+         changes: [{{ do: 'add-round', task: '{T3}', file: '2026-10-23-plant-icons-brainstorm1-round2.json' }}] }})""")
+    pg.wait_for_timeout(3600)
+    st = state(T3)
+    ok(f'Claude\'s add-round brings round 2, which replaces round 1: aims, extras, 1 extra, 2 ideas and the order make 6 cards ({st})', get(T3)['round']['title'] == BT + ', Round 2'
+       and st['brainstorm'] == 2 and st['total'] == 6 and st['answered'] == 0)
+    news = ev("() => News.items().filter(it => it.moment === 'round').map(it => News.lineOf(it))")
+    ok(f'its building\'s news says so ({news[-1:]})', news[-1:] == ['Claude attached a wizard round to ' + T3 + ': ' + BT + ', Round 2.'])
+    ev("() => { const b = document.querySelector('#ldSayClose'); if (b && !document.querySelector('#ldSay').hidden) b.click(); }"); quiet()
+    A2 = {'meta': {'tool': 'decision-wizard', 'kind': 'brainstorm', 'round': 2, 'wizard_version': '0.10.1', 'wizard_title': BT + ', Round 2', 'total': 6, 'seen': 6, 'ideas': 3},
+          'topic': BS1['topic'], 'answers': [
+        {'id': 'aims', 'step': 'aims', 'hat': 'blue', 'issue': 'Blue: your aims', 'status': 'brainstorm', 'seen': True, 'question': 'What could the plant icons be?'},
+        {'id': 'extras', 'step': 'extras', 'hat': 'blue', 'issue': 'Extras', 'status': 'brainstorm', 'seen': True, 'question': 'Anything here worth keeping?', 'ideas': [{'id': 'x1', 'text': 'Icons that smile when watered.', 'killed': False, 'hat': 'red'}]},
+        {'id': 'c-i1', 'step': 'council', 'hat': 'yellow', 'issue': 'A sprout, then a leaf, then a flower.', 'status': 'brainstorm', 'seen': True,
+         'idea': {'id': 'i1', 'text': 'A sprout, then a leaf, then a flower.', 'by': 'you', 'hat': 'yellow'}, 'killed': False,
+         'changes': [{'text': 'Three stages only.', 'hat': 'black'}], 'answers': [{'text': 'Herbs first.', 'hat': 'white', 'question': 'Which plants first?'}],
+         'taken': [{'text': 'Animate the growth.', 'hat': 'green'}], 'variants': [{'text': 'A seed before the sprout.'}], 'rewrite': {'text': 'Icons that grow in three stages.'}},
+        {'id': 'order', 'step': 'order', 'hat': 'blue', 'issue': 'Blue: your order', 'status': 'brainstorm', 'seen': True, 'question': 'Which ideas matter most?', 'ranked': True,
+         'order': [{'text': 'Icons that grow in three stages.'}, {'text': 'Leaf shapes for herbs.'}]}]}
+    ev(f"() => window.__subput('wizard-rounds/2026-10-23-plant-icons-brainstorm1-round2.json', {json.dumps({**A2, 'round': BS2})})")
+    pg.wait_for_timeout(8000)
+    chat = ev(f"() => taskForClaude(getProject('{gp}'), {task(T3)}, Date.now(), {{ kind: 'chat' }})")
+    ok('its answers come in from wizard-rounds, answered with the order seen', state(T3)['done'] and state(T3)['answered'] == 6)
+    ok('and a chat gets the council and your order written in', all(x in chat for x in [
+        '## Brainstorm, round 2: ' + BT + ', Round 2', '- Extras:', '  - "Icons that smile when watered." (kept)', '- Idea i1: "A sprout, then a leaf, then a flower."',
+        '  - In your words: "Icons that grow in three stages."', '  - A change, from Black: "Three stages only."', '  - You answered White (Which plants first?): "Herbs first."',
+        '  - Taken from Green as a new idea: "Animate the growth."', '  - Your variant: "A seed before the sprout."', '- Your order:', '  1. "Icons that grow in three stages."', '  2. "Leaf shapes for herbs."']))
+    news = ev("() => News.items().filter(it => it.moment === 'answers').map(it => News.lineOf(it))")
+    ok(f'its news says the answers are in, in cards ({news})', news == ['Your answers are in for ' + BT + ', Round 2: 6 of 6.'])
+    quiet()
 
     print('errors:', errors)
     ok('no console errors', not errors)

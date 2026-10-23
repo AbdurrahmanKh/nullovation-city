@@ -26,7 +26,7 @@ with sync_playwright() as p:
     ok(f'bubble shows only the update time ({meta})', 'Updated 30 days ago' in meta and 'Lights' not in meta)
     ok('menu has no lights note', 'Lights' not in page.text_content('#count'))
     page.evaluate("() => MapView.deselect()")
-    page.click('#btnBrief'); page.wait_for_timeout(150)
+    page.click('#btnBriefClaude'); page.click('.oc-panel .oc-tile[data-kind="copy"]'); page.wait_for_timeout(150)
     ok('status brief has no lights line', 'Lights' not in page.evaluate("() => navigator.clipboard.readText()"))
     ok('no lights-off code paths left', page.evaluate("() => typeof isStale === 'undefined' && typeof STALE_DAYS === 'undefined'"))
 

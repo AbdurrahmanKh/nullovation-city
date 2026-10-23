@@ -1,19 +1,21 @@
-/* Open in Claude: opens the Claude desktop app with a Copy for Claude text already filled in, through the app's
-   claude:// links. Chat starts a new chat; Cowork starts a task with the project's local folders and files attached;
-   Claude Code starts a session in the project's first folder. Terminal (0.1.37) opens Claude Code in a terminal in that
-   folder, through Claude Code's own claude-cli:// link. The text is only filled in, never sent, and it goes on the
+/* Open in Claude: opens Claude with a copy for Claude already filled in, through the Claude app's claude:// links, or
+   Claude Code's own claude-cli:// link for a terminal. The text is only filled in, never sent, and it goes on the
    clipboard too, for when the app is not on this computer.
-   For a task (0.1.55), a second row under the four, Make a wizard round, sends the same places the task's copy asking
-   Claude for a decision wizard round about it (Wizard Rounds in a Task, Round 1, M1). A copy's text may differ by where
-   it goes: a chat gets a round's answers written in, since it cannot read the round's file (C1). */
+   Since 0.1.63 it is one small panel (Open in Claude Panel, Round 1, and Abdurrahman's sketch of it): five buttons,
+   Chat, Cowork, Code, Terminal and Copy (A1), and under them the one folder Cowork, Code and Terminal open in, with a >
+   to pick another when the building links several. Cowork takes that one folder, and no more folders or file links.
+   For a task it has two tabs (A2): Build it, the work itself, and Think, which asks Claude for a decision wizard round
+   about the task, or with Make a brainstorming round, a brainstorm (A3); either attaches to the task. A copy's text may
+   differ by where it goes: a chat gets a round's answers written in, since it cannot read the round's file (C1). */
 const OpenInClaude = (() => {
   const MAX_Q = 13500;                      // the app fills in about 14,000 characters; anything longer goes by clipboard
   const MAX_TERM = 5000;                    // Claude Code's terminal links fill in at most 5,000
   const BASE = { chat: 'claude://claude.ai/new', cowork: 'claude://cowork/new', code: 'claude://code/new', terminal: 'claude-cli://open' };
+  const FOLDER_KEY = 'nullovation-city:claudeFolder';   // the folder picked in each building, in this browser
   const maxOf = kind => (kind === 'terminal' ? MAX_TERM : MAX_Q);
   /* The terminal link takes a local folder only: no network or UNC paths, no .. parts. */
-  const termFolder = pl => { const f = pl.folders[0]; return f && !/^\\\\/.test(f) && !/(^|\\)\.\.(\\|$)/.test(f) ? f : ''; };
-  let menu = null, owner = null;
+  const termOk = f => !!f && !/^\\\\/.test(f) && !/(^|\\)\.\.(\\|$)/.test(f);
+  let panel = null, owner = null;
 
   /* A project's local links: folders, and files (a path whose last part has an extension). */
   function places(p) {
@@ -27,15 +29,16 @@ const OpenInClaude = (() => {
     }
     return { folders, files };
   }
-  function href(kind, text, pl = { folders: [], files: [] }) {
+  /* The link for one place, with its one folder; Cowork also takes the files given (a task's round file). */
+  function href(kind, text, folder = '', files = []) {
     const parts = [];
     if (text && text.length <= maxOf(kind)) parts.push('q=' + encodeURIComponent(text));
     if (kind === 'cowork') {
-      pl.folders.forEach(f => parts.push('folder=' + encodeURIComponent(f)));
-      pl.files.forEach(f => parts.push('file=' + encodeURIComponent(f)));
+      if (folder) parts.push('folder=' + encodeURIComponent(folder));
+      files.forEach(f => parts.push('file=' + encodeURIComponent(f)));
     }
-    if (kind === 'code' && pl.folders[0]) parts.push('folder=' + encodeURIComponent(pl.folders[0]));
-    if (kind === 'terminal' && termFolder(pl)) parts.push('cwd=' + encodeURIComponent(termFolder(pl)));
+    if (kind === 'code' && folder) parts.push('folder=' + encodeURIComponent(folder));
+    if (kind === 'terminal' && termOk(folder)) parts.push('cwd=' + encodeURIComponent(folder));
     return BASE[kind] + (parts.length ? '?' + parts.join('&') : '');
   }
   async function hand(text, kind) {
@@ -44,88 +47,128 @@ const OpenInClaude = (() => {
     else toast(copied ? 'Opening Claude with this filled in. It is on your clipboard too.' : 'Opening Claude with this filled in.');
   }
   /* Opens one kind straight away, for places that offer only one, such as the builder card. */
-  function go(kind, text, pl) {
+  function go(kind, text, folder = '') {
     hand(text, kind);
-    const a = h('a', { href: href(kind, text, pl), hidden: true });
+    const a = h('a', { href: href(kind, text, folder), hidden: true });
     document.body.append(a); a.click(); a.remove();
   }
   const base = path => path.split('\\').filter(Boolean).pop() || path;
-  function item(kind, label, icon, note, url, title, onPick) {
-    const kids = [h('span', { class: 'ic', html: iconSvg(icon, 16) }), h('span', { class: 'oc-label' }, label), h('span', { class: 'oc-note' + (Array.isArray(note) ? ' oc-split' : ''), dir: 'auto' }, note)];
-    if (!url) return h('span', { class: 'pv-menu-item oc-item off', role: 'menuitem', 'aria-disabled': 'true', 'data-kind': kind, title }, kids);
-    return h('a', { class: 'pv-menu-item oc-item', role: 'menuitem', href: url, 'data-kind': kind, title, onclick: () => { onPick(); setTimeout(close, 0); } }, kids);
+
+  /* ---------- the folder picked in a building ---------- */
+  function savedFolders() { try { const v = JSON.parse(localStorage.getItem(FOLDER_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
+  function folderOf(p, folders) {
+    const want = p ? savedFolders()[p.id] : '';
+    return folders.includes(want) ? want : (folders[0] || '');
   }
+  function keepFolder(p, f) {
+    if (!p) return;
+    const v = savedFolders();
+    if (f && f !== places(p).folders[0]) v[p.id] = f; else delete v[p.id];
+    try { localStorage.setItem(FOLDER_KEY, JSON.stringify(v)); } catch (e) { /* this visit only */ }
+  }
+
+  /* ---------- the panel ---------- */
+  /* opts: { text: kind => string, project, copied: the toast after Copy, id, quiet, small }, and for a task:
+     think: (kind, { brainstorm }) => string, the copy that asks for a round or a brainstorm (Think), and files: () =>
+     [path], the round's file for Cowork. */
   function open(btn, opts) {
     close();
-    const base0 = opts.project ? places(opts.project) : { folders: [], files: [] }, extra = opts.files ? opts.files() : [];
-    const pl = { folders: base0.folders, files: base0.files.concat(extra.filter(f => !base0.files.includes(f))) };
-    const textOf = kind => opts.text(kind);
-    const text = textOf('chat'), term = termFolder(pl);
-    const pick = kind => () => hand(textOf(kind), kind);
-    const where = pl.folders.concat(pl.files);
-    // with several places, a long first name gives way before 'and N more' does
-    const coworkNote = !where.length ? (opts.project ? 'no folder link' : 'no project folder')
-      : where.length === 1 ? 'with ' + base(where[0])
-      : [h('span', { class: 'oc-name' }, 'with ' + base(where[0])), h('span', { class: 'oc-more' }, ' and ' + (where.length - 1) + ' more')];
-    menu = h('div', { class: 'pv-menu oc-menu', role: 'menu', 'aria-label': 'Open in Claude' },
-      item('chat', 'Chat', 'chat', 'new chat', href('chat', text), 'A new Claude chat with this filled in', pick('chat')),
-      item('cowork', 'Cowork', 'folder', coworkNote, href('cowork', textOf('cowork'), pl),
-        where.length ? 'A new Cowork task with this filled in and ' + where.join(', ') + ' attached' : 'A new Cowork task with this filled in', pick('cowork')),
-      item('code', 'Claude Code', 'code', pl.folders[0] ? 'in ' + base(pl.folders[0]) : 'needs a folder link', pl.folders[0] ? href('code', textOf('code'), pl) : null,
-        pl.folders[0] ? 'A new Claude Code session in ' + pl.folders[0] + ' with this filled in'
-          : (opts.project ? 'Add a link to a folder on this computer to open Claude Code there' : 'Opens from a project that links a folder on this computer'), pick('code')),
-      item('terminal', 'Terminal', 'terminal', term ? 'in ' + base(term) : 'needs a folder link', term ? href('terminal', textOf('terminal'), pl) : null,
-        term ? 'Claude Code in a new terminal in ' + term + ' with this filled in. Works once Claude Code has had a prompt in a terminal on this computer.'
-          : (opts.project ? 'Add a link to a folder on this computer to open Claude Code in a terminal there' : 'Opens from a project that links a folder on this computer'), pick('terminal')),
-      opts.round ? roundRow(opts.round, pl, term) : null);
-    document.body.append(menu);
-    const r = btn.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;
-    menu.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - mw - 8))) + 'px';
-    menu.style.top = Math.round(r.bottom + 6 + mh > innerHeight - 8 ? Math.max(8, r.top - 6 - mh) : r.bottom + 6) + 'px';
+    const p = opts.project || null, folders = p ? places(p).folders : [];
+    const st = { tab: 'build', brainstorm: false, folder: folderOf(p, folders), listing: false };
+    panel = h('div', { class: 'oc-panel', role: 'dialog', 'aria-label': 'Open in Claude' });
+    const textFor = kind => (st.tab === 'think' && opts.think ? opts.think(kind, { brainstorm: st.brainstorm }) : opts.text(kind));
+    const files = () => (opts.files ? opts.files() : []);
+
+    function tile(kind, label, icon, { note = '', ok = true, title = '', off = '' } = {}) {
+      const kids = [h('span', { class: 'ic', html: iconSvg(icon, 18) }), h('span', { class: 'oc-tile-label' }, label), note ? h('span', { class: 'oc-tile-note' }, note) : null];
+      if (!ok) return h('span', { class: 'oc-tile off', 'aria-disabled': 'true', 'data-kind': kind, title: off }, kids);
+      if (kind === 'copy') return h('button', { class: 'oc-tile', type: 'button', 'data-kind': kind, title, onclick: () => copyNow() }, kids);
+      const text = textFor(kind);
+      return h('a', { class: 'oc-tile', href: href(kind, text, st.folder, kind === 'cowork' ? files() : []), 'data-kind': kind, title,
+        onclick: () => { hand(text, kind); setTimeout(close, 0); } }, kids);
+    }
+    async function copyNow() {
+      const ok = await copyText(textFor(undefined));
+      const said = st.tab === 'think' ? (st.brainstorm ? 'Copied: asking Claude for a brainstorm on this task.' : 'Copied: asking Claude for a wizard round on this task.') : (opts.copied || 'Copied for Claude.');
+      toast(ok ? said : 'The browser blocked copying. Try again.', ok ? '' : 'error');
+      if (ok) close(true);
+    }
+    const what = () => (st.tab === 'think' ? (st.brainstorm ? 'asking Claude for a brainstorm on this task' : 'asking Claude for a wizard round on this task') : 'with this filled in');
+    function render() {
+      const kids = [];
+      if (opts.think) {
+        const tab = (id, name, label, icon) => h('button', { id, class: 'oc-tab' + (st.tab === name ? ' on' : ''), type: 'button', role: 'tab', 'aria-selected': String(st.tab === name),
+          onclick: () => { if (st.tab === name) return; st.tab = name; render(); const b = $('#' + id, panel); if (b) b.focus(); } },
+          h('span', { class: 'ic', 'aria-hidden': 'true', html: icon }), label);
+        kids.push(h('div', { class: 'oc-tabs', role: 'tablist' },
+          tab('ocTabBuild', 'build', 'Build it', iconSvg('claude', 14)),
+          tab('ocTabThink', 'think', 'Think', hatSvg(14))));
+        if (st.tab === 'think') kids.push(h('label', { class: 'oc-brain', for: 'ocBrainstorm' },
+          h('input', { id: 'ocBrainstorm', type: 'checkbox', checked: st.brainstorm, onchange: e => { st.brainstorm = e.target.checked; render(); const c = $('#ocBrainstorm', panel); if (c) c.focus(); } }),
+          'Make a brainstorming round'));
+      }
+      const f = st.folder, need = p ? 'Add a link to a folder on this computer to open it there' : 'Opens from a project that links a folder on this computer';
+      kids.push(h('div', { class: 'oc-tiles' },
+        tile('chat', 'Chat', 'chat', { note: 'no folder', title: 'A new Claude chat ' + what() }),
+        tile('cowork', 'Cowork', 'cowork', { title: 'A new Cowork task ' + what() + (f ? ', in ' + f : '') }),
+        tile('code', 'Code', 'code', { ok: !!f, off: need, title: 'A new Claude Code session in ' + f + ', ' + what() }),
+        tile('terminal', 'Terminal', 'terminal', { ok: termOk(f), off: f ? 'A terminal opens only in a folder on this computer' : need,
+          title: 'Claude Code in a new terminal in ' + f + ', ' + what() + '. Works once Claude Code has had a prompt in a terminal on this computer.' }),
+        tile('copy', 'Copy', 'copy', { title: 'Copies it, to paste anywhere' })));
+      const line = h('div', { class: 'oc-folder' });
+      if (!f) line.append(h('span', { class: 'oc-folder-none' }, p ? 'No folder link: Code and Terminal need one.' : 'No project folder: Chat, Cowork or Copy.'));
+      else if (folders.length < 2) line.append(h('b', null, 'Folder:'), ' ', h('span', { class: 'oc-folder-path', dir: 'ltr', title: f }, f));
+      else {
+        line.append(h('button', { id: 'ocFolderPick', class: 'oc-folder-pick', type: 'button', 'aria-expanded': String(st.listing), title: 'Pick the folder to open in',
+          onclick: () => { st.listing = !st.listing; render(); const b = $('#ocFolderPick', panel); if (b) b.focus(); } },
+          h('b', null, 'Folder:'), ' ', h('span', { class: 'oc-folder-path', dir: 'ltr', title: f }, f), h('span', { class: 'oc-folder-more', 'aria-hidden': 'true' }, st.listing ? '∨' : '>')));
+      }
+      kids.push(line);
+      if (st.listing && folders.length > 1) kids.push(h('div', { class: 'oc-folders', role: 'listbox', 'aria-label': 'Folders' }, folders.map(x =>
+        h('button', { class: 'oc-folder-opt' + (x === f ? ' on' : ''), type: 'button', role: 'option', 'aria-selected': String(x === f), dir: 'ltr', title: x,
+          onclick: () => { st.folder = x; st.listing = false; keepFolder(p, x); render(); const b = $('#ocFolderPick', panel); if (b) b.focus(); } },
+          h('span', { class: 'oc-folder-name' }, base(x)), h('span', { class: 'oc-folder-full' }, x)))));
+      panel.replaceChildren(...kids);
+    }
+    render();
+    document.body.append(panel);
+    place(btn);
     owner = btn; btn.setAttribute('aria-expanded', 'true');
-    menu.firstChild.focus();
-    menu.addEventListener('keydown', e => {
-      const items = $$('a.oc-item, a.oc-wiz-item', menu), i = items.indexOf(document.activeElement);
-      if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
-      else if (e.key === 'Tab') close();
+    const first = $('.oc-tab.on', panel) || $('.oc-tile:not(.off)', panel);
+    if (first) first.focus();
+    panel.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const row = $$(document.activeElement && document.activeElement.classList.contains('oc-tab') ? '.oc-tab' : '.oc-tile:not(.off)', panel), i = row.indexOf(document.activeElement);
+      if (i < 0) return;
+      e.preventDefault();
+      row[(i + (e.key === 'ArrowRight' ? 1 : row.length - 1)) % row.length].focus();
     });
     setTimeout(() => { document.addEventListener('mousedown', outside, true); window.addEventListener('scroll', onScroll, true); window.addEventListener('resize', onScroll); }, 0);
   }
-  /* Make a wizard round: the same four places, each sending the task's copy that asks Claude for a round about it. */
-  function roundRow(ask, pl, term) {
-    const one = (kind, label, icon, ok, title) => {
-      const kids = [h('span', { class: 'ic', html: iconSvg(icon, 16) }), h('span', null, label)];
-      if (!ok) return h('span', { class: 'oc-wiz-item off', role: 'menuitem', 'aria-disabled': 'true', 'data-kind': kind, title: 'Needs a link to a folder on this computer' }, kids);
-      return h('a', { class: 'oc-wiz-item', role: 'menuitem', href: href(kind, ask(kind), pl), 'data-kind': kind, title, onclick: () => { hand(ask(kind), kind); setTimeout(close, 0); } }, kids);
-    };
-    return h('div', { class: 'oc-wiz', role: 'group', 'aria-label': 'Make a wizard round' },
-      h('div', { class: 'oc-wiz-head' }, h('span', { class: 'hat hat-done', 'aria-hidden': 'true', html: hatSvg(16) }), 'Make a wizard round'),
-      h('div', { class: 'oc-wiz-row' },
-        one('chat', 'Chat', 'chat', true, 'A new chat asking Claude for a wizard round about this task; it gives you the round as a file to drop on the task'),
-        one('cowork', 'Cowork', 'folder', true, 'A new Cowork task asking Claude for a wizard round about this task'),
-        one('code', 'Code', 'code', !!pl.folders[0], 'Claude Code in ' + (pl.folders[0] || '') + ', asked for a wizard round about this task; it comes back to the task by itself'),
-        one('terminal', 'Terminal', 'terminal', !!term, 'Claude Code in a terminal in ' + (term || '') + ', asked for a wizard round about this task; it comes back to the task by itself')));
+  /* Under its button, or over it when there is no room below; kept on the screen. */
+  function place(btn) {
+    const r = btn.getBoundingClientRect(), mw = panel.offsetWidth, mh = panel.offsetHeight;
+    panel.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - mw - 8))) + 'px';
+    panel.style.top = Math.round(r.bottom + 6 + mh > innerHeight - 8 ? Math.max(8, r.top - 6 - mh) : r.bottom + 6) + 'px';
   }
-  function outside(e) { if (menu && !menu.contains(e.target) && !(owner && owner.contains(e.target))) close(); }
-  function onScroll() { close(); }
+  function outside(e) { if (panel && !panel.contains(e.target) && !(owner && owner.contains(e.target))) close(); }
+  function onScroll(e) { if (e && e.type === 'scroll' && panel && panel.contains(e.target)) return; close(); }
   function close(refocus) {
-    if (!menu) return false;
-    menu.remove(); menu = null;
+    if (!panel) return false;
+    panel.remove(); panel = null;
     document.removeEventListener('mousedown', outside, true);
     window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll);
     if (owner) { owner.setAttribute('aria-expanded', 'false'); if (refocus) owner.focus(); }
     owner = null;
     return true;
   }
-  /* The button that sits beside a Copy for Claude. opts: { text: kind => string, project, id, quiet, small }, and for a
-     task round: kind => string (Make a wizard round) and files: () => [path] (more files for Cowork). */
+  /* The one button for a copy for Claude: it opens the panel. */
   function button(opts) {
-    const btn = h('button', { id: opts.id, class: 'btn oc-btn' + (opts.small === false ? '' : ' btn-small') + (opts.quiet ? ' btn-quiet' : ''), type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false',
-      title: 'Opens this in Claude, filled in and ready to send: a chat, a Cowork task, Claude Code, or Claude Code in a terminal' },
+    const btn = h('button', { id: opts.id, class: 'btn oc-btn' + (opts.small === false ? '' : ' btn-small') + (opts.quiet ? ' btn-quiet' : ''), type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
+      title: opts.think ? 'Opens this in Claude, or copies it: build it, or think it through with a wizard round first' : 'Opens this in Claude, filled in and ready to send, or copies it' },
       iconEl('claude', 14), 'Open in Claude');
     btn.addEventListener('click', e => { e.stopPropagation(); if (owner === btn) close(); else open(btn, opts); });
     return btn;
   }
-  return { button, go, places, close };
+  return { button, go, places, close, isOpen: () => !!panel };
 })();

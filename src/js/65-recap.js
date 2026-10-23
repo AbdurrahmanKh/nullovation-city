@@ -151,11 +151,6 @@ function statusBrief(now = Date.now()) {
 function projectStatusForClaude(p, now = Date.now()) {
   return projectStatus(p, now) + '\n\n' + REPORT_LINE;
 }
-async function copyBrief() {
-  const text = statusBrief();
-  if (await copyText(text)) toast('Status brief copied. Paste it into any Claude chat.');
-  else toast('The browser blocked copying. Try again, or use Export backup.', 'error');
-}
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* fall back below */ }
   try {

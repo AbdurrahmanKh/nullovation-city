@@ -275,14 +275,13 @@ const FullView = (() => {
     if (leader) box.append(h('p', { class: 'pv-leader', dir: 'auto' }, (leader.title ? leader.title + ': ' : '') + leader.text.replace(/\s+/g, ' ').trim()));
     box.append(h('div', { class: 'pv-about-btns' },
       h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => openSide('activity') }, iconEl('clock', 14), 'Activity'),
-      h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this project\u2019s full status as text for a Claude chat', onclick: () => copyProjectStatus(p) }, iconEl('copy', 14), 'Copy status'),
-      OpenInClaude.button({ id: 'pvStatusClaude', text: () => projectStatusForClaude(p), project: p, quiet: true })));
+      OpenInClaude.button({ id: 'pvStatusClaude', text: () => projectStatusForClaude(p), copied: 'Status copied. Paste it into Claude.', project: p, quiet: true })));
     return box;
   }
   /* The next task, pinned or the first open one in the current milestone (Star and What is next, A3, layout B): the
      label with the pin and, while the task wears the star, Starred at its right; the task's own milestone with the
      due date at the right of its line, and nothing when there is none; the task, red with a ! when overdue; then Copy
-     task and Open in Claude on one row. A starred task turns the box purple with a gold edge (A2). */
+     Open in Claude, with Copy in its panel since 0.1.63. A starred task turns the box purple with a gold edge (A2). */
   function whatIsNext(p) {
     const t = nextTask(p), starred = !!(t && isStarred(p, t));
     const marks = h('span', { class: 'pv-next-marks' });
@@ -305,7 +304,6 @@ const FullView = (() => {
     box.append(h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
       late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
     box.append(h('div', { class: 'pv-next-row' },
-      h('button', { class: 'btn btn-quiet btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
       OpenInClaude.button({ id: 'pvNextClaude', ...taskClaude(p, t), project: p, quiet: true })));
     const others = p.todos.filter(x => isOpenTask(x) && x !== t && x.due && dueInfo(x) && dueInfo(x).tone === 'late').length;
     if (others) box.append(h('p', { class: 'pv-late-note' }, '! ' + plural(others, 'other task is', 'other tasks are') + ' overdue'));
@@ -723,7 +721,6 @@ const FullView = (() => {
       h('div', { class: 'pv-round-slot' }, Rounds.card(p, t)),                 // its wizard round (0.1.55, P1)
       h('span', { class: 'lbl' }, 'Description'), desc,
       h('div', { class: 'pv-claude-row' },
-        h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
         OpenInClaude.button({ id: 'pvTaskClaude', ...taskClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' },
         h('button', { id: 'pvTaskToNote', class: 'btn btn-small', type: 'button', title: 'Keep it as an idea in Notes: its title and description stay; its date, repeat and shift go',
@@ -747,7 +744,7 @@ const FullView = (() => {
       toast('Task deleted.');
     } }, 'Delete task');
   }
-  /* An archived task (C2): the same panel, to read, with Restore, Copy task and Delete task. */
+  /* An archived task (C2): the same panel, to read, with Restore, Open in Claude (Copy in it) and Delete task. */
   function archivedTask(p, t) {
     const ms = p.milestones.find(m => m.id === t.milestoneId);
     const desc = (t.description || '').trim();
@@ -764,8 +761,7 @@ const FullView = (() => {
       h('span', { class: 'lbl' }, 'Description'),
       desc ? h('div', { id: 'pvTaskDesc', class: 'note-text pv-arch-desc', tabindex: '-1' }, ...paragraphs(desc)) : h('p', { id: 'pvTaskDesc', class: 'fv-empty', tabindex: '-1' }, 'No description.'),
       h('div', { class: 'pv-claude-row' },
-        h('button', { class: 'btn btn-small', type: 'button', title: 'Copies this task, with its description, for a Claude chat', onclick: () => copyTask(p, t) }, iconEl('copy', 14), 'Copy task'),
-        OpenInClaude.button({ id: 'pvTaskClaude', text: kind => taskForClaude(p, t, Date.now(), { kind }), files: () => Rounds.files(t), project: p })),
+        OpenInClaude.button({ id: 'pvTaskClaude', text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', files: () => Rounds.files(t), project: p })),
       h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
   }
@@ -872,8 +868,7 @@ const FullView = (() => {
       h('p', { class: 'note' }, g.todos.filter(t => t.done).length + ' of ' + plural(g.todos.length, 'task', 'tasks') + ' done. To change them, use the list; drag the milestone by its flag to move it.'),
       tasks,
       h('div', { class: 'pv-claude-row' },
-        h('button', { id: 'pvMsCopy', class: 'btn btn-small', type: 'button', title: 'Copies this milestone and its open tasks with their descriptions, for a Claude chat', onclick: () => copyMilestone(p, m) }, iconEl('copy', 14), 'Copy for Claude'),
-        OpenInClaude.button({ id: 'pvMsClaude', text: () => milestoneForClaude(p, m), project: p })),
+        OpenInClaude.button({ id: 'pvMsClaude', text: () => milestoneForClaude(p, m), copied: 'Milestone copied for Claude, with its tasks.', project: p })),
       h('div', { class: 'pv-note-foot' },
         g.todos.some(canArchive) ? h('button', { id: 'pvMsArchive', class: 'btn btn-small', type: 'button', title: 'Every done task in it goes to the archive now',
           onclick: () => {
@@ -1080,8 +1075,7 @@ const FullView = (() => {
       oninput: e => { n.text = e.target.value.slice(0, 8000); changed(p, { touch: false }); refreshCard(n); typed(); } }, n.text);
     return h('div', { class: 'pv-note-ed' }, title, body,
       h('div', { class: 'pv-claude-row' },
-        h('button', { id: 'pvNoteCopy', class: 'btn btn-small', type: 'button', title: 'Copies this note for a Claude chat', onclick: () => copyNote(p, n) }, iconEl('copy', 14), 'Copy for Claude'),
-        OpenInClaude.button({ id: 'pvNoteClaude', text: () => noteForClaude(p, n), project: p })),
+        OpenInClaude.button({ id: 'pvNoteClaude', text: () => noteForClaude(p, n), copied: 'Note copied for Claude.', project: p })),
       h('div', { class: 'pv-note-foot' }, toTask,                        // as in the task panel: turn it on the left, delete on the right
         h('button', { id: 'pvNoteDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
           p.notes.splice(p.notes.indexOf(n), 1);
@@ -1342,8 +1336,10 @@ const FullView = (() => {
   }
   /* What Open in Claude sends for a task: its copy (the round's answers written in for a chat, C1), Make a wizard round's
      request (M1), and the round's file for Cowork when its path is known. */
-  const taskClaude = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }),
-    round: isOpenTask(t) ? kind => taskForClaude(p, t, Date.now(), { kind, ask: true }) : null, files: () => Rounds.files(t) });
+  /* Open in Claude on a task: Build it sends the task; Think, on an open task, asks for a round or a brainstorm about it
+     (Open in Claude Panel, A2, A3); Copy copies either; Cowork gets the round's file. */
+  const taskClaude = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.',
+    think: isOpenTask(t) ? (kind, o = {}) => taskForClaude(p, t, Date.now(), { kind, ask: o.brainstorm ? 'brainstorm' : true }) : null, files: () => Rounds.files(t) });
   /* A round came, changed or went: its card and its hats, redrawn in place, so a description being typed keeps its place. */
   function refreshRounds() {
     const p = P(); if (!p || !root) return;

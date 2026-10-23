@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.63 (2026-10-23)
+
+Open in Claude becomes a panel, from Open in Claude Panel, Round 1, and Abdurrahman's notes and diagram.
+- Open in Claude opens a panel in place of its menu: tiles for Chat, Cowork, Code and Terminal, then Copy, and under them the folder they open in. Chat says "no folder". Cowork has its own icon.
+- One folder: "Folder: <path>". A building with several folder links shows > beside it, which lists them; the one picked is kept for that building in this browser. Cowork gets that one folder now, plus the round's file for a task with a round, rather than every folder and file link.
+- Copy, in the panel, takes the place of the separate copy buttons (A1): Copy status, Copy status brief, Copy task in What is next, the task panel and an archived task, a milestone's Copy for Claude and a note's are gone. Copy copies the text and says so, as they did.
+- A task's panel has two tabs: Build it, the default, which sends the task to do it, and Think, which asks Claude for a wizard round about it (A2: tasks only). Think replaces the Make a wizard round row.
+- Think has "Make a brainstorming round": ticked, it asks for a brainstorm, the wizard's two rounds through the six hats, in place of a wizard round.
+- A brainstorm attaches to its task like a round (A3): dropped on its panel or sent by Claude Code with add-round. Its card says "Brainstorm, round 1" or "round 2" and counts the cards seen; it counts as answered once its last card is seen. Round 2 replaces round 1. A copy for a chat writes its answers in, card by card; the city summary says which kind a round is.
+- Tick it, under a finished Claude Code session, is said by the building's leader in its toast, as the one-line add's is (D1).
+- The nullovation-city skill knows Think and brainstorms, and its check accepts a brainstorm in add-round.
+- Tests: test18_open_in_claude rewritten for the panel; the passes that copied with the old buttons copy through the panel; test37_task_rounds checks Think and brainstorms; test40_leader_news checks Tick it's leader.
+
 ## 0.1.62 (2026-10-23)
 
 The leaders come alive, the fifth and last piece of the leader UX (Leader UX, Round 1 E1).

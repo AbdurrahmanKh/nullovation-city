@@ -103,12 +103,12 @@ function untickTask(p, t, was = null, { log = true } = {}) {
   else { t.done = false; t.doneAt = null; delete t.archiveFrom; }
   if (log) logActivity(p, 'Reopened: ' + t.text);
 }
-/* After a repeat is ticked: where it went, with Undo. */
-function repeatToast(p, t, was) {
+/* After a repeat is ticked: where it went, with Undo; said by the building's leader when lead is given (Tick it, 0.1.63). */
+function repeatToast(p, t, was, lead = null) {
   toast(t.text + ' comes back ' + backWhen(t) + '.', '', { label: 'Undo', run: () => {
     untickTask(p, t, was); changed(p);
     if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
-  } });
+  } }, { lead });
 }
 
 /* ---------- the one-line add (O1, O2) ----------

@@ -38,7 +38,7 @@ with sync_playwright() as p:
     pg.screenshot(path=str(SHOTS / 'notes-copy.png'), clip=pg.query_selector('[data-sec="notes"]').bounding_box())
     card.locator('.pv-note-card').click(); pg.wait_for_timeout(400)
     js("() => navigator.clipboard.writeText('')")
-    pg.click('#pvNoteCopy'); pg.wait_for_timeout(200)
+    pg.click('#pvNoteClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(200)   # Copy, in Open in Claude's panel (0.1.63)
     ok('the note panel copies the same thing', clip() == c)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     # the milestone view
@@ -52,7 +52,7 @@ with sync_playwright() as p:
     ok('an open task shows its due date and the first line of its description', 'Due tomorrow' in items.nth(0).text_content() and 'Draw each bed on the grid' in items.nth(0).text_content() and 'Done when' not in items.nth(0).text_content())
     ok('the name can still be changed there', pg.is_visible('#pvMsName'))
     pg.screenshot(path=str(SHOTS / 'milestone-view.png'), clip=pg.query_selector('.pv-side').bounding_box())
-    pg.click('#pvMsCopy'); pg.wait_for_timeout(200)
+    pg.click('#pvMsClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(200)
     c = clip()
     open_t = [t for t, d in ms['tasks'] if not d]; done_t = [t for t, d in ms['tasks'] if d]
     ok('Copy for Claude copies the milestone as a work package', c.startswith('# Milestone: ' + ms['name']) and 'Progress: 1/' in c and all('### ' + t in c for t in open_t))

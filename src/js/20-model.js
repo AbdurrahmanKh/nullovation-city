@@ -232,7 +232,8 @@ function ensureMilestones(p) {
 const REPORT_LINE = 'When you finish, send Nullovation City an update with the nullovation-city skill.';
 /* One task as text for a Claude chat: what it is, and where it sits. Its wizard round (0.1.55) follows the description:
    through its file wherever Claude can read it (A2), with the answers written in for a chat (kind 'chat', C1) and when
-   no Claude folder is connected. Make a wizard round's copy (ask) ends with its request instead of the update line. */
+   no Claude folder is connected. Open in Claude's Think (ask, 0.1.63; Make a wizard round until then) ends with its
+   request instead of the update line: a round, or with ask 'brainstorm' a brainstorm (Open in Claude Panel, A3). */
 function taskForClaude(p, t, now = Date.now(), { kind = '', ask = false } = {}) {
   const L = [];
   const ms = p.milestones.find(m => m.id === t.milestoneId);
@@ -250,7 +251,7 @@ function taskForClaude(p, t, now = Date.now(), { kind = '', ask = false } = {}) 
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
   if (t.round) L.push(...roundForClaude(t, { inline: kind === 'chat' || !(typeof ClaudeWork !== 'undefined' && ClaudeWork.folder()) }));
-  L.push('', ask ? ROUND_LINE : REPORT_LINE);
+  L.push('', ask === 'brainstorm' ? BRAINSTORM_LINE : ask ? ROUND_LINE : REPORT_LINE);
   return L.join('\n');
 }
 /* A note, ready to paste into a Claude chat. */
@@ -277,7 +278,7 @@ function milestoneForClaude(p, m, now = Date.now()) {
     if (d) L.push(d.text);
     if (t.repeat) L.push('Repeats: ' + repeatText(t.repeat));
     if (t.shift) L.push('Shift: ' + shiftName(t.shift));
-    if (t.round) L.push('Wizard round: ' + t.round.title + ' (' + roundWords(roundState(t)).replace(/^./, c => c.toLowerCase()) + ')');
+    if (t.round) L.push((isBrainstorm(t.round) ? 'Brainstorm: ' : 'Wizard round: ') + t.round.title + ' (' + roundWords(roundState(t)).replace(/^./, c => c.toLowerCase()) + ')');
     L.push((t.description || '').trim() || 'No description yet.');
   }
   if (waiting.length) { L.push('', '## Repeats waiting for their next date'); for (const t of waiting) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')'); }
@@ -285,10 +286,6 @@ function milestoneForClaude(p, m, now = Date.now()) {
   if (shown.length) { L.push('', '## Done'); for (const t of shown) L.push('- ' + t.text); }
   L.push('', REPORT_LINE);
   return L.join('\n');
-}
-async function copyMilestone(p, m) {
-  if (await copyText(milestoneForClaude(p, m))) toast('Milestone copied for Claude, with its tasks.');
-  else toast('The browser blocked copying. Try again.', 'error');
 }
 async function copyTask(p, t) {
   if (await copyText(taskForClaude(p, t))) toast('Task copied for Claude.');

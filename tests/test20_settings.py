@@ -74,8 +74,8 @@ with sync_playwright() as p:
     ok('the ? shows the controls', pg.is_visible('#setHelp') and 'comma' in pg.text_content('#setHelp') and pg.get_attribute('#setHelpBtn', 'aria-expanded') == 'true')
     pg.click('#setHelpBtn')
     close_settings(pg)
-    ok('Copy status brief and Open in Claude stay outside Settings, with the week', pg.is_visible('#btnBrief') and pg.is_visible('#btnBriefClaude')
-       and js("() => !document.querySelector('#settings').contains(document.querySelector('#btnBrief'))"))
+    ok('the status brief\'s Open in Claude stays outside Settings, with the week', pg.is_visible('#btnBriefClaude')
+       and js("() => !document.querySelector('#settings').contains(document.querySelector('#btnBriefClaude'))"))
     ok('the old Tools and Backup sections and the Controls guide are gone from the lists', js("() => !document.querySelector('#foldTools') && !document.querySelector('#foldData') && !document.querySelector('#sbLists .help')"))
 
     # Traffic, Bubbles and Time of day in both places, in step, with the same choices and icons

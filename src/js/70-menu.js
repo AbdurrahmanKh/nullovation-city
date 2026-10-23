@@ -36,9 +36,9 @@ const Menu = (() => {
     $('#bannerCancel').addEventListener('click', () => MapView.cancelMode());
 
     $('#btnRecap').addEventListener('click', () => { closeDrawer(); openRecap(); });
-    /* The status brief starts a planning chat, so it sits with the week rather than in Settings. */
-    $('#btnBrief').addEventListener('click', copyBrief);
-    $('#btnBrief').after(OpenInClaude.button({ id: 'btnBriefClaude', text: () => statusBrief(), small: true }));
+    /* The status brief starts a planning chat, so it sits with the week rather than in Settings: Open in Claude, with
+       Copy in its panel (0.1.63; Copy status brief beside it until then). */
+    $('#briefRow').append(OpenInClaude.button({ id: 'btnBriefClaude', text: () => statusBrief(), copied: 'Status brief copied. Paste it into any Claude chat.', small: true }));
     /* Edit City's bar: the ring as before, and Done */
     $('#btnGrow').addEventListener('click', () => { if (MapView.resizeWorld(1)) toast('Added a ring of plots.'); });
     $('#btnShrink').addEventListener('click', () => {

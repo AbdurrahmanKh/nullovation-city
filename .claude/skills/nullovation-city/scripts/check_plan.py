@@ -207,8 +207,11 @@ def check_change(data, errors, warnings):
             name = c.get('file')
             if not isinstance(name, str) or not name.strip().lower().endswith('.json') or any(x in name for x in '/\\:'):
                 errors.append(f'{where} (add-round) needs "file": the round file\'s name in wizard-rounds, such as 2026-10-22-draw-the-beds-round1.json')
-            if 'round' in c and not (isinstance(c['round'], dict) and isinstance(c['round'].get('config'), dict) and isinstance(c['round'].get('questions'), list)):
-                errors.append(f'{where} (add-round): "round", when given, is the round itself: {{ "config": {{...}}, "questions": [...] }}')
+            rd = c.get('round')
+            brainstorm = isinstance(rd, dict) and isinstance(rd.get('config'), dict) and rd['config'].get('kind') == 'brainstorm' \
+                and isinstance(rd.get('topic'), dict) and (isinstance(rd.get('suggest'), list) or isinstance(rd.get('ideas'), list))
+            if 'round' in c and not brainstorm and not (isinstance(rd, dict) and isinstance(rd.get('config'), dict) and isinstance(rd.get('questions'), list)):
+                errors.append(f'{where} (add-round): "round", when given, is the round itself: {{ "config": {{...}}, "questions": [...] }}, or a brainstorm with "config" (kind "brainstorm"), "topic" and its cards')
         if do == 'replace-plan' and not isinstance(c.get('plan'), dict):
             errors.append(f'{where} (replace-plan) needs a "plan" object with the About, milestones and tasks')
     ask = [k for k in kinds if k in ('done', 'edit-description', 'replace-plan')]

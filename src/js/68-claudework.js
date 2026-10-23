@@ -249,12 +249,12 @@ const ClaudeWork = (() => {
     return p.todos.find(t => isOpenTask(t) && t.text.trim().toLowerCase() === key) || null;
   }
   /* Ticks it off as a tick in the project view does: done now (a repeat on to its next date), work for urgency, a
-     line in Activity. */
+     line in Activity. Its toast is the building's leader's (0.1.63, Open in Claude Panel, D1), plain with no leader. */
   function tick(p, t) {
-    const was = tickTask(p, t);
+    const was = tickTask(p, t), lead = typeof Leaders !== 'undefined' ? Leaders.toastLead(p) : null;
     window.changed(p);
-    if (t.repeat) repeatToast(p, t, was);
-    else toast('Ticked off: ' + t.text + '.');
+    if (t.repeat) repeatToast(p, t, was, lead);
+    else toast('Ticked off: ' + t.text + '.', '', null, { lead });
   }
 
   /* What its leader says of Claude's sessions on the building, in the status card (Leader UX, B3, 0.1.59), for as long
@@ -296,7 +296,7 @@ const ClaudeWork = (() => {
           next: next ? next.text : null,
           milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)
             open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}), ...(t.shift ? { shift: shiftName(t.shift) } : {}),
-              ...(t.round ? { round: { title: t.round.title, file: ROUNDS_DIR + '/' + t.round.file, state: roundWords(roundState(t)) } } : {}) })),   // its wizard round (0.1.55)
+              ...(t.round ? { round: { title: t.round.title, kind: isBrainstorm(t.round) ? 'brainstorm' : 'round', file: ROUNDS_DIR + '/' + t.round.file, state: roundWords(roundState(t)) } } : {}) })),   // its wizard round (0.1.55)
             ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
             done: g.todos.filter(t => t.done && !t.archived).map(t => t.text) })),
           notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),

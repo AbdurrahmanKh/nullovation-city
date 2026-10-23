@@ -74,7 +74,7 @@ with sync_playwright() as p:
     ok('a link adds straight from the page, with a guessed icon', proj()['links'][-1]['icon'] == 'github')
     second = proj()['todos'][1]['text']
     ok('with the first task ticked, What is next moves to the second', pg.text_content('#pvNextTask').strip() == second)
-    pg.click('.pv-next-row >> text=Copy task'); pg.wait_for_timeout(150)
+    pg.click('#pvNextClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(150)   # Copy, in Open in Claude's panel (0.1.63)
     ok('What is next copies that task for Claude', pg.evaluate("() => navigator.clipboard.readText()").startswith('# Task: ' + second))
     import datetime
     past = (datetime.date.today() - datetime.timedelta(days=2)).isoformat()
@@ -110,7 +110,7 @@ with sync_playwright() as p:
     ok('the side panel never overlaps the view', pg.evaluate("() => document.querySelector('#pvSide').getBoundingClientRect().left >= document.querySelector('#pv').getBoundingClientRect().right"))
     ok('the feed lists today\u2019s changes, newest first', pg.text_content('#pvSide .pv-day li:first-child span') == 'Renamed to Garden app')
     pg.screenshot(path=str(SH / 'pv-8-activity.png'))
-    pg.click('#pv .pv-about-btns >> text=Copy status'); pg.wait_for_timeout(150)
+    pg.click('#pvStatusClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(150)
     st = pg.evaluate("() => navigator.clipboard.readText()")
     rl = pg.evaluate("() => REPORT_LINE")      # every copy for Claude ends asking it to update Nullovation City (0.1.36)
     ok('Copy status copies this project only', st.startswith('## Garden app') and st.endswith(rl) and 'Nullovation City' not in st.replace(rl, ''))

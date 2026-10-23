@@ -63,7 +63,7 @@ with sync_playwright() as p:
     # 6.3 and 6.7: a task opens beside the view; description, due date, copy for Claude, Esc undoes
     pg.click('.ms >> nth=1 >> li.task >> nth=0 >> .task-title'); pg.wait_for_timeout(250)
     pg.fill('#pvTaskDesc', 'Draw each bed to scale and label it.')
-    pg.click('#pvSide >> text=Copy task'); pg.wait_for_timeout(150)
+    pg.click('#pvTaskClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(150)   # Copy, in Open in Claude's panel (0.1.63)
     c = clip()
     ok('6.7 Copy task copies the task with its description, and no longer the project\'s About', c.startswith('# Task: Draw the beds') and 'Draw each bed to scale' in c and '## About the project' not in c)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)

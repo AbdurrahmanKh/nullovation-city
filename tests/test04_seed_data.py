@@ -138,7 +138,7 @@ with sync_playwright() as p:
     ok('recap name selects the building', not page.is_visible('.modal.panel') and page.evaluate("() => !!App.selectedId"))
 
     # status brief to the clipboard
-    page.click('#btnBrief'); page.wait_for_timeout(200)
+    page.click('#btnBriefClaude'); page.click('.oc-panel .oc-tile[data-kind="copy"]'); page.wait_for_timeout(200)   # Copy, in Open in Claude's panel (0.1.63)
     clip = page.evaluate("() => navigator.clipboard.readText()")
     ok('brief copied with headings, todos, and milestone tags', clip.startswith('# Nullovation City status') and '## Garden planner' in clip and '(First release' in clip and 'Due tomorrow' in clip and 'Next task: ' in clip)
     (DATA / 'brief.txt').write_text(clip, encoding='utf-8')

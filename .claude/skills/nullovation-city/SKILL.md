@@ -127,7 +127,7 @@ Every copy from the city (a task, a note, a milestone, a project's status, the s
 - `edit-description`: a task's description brought up to date, such as what is done and what is left. The user approves it first.
 - `add-link`: a real address of something made, such as a document or a pull request.
 - `replace-plan`: a whole new plan, only when the user asked for one. The user approves it first.
-- `add-round`: a decision wizard round for a task, when a copy from the city asks for one (below).
+- `add-round`: a decision wizard round or a brainstorm for a task, when a copy from the city asks for one (below).
 
 Adding tasks, notes, links and a round applies at once, with an Undo; ticking tasks, editing descriptions and replacing the plan wait on the building for the user to apply. Send one file per update, for one project.
 
@@ -152,14 +152,18 @@ Adding tasks, notes, links and a round applies at once, with an Undo; ticking ta
 
 Leave out the changes you have nothing for. Name the file `<YYYY-MM-DD-HHMM>-<project>.json`, write it into the inbox folder (make the folder if it is missing), and check it with `python3 scripts/check_plan.py <the-file>` when Python is available. Then tell the user in one line what you sent, and that adding applied at once while ticks and edits wait on the building.
 
-## A wizard round for a task
+## A wizard round or a brainstorm for a task
 
-A copy from the city made with Make a wizard round ends with "Plan this task further with a decision wizard round" instead of the update line. Write the round with the d-wizard skill, asking only what the copy leaves open: a copy may already carry an earlier round's answers, which are settled. Then attach it to the task:
+A copy from the city made with Think, in Open in Claude, ends with "Plan this task further with a decision wizard round" instead of the update line. Write the round with the d-wizard skill, asking only what the copy leaves open: a copy may already carry an earlier round's answers, which are settled.
+
+With Make a brainstorming round ticked, it ends with "Explore this task with a brainstorm" instead. Write a brainstorm with the d-wizard skill, as its brainstorm reference says: its round 1, or, when the copy carries a brainstorm whose round 1 is answered, its round 2 from those answers. A brainstorm attaches exactly as a round does, and its round 2 replaces its round 1 on the task. Name its files as the d-wizard skill names brainstorms.
+
+Then attach it to the task:
 
 - **In Claude Code, with the city found as above:** write the round as `wizard-rounds/<YYYY-MM-DD>-<topic>-round<N>.json` in the city's folder (the folder that holds `inbox/`; make `wizard-rounds/` if it is missing), not in the project's own `wizard-rounds/`. In its `config`, set `project` to `Nullovation City` and `folder` to the full path of that `wizard-rounds` folder, as the d-wizard skill describes. Then send a change file with `{ "do": "add-round", "task": "<the task's title, exactly>", "file": "<the round's file name>" }`. The city attaches it to the task at once, with an Undo; the user answers it in their wizard, which saves the answers into the same file, and the city reads them back into the task. A new round replaces the task's old one.
 - **Anywhere else, as on claude.ai:** deliver the round as a file, and tell the user to drop it on the task's panel in the city.
 
-A copy of a task with a round carries it under "Wizard round": in Claude Code it names the round's file, so read the questions and answers there; in a chat the answers are written in. Act on the answers as the d-wizard skill says: what was picked, typed or noted is decided.
+A copy of a task with a round carries it under "Wizard round", or "Brainstorm, round 1" or "round 2": in Claude Code it names the round's file, so read the questions or cards and their answers there; in a chat the answers are written in. Act on the answers as the d-wizard skill says: what was picked, typed or noted is decided. In the city summary, a task's `round` has `kind`, `round` or `brainstorm`.
 
 ## Hand it over
 

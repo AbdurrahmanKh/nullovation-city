@@ -238,11 +238,8 @@ const QuickAdd = (() => {
   }
   function added(p, t, info) {
     const acts = [{ label: 'Open', run: () => FullView.openTask(p.id, t.id) }, { label: 'Undo', run: () => undo(p, t, info) }];
-    const l = typeof leaderOf === 'function' ? leaderOf(p) : null;
-    if (!l) return toast('Added to ' + p.name + ': ' + t.text + '.', '', acts);
-    const lead = h('span', { class: 'toast-lead' }, Leaders.face(l, 40),
-      h('span', { class: 'toast-who' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), h('span', { dir: 'auto' }, p.name)));
-    lead.style.setProperty('--ld', l.color);
+    const lead = Leaders.toastLead(p);
+    if (!lead) return toast('Added to ' + p.name + ': ' + t.text + '.', '', acts);
     toast('Task added: ' + t.text + '.', '', acts, { lead });
   }
   /* Undo: the task back out, with its Activity line and a milestone made for it, and the line open again with what

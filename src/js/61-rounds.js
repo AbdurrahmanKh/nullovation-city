@@ -175,7 +175,7 @@ const Rounds = (() => {
     r.marked = true;
     changed(p, { touch: false }); refresh(p);
     const st = roundState(t);
-    toast('Marked answered: ' + plural(st.skipped, 'question', 'questions') + ' skipped.', '', { label: 'Undo', run: () => { r.marked = false; changed(p, { touch: false }); refresh(p); } });
+    toast('Marked answered: ' + (st.brainstorm ? plural(st.skipped, 'card', 'cards') : plural(st.skipped, 'question', 'questions')) + ' skipped.', '', { label: 'Undo', run: () => { r.marked = false; changed(p, { touch: false }); refresh(p); } });
   }
   function remove(p, t) {
     const was = t.round; if (!was) return;
@@ -188,13 +188,15 @@ const Rounds = (() => {
   function refresh() { if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }
 
   /* ---------- what shows it ---------- */
-  const hatTitle = st => st.done ? 'Wizard round answered. Click to open it in your wizard' : 'Wizard round: ' + st.answered + ' of ' + st.total + ' answered. Click to answer it in your wizard';
+  const hatTitle = st => (st.brainstorm ? (st.done ? 'Brainstorm answered. Click to open it in your wizard' : 'Brainstorm: ' + st.answered + ' of ' + st.total + ' cards seen. Click to answer it in your wizard')
+    : st.done ? 'Wizard round answered. Click to open it in your wizard' : 'Wizard round: ' + st.answered + ' of ' + st.total + ' answered. Click to answer it in your wizard');
+  const kindOf = st => (st.brainstorm ? 'Brainstorm' : 'Wizard round');
   /* The hat on a task's row: gray until the round is answered, teal after (A2, H1); a click is Wizard it (X1). */
   function hatButton(p, t, cls = '') {
     if (!wearsHat(t)) return null;
     const st = roundState(t);
     return h('button', { class: 'icon-btn round-hat ' + (st.done ? 'hat-done' : 'hat-open') + (cls ? ' ' + cls : ''), type: 'button', 'data-task': t.id,
-      'aria-label': (st.done ? 'Wizard round answered, for ' : 'Wizard round, ' + st.answered + ' of ' + st.total + ' answered, for ') + t.text + '. Open it in your wizard',
+      'aria-label': (st.done ? kindOf(st) + ' answered, for ' : kindOf(st) + ', ' + st.answered + ' of ' + st.total + (st.brainstorm ? ' cards seen, for ' : ' answered, for ')) + t.text + '. Open it in your wizard',
       title: hatTitle(st), html: hatSvg(14), onclick: e => { e.stopPropagation(); wizard(p, t); } });
   }
   /* What is next's chip, beside Pinned and Starred: the count while open, Answered after. */
@@ -210,18 +212,19 @@ const Rounds = (() => {
     const r = t && t.round;
     if (!r) return null;
     const st = roundState(t), open = unfolded.has(t.id), hasAnswers = !!r.a || st.marked;
-    const el = h('section', { class: 'pv-round' + (st.done ? ' done' : ''), 'aria-label': 'Wizard round' });
+    const label = st.brainstorm ? 'Brainstorm, round ' + st.brainstorm : 'Wizard round';
+    const el = h('section', { class: 'pv-round' + (st.done ? ' done' : '') + (st.brainstorm ? ' brainstorm' : ''), 'aria-label': label });
     const fold = hasAnswers ? h('button', { class: 'pv-round-fold', type: 'button', 'aria-expanded': String(open),
       onclick: () => { if (open) unfolded.delete(t.id); else unfolded.add(t.id); const nu = card(p, t, { readOnly }); el.replaceWith(nu); const b = $('.pv-round-fold', nu); if (b) b.focus(); } },
       h('span', { 'aria-hidden': 'true', html: iconSvg(open ? 'caretD' : 'caretR', 9) }), open ? 'Answers' : 'Show the answers') : null;
     el.append(
-      h('div', { class: 'pv-round-head' }, hatEl(t, 16), h('span', { class: 'pv-round-lbl' }, 'Wizard round'), h('span', { class: 'pv-round-state' }, roundStateText(st))),
+      h('div', { class: 'pv-round-head' }, hatEl(t, 16), h('span', { class: 'pv-round-lbl' }, label), h('span', { class: 'pv-round-state' }, roundStateText(st))),
       h('p', { class: 'pv-round-title', dir: 'auto' }, r.title),
       h('p', { class: 'pv-round-file', dir: 'ltr', title: roundPath(r) || ROUNDS_DIR + '\\' + r.file + ', in the Claude folder' }, ROUNDS_DIR + '\\' + r.file),
       h('div', { class: 'pv-round-btns' },
         h('button', { id: 'pvRoundWizard', class: 'btn btn-small' + (st.done ? '' : ' btn-accent'), type: 'button', title: st.done ? 'Opens it in your wizard' : 'Answers it in your wizard',
           onclick: () => wizard(p, t) }, h('span', { class: 'hat', 'aria-hidden': 'true', html: hatSvg(14) }), st.done ? 'Open in wizard' : 'Wizard it'),
-        !readOnly && !st.done && st.answered > 0 ? h('button', { id: 'pvRoundMark', class: 'btn btn-quiet btn-small', type: 'button', title: 'Every open question counts as skipped on purpose, and the hat turns teal',
+        !readOnly && !st.done && st.answered > 0 ? h('button', { id: 'pvRoundMark', class: 'btn btn-quiet btn-small', type: 'button', title: st.brainstorm ? 'Every card not seen counts as skipped on purpose, and the hat turns teal' : 'Every open question counts as skipped on purpose, and the hat turns teal',
           onclick: () => { mark(p, t); const b = side() && $('#pvRoundWizard', side()); if (b) b.focus(); } }, 'Mark answered') : null,
         !readOnly ? h('button', { id: 'pvRoundRemove', class: 'btn btn-quiet btn-small pv-round-remove', type: 'button', title: 'Takes the round off this task; its file stays in the folder',
           onclick: () => remove(p, t) }, 'Remove') : null),
@@ -230,6 +233,8 @@ const Rounds = (() => {
   }
   const side = () => $('#pvSide');
   function answersList(r, st) {
+    if (isBrainstorm(r)) return h('ul', { class: 'pv-round-ans pv-round-brain' }, brainstormAnswerLines(r).map(line =>
+      h('li', { class: /^\s/.test(line) ? 'sub' : null, dir: 'auto' }, line.replace(/^\s*(- )?/, ''))));
     const byId = new Map((r.a ? r.a.answers : []).filter(a => a && a.id).map(a => [a.id, a]));
     return h('ul', { class: 'pv-round-ans' }, r.q.questions.map(q => {
       const a = byId.get(q.id), got = isAnswered(a);

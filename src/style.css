@@ -603,16 +603,39 @@ kbd { background: var(--paper); border-color: var(--edge); box-shadow: 0 2px 0 0
 .pv-menu-item { display: block; width: 100%; padding: 10px 16px; text-align: left; background: none; border: 0; color: var(--ink); font: inherit; cursor: pointer; }
 .pv-menu-item:hover, .pv-menu-item:focus-visible { background: var(--hover); outline: none; }
 .pv-menu-item.danger { color: var(--late); }
-/* Open in Claude: a small menu beside each Copy for Claude, fixed to the screen so it works in any panel */
-.oc-menu { position: fixed; z-index: 70; min-width: 280px; }
-.oc-item { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.oc-item .ic { display: inline-flex; }
-.oc-item .oc-note { margin-left: auto; padding-left: 12px; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .85em; }
-.oc-item .oc-note.oc-split { display: flex; min-width: 0; }
-.oc-split .oc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.oc-split .oc-more { flex: none; white-space: pre; }
-.oc-item.off { color: var(--muted); cursor: default; }
-.oc-item.off:hover { background: none; }
+/* Open in Claude (0.1.63): a small panel beside each copy for Claude, fixed to the screen so it works in any panel:
+   Build it and Think for a task, five tiles, and the folder they open in. */
+.oc-panel { position: fixed; z-index: 70; width: 344px; max-width: calc(100vw - 16px); padding: 10px; display: grid; gap: 9px;
+  background: var(--paper); box-shadow: var(--px-edge), 6px 8px 0 0 rgba(0, 0, 0, .45); font-size: 13.5px; }
+.oc-tabs { display: grid; grid-template-columns: 1fr 1fr; box-shadow: inset 0 0 0 1px #3A3354; }
+.oc-tab { display: flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 10px; font: inherit; color: var(--ink-soft); background: none; border: 0; cursor: pointer; }
+.oc-tab .ic { display: inline-flex; }
+.oc-tab:hover { background: var(--hover); color: var(--ink); }
+.oc-tab.on { background: var(--accent); color: #fff; }
+.oc-tab:focus-visible { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.oc-tab.on:focus-visible { outline-color: #fff; outline-offset: -4px; }
+.oc-brain { display: flex; align-items: center; gap: 8px; color: var(--ink); cursor: pointer; }
+.oc-brain input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+.oc-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.oc-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 64px; padding: 7px 2px 6px; font: inherit; font-size: 12px; line-height: 1.2;
+  color: var(--ink); text-decoration: none; background: #2A2440; border: 0; box-shadow: inset 0 0 0 1px #3A3354; cursor: pointer; }
+.oc-tile .ic { display: inline-flex; }
+.oc-tile-note { font-size: 10.5px; color: var(--muted); }
+a.oc-tile:hover, a.oc-tile:focus-visible, button.oc-tile:hover, button.oc-tile:focus-visible { background: var(--hover); box-shadow: inset 0 0 0 1px var(--accent); outline: none; }
+.oc-tile.off { color: var(--muted); opacity: .55; cursor: default; }
+.oc-folder { display: flex; min-width: 0; font-size: 12.5px; color: var(--ink-soft); }
+.oc-folder b { color: var(--ink); font-weight: 500; flex: none; }
+.oc-folder-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; direction: ltr; }
+.oc-folder-none { color: var(--muted); }
+.oc-folder-pick { display: flex; align-items: center; gap: 4px; min-width: 0; width: 100%; padding: 4px 6px; margin: -4px -6px; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; text-align: left; }
+.oc-folder-pick:hover, .oc-folder-pick:focus-visible { background: var(--hover); outline: none; }
+.oc-folder-more { margin-left: auto; padding-left: 8px; flex: none; color: var(--accent); font-family: var(--f-pixel); }
+.oc-folders { display: grid; gap: 2px; padding: 4px; background: #1D1930; box-shadow: inset 0 0 0 1px #3A3354; max-height: 190px; overflow-y: auto; }
+.oc-folder-opt { display: grid; gap: 1px; padding: 6px 8px; font: inherit; color: var(--ink); background: none; border: 0; text-align: left; cursor: pointer; min-width: 0; }
+.oc-folder-opt:hover, .oc-folder-opt:focus-visible { background: var(--hover); outline: none; }
+.oc-folder-opt.on { box-shadow: inset 2px 0 0 0 var(--accent); }
+.oc-folder-name { font-size: 13px; }
+.oc-folder-full { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
 .pv-own { display: grid; gap: 10px; margin-bottom: 18px; }
 .pv-side .pick-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
 .pv-side .pick-art { min-height: 70px; }
@@ -1524,17 +1547,14 @@ li.task .round-hat { margin-inline-start: 2px; }
 .pv-round-ans .n, .pv-round-ans .sub { color: var(--muted); font-size: 12.5px; }
 .pv-round-ans li.open .a { color: var(--muted); font-weight: 400; font-style: italic; }
 .pv-round-ans li.skip .a { color: var(--muted); font-weight: 400; }
+/* a brainstorm's answers (0.1.63): one line a card, what it holds under it */
+.pv-round-brain { display: flex; flex-direction: column; gap: 4px; }
+.pv-round-brain li { display: block; color: var(--ink); overflow-wrap: anywhere; }
+.pv-round-brain li.sub { grid-column: auto; position: relative; padding-left: 14px; color: var(--ink-soft); font-size: 12.5px; }
+.pv-round-brain li.sub::before { content: ''; position: absolute; left: 4px; top: 0.62em; width: 4px; height: 4px; background: var(--muted); }
 .pv-round-slot { display: grid; gap: 8px; }
 .pv-round-slot:empty { display: none; }
 /* A round file over the panel (P2): the line shows only while dragging. */
 .pv-round-drop { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 2px dashed #2DB5A9; background: #2E2748; color: var(--ink); font-size: 13px; pointer-events: none; }
-/* Open in Claude's second row: Make a wizard round (M1). */
-.oc-wiz { border-top: 2px solid var(--line); padding: 8px 12px 10px; display: grid; gap: 8px; }
-.oc-wiz-head { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); }
-.oc-wiz-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.oc-wiz-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 4px 6px; font-size: 12px; color: var(--ink); text-decoration: none; background: #2A2440; box-shadow: inset 0 0 0 1px #3A3354; }
-.oc-wiz-item .ic { display: inline-flex; }
-a.oc-wiz-item:hover, a.oc-wiz-item:focus-visible { background: var(--hover); box-shadow: inset 0 0 0 1px var(--accent); outline: none; }
-.oc-wiz-item.off { color: var(--muted); opacity: .6; cursor: default; }
 /* Settings, Links: the wizard's address. */
 .set-field { display: grid; gap: 6px; font-size: 13.5px; color: var(--ink-soft); }

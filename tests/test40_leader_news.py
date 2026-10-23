@@ -299,5 +299,17 @@ with sync_playwright() as p:
     pg.click('#newsList .news-face'); settle(300)
     ok('Undo lasts while the page is open, as a toast\'s: after a reload the news has none', 'Undo' not in (say() or {}).get('acts', ['Undo']))
     close_say()
+
+    # ---------- Tick it: the building's leader says it (0.1.63, Open in Claude Panel D1) ----------
+    tk = lambda pid: ev(f"""() => {{ const p = getProject('{pid}'), t = p.todos.find(x => !x.done && !x.repeat); ClaudeWork.tick(p, t);
+        const el = document.querySelector('#toast'), lead = el.querySelector('.toast-lead');
+        return {{ task: t.text, lead: !!lead, name: lead ? lead.querySelector('.ld-name').textContent : '', where: lead ? lead.querySelector('.toast-who span').textContent : '',
+          face: lead ? (lead.querySelector('.ld-face') || {{}}).offsetWidth || 0 : 0, msg: (el.querySelector('.toast-msg') || el.firstChild).textContent }}; }}""")
+    r = tk(gp)
+    ok(f'Tick it in a building with a leader: the leader says it, face at 40, name and building ({r})', r['lead'] and r['name'] == 'Talal' and r['where'] == 'Garden planner'
+       and r['face'] == 40 and r['msg'] == 'Ticked off: ' + r['task'] + '.')
+    settle(300)
+    r = tk(nc)
+    ok(f'in one with no leader, the toast says it plainly ({r})', not r['lead'] and r['msg'] == 'Ticked off: ' + r['task'] + '.')
     b.close()
 print(errors or 'no console errors')

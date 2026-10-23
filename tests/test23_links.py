@@ -40,7 +40,7 @@ with sync_playwright() as p:
     order = js("() => { const a = document.querySelector('[data-sec=\"about\"]'), d = a.querySelector('.fv-desc'), n = a.querySelector('.pv-next'); return !!(d && n && (d.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)); }")
     ok('the About opens with the description, then What is next', order)
     pg.screenshot(path=str(SH / '233-about.png'))
-    ok('What is next copies the task with Copy task', pg.is_visible('.pv-next-row >> text=Copy task') and pg.locator('.pv-next-row >> text=Copy for Claude').count() == 0)
+    ok('What is next copies the task through Open in Claude\'s Copy (0.1.63), no Copy for Claude beside it', pg.is_visible('.pv-next-row #pvNextClaude') and pg.locator('.pv-next-row >> text=Copy for Claude').count() == 0)
     oc = js("() => { const want = iconEl('claude', 14).innerHTML; return [...document.querySelectorAll('.oc-btn .ic')].every(s => s.innerHTML === want); }")
     ok('Open in Claude wears the Claude icon, not the chat one', oc and pg.locator('.oc-btn').count() >= 2)
 
@@ -106,7 +106,7 @@ with sync_playwright() as p:
 
     # ---------- copies leave out the About ----------
     pg.click('#pvNextTask'); pg.wait_for_timeout(400)
-    pg.click('#pvSide >> text=Copy task'); pg.wait_for_timeout(200)
+    pg.click('#pvTaskClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(200)
     c = clip()
     ok('the task panel copies with Copy task, without the About', c.startswith('# Task: ') and '## About the project' not in c and 'A small app that plans' not in c)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)

@@ -86,8 +86,8 @@ with sync_playwright() as p:
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
 
     # A1: the status brief, with its Open in Claude, sits with the week, outside Settings; the palette is in Settings
-    ok('A1 the status brief and its Open in Claude sit with the week, outside Settings', pg.is_visible('#btnBrief') and pg.is_visible('#btnBriefClaude') and not pg.is_visible('#btnPalette'))
-    pg.click('#btnBrief'); pg.wait_for_timeout(150)
+    ok('A1 the status brief\'s Open in Claude sits with the week, outside Settings, its Copy in the panel (0.1.63)', not js("() => !!document.querySelector('#btnBrief')") and pg.is_visible('#btnBriefClaude') and not pg.is_visible('#btnPalette'))
+    pg.click('#btnBriefClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(150)
     ok('A1 the status brief still copies every project', clip().startswith('# Nullovation City status'))
     # D2: backup tools and the saved line live in Settings, Saving; the side bar shows only what is wrong
     ok('D2 backup tools and the saved line are in Settings, out of the lists', not pg.is_visible('#btnExport') and not pg.is_visible('#saveStatus'))
@@ -129,7 +129,7 @@ with sync_playwright() as p2:
     q.goto(FILE); q.wait_for_timeout(1800)
     import datetime as _dt
     q.evaluate("() => { const p = DB.projects.find(p => p.name.startsWith('Garden')); p.todos[0].due = '" + (_dt.date.today() + _dt.timedelta(days=1)).isoformat() + "'; changed(p); Menu.refresh(); News.add(p, 'answers', { round: 'Plan, Round 1', n: 1, total: 2 }); }")
-    tops = q.evaluate("""() => ['#btnNew', '#search', '#btnRecap', '#btnBrief', '#sbNews', '#sbDue', '#btnOpenSettings']
+    tops = q.evaluate("""() => ['#btnNew', '#search', '#btnRecap', '#btnBriefClaude', '#sbNews', '#sbDue', '#btnOpenSettings']
       .map(s => { const e = document.querySelector(s); return e && !e.hidden ? e.getBoundingClientRect().top : null; })""")
     ok('F1 top to bottom: new, search, the week with the status brief, News (in Urgent\'s place), due, and Settings at the bottom', all(x is not None for x in tops) and tops == sorted(tops))
     b2.close()
