@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.56 (2026-10-23)
+
+The one-line add over the map, rethought: Abdurrahman's task "Rethink 1 line task add", designed in Rethink the One-Line Add, Round 1, with the leader's toast asked in the chat.
+- Enter on the map opens the line, on the selected building's project when one is selected; T still opens it anywhere (E1). With the wheel open, Enter still steps inside its building.
+- A double-click on a building steps inside it; F then Enter does too (E1).
+- Every mark suggests as it is typed, in a list under the line: / the projects, @ the line's milestones, ! dates, # repeats, + shifts. Up and Down move, Tab or a click picks, Esc closes the list first, and Enter adds the task with the highlighted pick (P1).
+- / lists the projects added to most recently first, with each one's picture and open tasks, and finds a name by its letters in order (/gp finds Garden planner). @ lists the line's milestones, the one a task lands in first and those in the archive last, offers a new one by the name typed, and asks for a project first when the line has none (P2).
+- ! offers today, tomorrow and the next five days with their dates; # offers the repeats, each saying when it starts; + offers the shifts.
+- Each kind of mark shows in its own color as it is typed, a shift in its own color.
+- The three shift tags sit under the line, the one picked pressed; a click picks one or takes it off (S1).
+- The line's building lights up on the map.
+- With no project open or selected, the line starts on the project last added to.
+- Shift+Enter adds and keeps the line open on the same project; Ctrl+Enter adds and opens the task in its panel.
+- The building's leader says it in the toast: their face, name and building, and "Task added: <task>." With Open and Undo; Undo takes the task back out and reopens the line with what was typed. A building with no leader keeps its toast, with Undo too.
+- Only the line over the map suggests; the add fields in the project view and the status card stay as they were (W1).
+- A name with a hyphen or two spaces now matches a mark written with hyphens, in every add field.
+- The controls guide: Enter on the map adds a task, and a double-click or F then Enter steps inside.
+- Tests: test38_quick_add; test23 and test28 know the new Enter and the line's start.
+
 ## 0.1.55 (2026-10-22)
 
 Wizard rounds in a task, the third of the task ideas (Tasks, Round 2, W1 to W6), designed in Wizard Rounds in a Task, Rounds 1 to 3.

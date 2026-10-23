@@ -753,6 +753,46 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .quick-add-title { display: inline-flex; align-items: center; gap: 6px; font: 400 14px/1.2 var(--f-pixel); color: var(--ink); font-variant-ligatures: no-common-ligatures; }
 .quick-add-keys { font-size: 12px; color: var(--muted); }
 .quick-add-in { width: 100%; box-sizing: border-box; font-size: 16px; }
+/* the line over the map, rethought (0.1.56): marks in their own colors, the suggestion list, the shift tags */
+.qa-field { position: relative; }
+.qa-field .quick-add-in { color: transparent; caret-color: var(--ink); }
+.qa-field .quick-add-in::selection { color: transparent; background: rgba(238, 76, 147, .35); }
+.qa-paint { position: absolute; inset: 0; box-sizing: border-box; padding: 7px 10px; border: 2px solid transparent; overflow: hidden;
+  white-space: pre; font: inherit; font-size: 16px; line-height: 1.4; color: var(--ink); pointer-events: none; unicode-bidi: plaintext; }
+.qa-m-project { color: #FF8FBF; }
+.qa-m-ms { color: #8EC8FF; }
+.qa-m-date { color: #FFD27A; }
+.qa-m-repeat { color: #FFAE85; }
+.qa-m-shift { color: var(--shift); }
+.qa-list { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 2; margin: 0; padding: 4px 0; list-style: none;
+  max-height: 222px; overflow-y: auto; background: var(--paper); box-shadow: var(--px-edge), var(--px-drop-sm); }
+.qa-list[hidden] { display: none; }
+.qa-opt { display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 3px 12px; cursor: pointer; color: var(--ink-soft); }
+.qa-opt:hover { background: var(--hover); }
+.qa-opt.on { background: #3A2766; color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
+.qa-opt.info { cursor: default; color: var(--muted); font-size: 13px; }
+.qa-opt.info:hover { background: none; }
+.qa-opt.archived { opacity: .62; }
+.qa-opt.fresh .qa-label { font-style: italic; }
+.qa-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; }
+.qa-opt .shift-tag { flex: none; }
+.qa-note { flex: 0 1 auto; margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--muted); }
+.qa-glyph { flex: none; display: inline-grid; place-items: center; width: 22px; font: 400 15px/1 var(--f-pixel); }
+.qa-thumb { flex: none; display: grid; place-items: end center; width: 34px; height: 28px; }
+.qa-thumb canvas { width: 34px; height: auto; max-height: 28px; object-fit: contain; }
+.qa-shifts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.qa-shifts-lbl { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+.qa-shift { height: 20px; padding: 0 8px; border: 0; cursor: pointer; font: 400 12px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures;
+  background: transparent; color: var(--shift); box-shadow: inset 0 0 0 1px var(--shift); }
+.qa-shift:hover { background: color-mix(in srgb, var(--shift) 18%, transparent); }
+.qa-shift[aria-pressed="true"] { background: var(--shift); color: #2B2542; }
+.toast.has-lead { display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; }
+.toast-lead { display: flex; align-items: center; gap: 10px; flex: none; }
+.toast-who { display: grid; gap: 1px; min-width: 0; }
+.toast-who b { font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
+.toast-who span { font-size: 12px; color: var(--muted); }
+.toast-msg { flex: 1 1 auto; min-width: 0; }
+.toast.has-lead .toast-act { margin-left: 2px; }
 
 /* ---------- urgency ---------- */
 .b-urg { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0 2px; font-size: 13px; line-height: 1.4; font-weight: 600; }

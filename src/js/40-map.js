@@ -1152,6 +1152,7 @@ const MapView = (() => {
   /* ---------- input ---------- */
   function local(e) { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
   function onDown(e) {
+    if (e.pointerType !== 'mouse') clicks = 1;                // a tap counts once; a mouse press sets its own count
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     Menu.closeDrawer();
     const [x, y] = local(e);
@@ -1214,11 +1215,21 @@ const MapView = (() => {
       if (t && !projectAt(t.u, t.v)) placeAt(t);
       return;
     }
-    if (ghost) { hideTip(); Ghosts.open(ghost); return; }   // a ghost task's card (C4)
+    if (ghost) { hideTip(); lastTap = null; Ghosts.open(ghost); return; }   // a ghost task's card (C4)
     if (typeof Ghosts !== 'undefined') Ghosts.closeCard();
+    /* A double-click steps inside the building the first click picked (E1): the browser counts the clicks, and the map
+       may have glided under the pointer between the two, so the first click's building counts. */
+    const now = performance.now(), tap = lastTap;
+    lastTap = hit ? { id: hit.id, at: now } : null;
+    if (tap && clicks >= 2 && now - tap.at < DOUBLE_MS && getProject(tap.id)) {
+      lastTap = null; hideTip(); Wheel.close(); FullView.open(tap.id);
+      return;
+    }
     if (hit) { if (hit.id !== App.selectedId) select(hit.id); else glideTo(hit.id); }
     else deselect();
   }
+  let lastTap = null, clicks = 0;
+  const DOUBLE_MS = 800;
   function beginPinch() {
     if (gesture) clearTimeout(gesture.hold);
     if (mode.name === 'move') finishMove(false);
@@ -1438,6 +1449,7 @@ const MapView = (() => {
     new ResizeObserver(resize).observe(wrap);
     window.addEventListener('resize', resize);
     canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('mousedown', e => { clicks = e.detail || 1; });   // the browser's click count, for a double-click
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerup', onUp);
     canvas.addEventListener('pointercancel', onUp);
@@ -1514,12 +1526,15 @@ const MapView = (() => {
         if (a) Wheel.open(p, a.baseX, Math.round((a.topY + a.baseY) / 2));
         return;
       }
-      /* Enter steps inside the selected building, unless a button or a link has the focus and takes it */
+      /* Enter opens the one-line add, on the selected building's project when one is selected (Rethink the One-Line
+         Add, E1), unless a button or a link has the focus and takes it. With the wheel open it still steps inside
+         its building; F then Enter, or a double-click, steps inside from the map. */
       if (e.key === 'Enter') {
         const t = e.target;
         if (e.repeat || e.shiftKey || (t && t !== document.body && t !== canvas) || mode.name !== 'idle' || editing) return;
-        const id = Wheel.owner() || App.selectedId;
-        if (id) { e.preventDefault(); Wheel.close(); FullView.open(id); }
+        e.preventDefault();
+        const id = Wheel.owner();
+        if (id) { Wheel.close(); FullView.open(id); } else QuickAdd.open();
         return;
       }
       const d = keyDir(e);

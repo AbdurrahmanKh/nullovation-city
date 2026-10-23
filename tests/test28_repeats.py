@@ -282,6 +282,10 @@ with sync_playwright() as p:
     pg.mouse.move(700, 450)
     pg.keyboard.press('t'); pg.wait_for_timeout(200)
     ok('O2 T opens the quick add over the map, focused', pg.is_visible('#quickAdd') and ev("() => document.activeElement.id") == 'quickAddIn')
+    last = ev("() => QuickAdd.lastProject().name")
+    ok(f"since 0.1.56, with nothing open or selected it starts on the project last added to ({pg.input_value('#quickAddIn')})",
+       pg.input_value('#quickAddIn') == '/' + last.replace(' ', '-') + ' ')
+    pg.fill('#quickAddIn', ''); pg.wait_for_timeout(100)
     ok('its line names /project with the marks', pg.text_content('#quickAddHint') == '/name project · !fri date · #weekly repeat · @name milestone · +create shift')
     pg.keyboard.type('Weed the beds !tomorrow')
     ok('with no project named or selected, it asks for one, and Enter waits', pg.text_content('#quickAddHint').startswith('Name the project with /name'))

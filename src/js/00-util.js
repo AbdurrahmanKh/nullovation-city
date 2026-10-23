@@ -139,17 +139,20 @@ function downloadBlob(blob, name) {
 const slug = s => (String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, '-').replace(/^-+|-+$/g, '') || 'project').slice(0, 60);
 
 /* ---------- toast ---------- */
-/* An action, such as Undo, adds a button and keeps the toast up longer. */
+/* An action, such as Undo, adds a button and keeps the toast up longer; a list of them adds a button each. `lead`
+   puts something before the words: a leader's face and name, when a leader says it (0.1.56). */
 const toast = (() => {
   let t = null;
-  return (msg, kind = '', action = null) => {
-    const el = $('#toast');
-    el.textContent = msg;
+  return (msg, kind = '', action = null, { lead = null } = {}) => {
+    const el = $('#toast'), acts = (Array.isArray(action) ? action : [action]).filter(Boolean);
+    el.textContent = '';
+    if (lead) el.append(lead, h('span', { class: 'toast-msg', dir: 'auto' }, msg));
+    else el.textContent = msg;
     const hide = () => { clearTimeout(t); el.className = 'toast' + (kind ? ' ' + kind : ''); };
-    if (action) el.append(' ', h('button', { class: 'toast-act', type: 'button', onclick: () => { hide(); action.run(); } }, action.label));
-    el.className = 'toast show' + (kind ? ' ' + kind : '') + (action ? ' has-act' : '');
+    for (const a of acts) el.append(lead ? '' : ' ', h('button', { class: 'toast-act', type: 'button', onclick: () => { hide(); a.run(); } }, a.label));
+    el.className = 'toast show' + (kind ? ' ' + kind : '') + (acts.length ? ' has-act' : '') + (lead ? ' has-lead' : '');
     clearTimeout(t);
-    t = setTimeout(hide, kind === 'error' || action ? 6000 : 3200);
+    t = setTimeout(hide, kind === 'error' || acts.length ? 6000 : 3200);
   };
 })();
 

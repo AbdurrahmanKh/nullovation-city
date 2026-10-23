@@ -1623,5 +1623,12 @@ const FullView = (() => {
     isOpen: () => !!root, currentId: () => openId, shows: id => !!root && openId === id, rightEdge,
     openTask: (pid, tid) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid); },   // from the bubble: the view, with the task open beside it
     popoverOpen: () => !!pop, closePopover, refreshRounds,
+    /* A task taken back out by the one-line add's Undo (0.1.56): its panel goes, with nothing written for it. */
+    closeTaskOf: tid => {
+      if (!side || sideMode !== 'task' || sideTask !== tid) return;
+      side.remove(); side = null; sideMode = null; sideTask = null; taskSnap = null;
+      if (root && root.style.width) root.style.width = '';
+      render();
+    },
   };
 })();

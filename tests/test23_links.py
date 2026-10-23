@@ -240,7 +240,14 @@ with sync_playwright() as p:
     ok('and a click closes the wheel for the bubble', not js("() => Wheel.isOpen()") and pg.is_visible('#bubble'))
     js("() => document.activeElement && document.activeElement.blur()")
     pg.keyboard.press('Enter'); pg.wait_for_timeout(500)
-    ok('Enter steps inside the selected building', js("() => FullView.isOpen() && FullView.currentId()") == gid)
+    opened = pg.is_visible('#quickAdd') and not js("() => FullView.isOpen()")
+    pg.keyboard.type('Check the wheel'); pg.wait_for_timeout(100)
+    ok('since 0.1.56 Enter opens the one-line add on the selected building, not the building (E1)',
+       opened and pg.text_content('#quickAddHint').startswith(js(f"() => getProject('{gid}').name") + ' · '))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    a = js(f"() => MapView.anchors('{gid}')")
+    pg.mouse.dblclick(left + a['baseX'], a['baseY'] - 30); pg.wait_for_timeout(500)
+    ok('and a double-click steps inside it', js("() => FullView.isOpen() && FullView.currentId()") == gid)
     js("() => { FullView.close(); MapView.setCam({ x: 0, y: 260, z: 2 }); }"); pg.wait_for_timeout(400)
 
     # ---------- 0.1.27: the F key ----------
@@ -295,6 +302,7 @@ with sync_playwright() as p:
     # ---------- 0.1.27: the controls guide ----------
     js("() => Settings.open('city')"); pg.click('#setHelpBtn'); pg.wait_for_timeout(100)
     g = pg.text_content('#setHelp')
-    ok('the controls guide names F for the wheel and Enter to step inside', 'Right-click a building, or F' in g and 'Enter, with a building selected' in g)
+    ok('the controls guide names F for the wheel, a double-click or F then Enter to step inside, and Enter to add a task',
+       'Right-click a building, or F' in g and 'Double-click a building, or F then Enter' in g and 'Enter on the map, or T, anywhere' in g)
     b.close()
 print(errors or 'no console errors')

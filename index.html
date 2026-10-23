@@ -767,6 +767,46 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .quick-add-title { display: inline-flex; align-items: center; gap: 6px; font: 400 14px/1.2 var(--f-pixel); color: var(--ink); font-variant-ligatures: no-common-ligatures; }
 .quick-add-keys { font-size: 12px; color: var(--muted); }
 .quick-add-in { width: 100%; box-sizing: border-box; font-size: 16px; }
+/* the line over the map, rethought (0.1.56): marks in their own colors, the suggestion list, the shift tags */
+.qa-field { position: relative; }
+.qa-field .quick-add-in { color: transparent; caret-color: var(--ink); }
+.qa-field .quick-add-in::selection { color: transparent; background: rgba(238, 76, 147, .35); }
+.qa-paint { position: absolute; inset: 0; box-sizing: border-box; padding: 7px 10px; border: 2px solid transparent; overflow: hidden;
+  white-space: pre; font: inherit; font-size: 16px; line-height: 1.4; color: var(--ink); pointer-events: none; unicode-bidi: plaintext; }
+.qa-m-project { color: #FF8FBF; }
+.qa-m-ms { color: #8EC8FF; }
+.qa-m-date { color: #FFD27A; }
+.qa-m-repeat { color: #FFAE85; }
+.qa-m-shift { color: var(--shift); }
+.qa-list { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 2; margin: 0; padding: 4px 0; list-style: none;
+  max-height: 222px; overflow-y: auto; background: var(--paper); box-shadow: var(--px-edge), var(--px-drop-sm); }
+.qa-list[hidden] { display: none; }
+.qa-opt { display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 3px 12px; cursor: pointer; color: var(--ink-soft); }
+.qa-opt:hover { background: var(--hover); }
+.qa-opt.on { background: #3A2766; color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
+.qa-opt.info { cursor: default; color: var(--muted); font-size: 13px; }
+.qa-opt.info:hover { background: none; }
+.qa-opt.archived { opacity: .62; }
+.qa-opt.fresh .qa-label { font-style: italic; }
+.qa-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; }
+.qa-opt .shift-tag { flex: none; }
+.qa-note { flex: 0 1 auto; margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--muted); }
+.qa-glyph { flex: none; display: inline-grid; place-items: center; width: 22px; font: 400 15px/1 var(--f-pixel); }
+.qa-thumb { flex: none; display: grid; place-items: end center; width: 34px; height: 28px; }
+.qa-thumb canvas { width: 34px; height: auto; max-height: 28px; object-fit: contain; }
+.qa-shifts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.qa-shifts-lbl { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+.qa-shift { height: 20px; padding: 0 8px; border: 0; cursor: pointer; font: 400 12px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures;
+  background: transparent; color: var(--shift); box-shadow: inset 0 0 0 1px var(--shift); }
+.qa-shift:hover { background: color-mix(in srgb, var(--shift) 18%, transparent); }
+.qa-shift[aria-pressed="true"] { background: var(--shift); color: #2B2542; }
+.toast.has-lead { display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; }
+.toast-lead { display: flex; align-items: center; gap: 10px; flex: none; }
+.toast-who { display: grid; gap: 1px; min-width: 0; }
+.toast-who b { font: 400 14px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
+.toast-who span { font-size: 12px; color: var(--muted); }
+.toast-msg { flex: 1 1 auto; min-width: 0; }
+.toast.has-lead .toast-act { margin-left: 2px; }
 
 /* ---------- urgency ---------- */
 .b-urg { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0 2px; font-size: 13px; line-height: 1.4; font-weight: 600; }
@@ -1454,7 +1494,7 @@ a.oc-wiz-item:hover, a.oc-wiz-item:focus-visible { background: var(--hover); box
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.55</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.56</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1539,8 +1579,8 @@ a.oc-wiz-item:hover, a.oc-wiz-item:focus-visible { background: var(--hover); box
           <dt>Status</dt><dd>Click a building</dd>
           <dt>Hop</dt><dd>Q and E: previous or next building</dd>
           <dt>Shortcuts</dt><dd>Right-click a building, or F with one selected</dd>
-          <dt>Step inside</dt><dd>Enter, with a building selected</dd>
-          <dt>Add a task</dt><dd>T, anywhere; /project names the building</dd>
+          <dt>Step inside</dt><dd>Double-click a building, or F then Enter</dd>
+          <dt>Add a task</dt><dd>Enter on the map, or T, anywhere; /project names the building</dd>
           <dt>All tasks</dt><dd>L opens and closes the list</dd>
           <dt>Reports</dt><dd>R opens and closes them</dd>
           <dt>Settings</dt><dd>The comma key opens and closes them</dd>
@@ -1919,17 +1959,20 @@ function downloadBlob(blob, name) {
 const slug = s => (String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, '-').replace(/^-+|-+$/g, '') || 'project').slice(0, 60);
 
 /* ---------- toast ---------- */
-/* An action, such as Undo, adds a button and keeps the toast up longer. */
+/* An action, such as Undo, adds a button and keeps the toast up longer; a list of them adds a button each. `lead`
+   puts something before the words: a leader's face and name, when a leader says it (0.1.56). */
 const toast = (() => {
   let t = null;
-  return (msg, kind = '', action = null) => {
-    const el = $('#toast');
-    el.textContent = msg;
+  return (msg, kind = '', action = null, { lead = null } = {}) => {
+    const el = $('#toast'), acts = (Array.isArray(action) ? action : [action]).filter(Boolean);
+    el.textContent = '';
+    if (lead) el.append(lead, h('span', { class: 'toast-msg', dir: 'auto' }, msg));
+    else el.textContent = msg;
     const hide = () => { clearTimeout(t); el.className = 'toast' + (kind ? ' ' + kind : ''); };
-    if (action) el.append(' ', h('button', { class: 'toast-act', type: 'button', onclick: () => { hide(); action.run(); } }, action.label));
-    el.className = 'toast show' + (kind ? ' ' + kind : '') + (action ? ' has-act' : '');
+    for (const a of acts) el.append(lead ? '' : ' ', h('button', { class: 'toast-act', type: 'button', onclick: () => { hide(); a.run(); } }, a.label));
+    el.className = 'toast show' + (kind ? ' ' + kind : '') + (acts.length ? ' has-act' : '') + (lead ? ' has-lead' : '');
     clearTimeout(t);
-    t = setTimeout(hide, kind === 'error' || action ? 6000 : 3200);
+    t = setTimeout(hide, kind === 'error' || acts.length ? 6000 : 3200);
   };
 })();
 
@@ -3320,28 +3363,31 @@ function readDateMark(a, b, now = Date.now()) {
   }
   return null;
 }
-/* The marks in a line, before they are matched to a project or a milestone. */
+/* The marks in a line, before they are matched to a project or a milestone. `spans` says where each mark sits in
+   the line as typed, { start, end, kind, shift }, kind one of / @ ! # +, so the line over the map can color them. */
 function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
-  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
-  const title = [], dates = [];
+  const src = String(text || ''), toks = [...src.matchAll(/\S+/g)].map(m => ({ w: m[0], at: m.index }));
+  const words = toks.map(x => x.w);
+  const title = [], dates = [], spans = [];
   let rep = null, ms = null, project = null, shift = '', marks = 0;
+  const mark = (i, used, kind, extra = {}) => { const a = toks[i], b = toks[i + used - 1]; spans.push({ start: a.at, end: b.at + b.w.length, kind, ...extra }); marks++; };
   for (let i = 0; i < words.length; i++) {
     const w = words[i], head = w[0], rest = w.slice(1), low = rest.toLowerCase();
     if (head === '!' && rest) {
       const d = readDateMark(rest, words[i + 1], now);
-      if (d) { dates.push(d); i += d.used - 1; marks++; continue; }
+      if (d) { dates.push(d); mark(i, d.used, '!'); i += d.used - 1; continue; }
     } else if (head === '#' && rest) {
-      if (['daily', 'weekly', 'monthly', 'yearly'].includes(low)) { rep = low; marks++; continue; }
+      if (['daily', 'weekly', 'monthly', 'yearly'].includes(low)) { rep = low; mark(i, 1, '#'); continue; }
       if (low === 'every') {
         const a = words[i + 1] || '', b = words[i + 2] || '';
-        if (/^days?$/i.test(a)) { rep = { every: 'day', n: 1 }; i += 1; marks++; continue; }
-        if (/^\d{1,3}$/.test(a) && +a >= 1 && +a <= 365 && /^days?$/i.test(b)) { rep = { every: 'day', n: +a }; i += 2; marks++; continue; }
+        if (/^days?$/i.test(a)) { rep = { every: 'day', n: 1 }; mark(i, 2, '#'); i += 1; continue; }
+        if (/^\d{1,3}$/.test(a) && +a >= 1 && +a <= 365 && /^days?$/i.test(b)) { rep = { every: 'day', n: +a }; mark(i, 3, '#'); i += 2; continue; }
       }
     } else if (head === '+' && /^\p{L}/u.test(rest)) {          // a shift: +create, +think, +errand, or the start of one
       const s = SHIFT_IDS.find(id => id.startsWith(low));         // a + word that names none stays in the title
-      if (s) { shift = s; marks++; continue; }
-    } else if (head === '@' && rest) { ms = rest; marks++; continue; }
-    else if (head === '/' && rest && cityWide) { project = rest; marks++; continue; }
+      if (s) { shift = s; mark(i, 1, '+', { shift: s }); continue; }
+    } else if (head === '@' && rest) { ms = rest; mark(i, 1, '@'); continue; }
+    else if (head === '/' && rest && cityWide) { project = rest; mark(i, 1, '/'); continue; }
     title.push(w);
   }
   const today = startOfDay(now);
@@ -3356,12 +3402,13 @@ function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
   else if (rep === 'yearly') repeat = { every: 'year', month: new Date(base).getMonth() + 1, day: new Date(base).getDate() };
   else if (rep) repeat = rep;
   const due = first != null ? ymd(first) : repeat ? ymd(today) : '';
-  return { title: title.join(' ').slice(0, 500), due, repeat, ms, project, shift, marks };
+  return { title: title.join(' ').slice(0, 500), due, repeat, ms, project, shift, marks, spans };
 }
 /* A name a mark points at: the first whose name is the mark, else starts with it, else has a word that starts with
    it; case, Arabic letter forms, and hyphens or underscores for spaces aside. */
+const markKey = s => norm(String(s).replace(/[-_\s]+/g, ' '));
 function markMatch(list, name, mark) {
-  const key = norm(String(mark).replace(/[-_]+/g, ' ')), of = x => norm(name(x));
+  const key = markKey(mark), of = x => markKey(name(x));
   return list.find(x => of(x) === key) || list.find(x => of(x).startsWith(key)) || list.find(x => of(x).split(/\s+/).some(w => w.startsWith(key))) || null;
 }
 /* Where a task added without @ goes: the current milestone, else the last one not in the archive, else a new To do. */
@@ -3606,7 +3653,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.55";
+const APP_VERSION = "0.1.56";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -5517,6 +5564,7 @@ const MapView = (() => {
   /* ---------- input ---------- */
   function local(e) { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
   function onDown(e) {
+    if (e.pointerType !== 'mouse') clicks = 1;                // a tap counts once; a mouse press sets its own count
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     Menu.closeDrawer();
     const [x, y] = local(e);
@@ -5579,11 +5627,21 @@ const MapView = (() => {
       if (t && !projectAt(t.u, t.v)) placeAt(t);
       return;
     }
-    if (ghost) { hideTip(); Ghosts.open(ghost); return; }   // a ghost task's card (C4)
+    if (ghost) { hideTip(); lastTap = null; Ghosts.open(ghost); return; }   // a ghost task's card (C4)
     if (typeof Ghosts !== 'undefined') Ghosts.closeCard();
+    /* A double-click steps inside the building the first click picked (E1): the browser counts the clicks, and the map
+       may have glided under the pointer between the two, so the first click's building counts. */
+    const now = performance.now(), tap = lastTap;
+    lastTap = hit ? { id: hit.id, at: now } : null;
+    if (tap && clicks >= 2 && now - tap.at < DOUBLE_MS && getProject(tap.id)) {
+      lastTap = null; hideTip(); Wheel.close(); FullView.open(tap.id);
+      return;
+    }
     if (hit) { if (hit.id !== App.selectedId) select(hit.id); else glideTo(hit.id); }
     else deselect();
   }
+  let lastTap = null, clicks = 0;
+  const DOUBLE_MS = 800;
   function beginPinch() {
     if (gesture) clearTimeout(gesture.hold);
     if (mode.name === 'move') finishMove(false);
@@ -5803,6 +5861,7 @@ const MapView = (() => {
     new ResizeObserver(resize).observe(wrap);
     window.addEventListener('resize', resize);
     canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('mousedown', e => { clicks = e.detail || 1; });   // the browser's click count, for a double-click
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerup', onUp);
     canvas.addEventListener('pointercancel', onUp);
@@ -5879,12 +5938,15 @@ const MapView = (() => {
         if (a) Wheel.open(p, a.baseX, Math.round((a.topY + a.baseY) / 2));
         return;
       }
-      /* Enter steps inside the selected building, unless a button or a link has the focus and takes it */
+      /* Enter opens the one-line add, on the selected building's project when one is selected (Rethink the One-Line
+         Add, E1), unless a button or a link has the focus and takes it. With the wheel open it still steps inside
+         its building; F then Enter, or a double-click, steps inside from the map. */
       if (e.key === 'Enter') {
         const t = e.target;
         if (e.repeat || e.shiftKey || (t && t !== document.body && t !== canvas) || mode.name !== 'idle' || editing) return;
-        const id = Wheel.owner() || App.selectedId;
-        if (id) { e.preventDefault(); Wheel.close(); FullView.open(id); }
+        e.preventDefault();
+        const id = Wheel.owner();
+        if (id) { Wheel.close(); FullView.open(id); } else QuickAdd.open();
         return;
       }
       const d = keyDir(e);
@@ -9951,6 +10013,13 @@ const FullView = (() => {
     isOpen: () => !!root, currentId: () => openId, shows: id => !!root && openId === id, rightEdge,
     openTask: (pid, tid) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid); },   // from the bubble: the view, with the task open beside it
     popoverOpen: () => !!pop, closePopover, refreshRounds,
+    /* A task taken back out by the one-line add's Undo (0.1.56): its panel goes, with nothing written for it. */
+    closeTaskOf: tid => {
+      if (!side || sideMode !== 'task' || sideTask !== tid) return;
+      side.remove(); side = null; sideMode = null; sideTask = null; taskSnap = null;
+      if (root && root.style.width) root.style.width = '';
+      render();
+    },
   };
 })();
 
@@ -10848,51 +10917,331 @@ async function copyBuilderCard(p) {
   else toast('The browser blocked copying. Try again.', 'error');
 }
 
-/* The city-wide quick add (Tasks, Round 2, O2): T, anywhere but in a field, opens one line over the map for a task
-   in any project. /name picks the project, the first whose name starts with it; without one it goes to the project
-   open in the view, or else the selected building. The other marks work as in every add field: !fri, #weekly, @name.
-   Enter adds it and closes; Esc or a click elsewhere closes. */
+/* The city-wide quick add (Tasks, Round 2, O2), rethought in Rethink the One-Line Add, Round 1 (0.1.56). Enter on the
+   map or T anywhere but in a field opens one line over the map for a task in any project. /name picks the project;
+   without one it goes to the project open in the view, else the selected building, else the line starts with the
+   project last added to. The other marks work as in every add field: !fri, #weekly, @name, +create.
+   - Every mark suggests as it is typed (P1, P2, I1): / the projects, @ the line's milestones, ! dates, # repeats and
+     + shifts, in a list under the line. Up and Down move, Tab or a click picks, Enter adds with the pick, Esc closes
+     the list first. Only this line suggests (W1); the other add fields stay as they were.
+   - Each kind of mark shows in its own color as typed, a shift in its own (I1, chips: no, colors instead).
+   - The three shift tags sit under the line, the picked one pressed (S1).
+   - The line's building lights with the hover ring on the map (I1).
+   - Shift+Enter adds and stays open on the same project; Ctrl+Enter adds and opens the task (I1).
+   - The toast is the building's leader's: "Task added: <task>.", with Open and Undo, which takes the task back out
+     and reopens the line with what was typed (I1, and the chat on 23 October 2026). */
 const QuickAdd = (() => {
-  let box = null, input = null, hint = null, prevFocus = null;
+  let box = null, input = null, paint = null, list = null, shifts = null, hint = null, prevFocus = null;
+  let sug = null, lit = null;
+  const thumbs = new Map();                                  // a project's picture, drawn once each time the line opens
   const target = () => getProject((FullView.isOpen() && FullView.currentId()) || App.selectedId);
   const opts = () => ({ project: target(), cityWide: true });
+  const markWord = name => String(name).trim().replace(/\s+/g, '-');
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const KIND = { '/': 'project', '@': 'ms', '!': 'date', '#': 'repeat', '+': 'shift' };
 
+  /* ---------- which projects come first ---------- */
+  /* When a project last had a task added to it, from its Activity. */
+  function addedAt(p) {
+    const a = Array.isArray(p.activity) ? p.activity : [];
+    for (let i = a.length - 1; i >= 0; i--) if (String(a[i].text).startsWith('Added todo: ')) return a[i].at || 0;
+    return 0;
+  }
+  /* The projects added to most recently first, then the rest by name (I1, recent). */
+  const byRecent = () => DB.projects.map(p => [p, addedAt(p)]).sort((a, b) => b[1] - a[1] || a[0].name.localeCompare(b[0].name)).map(x => x[0]);
+  const lastProject = () => { const p = byRecent()[0]; return p && addedAt(p) ? p : null; };
+
+  /* How well a name fits what is typed after a mark: 0 it is the name, 1 the name starts with it, 2 a word of the
+     name does, 3 its letters come in that order (I1, letters in order: /gp finds Garden planner); -1 none. */
+  function rankOf(name, typed) {
+    const key = markKey(typed), n = markKey(name);
+    if (!key) return 0;
+    if (n === key) return 0;
+    if (n.startsWith(key)) return 1;
+    if (n.split(' ').some(w => w.startsWith(key))) return 2;
+    const a = n.replace(/\s/g, ''), b = key.replace(/\s/g, '');
+    let j = 0;
+    for (let i = 0; i < a.length && j < b.length; i++) if (a[i] === b[j]) j++;
+    return j === b.length ? 3 : -1;
+  }
+  const ranked = (list, name, typed) => list.map((x, i) => [x, rankOf(name(x), typed), i]).filter(x => x[1] >= 0).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(x => x[0]);
+
+  /* ---------- the suggestions for the mark at the caret ---------- */
+  function tokenAt(v, caret) {
+    let s = caret; while (s > 0 && !/\s/.test(v[s - 1])) s--;
+    let e = caret; while (e < v.length && !/\s/.test(v[e])) e++;
+    return { s, e, word: v.slice(s, e), typed: v.slice(s, caret) };
+  }
+  const dateNote = at => weekdayOf(ymd(at)) + ' ' + fmtDate(at);
+  function itemsFor(mark, q, tok) {
+    const low = q.toLowerCase(), now = Date.now(), today = startOfDay(now);
+    if (mark === '/') {
+      return ranked(byRecent(), p => p.name, q).map(p => ({ label: p.name, mark: '/' + markWord(p.name), note: plural(openTasks(p).length, 'open task', 'open tasks'), pid: p.id }));
+    }
+    if (mark === '@') {
+      const r = readTaskLine(input.value, opts()), p = r.p;
+      if (!p) return [{ info: 'Pick a project with / first' }];
+      const first = defaultMilestone(p), live = liveMilestones(p), gone = p.milestones.filter(m => !live.includes(m));
+      const order = [...live.filter(m => m.id === first), ...live.filter(m => m.id !== first), ...gone];
+      const out = ranked(order, m => m.name, q).map(m => {
+        const archived = gone.includes(m), open = p.todos.filter(t => t.milestoneId === m.id && isOpenTask(t)).length;
+        return { label: m.name, mark: '@' + markWord(m.name), note: archived ? 'In the archive' : plural(open, 'open task', 'open tasks'), archived };
+      });
+      if (q && !out.some(x => markKey(x.label) === markKey(q))) out.push({ label: 'New milestone ' + q, mark: '@' + q, note: 'Made when you add', fresh: true });
+      if (!out.length) return [{ info: 'Type a name for a new milestone' }];
+      return out;
+    }
+    if (mark === '!') {
+      const days = [{ w: 'today', label: 'Today', at: today }, { w: 'tomorrow', label: 'Tomorrow', at: plusDays(today, 1) }];
+      for (let i = 2; i < 7; i++) { const at = plusDays(today, i), d = new Date(at).getDay(); days.push({ w: WEEKDAYS[d].toLowerCase(), label: DAY_NAMES[d], at }); }
+      const fits = d => { const wd = DAY_NAMES[new Date(d.at).getDay()].toLowerCase(); return !low || d.w.startsWith(low) || d.label.toLowerCase().startsWith(low) || wd.startsWith(low); };
+      const out = days.filter(fits)
+        .map(d => ({ label: d.label, mark: '!' + d.w, note: dateNote(d.at) }));
+      const typed = low && readDateMark(q, null, now);
+      if (typed && typed.used === 1 && !days.some(d => d.at === typed.at && fits(d)))
+        out.unshift({ label: dateNote(typed.at), mark: '!' + q, note: '' });
+      return out;
+    }
+    if (mark === '#') {
+      const reps = [['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['yearly', 'Yearly'], ['every', 'Every N days']];
+      return reps.filter(([w, label]) => !low || w.startsWith(low) || label.toLowerCase().startsWith(low)).map(([w, label]) => {
+        if (w === 'every') return { label, mark: '#every', note: 'Then type the number of days' };
+        const v = input.value, line = v.slice(0, tok.s) + '#' + w + v.slice(tok.e), r = readTaskMarks(line, { now, cityWide: true });
+        const when = !r.due || r.due === ymd(today) ? 'today' : dateNote(parseYmd(r.due));
+        const on = r.repeat && r.repeat.every === 'week' ? 'On ' + repeatText(r.repeat).slice(10) + ', s'
+          : r.repeat && r.repeat.every === 'month' ? 'On the ' + ordinal(r.repeat.day) + ', s'
+          : r.repeat && r.repeat.every === 'year' ? 'On ' + r.repeat.day + ' ' + MONTHS[r.repeat.month - 1] + ', s' : 'S';
+        return { label, mark: '#' + w, note: on + 'tarts ' + when };
+      });
+    }
+    if (mark === '+') {
+      if (q && !/^\p{L}/u.test(q)) return [];
+      return SHIFTS.filter(([id]) => id.startsWith(low)).map(([id, name]) => ({ label: name, mark: '+' + id, note: SHIFT_HINTS[id] || '', shift: id }));
+    }
+    return [];
+  }
+  const selectable = () => (sug ? sug.items.filter(x => !x.info) : []);
+  const current = () => (sug && sug.index >= 0 ? selectable()[sug.index] || null : null);
+
+  /* Opens, keeps or closes the list for the mark the caret is in. */
+  function refreshList() {
+    const v = input.value, caret = input.selectionStart == null ? v.length : input.selectionStart;
+    const tok = tokenAt(v, caret), mark = tok.word[0];
+    const on = document.activeElement === input && caret > tok.s && KIND[mark] && input.selectionStart === input.selectionEnd;
+    if (!on) return closeList();
+    const q = tok.typed.slice(1), items = itemsFor(mark, q, tok);
+    if (!items.length) return closeList();
+    const same = sug && sug.mark === mark && sug.s === tok.s && sug.q === q;
+    const keep = same ? sug.index : -1;
+    sug = { mark, s: tok.s, e: tok.e, q, items, index: same ? keep : q ? 0 : -1 };
+    if (sug.index >= selectable().length) sug.index = selectable().length - 1;
+    drawList();
+  }
+  function drawList() {
+    let k = -1;
+    list.replaceChildren(...sug.items.map(it => {
+      if (it.info) return h('li', { class: 'qa-opt info', role: 'presentation' }, it.info);
+      k++;
+      const i = k, on = i === sug.index;
+      let lead;
+      if (sug.mark === '/') {
+        if (!thumbs.has(it.pid)) thumbs.set(it.pid, MapView.thumb(getProject(it.pid)));
+        lead = h('span', { class: 'qa-thumb', 'aria-hidden': 'true' }, cloneThumb(thumbs.get(it.pid)));
+      } else if (sug.mark === '+') lead = h('span', { class: 'shift-tag shift-' + it.shift, 'aria-hidden': 'true' }, it.label);
+      else lead = h('span', { class: 'qa-glyph qa-m-' + KIND[sug.mark], 'aria-hidden': 'true' }, it.archived ? iconEl('archive', 13) : sug.mark);
+      return h('li', { id: 'qaOpt' + i, class: 'qa-opt' + (on ? ' on' : '') + (it.archived ? ' archived' : '') + (it.fresh ? ' fresh' : ''), role: 'option', 'aria-selected': String(on),
+        'data-mark': it.mark, onmousedown: e => e.preventDefault(), onclick: () => { pick(it); } },
+        lead, sug.mark === '+' ? null : h('span', { class: 'qa-label', dir: 'auto' }, it.label), it.note ? h('span', { class: 'qa-note' }, it.note) : null);
+    }));
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    if (sug.index >= 0) input.setAttribute('aria-activedescendant', 'qaOpt' + sug.index); else input.removeAttribute('aria-activedescendant');
+    const el = sug.index >= 0 && $('#qaOpt' + sug.index, list);
+    if (el) el.scrollIntoView({ block: 'nearest' });
+    lightUp();
+  }
+  function cloneThumb(src) {
+    const c = document.createElement('canvas');
+    c.width = src.width; c.height = src.height;
+    c.getContext('2d').drawImage(src, 0, 0);
+    return c;
+  }
+  function closeList() {
+    if (!list) return;
+    sug = null;
+    list.hidden = true; list.replaceChildren();
+    if (input) { input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); }
+    lightUp();
+  }
+  function move(d) {
+    const n = selectable().length;
+    if (!n) return;
+    sug.index = sug.index < 0 ? (d > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, sug.index + d));
+    drawList();
+  }
+  /* Writes the pick over the mark being typed, with one space after it. */
+  function pick(it) {
+    if (!it || it.info || !sug) return;
+    const v = input.value, before = v.slice(0, sug.s), after = v.slice(sug.e).replace(/^\s/, '');
+    const ins = it.mark + ' ';
+    input.value = before + ins + after;
+    const at = before.length + ins.length;
+    input.setSelectionRange(at, at);
+    closeList();
+    sync(false);
+  }
+
+  /* ---------- the line: its colors, its shift tags, its building ---------- */
+  function paintMarks(r) {
+    const v = input.value, out = [];
+    let pos = 0;
+    for (const sp of r.spans || []) {
+      if (sp.start > pos) out.push(v.slice(pos, sp.start));
+      out.push(h('span', { class: 'qa-m qa-m-' + KIND[sp.kind] + (sp.shift ? ' shift-' + sp.shift : '') }, v.slice(sp.start, sp.end)));
+      pos = sp.end;
+    }
+    out.push(v.slice(pos) + ' ');
+    paint.replaceChildren(...out);
+    paint.scrollLeft = input.scrollLeft;
+  }
+  function lightUp() {
+    if (!input || !box || !box.isConnected) return;
+    const it = sug && sug.mark === '/' && current();
+    const r = readTaskLine(input.value, opts()), id = it ? it.pid : r.p ? r.p.id : null;
+    if (id !== lit) { lit = id; MapView.light(id); }
+  }
+  function sync(list = true) {
+    const r = taskLineHint(hint, input.value, opts());
+    if (r.problem === 'Type the task too' && (r.spans || []).every(sp => sp.kind === '/')) {   // just the project so far: no alarm yet
+      hint.classList.remove('bad'); hint.textContent = r.parts.join(' · ');
+    }
+    paintMarks(r);
+    for (const b of shifts.querySelectorAll('.qa-shift')) b.setAttribute('aria-pressed', String(b.dataset.shift === r.shift));
+    if (list) refreshList(); else lightUp();
+    return r;
+  }
+  /* A click on a shift tag: picks it, or takes it off when it is the one picked, as a +mark in the line. */
+  function toggleShift(id) {
+    let v = input.value;
+    const r = readTaskMarks(v, { cityWide: true }), marks = (r.spans || []).filter(sp => sp.kind === '+');
+    if (r.shift === id) {
+      for (const sp of marks.slice().reverse()) v = (v.slice(0, sp.start).replace(/\s+$/, '') + ' ' + v.slice(sp.end).replace(/^\s+/, '')).replace(/^\s+/, '');
+      v = v.replace(/\s+$/, '') + (v.trim() ? ' ' : '');
+    } else if (marks.length) {
+      const sp = marks[marks.length - 1];
+      v = v.slice(0, sp.start) + '+' + id + v.slice(sp.end);
+    } else v = (v.trim() ? v.replace(/\s+$/, '') + ' ' : '') + '+' + id + ' ';
+    input.value = v;
+    input.focus();
+    input.setSelectionRange(v.length, v.length);
+    closeList();
+    sync(false);
+  }
+
+  /* ---------- adding, and the leader's toast ---------- */
+  function add({ stay = false, open = false } = {}) {
+    const r = taskLineHint(hint, input.value, opts());
+    if (!r.ok) { if (!input.value.trim()) close(); return; }
+    const text = input.value, p = r.p, had = new Set(p.milestones.map(m => m.id)), was = p.updatedAt;
+    const t = addTaskLine(r);
+    const info = { text, newMs: had.has(t.milestoneId) ? null : t.milestoneId, was };
+    if (stay) {
+      input.value = r.project ? '/' + markWord(p.name) + ' ' : '';
+      input.setSelectionRange(input.value.length, input.value.length);
+      info.stayValue = input.value;
+      sync();
+    } else close();
+    if (FullView.shows(p.id)) FullView.render();
+    added(p, t, info);
+    if (open) FullView.openTask(p.id, t.id);
+  }
+  function added(p, t, info) {
+    const acts = [{ label: 'Open', run: () => FullView.openTask(p.id, t.id) }, { label: 'Undo', run: () => undo(p, t, info) }];
+    const l = typeof leaderOf === 'function' ? leaderOf(p) : null;
+    if (!l) return toast('Added to ' + p.name + ': ' + t.text + '.', '', acts);
+    const lead = h('span', { class: 'toast-lead' }, Leaders.face(l, 40),
+      h('span', { class: 'toast-who' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), h('span', { dir: 'auto' }, p.name)));
+    lead.style.setProperty('--ld', l.color);
+    toast('Task added: ' + t.text + '.', '', acts, { lead });
+  }
+  /* Undo: the task back out, with its Activity line and a milestone made for it, and the line open again with what
+     was typed, to edit and add again. */
+  function undo(p, t, info) {
+    if (FullView.isOpen()) FullView.closeTaskOf(t.id);
+    const i = p.todos.findIndex(x => x.id === t.id);
+    if (i >= 0) p.todos.splice(i, 1);
+    const drop = text => { const a = p.activity || []; for (let k = a.length - 1; k >= 0; k--) if (a[k].text === text) { a.splice(k, 1); return; } };
+    drop('Added todo: ' + t.text);
+    if (info.newMs && !p.todos.some(x => x.milestoneId === info.newMs)) {
+      const m = p.milestones.find(x => x.id === info.newMs);
+      if (m) { p.milestones.splice(p.milestones.indexOf(m), 1); drop('New milestone: ' + m.name); }
+    }
+    if (p.pin === t.id) p.pin = '';
+    if (p.star === t.id) p.star = '';
+    changed(p, { touch: false });
+    if (info.was) p.updatedAt = info.was;
+    if (FullView.shows(p.id)) FullView.render();
+    if (isOpen() && input.value.trim() && input.value !== info.stayValue) return;     // something new is being typed: leave it
+    open({ text: info.text });
+  }
+
+  /* ---------- the box ---------- */
   function build() {
-    input = h('input', { id: 'quickAddIn', class: 'field quick-add-in', type: 'text', dir: 'auto', autocomplete: 'off', maxlength: '700',
-      placeholder: 'A task, with /project !date #repeat @milestone', 'aria-label': 'Add a task', 'aria-describedby': 'quickAddHint',
-      oninput: () => taskLineHint(hint, input.value, opts()),
+    input = h('input', { id: 'quickAddIn', class: 'field quick-add-in', type: 'text', dir: 'auto', autocomplete: 'off', spellcheck: 'false', maxlength: '700',
+      placeholder: 'A task, with /project !date #repeat @milestone +shift', 'aria-label': 'Add a task', 'aria-describedby': 'quickAddHint',
+      role: 'combobox', 'aria-autocomplete': 'list', 'aria-controls': 'qaList', 'aria-expanded': 'false',
+      oninput: () => sync(),
+      onclick: () => refreshList(),
+      onscroll: () => { paint.scrollLeft = input.scrollLeft; },
+      onkeyup: e => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) refreshList(); paint.scrollLeft = input.scrollLeft; },
       onkeydown: e => {
+        if (sug && !list.hidden) {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); move(e.key === 'ArrowDown' ? 1 : -1); return; }
+          if (e.key === 'Tab' && !e.shiftKey && selectable().length) { e.preventDefault(); pick(current() || selectable()[0]); return; }
+          if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeList(); return; }
+          if (e.key === 'Enter' && current()) pick(current());        // Enter adds with the pick (P1)
+        }
         if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
-        if (e.key !== 'Enter') return;
+        if (e.key !== 'Enter' || e.isComposing) return;
         e.preventDefault();
-        const r = taskLineHint(hint, input.value, opts());
-        if (!r.ok) { if (!input.value.trim()) close(); return; }
-        const t = addTaskLine(r), p = r.p;
-        close();
-        if (FullView.shows(p.id)) FullView.render();
-        toast('Added to ' + p.name + ': ' + t.text + '.', '', { label: 'Open', run: () => FullView.openTask(p.id, t.id) });
+        add({ stay: e.shiftKey, open: e.ctrlKey || e.metaKey });
       },
       onblur: () => setTimeout(() => { if (box && !box.contains(document.activeElement)) close(false); }, 120) });
+    paint = h('div', { class: 'qa-paint', dir: 'auto', 'aria-hidden': 'true' });
+    list = h('ul', { id: 'qaList', class: 'qa-list', role: 'listbox', 'aria-label': 'Suggestions', hidden: '' });
+    shifts = h('div', { class: 'qa-shifts', role: 'group', 'aria-label': 'Shift' }, h('span', { class: 'qa-shifts-lbl' }, 'Shift'),
+      ...SHIFTS.map(([id, name]) => h('button', { type: 'button', class: 'qa-shift shift-' + id, 'data-shift': id, 'aria-pressed': 'false', title: name + ': ' + (SHIFT_HINTS[id] || ''),
+        onmousedown: e => e.preventDefault(), onclick: () => toggleShift(id) }, name)));
     hint = h('p', { id: 'quickAddHint', class: 'add-hint quick-add-hint', 'aria-live': 'polite' });
     box = h('div', { id: 'quickAdd', class: 'quick-add', role: 'dialog', 'aria-label': 'Add a task' },
-      h('div', { class: 'quick-add-head' }, h('span', { class: 'quick-add-title' }, iconEl('plus', 12), 'Add a task'), h('span', { class: 'quick-add-keys' }, 'Enter adds · Esc closes')),
-      input, hint);
+      h('div', { class: 'quick-add-head' }, h('span', { class: 'quick-add-title' }, iconEl('plus', 12), 'Add a task'),
+        h('span', { class: 'quick-add-keys' }, 'Enter adds · Shift+Enter adds and stays · Ctrl+Enter adds and opens')),
+      h('div', { class: 'qa-field' }, input, paint, list), shifts, hint);
   }
-  function open() {
+  /* Opens the line; `text` fills it in (Undo). With no project open or selected, it starts on the project last added
+     to (I1, remember the last project). */
+  function open({ text = null } = {}) {
     if (!box) build();
-    if (!box.isConnected) { prevFocus = document.activeElement; $('#mapWrap').append(box); }
+    if (!box.isConnected) { prevFocus = document.activeElement; $('#mapWrap').append(box); thumbs.clear(); }
     if (typeof Wheel !== 'undefined') Wheel.close();
-    input.value = '';
-    taskLineHint(hint, '', opts());
+    let v = text != null ? text : '';
+    if (text == null && !target()) { const lp = lastProject(); if (lp) v = '/' + markWord(lp.name) + ' '; }
+    input.value = v;
+    closeList();
     input.focus();
+    input.setSelectionRange(v.length, v.length);
+    sync(false);
   }
   function close(refocus = true) {
     if (!box || !box.isConnected) return false;
+    closeList();
     box.remove();
+    if (lit !== null) { lit = null; MapView.light(null); }
     if (refocus && prevFocus && document.contains(prevFocus) && prevFocus.focus) prevFocus.focus({ preventScroll: true });
     prevFocus = null;
     return true;
   }
+  const isOpen = () => !!box && box.isConnected;
   window.addEventListener('keydown', e => {
     if (e.code !== 'KeyT' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
     const t = e.target;
@@ -10901,7 +11250,8 @@ const QuickAdd = (() => {
     e.preventDefault();
     open();
   });
-  return { open, close, isOpen: () => !!box && box.isConnected };
+  return { open, close, isOpen, rankOf, lastProject, byRecent,
+    _list: () => (sug ? { mark: sug.mark, index: sug.index, items: sug.items.map(x => ({ ...x })) } : null) };   // for the tests
 })();
 
 /* Open in Claude: opens the Claude desktop app with a Copy for Claude text already filled in, through the app's

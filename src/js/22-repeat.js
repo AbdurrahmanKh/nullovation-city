@@ -151,28 +151,31 @@ function readDateMark(a, b, now = Date.now()) {
   }
   return null;
 }
-/* The marks in a line, before they are matched to a project or a milestone. */
+/* The marks in a line, before they are matched to a project or a milestone. `spans` says where each mark sits in
+   the line as typed, { start, end, kind, shift }, kind one of / @ ! # +, so the line over the map can color them. */
 function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
-  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
-  const title = [], dates = [];
+  const src = String(text || ''), toks = [...src.matchAll(/\S+/g)].map(m => ({ w: m[0], at: m.index }));
+  const words = toks.map(x => x.w);
+  const title = [], dates = [], spans = [];
   let rep = null, ms = null, project = null, shift = '', marks = 0;
+  const mark = (i, used, kind, extra = {}) => { const a = toks[i], b = toks[i + used - 1]; spans.push({ start: a.at, end: b.at + b.w.length, kind, ...extra }); marks++; };
   for (let i = 0; i < words.length; i++) {
     const w = words[i], head = w[0], rest = w.slice(1), low = rest.toLowerCase();
     if (head === '!' && rest) {
       const d = readDateMark(rest, words[i + 1], now);
-      if (d) { dates.push(d); i += d.used - 1; marks++; continue; }
+      if (d) { dates.push(d); mark(i, d.used, '!'); i += d.used - 1; continue; }
     } else if (head === '#' && rest) {
-      if (['daily', 'weekly', 'monthly', 'yearly'].includes(low)) { rep = low; marks++; continue; }
+      if (['daily', 'weekly', 'monthly', 'yearly'].includes(low)) { rep = low; mark(i, 1, '#'); continue; }
       if (low === 'every') {
         const a = words[i + 1] || '', b = words[i + 2] || '';
-        if (/^days?$/i.test(a)) { rep = { every: 'day', n: 1 }; i += 1; marks++; continue; }
-        if (/^\d{1,3}$/.test(a) && +a >= 1 && +a <= 365 && /^days?$/i.test(b)) { rep = { every: 'day', n: +a }; i += 2; marks++; continue; }
+        if (/^days?$/i.test(a)) { rep = { every: 'day', n: 1 }; mark(i, 2, '#'); i += 1; continue; }
+        if (/^\d{1,3}$/.test(a) && +a >= 1 && +a <= 365 && /^days?$/i.test(b)) { rep = { every: 'day', n: +a }; mark(i, 3, '#'); i += 2; continue; }
       }
     } else if (head === '+' && /^\p{L}/u.test(rest)) {          // a shift: +create, +think, +errand, or the start of one
       const s = SHIFT_IDS.find(id => id.startsWith(low));         // a + word that names none stays in the title
-      if (s) { shift = s; marks++; continue; }
-    } else if (head === '@' && rest) { ms = rest; marks++; continue; }
-    else if (head === '/' && rest && cityWide) { project = rest; marks++; continue; }
+      if (s) { shift = s; mark(i, 1, '+', { shift: s }); continue; }
+    } else if (head === '@' && rest) { ms = rest; mark(i, 1, '@'); continue; }
+    else if (head === '/' && rest && cityWide) { project = rest; mark(i, 1, '/'); continue; }
     title.push(w);
   }
   const today = startOfDay(now);
@@ -187,12 +190,13 @@ function readTaskMarks(text, { now = Date.now(), cityWide = false } = {}) {
   else if (rep === 'yearly') repeat = { every: 'year', month: new Date(base).getMonth() + 1, day: new Date(base).getDate() };
   else if (rep) repeat = rep;
   const due = first != null ? ymd(first) : repeat ? ymd(today) : '';
-  return { title: title.join(' ').slice(0, 500), due, repeat, ms, project, shift, marks };
+  return { title: title.join(' ').slice(0, 500), due, repeat, ms, project, shift, marks, spans };
 }
 /* A name a mark points at: the first whose name is the mark, else starts with it, else has a word that starts with
    it; case, Arabic letter forms, and hyphens or underscores for spaces aside. */
+const markKey = s => norm(String(s).replace(/[-_\s]+/g, ' '));
 function markMatch(list, name, mark) {
-  const key = norm(String(mark).replace(/[-_]+/g, ' ')), of = x => norm(name(x));
+  const key = markKey(mark), of = x => markKey(name(x));
   return list.find(x => of(x) === key) || list.find(x => of(x).startsWith(key)) || list.find(x => of(x).split(/\s+/).some(w => w.startsWith(key))) || null;
 }
 /* Where a task added without @ goes: the current milestone, else the last one not in the archive, else a new To do. */
