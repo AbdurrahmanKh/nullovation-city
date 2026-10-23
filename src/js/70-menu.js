@@ -56,6 +56,10 @@ const Menu = (() => {
     setSaveStatus(Store.persistent());
     refresh();
   }
+  /* The side bar's panels: All tasks, Leaders, Reports and Settings take its place one at a time; the lists come back
+     once none is open. */
+  const PANELS = ['#settings', '#reports', '#allTasks', '#leadersPanel'];
+  function listsBack() { if (PANELS.every(s => !$(s) || $(s).hidden)) $('#sbLists').hidden = false; }
   function hideNew() { $('#newWrap').hidden = true; $('#btnNew').hidden = false; }
 
   /* Open tasks due in the next 7 days, overdue first, each with a copy for Claude. */
@@ -227,5 +231,5 @@ const Menu = (() => {
   }
   const closeDrawer = () => toggleDrawer(false);
 
-  return { init, refresh, setSaveStatus, closeDrawer, toggleDrawer };
+  return { init, refresh, setSaveStatus, closeDrawer, toggleDrawer, listsBack };
 })();

@@ -116,7 +116,7 @@ with sync_playwright() as p:
 
     # ---------- the panel: ways in and out ----------
     foot = ev("() => [...document.querySelectorAll('.sb-foot button')].map(b => b.id)")
-    ok('A1 an All tasks button at the side bar\'s foot, before Reports and Settings', foot == ['btnOpenAllTasks', 'btnOpenReports', 'btnOpenSettings'])
+    ok('A1 an All tasks button at the side bar\'s foot, before Leaders, Reports and Settings', foot == ['btnOpenAllTasks', 'btnOpenLeaders', 'btnOpenReports', 'btnOpenSettings'])
     ok('its tooltip names L', ev("() => document.querySelector('#btnOpenAllTasks').title") == 'All tasks (L)')
     ev("() => document.querySelector('#menu').scrollTop = 1e6"); pg.wait_for_timeout(150)
     box = pg.locator('.sb-foot').bounding_box(); pg.screenshot(path=str(SHOTS / '351-foot.png'), clip={'x': 0, 'y': box['y'] - 30, 'width': 292, 'height': box['height'] + 60})

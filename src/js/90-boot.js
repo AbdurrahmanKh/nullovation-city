@@ -63,6 +63,7 @@
     if (Settings.close()) return;
     if (Reports.close()) return;
     if (AllTasks.close()) return;
+    if (Leaders.escape()) return;                          // its editor goes back to the list, the list closes (0.1.61)
     Menu.closeDrawer();
   });
   /* The comma key opens and closes Settings, unless you are typing or a dialog is open. */

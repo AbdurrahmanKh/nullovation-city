@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.61 (2026-10-23)
+
+The Leaders panel, the fourth piece of the leader UX (Leader UX, Round 1 C1 and Round 4 L3).
+- The Leaders section leaves the side bar. A Leaders button, with its own pixel icon, sits at the side bar's foot beside All tasks, over Reports and Settings.
+- It turns the side bar into the Leaders panel, as All tasks, Reports and Settings do, and opening any of the four closes the others: every leader with its face, its name in its color, its role, and the buildings it leads; New leader at its top; "No leaders yet." with none.
+- A click on a leader opens the editor there, in the list's place, the map still in view: the same editor as before, which was a dialog over the city. Done, Add leader, Cancel and Delete leader go back to the list, the focus on the leader; the back arrow and Esc do too, and Esc again closes the panel.
+- New leader and Edit in the picker beside the project view open the editor in the panel too.
+- On a narrow window the panel opens in the drawer.
+- Fixes a stray "null" beside Upload portrait while a leader had no portrait.
+- Tests: test34_leaders follows the panel.
+
 ## 0.1.60 (2026-10-23)
 
 Fixes and links in the leaders' news, from Abdurrahman's first test of 0.1.59.

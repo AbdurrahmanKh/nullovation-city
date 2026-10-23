@@ -49,6 +49,11 @@ with sync_playwright() as p:
     toasted = lambda: ev("() => document.querySelector('#toast').classList.contains('show') ? document.querySelector('#toast').textContent : ''")
     quiet = lambda: ev("() => { const t = document.querySelector('#toast'); t.className = 'toast'; t.textContent = ''; }")
     lead = lambda pid: ev(f"() => getProject('{pid}').leader")
+    def panel():
+        """The Leaders panel, open on its list (0.1.61)."""
+        ev("() => { if (!Leaders.isOpen()) document.querySelector('#btnOpenLeaders').click(); else if (Leaders.editing()) document.querySelector('#ldBack').click(); }"); pg.wait_for_timeout(200)
+    def row(lid):
+        panel(); pg.click(f'.ld-row[data-id="{lid}"]'); pg.wait_for_timeout(250)
     leaders = lambda: ev("() => DB.leaders.map(l => [l.name, l.role, l.color, l.portrait, leaderProjects(l).map(p => p.name).sort()])")
 
     # ---------- the model ----------
@@ -77,23 +82,38 @@ with sync_playwright() as p:
     ok('a darker and a lighter shade of a signature color', ev("() => [shadeHex('#808080', -0.5), shadeHex('#808080', 0.5), shadeHex('#F29A74', 0)]") == ['#404040', '#C0C0C0', '#F29A74'])
     ok('the test city starts with no leaders and no building led', ev("() => DB.leaders.length === 0 && DB.projects.every(p => p.leader === '')"))
 
-    # ---------- the side bar's Leaders section ----------
-    sec = ev("""() => { const s = document.querySelector('#sbLeaders'), due = document.querySelector('#sbDue');
-        return { shown: !!s && !s.hidden && s.offsetParent !== null, after: !!(due.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING),
-          head: s.querySelector('.sb-h').textContent, btn: document.querySelector('#btnNewLeader').textContent.trim(),
-          empty: (s.querySelector('.ld-empty') || {}).textContent }; }""")
-    ok(f'a Leaders section in the side bar, after Due this week, with New leader ({sec["head"]}, {sec["btn"]})', sec['shown'] and sec['after'] and sec['head'] == 'Leaders' and sec['btn'] == 'New leader')
+    # ---------- the Leaders panel (0.1.61): a button at the side bar's foot, beside All tasks ----------
+    ok('the side bar has no Leaders section any more', ev("() => !document.querySelector('#sbLeaders, #leaderGrid, .ld-tile')"))
+    foot = ev("""() => { const a = document.querySelector('#btnOpenAllTasks').getBoundingClientRect(), l = document.querySelector('#btnOpenLeaders').getBoundingClientRect(),
+        r = document.querySelector('#btnOpenReports').getBoundingClientRect(); return { text: document.querySelector('#btnOpenLeaders').textContent.trim(), row: Math.round(a.top) === Math.round(l.top),
+        beside: l.left > a.right, under: r.top > l.bottom - 1, icon: !!document.querySelector('#btnOpenLeaders svg') }; }""")
+    ok(f'a Leaders button at the foot, beside All tasks, over Reports and Settings ({foot})', foot == {'text': 'Leaders', 'row': True, 'beside': True, 'under': True, 'icon': True})
+    pg.click('#btnOpenLeaders'); pg.wait_for_timeout(250)
+    sec = ev("""() => ({ shown: !document.querySelector('#leadersPanel').hidden, lists: !document.querySelector('#sbLists').hidden, title: document.querySelector('#ldTitle').textContent,
+        btn: document.querySelector('#btnNewLeader').textContent.trim(), empty: (document.querySelector('#ldList .ld-empty') || {}).textContent, focus: document.activeElement.id })""")
+    ok(f'it turns the side bar into the Leaders panel, as All tasks does, with New leader at its top ({sec})', sec['shown'] and not sec['lists'] and sec['title'] == 'Leaders'
+       and sec['btn'] == 'New leader' and sec['focus'] == 'leadersPanel')
     ok('with none, it says how to start', sec['empty'] == 'No leaders yet. Add one with a portrait, then give it a building.')
-    pg.screenshot(path=str(SHOTS / '340-leaders-empty.png'), clip={'x': 0, 'y': 380, 'width': 300, 'height': 160})
+    pg.screenshot(path=str(SHOTS / '340-leaders-empty.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 200})
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    ok('Esc closes it, the focus back on its button', ev("() => !Leaders.isOpen() && !document.querySelector('#sbLists').hidden && document.activeElement.id === 'btnOpenLeaders'"))
+    pg.click('#btnOpenAllTasks'); pg.wait_for_timeout(200); pg.click('#atBack'); pg.wait_for_timeout(150)
+    pg.click('#btnOpenLeaders'); pg.wait_for_timeout(200)
+    ok('it shares the side bar with All tasks, Reports and Settings: opening one closes the other', ev("() => Leaders.isOpen() && document.querySelector('#allTasks').hidden")
+       and (pg.click('#ldBack'), pg.wait_for_timeout(150), ev("() => (AllTasks.open(), !Leaders.isOpen() && !document.querySelector('#allTasks').hidden)"))[2])
+    ev("() => AllTasks.close()"); pg.wait_for_timeout(100)
+    panel()
 
     # ---------- a new leader ----------
     g0 = ev(f"() => [getProject('{gp}').updatedAt, getProject('{gp}').activity.length]")
     pg.click('#btnNewLeader'); pg.wait_for_timeout(250)
-    ok('New leader opens the leader panel', pg.is_visible('.ld-panel') and pg.text_content('#pnTitle') == 'New leader')
+    ok('New leader opens the editor in the panel, in the list\'s place', pg.is_visible('.ld-panel') and pg.text_content('#ldTitle') == 'New leader' and not pg.is_visible('#ldList')
+       and not pg.is_visible('#btnNewLeader') and not ev("() => Panel.isOpen()"))
     ok('the name has the focus', ev("() => document.activeElement.id") == 'ldName')
     sil = ev("() => { const f = document.querySelector('.ld-big .ld-face'); return { svg: !!f.querySelector('svg'), img: !!f.querySelector('img'), w: Math.round(f.getBoundingClientRect().width) }; }")
     ok(f'with no portrait, a silhouette on its signature color, 128 px ({sil})', sil['svg'] and not sil['img'] and sil['w'] == 128)
-    ok('Upload portrait, and no Remove yet', ev("() => [...document.querySelectorAll('.ld-portrait-btns button')].map(b => b.textContent.trim())") == ['Upload portrait'])
+    ok('Upload portrait, and no Remove yet (and no stray text beside it)', ev("() => [...document.querySelectorAll('.ld-portrait-btns button')].map(b => b.textContent.trim())") == ['Upload portrait']
+       and ev("() => document.querySelector('.ld-portrait-btns').textContent.trim()") == 'Upload portrait')
     pg.click('#ldAdd'); pg.wait_for_timeout(150)
     ok('Add with no name asks for one and adds nothing', pg.is_visible('.ld-err') and pg.text_content('.ld-err') == 'Give the leader a name.' and ev("() => DB.leaders.length") == 0
        and ev("() => document.activeElement.id") == 'ldName')
@@ -119,20 +139,22 @@ with sync_playwright() as p:
     ok('ticking a building keeps the focus on it', ev(f"() => document.activeElement === document.querySelector('.ld-bld[data-id=\"{gp}\"] input')"))
     pg.screenshot(path=str(SHOTS / '341-new-leader.png'))
     quiet(); pg.click('#ldAdd'); pg.wait_for_timeout(500)
-    ok(f'Add adds it and closes, with a toast ({toasted()})', toasted() == 'Added Gus Grimsby, who leads Garden planner.' and not pg.is_visible('.ld-panel'))
+    ok(f'Add adds it and goes back to the list, with a toast ({toasted()})', toasted() == 'Added Gus Grimsby, who leads Garden planner.' and not pg.is_visible('.ld-panel')
+       and pg.is_visible('#ldList') and pg.text_content('#ldTitle') == 'Leaders')
     ok(f'the leader holds its name, role, color and portrait, and leads its building ({leaders()})',
        leaders() == [['Gus Grimsby', 'Garbage Man', '#F29A74', True, ['Garden planner']]])
     gid = ev("() => DB.leaders[0].id")
     ok('the portrait sits in the art store under leader: and its id', ev(f"async () => (await Store.getArt('leader:{gid}')) === Leaders.url('{gid}') && Leaders.url('{gid}').startsWith('data:image/png')"))
     ok('picking a leader is not work: Updated stays and nothing goes in Activity', ev(f"() => [getProject('{gp}').updatedAt, getProject('{gp}').activity.length]") == g0)
-    tile = ev("""() => [...document.querySelectorAll('#leaderGrid .ld-tile')].map(t => ({ name: t.querySelector('.ld-tile-name').textContent, img: !!t.querySelector('img'),
-        w: Math.round(t.querySelector('.ld-face').getBoundingClientRect().width), title: t.title }))""")
-    ok(f'the side bar shows its face, 48 px, and name ({tile})', len(tile) == 1 and tile[0]['name'] == 'Gus Grimsby' and tile[0]['img'] and tile[0]['w'] == 48
-       and tile[0]['title'] == 'Gus Grimsby, Garbage Man. Leads 1 building. Click to edit.')
-    ok('and the empty line goes', ev("() => !document.querySelector('#sbLeaders .ld-empty')"))
+    tile = ev("""() => [...document.querySelectorAll('#ldList .ld-row')].map(t => ({ name: t.querySelector('.ld-row-text b').textContent, role: t.querySelector('.ld-row-role').textContent,
+        blds: t.querySelector('.ld-row-blds').textContent, img: !!t.querySelector('img'), w: Math.round(t.querySelector('.ld-face').getBoundingClientRect().width), title: t.title,
+        focus: document.activeElement === t }))""")
+    ok(f'the list shows its face, 48 px, its name, role and buildings, the focus on it ({tile})', len(tile) == 1 and tile[0]['name'] == 'Gus Grimsby' and tile[0]['role'] == 'Garbage Man'
+       and tile[0]['blds'] == 'Garden planner' and tile[0]['img'] and tile[0]['w'] == 48 and tile[0]['title'] == 'Edit Gus Grimsby. Leads 1 building.' and tile[0]['focus'])
+    ok('and the empty line goes', ev("() => !document.querySelector('#ldList .ld-empty')"))
     saved = ev("() => { const d = JSON.parse(localStorage.getItem('nullovation-city:v1')); return [d.version, (d.leaders || []).map(l => l.name), d.projects.find(p => p.name === 'Garden planner').leader === DB.leaders[0].id, 'portraitUrl' in (d.leaders[0] || {})]; }")
     ok(f'the city saves its leaders and each building\'s leader, the portrait apart ({saved})', saved == [3, ['Gus Grimsby'], True, False])
-    pg.screenshot(path=str(SHOTS / '342-leaders-side.png'), clip={'x': 0, 'y': 380, 'width': 300, 'height': 160})
+    pg.screenshot(path=str(SHOTS / '342-leaders-side.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 260})
 
     # ---------- the status card ----------
     ev(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(700)
@@ -183,7 +205,8 @@ with sync_playwright() as p:
 
     # a second leader, made from the picker, with no portrait: it takes this building
     pg.click('#ldPickNew'); pg.wait_for_timeout(250)
-    ok('New leader from the picker opens the panel with this building ticked', pg.is_visible('.ld-panel') and ev(f"() => document.querySelector('.ld-bld[data-id=\"{gp}\"] input').checked"))
+    ok('New leader from the picker opens the editor in the side bar\'s panel, beside the view, with this building ticked', pg.is_visible('.ld-panel') and pg.is_visible('#pv')
+       and ev("() => Leaders.isOpen()") and ev(f"() => document.querySelector('.ld-bld[data-id=\"{gp}\"] input').checked"))
     ok('a building led by another says by whom', ev(f"() => (document.querySelector('.ld-bld[data-id=\"{gp}\"] .ld-bld-other') || {{}}).textContent") is None
        and ev(f"() => !document.querySelector('.ld-bld[data-id=\"{nc}\"] .ld-bld-other')"))
     pg.uncheck(f'.ld-bld[data-id="{gp}"] input'); pg.wait_for_timeout(100)
@@ -215,7 +238,8 @@ with sync_playwright() as p:
     pg.click('#pvMore'); pg.wait_for_timeout(150)
     ok('the more menu then names the leader', ev("() => [...document.querySelectorAll('.pv-menu-item')].map(e => e.textContent)")[1] == 'Leader: Gus Grimsby')
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)
-    ok('the side bar tile says how many it leads', ev(f"() => document.querySelector('.ld-tile[data-id=\"{gid}\"]').title") == 'Gus Grimsby, Garbage Man. Leads 2 buildings. Click to edit.')
+    ok('its row in the Leaders panel says how many it leads, and names them', ev(f"() => document.querySelector('.ld-row[data-id=\"{gid}\"]').title") == 'Edit Gus Grimsby. Leads 2 buildings.'
+       and ev(f"() => document.querySelector('.ld-row[data-id=\"{gid}\"] .ld-row-blds').textContent") == 'Garden planner, Nullovation City')
     quiet(); pg.click('#pvSide .ld-opt[data-id=""]'); pg.wait_for_timeout(300)
     ok(f'No leader leaves the building without one ({toasted()})', lead(nc) == '' and toasted() == 'Nullovation City has no leader now.')
     emp = ev("() => { const c = document.querySelector('#pvLeader'); return [c.tagName, c.classList.contains('empty'), c.textContent]; }")
@@ -227,8 +251,8 @@ with sync_playwright() as p:
     pg.keyboard.press('Escape'); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
 
     # ---------- editing: every change applies at once ----------
-    pg.click(f'.ld-tile[data-id="{gid}"]'); pg.wait_for_timeout(250)
-    ok('a click on a tile opens the leader to edit', pg.is_visible('.ld-panel') and pg.text_content('#pnTitle') == 'Leader: Gus Grimsby' and pg.is_visible('#ldDelete') and pg.is_visible('#ldDone'))
+    row(gid)
+    ok('a click on a leader opens it to edit, in the panel', pg.is_visible('.ld-panel') and pg.text_content('#ldTitle') == 'Leader: Gus Grimsby' and pg.is_visible('#ldDelete') and pg.is_visible('#ldDone'))
     ok('its buildings ticked', ev("() => [...document.querySelectorAll('.ld-bld input')].map(i => i.checked)") == [True, False])
     pg.fill('#ldName', 'Gus'); pg.fill('#ldRole', 'Chief of the cleanup crew'); pg.wait_for_timeout(300)
     ok('the name and role change as they are typed', leaders()[0][:2] == ['Gus', 'Chief of the cleanup crew'])
@@ -247,8 +271,13 @@ with sync_playwright() as p:
     pg.set_input_files('.ld-panel input[type=file]', GUS); pg.wait_for_timeout(500)
     ok('a portrait uploaded while editing is kept at once', ev(f"async () => DB.leaders[0].portrait && (await Store.getArt('leader:{gid}')) === Leaders.url('{gid}')"))
     pg.click('#ldDone'); pg.wait_for_timeout(300)
-    ok('Done closes it; the side bar and the card already show the changes', not pg.is_visible('.ld-panel')
-       and ev(f"() => document.querySelector('.ld-tile[data-id=\"{gid}\"] .ld-tile-name').textContent") == 'Gus Grimsby')
+    ok('Done goes back to the list, which already shows the changes, the focus on the leader', not pg.is_visible('.ld-panel')
+       and ev(f"() => document.querySelector('.ld-row[data-id=\"{gid}\"] .ld-row-text b').textContent") == 'Gus Grimsby'
+       and ev(f"() => document.activeElement === document.querySelector('.ld-row[data-id=\"{gid}\"]')"))
+    row(gid)
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    ok('Esc in the editor goes back to the list, and again closes the panel', ev("() => Leaders.isOpen() && !Leaders.editing()")
+       and (pg.keyboard.press('Escape'), pg.wait_for_timeout(200), ev("() => !Leaders.isOpen()"))[2])
 
     # ---------- framing (0.1.52): every portrait fills its frame by its figure ----------
     urls = {'small': data_url(SMALL, 'png'), 'gus': data_url(GUS, 'png'), 'tall': data_url(TALL, 'jpeg'), 'gif': data_url(fixture('test-live.gif'), 'gif')}
@@ -286,13 +315,13 @@ with sync_playwright() as p:
        [s['size'] for s in sizes] == [96, 48, 96, 48] and all(abs(s['bottom'] - s['size']) < 0.5 for s in sizes)
        and abs((sizes[0]['bottom'] - sizes[0]['top']) - 0.97 * 96) < 0.5 and abs((sizes[1]['bottom'] - sizes[1]['top']) - 0.97 * 48) < 0.5
        and all(s['render'] == 'auto' for s in sizes))
-    pg.click(f'.ld-tile[data-id="{pid}"]'); pg.wait_for_timeout(250)
+    row(pid)
     pg.set_input_files('.ld-panel input[type=file]', str(SMALL)); pg.wait_for_timeout(500)
     up = ev(f"""async () => {{ const u = Leaders.url('{pid}'), i = document.querySelector('.ld-big img');
         return {{ same: (await Store.getArt('leader:{pid}')) === u, framed: !!i && i.classList.contains('framed'), w: i && Math.round(parseFloat(i.style.width)),
           card: !!document.querySelector('#pvLeader') }}; }}""")
     ok(f'uploaded, the small portrait fills the panel\'s face, and the file is kept as it came ({up})', up['same'] and up['framed'] and up['w'] == round(128 * 128 / (95 / 0.97)))
-    pg.screenshot(path=str(SHOTS / '348-leader-framed.png'), clip={'x': 360, 'y': 120, 'width': 720, 'height': 240})
+    pg.screenshot(path=str(SHOTS / '348-leader-framed.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 330})
     pg.click('.ld-portrait-btns >> text=Remove'); pg.wait_for_timeout(300)
     pg.click('#ldDone'); pg.wait_for_timeout(300)
     ok('and removed again, as it was', ev(f"() => !getLeader('{pid}').portrait"))
@@ -323,7 +352,9 @@ with sync_playwright() as p:
     pg.reload(); pg.wait_for_timeout(2200)
     ok('after a reload: the leaders, their buildings and colors', leaders() == [['Gus Grimsby', 'Chief of the cleanup crew', '#F2C75C', True, ['Garden planner']],
        ['Proxima Pace', 'Productivity Inspector', '#8FD0F7', False, []]])
-    ok('the portrait comes back from the art store, in the side bar', ev("() => { const t = document.querySelector('#leaderGrid .ld-tile img'); return !!t && t.src.startsWith('data:image/png'); }"))
+    panel()
+    ok('the portrait comes back from the art store, in the Leaders panel', ev("() => { const t = document.querySelector('#ldList .ld-row img'); return !!t && t.src.startsWith('data:image/png'); }"))
+    ev("() => Leaders.close(false)")
     ev(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(600)
     ok('and in the status card', ev("() => !!document.querySelector('#bubble .b-leader img')"))
     ev("() => MapView.deselect()")
@@ -356,7 +387,7 @@ with sync_playwright() as p:
     ok('imported into the same city, it keeps the leader of the same name, adding none', ev("() => DB.leaders.length") == n0 and cp == [gid, gid])
 
     # ---------- deleting a leader ----------
-    pg.click(f'.ld-tile[data-id="{gid}"]'); pg.wait_for_timeout(250)
+    row(gid)
     pg.click('#ldDelete'); pg.wait_for_timeout(250)
     body = pg.text_content('#cfBody')
     ok(f'Delete leader asks first, naming what happens ({body})', pg.text_content('#cfTitle') == 'Delete Gus Grimsby?'
@@ -365,18 +396,28 @@ with sync_playwright() as p:
     ok('Cancel keeps it', ev("() => DB.leaders.length") == n0 and pg.is_visible('.ld-panel'))
     pg.click('#ldDelete'); pg.wait_for_timeout(250)
     quiet(); pg.click('.backdrop.top .btn-danger'); pg.wait_for_timeout(400)
-    ok(f'confirmed, it goes, with a toast ({toasted()})', toasted() == 'Deleted Gus Grimsby.' and not pg.is_visible('.ld-panel') and leaders() == [['Proxima Pace', 'Productivity Inspector', '#8FD0F7', False, []]])
+    ok(f'confirmed, it goes, with a toast, back to the list ({toasted()})', toasted() == 'Deleted Gus Grimsby.' and not pg.is_visible('.ld-panel') and leaders() == [['Proxima Pace', 'Productivity Inspector', '#8FD0F7', False, []]]
+       and pg.is_visible('#ldList') and not ev(f"() => !!document.querySelector('.ld-row[data-id=\"{gid}\"]')"))
     ok('its buildings keep running with no leader, and its portrait leaves the art store',
        ev("() => DB.projects.every(p => p.leader === '')") and ev(f"async () => !(await Store.getArt('leader:{gid}'))"))
-    pg.click(f'.ld-tile[data-id="{pid}"]'); pg.wait_for_timeout(250); pg.click('#ldDelete'); pg.wait_for_timeout(250)
+    row(pid); pg.click('#ldDelete'); pg.wait_for_timeout(250)
     ok('a leader with no building and no portrait: "Nothing else changes."', pg.text_content('#cfBody') == 'Nothing else changes.')
     pg.click('.backdrop.top .btn-danger'); pg.wait_for_timeout(400)
-    ok('with the last one gone, the side bar says how to start again', ev("() => DB.leaders.length === 0 && !!document.querySelector('#sbLeaders .ld-empty')"))
+    ok('with the last one gone, the panel says how to start again', ev("() => DB.leaders.length === 0 && !!document.querySelector('#ldList .ld-empty')"))
 
     # ---------- a saved building whose leader is missing ----------
     ev("() => { const d = JSON.parse(localStorage.getItem('nullovation-city:v1')); d.projects[0].leader = 'ld-missing'; localStorage.setItem('nullovation-city:v1', JSON.stringify(d)); }")
     pg.reload(); pg.wait_for_timeout(2000)
     ok('a saved building whose leader is not in the city loads with none', ev("() => DB.projects.every(p => p.leader === '')"))
+    # on a narrow window the Leaders panel opens in the drawer, as All tasks does (0.1.61)
+    pg.set_viewport_size({'width': 700, 'height': 800}); pg.wait_for_timeout(300)
+    pg.click('#menuToggle'); pg.wait_for_timeout(300)
+    pg.click('#btnOpenLeaders'); pg.wait_for_timeout(300)
+    nar = ev("() => { const p = document.querySelector('#leadersPanel').getBoundingClientRect(); return [document.querySelector('#menu').classList.contains('open'), Leaders.isOpen(), Math.round(p.right) <= 700, document.documentElement.scrollWidth <= 700]; }")
+    ok(f'on a narrow window it opens in the drawer, with nothing past its edge ({nar})', nar == [True, True, True, True])
+    pg.click('#btnNewLeader'); pg.wait_for_timeout(250)
+    ok('and the editor fits there too', ev("() => { const e = document.querySelector('#ldEdit').getBoundingClientRect(); return !document.querySelector('#ldEdit').hidden && e.right <= 700 && e.width > 200; }"))
+    pg.screenshot(path=str(SHOTS / '349-leaders-narrow.png'))
     b.close()
 
 # ---------- a fresh browser: the backup and the project file bring their leaders ----------
@@ -395,7 +436,7 @@ with sync_playwright() as p:
     pg.click('.confirm-actions .btn-danger'); pg.wait_for_timeout(1000)
     rl = ev("() => DB.leaders.map(l => [l.name, l.color, l.portrait, leaderProjects(l).map(p => p.name)])")
     ok(f'importing a backup replaces the leaders with its own ({rl})', rl == [['Gus Grimsby', '#F2C75C', True, ['Garden planner']], ['Proxima Pace', '#8FD0F7', False, []]])
-    ok('their portraits go into the art store, and show', ev("async () => { const l = DB.leaders[0]; return (await Store.getArt('leader:' + l.id)) === Leaders.url(l.id) && !!document.querySelector('#leaderGrid .ld-tile img'); }"))
+    ok('their portraits go into the art store, and show', ev("async () => { const l = DB.leaders[0]; Leaders.open(); Leaders.renderSection(); return (await Store.getArt('leader:' + l.id)) === Leaders.url(l.id) && !!document.querySelector('#ldList .ld-row img'); }"))
     old = ev("() => DB.leaders[0].id")
     pg.set_input_files('#fileImport', fixture('backup-v1.json')); pg.wait_for_timeout(300)
     pg.click('.confirm-actions .btn-danger'); pg.wait_for_timeout(1000)

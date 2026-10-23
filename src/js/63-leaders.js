@@ -86,23 +86,77 @@ const Leaders = (() => {
     return kept;
   }
 
-  /* ---------- the side bar's Leaders section ---------- */
+  /* ---------- the Leaders panel (0.1.61, Leader UX C1 and L3): a Leaders button beside All tasks at the side bar's foot
+     turns the side bar into every leader, as All tasks, Reports and Settings do; New leader at its top, and a click on a
+     leader opens the editor there, in place of the list. ---------- */
+  let editing = null;                                        // the leader the editor shows, while it shows
+  const isOpen = () => !!$('#leadersPanel') && !$('#leadersPanel').hidden;
   function init() {
     $('#ldPlus').innerHTML = iconSvg('plus', 12); $('#ldPlus').style.display = 'inline-flex';
+    $('#sbLeaderIcon').innerHTML = iconSvg('leader', 16); $('#sbLeaderIcon').style.display = 'inline-flex';
+    $('#ldBack').innerHTML = iconSvg('back', 18);
     $('#btnNewLeader').addEventListener('click', () => create());
+    $('#btnOpenLeaders').addEventListener('click', () => { open(); showList(); });
+    $('#ldBack').addEventListener('click', () => { if (editing) showList(editing.id); else close(); });
+    $('#leadersPanel').addEventListener('keydown', e => { if (e.key === 'Escape' && escape()) { e.preventDefault(); e.stopPropagation(); } });
     renderSection();
   }
+  function open() {
+    if (typeof Settings !== 'undefined') Settings.close(false);  // the four share the side bar
+    if (typeof Reports !== 'undefined') Reports.close(false);
+    if (typeof AllTasks !== 'undefined') AllTasks.close(false);
+    Menu.toggleDrawer(true);
+    $('#sbLists').hidden = true; $('#leadersPanel').hidden = false;
+    $('#menu').classList.add('in-leaders');
+    $('#menu').scrollTop = 0;
+  }
+  function close(refocus = true) {
+    if (!isOpen()) return false;
+    editing = null;
+    $('#ldEdit').replaceChildren(); $('#ldEdit').hidden = true;
+    $('#leadersPanel').hidden = true;
+    $('#menu').classList.remove('in-leaders');
+    Menu.listsBack();
+    if (refocus) $('#btnOpenLeaders').focus({ preventScroll: true });
+    return true;
+  }
+  /* Esc: the editor goes back to the list, the list closes. */
+  function escape() {
+    if (!isOpen()) return false;
+    if (editing) { showList(editing.id); return true; }
+    return close();
+  }
+  /* The list, with the focus on the leader just edited when there is one, else on the panel. */
+  function showList(focusId = null) {
+    if (!isOpen()) open();
+    editing = null;
+    $('#ldEdit').replaceChildren(); $('#ldEdit').hidden = true;
+    $('#ldList').hidden = false; $('#btnNewLeader').hidden = false;
+    $('#ldTitle').replaceChildren('Leaders');
+    $('#ldBack').setAttribute('aria-label', 'Back to the lists'); $('#ldBack').title = 'Back to the lists';
+    renderSection();
+    const row = focusId && $(`.ld-row[data-id="${focusId}"]`);
+    (row || $('#leadersPanel')).focus({ preventScroll: true });
+  }
+  /* Every leader: its face, its name in its color, its role, and the buildings it leads. */
   function renderSection() {
-    const grid = $('#leaderGrid');
-    if (!grid) return;
-    grid.replaceChildren(...DB.leaders.map(l => {
-      const n = leaderProjects(l).length;
-      return h('button', { class: 'ld-tile', type: 'button', 'data-id': l.id,
-        title: leaderName(l) + (l.role ? ', ' + l.role : '') + '. ' + (n ? 'Leads ' + plural(n, 'building', 'buildings') : 'Leads no building yet') + '. Click to edit.',
-        'aria-label': leaderName(l) + (l.role ? ', ' + l.role : '') + ', leads ' + plural(n, 'building', 'buildings'), onclick: () => edit(l.id) },
-        face(l, 48), h('span', { class: 'ld-tile-name', dir: 'auto' }, leaderName(l)));
+    const list = $('#ldList');
+    if (!list) return;
+    const a = document.activeElement, keep = a && list.contains(a) && a.dataset ? a.dataset.id : null;
+    list.replaceChildren(...DB.leaders.map(l => {
+      const ps = leaderProjects(l);
+      const b = h('button', { class: 'ld-row', type: 'button', 'data-id': l.id,
+        title: 'Edit ' + leaderName(l) + '. ' + (ps.length ? 'Leads ' + plural(ps.length, 'building', 'buildings') : 'Leads no building yet') + '.',
+        onclick: () => edit(l.id) },
+        face(l, 48),
+        h('span', { class: 'ld-row-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)),
+          l.role ? h('span', { class: 'ld-row-role', dir: 'auto' }, l.role) : null,
+          h('span', { class: 'ld-row-blds', dir: 'auto' }, ps.length ? ps.map(p => p.name).sort((x, y) => x.localeCompare(y)).join(', ') : 'No building yet')));
+      b.style.setProperty('--ld', l.color);
+      return h('li', null, b);
     }));
-    if (!DB.leaders.length) grid.append(h('p', { class: 'ld-empty' }, 'No leaders yet. Add one with a portrait, then give it a building.'));
+    if (!DB.leaders.length) list.append(h('li', { class: 'ld-empty' }, 'No leaders yet. Add one with a portrait, then give it a building.'));
+    if (keep) { const r = $(`.ld-row[data-id="${keep}"]`, list); if (r) r.focus({ preventScroll: true }); }
   }
   const refreshSoon = debounce(() => refreshAll(), 120);
   function refreshAll() {
@@ -137,13 +191,13 @@ const Leaders = (() => {
         drawFace(); drawPortraitBtns();
       } });
     const portraitBtns = h('div', { class: 'inline ld-portrait-btns' });
-    const drawPortraitBtns = () => portraitBtns.replaceChildren(
+    const drawPortraitBtns = () => portraitBtns.replaceChildren(...[
       h('button', { class: 'btn btn-small', type: 'button', onclick: () => file.click() }, iconEl('plus', 14), has() ? 'Replace portrait' : 'Upload portrait'),
       has() ? h('button', { class: 'btn btn-small btn-quiet', type: 'button', onclick: async () => {
         if (isNew) draftUrl = null;
         else { await Store.deleteArt(portraitKey(l.id)); urls.delete(l.id); l.portrait = false; save(); }
         drawFace(); drawPortraitBtns();
-      } }, 'Remove') : null);
+      } }, 'Remove') : null].filter(Boolean));               // no stray "null" beside Upload portrait (0.1.61)
 
     const name = h('input', { id: 'ldName', class: 'field', type: 'text', dir: 'auto', maxlength: String(LEADER_MAX.name), value: l.name, placeholder: 'Name', autocomplete: 'off', 'aria-label': 'Name',
       oninput: e => { l.name = e.target.value; err.hidden = true; save(); },
@@ -189,7 +243,7 @@ const Leaders = (() => {
         if (draftUrl) kept = await putPortrait(l, draftUrl);
         const ps = DB.projects.filter(p => picked.has(p.id));
         for (const p of ps) setLeader(p, l.id);
-        persistNow(); Panel.close(); refreshAll(); MapView.invalidate();
+        persistNow(); showList(l.id); refreshAll(); MapView.invalidate();
         toast('Added ' + leaderName(l) + (ps.length === 1 ? ', who leads ' + ps[0].name : ps.length ? ', who leads ' + plural(ps.length, 'building', 'buildings') : '') + '.'
           + (kept ? '' : ' The portrait is held for this session only.'), kept ? '' : 'error');
         if (onAdded) onAdded(l);
@@ -205,17 +259,25 @@ const Leaders = (() => {
       DB.leaders = DB.leaders.filter(x => x.id !== l.id);
       for (const p of DB.projects) if (p.leader === l.id) p.leader = '';
       await Store.deleteArt(portraitKey(l.id)); urls.delete(l.id);
-      persistNow(); Panel.close(); refreshAll(); MapView.invalidate();
+      persistNow(); showList(); refreshAll(); MapView.invalidate();
       toast('Deleted ' + leaderName(l) + '.');
     }
 
     drawFace(); drawPortraitBtns(); drawSwatches(); drawBuildings();
     const foot = isNew
-      ? h('div', { class: 'confirm-actions ld-actions' }, h('button', { class: 'btn', type: 'button', onclick: () => Panel.close() }, 'Cancel'),
+      ? h('div', { class: 'confirm-actions ld-actions' }, h('button', { id: 'ldCancel', class: 'btn', type: 'button', onclick: () => showList() }, 'Cancel'),
           h('button', { id: 'ldAdd', class: 'btn btn-accent', type: 'button', onclick: add }, 'Add leader'))
       : h('div', { class: 'confirm-actions ld-actions' }, h('button', { id: 'ldDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: remove }, 'Delete leader'),
-          h('button', { id: 'ldDone', class: 'btn btn-accent', type: 'button', onclick: () => Panel.close() }, 'Done'));
-    Panel.open(isNew ? 'New leader' : ['Leader: ', h('bdi', null, leaderName(l))], [
+          h('button', { id: 'ldDone', class: 'btn btn-accent', type: 'button', onclick: () => showList(l.id) }, 'Done'));
+    /* the editor, in the panel in the list's place */
+    if (!isOpen()) open();
+    editing = l;
+    $('#ldList').hidden = true; $('#btnNewLeader').hidden = true;
+    $('#ldTitle').replaceChildren(...(isNew ? ['New leader'] : ['Leader: ', h('bdi', null, leaderName(l))]));
+    $('#ldBack').setAttribute('aria-label', 'Back to the leaders'); $('#ldBack').title = 'Back to the leaders';
+    $('#menu').scrollTop = 0;
+    $('#ldEdit').hidden = false;
+    $('#ldEdit').replaceChildren(
       h('div', { class: 'ld-form' },
         h('div', { class: 'ld-top' }, faceBox, h('div', { class: 'ld-portrait' }, portraitBtns,
           h('p', { class: 'note' }, 'A PNG, GIF, JPEG or WebP, up to 1024 px. 256 by 256 pixel art on a see-through background fits best.'), file)),
@@ -226,9 +288,8 @@ const Leaders = (() => {
         h('div', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Leads'), blds,
           h('p', { class: 'note' }, 'One leader per building; a leader can lead several.')),
         live ? h('p', { class: 'note' }, 'Changes save as you make them.') : null),
-      foot]);
-    const panel = $('.modal.panel'); if (panel) panel.classList.add('ld-panel');
-    name.focus(); if (isNew) name.select();
+      foot);
+    name.focus({ preventScroll: true }); if (isNew) name.select();
   }
 
   /* ---------- picking a building's leader, beside the project view ---------- */
@@ -340,6 +401,6 @@ const Leaders = (() => {
     return l.id;
   }
 
-  return { init, loadAll, renderSection, refreshAll, create, edit, pickList, card, redrawCard, statusLine, hub, face,
+  return { init, loadAll, renderSection, refreshAll, create, edit, open, close, escape, isOpen, editing: () => editing, pickList, card, redrawCard, statusLine, hub, face,
     url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt };
 })();

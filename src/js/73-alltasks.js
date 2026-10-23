@@ -23,8 +23,9 @@ const AllTasks = (() => {
   const isOpen = () => !!$('#allTasks') && !$('#allTasks').hidden;
   function open() {
     shift = ''; building = ''; words = ''; unfolded.clear();
-    if (typeof Settings !== 'undefined') Settings.close(false);  // the three share the side bar
+    if (typeof Settings !== 'undefined') Settings.close(false);  // the four share the side bar
     if (typeof Reports !== 'undefined') Reports.close(false);
+    if (typeof Leaders !== 'undefined') Leaders.close(false);
     Menu.toggleDrawer(true);
     $('#sbLists').hidden = true; $('#allTasks').hidden = false;
     $('#menu').classList.add('in-alltasks');
@@ -36,7 +37,7 @@ const AllTasks = (() => {
   function close(refocus = true) {
     if (!isOpen()) return false;
     $('#allTasks').hidden = true;
-    if ((!$('#settings') || $('#settings').hidden) && (!$('#reports') || $('#reports').hidden)) $('#sbLists').hidden = false;
+    Menu.listsBack();
     $('#menu').classList.remove('in-alltasks');
     MapView.light(null);
     if (refocus) $('#btnOpenAllTasks').focus({ preventScroll: true });

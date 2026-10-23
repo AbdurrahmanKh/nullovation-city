@@ -1267,18 +1267,26 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-face.ld-none { background: transparent; box-shadow: none; outline: 2px dashed var(--edge); outline-offset: -2px; }
 .ld-name { color: color-mix(in srgb, var(--ld, #ECE8F6) 55%, #FFFFFF); }
 
-.ld-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.ld-head .sb-h { margin: 0; }
-.ld-head .btn { padding: 4px 8px 3px; font-size: 13px; gap: 5px; }
-.ld-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px 6px; }
-.ld-tile { display: grid; justify-items: center; gap: 6px; padding: 6px 2px 4px; background: none; border: 0; cursor: pointer; color: var(--ink-soft); min-width: 0; }
-.ld-tile:hover .ld-face, .ld-tile:focus-visible .ld-face { box-shadow: 0 0 0 2px #FFFFFF; }
-.ld-tile:focus-visible { outline: none; }
-.ld-tile-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
-.ld-tile:hover .ld-tile-name, .ld-tile:focus-visible .ld-tile-name { color: var(--ink); }
-.ld-empty { grid-column: 1 / -1; margin: 0; font-size: 12.5px; color: var(--muted); }
 
-.ld-panel { width: min(520px, calc(100vw - 32px)); }
+/* ---------- the Leaders panel (0.1.61): the side bar turns into every leader, and the editor shows there ---------- */
+.ld-side .set-head .ld-new { margin-left: auto; padding: 4px 8px 3px; font-size: 13px; gap: 5px; }
+.ld-side .set-head .ld-new[hidden] { display: none; }
+.ld-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.ld-list[hidden] { display: none; }
+.ld-row { display: flex; align-items: center; gap: 10px; width: calc(100% - 4px); margin: 2px; padding: 7px 10px 7px 8px; background: var(--field); border: 0; box-shadow: var(--px-edge), inset 3px 0 0 var(--ld); color: var(--ink); font: inherit; text-align: start; cursor: pointer; }
+.ld-row:hover, .ld-row:focus-visible { background: var(--hover); outline: none; }
+.ld-row-text { display: grid; gap: 1px; min-width: 0; }
+.ld-row-text b { font: 400 15px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; overflow-wrap: anywhere; }
+.ld-row-role { font-size: 12.5px; color: var(--muted); }
+.ld-row-blds { font-size: 12.5px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ld-empty { margin: 0; font-size: 12.5px; color: var(--muted); }
+.ld-edit { margin-top: 10px; }
+.ld-edit[hidden] { display: none; }
+.ld-edit .ld-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+.ld-edit .ld-actions { flex-wrap: wrap; gap: 8px; }
+.sb-alltasks, .sb-leaders { flex: 1 1 calc(50% - 10px); }
+.sb-leaders { justify-content: flex-start; }
+.sb-leaders > span { display: inline-flex; }
 .ld-form { display: grid; gap: 14px; padding: 4px 2px 0; }
 .ld-top { display: flex; gap: 16px; align-items: center; }
 .ld-big { flex: none; padding: 2px; }
@@ -1406,7 +1414,7 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .pv-shift.on { background: var(--hover); box-shadow: 0 0 0 2px var(--shift), 0 0 0 4px #0A0812; }
 
 /* ---------- All tasks (All tasks, Rounds 1 to 3) ---------- */
-.sb-alltasks { flex-basis: calc(100% - 4px); justify-content: flex-start; }      /* its own row, over Reports and Settings */
+.sb-alltasks { justify-content: flex-start; }      /* All tasks and Leaders share a row, over Reports and Settings (0.1.61) */
 .sb-alltasks > span { display: inline-flex; }
 .due-more-btn { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 .due-more-btn:hover, .due-more-btn:focus-visible { color: var(--ink); outline: none; }

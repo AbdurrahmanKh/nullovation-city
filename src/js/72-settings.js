@@ -57,8 +57,9 @@ const Settings = (() => {
   const isOpen = () => !$('#settings').hidden;
   function open(tab) {
     if (tab) ui.tab = tab;
-    if (typeof Reports !== 'undefined') Reports.close(false);   // the three share the side bar
+    if (typeof Reports !== 'undefined') Reports.close(false);   // the four share the side bar
     if (typeof AllTasks !== 'undefined') AllTasks.close(false);
+    if (typeof Leaders !== 'undefined') Leaders.close(false);
     Menu.toggleDrawer(true);
     $('#sbLists').hidden = true; $('#settings').hidden = false;
     $('#menu').classList.add('in-settings');
@@ -71,7 +72,7 @@ const Settings = (() => {
     if (!isOpen()) return false;
     MapView.setEditing(false);
     rememberScroll();
-    $('#settings').hidden = true; $('#sbLists').hidden = false;
+    $('#settings').hidden = true; Menu.listsBack();
     $('#menu').classList.remove('in-settings');
     saveUi();
     if (refocus) $('#btnOpenSettings').focus({ preventScroll: true });
