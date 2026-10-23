@@ -256,22 +256,23 @@ const Leaders = (() => {
   }
 
   /* ---------- where a leader shows ---------- */
-  /* the leader card under the building's picture in the project view: the face, the name in its color and the role */
+  /* the leader card under the building's picture in the project view: the face at 96 px (64 until 0.1.57), the name in
+     its color and the role */
   function card(p, onPick) {
     const l = leaderOf(p);
     if (!l) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
       noFace(48), h('span', { class: 'ld-card-text' }, h('b', null, 'No leader yet'), h('span', null, 'Pick a leader')));
-    const box = h('div', { id: 'pvLeader', class: 'ld-card' }, face(l, 64),
+    const box = h('div', { id: 'pvLeader', class: 'ld-card' }, face(l, 96),
       h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null),
       h('button', { class: 'btn btn-quiet btn-small ld-change', type: 'button', title: 'Pick another leader, or edit this one', onclick: onPick }, 'Change'));
     box.style.setProperty('--ld', l.color);
     return box;
   }
-  /* the status card's line under the building's name */
+  /* the status card's line under the building's name: the face at 48 px (32 until 0.1.57), the name and the role */
   function statusLine(p) {
     const l = leaderOf(p);
     if (!l) return null;
-    const line = h('p', { class: 'b-leader' }, face(l, 32), h('span', { class: 'b-leader-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null));
+    const line = h('p', { class: 'b-leader' }, face(l, 48), h('span', { class: 'b-leader-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null));
     line.style.setProperty('--ld', l.color);
     return line;
   }

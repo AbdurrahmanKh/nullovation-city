@@ -1093,7 +1093,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 /* a face: the portrait, 256 px, shrunk smooth into its frame, as the map shrinks its buildings; bigger in a speech bubble */
 .gus-face { --face: 64px; flex: none; display: block; width: var(--face); height: var(--face); overflow: hidden; background: #3E2233; box-shadow: 0 0 0 2px #7A3A4E; }
 .face-pic { display: block; width: 100%; height: 100%; image-rendering: auto; -webkit-user-drag: none; user-select: none; }
-.gus-say .gus-face { --face: 80px; }
+.gus-say .gus-face { --face: 100px; }                                /* every speech bubble at the map's top left: 100 px (80 until 0.1.57) */
 .gus-name { display: grid; gap: 1px; }
 .gus-name b { font: 400 15px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: #FFB797; }
 .gus-name span { font-size: 12px; color: var(--muted); }
@@ -1117,7 +1117,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .gus-row:hover .gus-proj, .gus-row:focus-visible .gus-proj { text-decoration: underline; }
 .gus-row:focus-visible { outline: none; }
 .gus-say { position: absolute; left: 22px; top: 18px; z-index: 20; display: flex; align-items: flex-start; gap: 10px;
-  max-width: min(380px, calc(100% - 44px)); padding: 10px 8px 10px 10px; background: var(--paper); box-shadow: var(--px-edge), var(--px-drop-sm);
+  max-width: min(400px, calc(100% - 44px)); padding: 10px 8px 10px 10px; background: var(--paper); box-shadow: var(--px-edge), var(--px-drop-sm);   /* 380 until 0.1.57: 20 more for the bigger face */
   opacity: 0; transition: opacity .15s ease-out; }
 .gus-say.show { opacity: 1; }
 .gus-say[hidden] { display: none; }
@@ -1125,6 +1125,10 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .gus-say-body { display: grid; gap: 4px; min-width: 0; padding-top: 1px; }
 .gus-say-text { font-size: 14.5px; line-height: 1.4; color: var(--ink); }
 .gus-say-close { flex: none; width: 28px; height: 28px; padding: 0; }
+/* squeezed (0.1.57): the face and the close button on top, the words under them across the whole bubble */
+.gus-say.narrow { flex-wrap: wrap; }
+.gus-say.narrow .gus-say-body { order: 2; flex: 1 0 100%; }
+.gus-say.narrow .gus-say-close { margin-left: auto; }
 @media (prefers-reduced-motion: reduce) { .gus-say { transition: none; } }
 
 /* ---------- Reports (0.1.43): the side bar turns into them, as into Settings ---------- */

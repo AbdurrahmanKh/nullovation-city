@@ -140,8 +140,8 @@ with sync_playwright() as p:
         const t = document.querySelector('#bubble .b-title');
         return { name: l.querySelector('.ld-name').textContent, role: l.querySelector('.b-leader-text span').textContent, img: !!l.querySelector('img'),
           w: Math.round(l.querySelector('.ld-face').getBoundingClientRect().width), afterTitle: t.nextElementSibling === l }; }""")
-    ok(f'the status card names the leader under the building\'s name, with a 32 px face ({sc})', sc and sc['name'] == 'Gus Grimsby' and sc['role'] == 'Garbage Man'
-       and sc['img'] and sc['w'] == 32 and sc['afterTitle'])
+    ok(f'the status card names the leader under the building\'s name, with a 48 px face (0.1.57; 32 before) ({sc})', sc and sc['name'] == 'Gus Grimsby' and sc['role'] == 'Garbage Man'
+       and sc['img'] and sc['w'] == 48 and sc['afterTitle'])
     pg.screenshot(path=str(SHOTS / '343-leader-status.png'))
     ev(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(500)
     ok('a building with no leader shows no line', ev("() => !document.querySelector('#bubble .b-leader')"))
@@ -172,8 +172,8 @@ with sync_playwright() as p:
         return { name: c.querySelector('.ld-name').textContent, role: c.querySelector('.ld-card-text span').textContent, img: !!c.querySelector('img'),
           w: Math.round(c.querySelector('.ld-face').getBoundingClientRect().width), change: (c.querySelector('.ld-change') || {}).textContent,
           under: !!document.querySelector('.pv-scene') && (document.querySelector('.pv-scene').compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING) > 0 }; }""")
-    ok(f'the project view has a leader card under the building: the face, 64 px, the name, the role and Change ({card})', card and card['name'] == 'Gus Grimsby'
-       and card['role'] == 'Garbage Man' and card['img'] and card['w'] == 64 and card['change'] == 'Change' and card['under'])
+    ok(f'the project view has a leader card under the building: the face, 96 px (0.1.57; 64 before), the name, the role and Change ({card})', card and card['name'] == 'Gus Grimsby'
+       and card['role'] == 'Garbage Man' and card['img'] and card['w'] == 96 and card['change'] == 'Change' and card['under'])
     pg.screenshot(path=str(SHOTS / '345-leader-card.png'))
     pg.click('#pvLeader .ld-change'); pg.wait_for_timeout(300)
     opts = ev("() => [...document.querySelectorAll('#pvSide .ld-opt')].map(o => [o.querySelector('b').textContent, o.getAttribute('aria-pressed')])")
@@ -274,6 +274,18 @@ with sync_playwright() as p:
        and abs(big['bottom'] - 128) < 0.5)
     ok('Gus\'s figure still fills his face, foot on the foot', abs(g['bottom'] - 64) < 0.5 and g['top'] < 4)
     ok('an animated GIF stays the GIF itself, framed by its first frame', gif['src'] == 'data:image/gif;')
+    sizes = ev("""(u) => { const l = blankLeader({ color: '#B9A3E3' }), box = document.createElement('div');
+        box.style.cssText = 'position:fixed;left:0;top:0;z-index:99999;display:flex;gap:8px';
+        const faces = [Leaders.face(l, 96, { url: u.small }), Leaders.face(l, 48, { url: u.small }), Leaders.face(l, 96, { url: u.gus }), Leaders.face(l, 48, { url: u.gus })];
+        box.append(...faces); document.body.append(box);
+        const fig = (f, y0, y1) => { const i = f.querySelector('img'), r = i.getBoundingClientRect(), F = f.getBoundingClientRect(), k = r.width / i.naturalWidth;
+          return { size: Math.round(F.width), top: r.top + y0 * k - F.top, bottom: r.top + y1 * k - F.top, render: getComputedStyle(i).imageRendering }; };
+        const out = [fig(faces[0], 17, 112), fig(faces[1], 17, 112), fig(faces[2], 8, 256), fig(faces[3], 8, 256)];
+        box.remove(); return out; }""", urls)
+    ok(f'at the leader card\'s 96 px and the status card\'s 48 px (0.1.57) the figure still fills the face, foot on the foot, shrunk smooth ({[(s["size"], round(s["top"], 1), round(s["bottom"], 1)) for s in sizes]})',
+       [s['size'] for s in sizes] == [96, 48, 96, 48] and all(abs(s['bottom'] - s['size']) < 0.5 for s in sizes)
+       and abs((sizes[0]['bottom'] - sizes[0]['top']) - 0.97 * 96) < 0.5 and abs((sizes[1]['bottom'] - sizes[1]['top']) - 0.97 * 48) < 0.5
+       and all(s['render'] == 'auto' for s in sizes))
     pg.click(f'.ld-tile[data-id="{pid}"]'); pg.wait_for_timeout(250)
     pg.set_input_files('.ld-panel input[type=file]', str(SMALL)); pg.wait_for_timeout(500)
     up = ev(f"""async () => {{ const u = Leaders.url('{pid}'), i = document.querySelector('.ld-big img');

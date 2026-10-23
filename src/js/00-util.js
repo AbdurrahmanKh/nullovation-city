@@ -130,6 +130,14 @@ function loadImage(src) {
   });
 }
 
+/* A speech bubble at the map's top left (0.1.57): with its face at 100 px, a bubble squeezed into a narrow space, such as
+   the strip of map beside the project view, puts its words under the face rather than in a thin column beside it. */
+const SAY_NARROW = 360;
+function fitSay(box) {
+  const parent = box && box.offsetParent;
+  if (!parent) return;
+  box.classList.toggle('narrow', parent.clientWidth - box.offsetLeft - 22 < SAY_NARROW);
+}
 function downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = name;

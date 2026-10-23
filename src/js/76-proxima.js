@@ -257,6 +257,7 @@ const Proxima = (() => {
     const view = typeof FullView !== 'undefined' && FullView.isOpen();            // beside the project view, over the map it leaves open
     box.style.left = view ? Math.round(FullView.rightEdge() + 22) + 'px' : '';
     box.hidden = false;
+    fitSay(box);
     requestAnimationFrame(() => box.classList.add('show'));
     clearTimeout(sayTimer);
     sayTimer = setTimeout(() => hush(), sayMs);

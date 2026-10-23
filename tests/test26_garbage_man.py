@@ -134,7 +134,7 @@ with sync_playwright() as p:
     side, says = js(FACE_OF, '#gusFace'), js(FACE_OF, '#gusSayFace')
     ok(f'in the side bar: his portrait, 256 px, shown at 64 by 64 and filling its frame ({side and {k: side[k] for k in ("nat", "w", "h", "fw", "fh")}})',
        side and side['url'] == gus and side['imgs'] == 1 and side['nat'] == [256, 256] and side['w'] == side['h'] == side['fw'] == side['fh'] == 64)
-    ok(f'in his speech bubble: bigger, 80 by 80 ({says and {k: says[k] for k in ("w", "h", "fw")}})', says and says['url'] == gus and says['imgs'] == 1 and says['w'] == says['h'] == says['fw'] == 80)
+    ok(f'in his speech bubble: bigger, 100 by 100 (0.1.57; 80 before) ({says and {k: says[k] for k in ("w", "h", "fw")}})', says and says['url'] == gus and says['imgs'] == 1 and says['w'] == says['h'] == says['fw'] == 100)
     ok('shrunk smooth, as the map shrinks its buildings, on his dark coral', side['smooth'] and says['smooth'] and side['bg'] == says['bg'] == 'rgb(62, 34, 51)')
     box, wrap, menu = (pg.locator(s).bounding_box() for s in ('#gusSay', '#mapWrap', '#menu'))
     ok(f'the speech bubble sits at the map\'s top left, clear of the side bar ({box})', abs(box['x'] - wrap['x'] - 22) <= 2 and abs(box['y'] - wrap['y'] - 18) <= 2 and box['x'] >= menu['x'] + menu['width'])

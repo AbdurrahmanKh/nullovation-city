@@ -92,6 +92,7 @@ const Gus = (() => {
     $('#gusSayText').textContent = text;
     if (!$('#gusSayFace').firstChild) $('#gusSayFace').append(face());
     box.hidden = false;
+    fitSay(box);
     requestAnimationFrame(() => box.classList.add('show'));
     clearTimeout(sayTimer);
     sayTimer = setTimeout(hush, sayMs);

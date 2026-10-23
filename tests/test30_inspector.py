@@ -154,8 +154,11 @@ with sync_playwright() as p:
        and pg.text_content('#pxSayText') == ev("() => Proxima.report('weekly').line") and pg.text_content('#pxSay .px-name b') == 'Proxima Pace')
     ok('the monthly one waits its turn; the daily one never speaks', ev("() => Proxima._test.queue()") == ['monthly'])
     f = ev(FACE_OF, '#pxSayFace')
-    ok(f'in her speech bubble: her portrait, bigger, 80 by 80, on her dark sky blue ({f and {k: f[k] for k in ("w", "h", "fw")}})',
-       f and f['url'] == px and f['imgs'] == 1 and f['w'] == f['h'] == f['fw'] == 80 and f['smooth'] and f['bg'] == 'rgb(31, 53, 80)')
+    ok(f'in her speech bubble: her portrait, bigger, 100 by 100 (0.1.57; 80 before), on her dark sky blue ({f and {k: f[k] for k in ("w", "h", "fw")}})',
+       f and f['url'] == px and f['imgs'] == 1 and f['w'] == f['h'] == f['fw'] == 100 and f['smooth'] and f['bg'] == 'rgb(31, 53, 80)')
+    wide = ev("""() => { const b = document.querySelector('#pxSay'), t = document.querySelector('#pxSayText').getBoundingClientRect(), f = document.querySelector('#pxSayFace').getBoundingClientRect();
+        return { narrow: b.classList.contains('narrow'), beside: t.left >= f.right, text: Math.round(t.width), w: Math.round(b.getBoundingClientRect().width) }; }""")
+    ok(f'over the open map her words sit beside her face, the bubble at most 400 px wide (0.1.57) ({wide})', not wide['narrow'] and wide['beside'] and wide['w'] <= 400)
     pg.screenshot(path=str(SHOTS / '300-proxima-says.png'), clip={'x': 290, 'y': 0, 'width': 620, 'height': 200})
     ok('she says each report once', ev("() => Proxima._test.state().spoke.weekly") == ev("() => proximaPeriod('weekly').key"))
     # Gus cuts in: she gives way, and says it again after him

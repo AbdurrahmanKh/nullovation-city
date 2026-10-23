@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.57 (2026-10-23)
+
+Clearer leader faces, the first piece of the leader UX: Abdurrahman's task "Think the leader UX" in Nullovation City Hall, designed in Leader UX, Rounds 1 to 4 (D1, D2, and B1's note).
+- The leader card in the project view shows the leader's face at 96 px, from 64.
+- The status card's leader line shows the face at 48 px, from 32.
+- Every speech bubble at the map's top left shows its face at 100 px, from 80: Gus's and Proxima's now, the leaders' when they speak.
+- The side bar, the wheel's middle and the toast keep their sizes. Faces are framed and shrunk smooth as before: no head crop and no second picture (D1).
+- Tests: test26, test30 and test34 check the new sizes, and test34 the framing at 96 and 48 px.
+
 ## 0.1.56 (2026-10-23)
 
 The one-line add over the map, rethought: Abdurrahman's task "Rethink 1 line task add", designed in Rethink the One-Line Add, Round 1, with the leader's toast asked in the chat.
