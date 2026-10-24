@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.67 (2026-10-24)
+
+The city installs as an app, the first of the two Quick Sync builds (Abdurrahman's task "Make the city an installable app" in Nullovation City Hall, Quick Wins). Sync comes after it.
+- The hosted city installs like the Decision Wizard: its own window and icon, from the PC or the phone. It opens offline from a copy it keeps, and online the newest version always loads.
+- Settings, Saving starts with The app: Install the app when the browser offers it, else where the browser's menu has it, and inside the app, that you are in it. Installed from a browser, the app opens that browser's city.
+- The icon is the city hall's glass dome with the tiny city inside, on night violet, drawn from the city hall's art by `art/app/icons.py`.
+- The service worker is built to sw.js beside the page, since a worker only looks after the pages in its own folder; the manifest and the icons are in src/app/. It handles only the page and the app's own files.
+- A local copy of the page, opened from a file, installs nothing and says where the hosted city is.
+- The app's window has the side bar's dark title bar.
+- Tests: test42_app checks the manifest, the icons and sw.js, the local copy, and the city served over http: the worker keeping the page, the newest version loading online, the copy opening offline, Install, and Chrome offering the install in a real profile. test17_source checks sw.js against a fresh build and the archive carrying the app's files.
+
 ## 0.1.66 (2026-10-24)
 
 Wizard it, after Abdurrahman's second test: from Maxthon, the link still opened a tab, since a link clicked in one browser never reaches an app installed from another, and his wizard app is installed from Chrome.

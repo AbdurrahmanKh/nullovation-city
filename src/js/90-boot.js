@@ -44,6 +44,7 @@
     }
     Menu.refresh();                                        // the side bar's tiny buildings, now with their real art
   })();
+  AppInstall.init();                                       // Install, in Settings, Saving (0.1.67)
   DataFile.init();
   Backups.init();
   ClaudeWork.init();

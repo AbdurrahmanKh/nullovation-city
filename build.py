@@ -1,12 +1,16 @@
 """Builds the tool: one self-contained HTML file from src/.
 
-    python build.py            write index.html, the page, at the root of the source folder
-    python build.py <path>     write it somewhere else
+    python build.py            write index.html, the page, at the root of the source folder, and sw.js beside it
+    python build.py <path>     write them somewhere else: the page at <path>, sw.js in its folder
 
 Everything the page holds comes from src/: the modules in src/js, the style, the body, the fonts, the shipped
 buildings, the character portraits, and the two setups in src/setup. Three modules are made here in memory and never
 written to disk: 25-generics.js (the buildings and lots in src/buildings), 26-extra.js (the version and the setup
-scripts) and 27-portraits.js (the portraits in src/portraits)."""
+scripts) and 27-portraits.js (the portraits in src/portraits).
+
+sw.js, the installed app's service worker (0.1.67), is src/app/sw.js with the version in it. It has to sit beside the
+page, since a worker only looks after the pages in its own folder; the manifest and the icons stay in src/app/, which
+GitHub Pages serves as it is."""
 import base64, pathlib, re, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent              # the source folder, wherever it is unpacked
@@ -101,6 +105,7 @@ html = f"""<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nullovation City</title>
 <link rel="icon" href="{favicon}">
+<meta name="theme-color" content="#1A1628">
 <style>
 {fonts}
 {css}
@@ -120,7 +125,11 @@ if bad:
     for m in re.finditer('[\u2014\u2013]', html):
         print('DASH at', m.start(), repr(html[max(0, m.start() - 40):m.start() + 40]))
     sys.exit('em or en dash found; fix before shipping')
+sw = (SRC / 'app' / 'sw.js').read_text(encoding='utf-8').replace('{{VERSION}}', VERSION)
+if any(chr(c) in sw for c in (0x2014, 0x2013)):            # the em and en dash, as the page's check above
+    sys.exit('em or en dash found in src/app/sw.js; fix before shipping')
 
 OUT.parent.mkdir(parents=True, exist_ok=True)
 write(OUT, html)
-print(f'built {OUT} ({len(html) / 1024:.0f} KB)')
+write(OUT.parent / 'sw.js', sw)
+print(f'built {OUT} ({len(html) / 1024:.0f} KB) and sw.js beside it')

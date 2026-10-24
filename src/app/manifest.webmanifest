@@ -1,0 +1,16 @@
+{
+  "name": "Nullovation City",
+  "short_name": "City",
+  "description": "Your projects as a pixel city: every project is a building.",
+  "start_url": "../../",
+  "scope": "../../",
+  "display": "standalone",
+  "launch_handler": { "client_mode": "focus-existing" },
+  "background_color": "#120F1F",
+  "theme_color": "#1A1628",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

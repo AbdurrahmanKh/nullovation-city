@@ -2,16 +2,16 @@
 
 A personal project tracker drawn as an isometric pixel-art city. Every project is one building: click it for a quick status bubble, or step inside for everything else. It is one self-contained HTML file that runs offline in the browser.
 
-Open it online at https://abdurrahmankh.github.io/nullovation-city/, or build it and open `index.html`. Your city stays in the browser you use it in. Export saves a backup file, Import restores one, and the data file keeps a copy on disk.
+Open it online at https://abdurrahmankh.github.io/nullovation-city/, where Settings, Saving installs it as an app that opens offline, or build it and open `index.html`. Your city stays in the browser you use it in. Export saves a backup file, Import restores one, and the data file keeps a copy on disk.
 
 ## Versions
 
-Tool: 0.1.63. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
+Tool: 0.1.67. It's shown in small text under the side bar logo, and set in `src/VERSION`. Changes are in `CHANGELOG.md`.
 
 ## Build and test
 
 1. `pip install -r requirements.txt`. The build needs only Python; the tests drive Google Chrome through Playwright.
-2. `python build.py` writes the page, `index.html`, at the root. The repo keeps it with the source, so it always holds the current page. `python build.py <path>` writes it somewhere else.
+2. `python build.py` writes the page, `index.html`, at the root, and the app's service worker, `sw.js`, beside it. The repo keeps both with the source, so it always holds the current page. `python build.py <path>` writes them somewhere else.
 3. `python tests/run_tests.py` builds, runs every test pass, and prints one line per pass. `python tests/run_tests.py 9 16` runs only those two. Logs go to `tests/data/logs/`, screenshots to `tests/shots/`.
 
 GitHub Pages serves `index.html` straight from the branch: in Settings, Pages, pick Deploy from a branch, `main`, `/ (root)`. `.nojekyll` makes Pages serve the files as they are.
@@ -19,12 +19,14 @@ GitHub Pages serves `index.html` straight from the branch: in Settings, Pages, p
 ## What is where
 
 - `index.html`: the page, built from `src/` by `build.py`.
+- `sw.js`: the installed app's service worker, built from `src/app/sw.js`. It sits beside the page, since a worker only looks after the pages in its own folder.
 - `src/`: everything the page is built from.
   - `VERSION`, `body.html`, `style.css`, and the modules in `js/`, joined in name order.
   - `buildings/`: the shipped buildings and park lots, with `meta.json` and `lots.json`.
   - `portraits/`: the characters' portraits, Gus's and Proxima's, 256 px PNGs.
   - `fonts/`: Pixelify Sans and Readex Pro, with their licenses.
   - `setup/`: the folder links setup for Windows, which the page hands out.
+  - `app/`: the installed app's manifest, icons and the source of its service worker.
 - `build.py`: joins `src/` into one HTML file. It also makes three modules in memory: `25-generics.js` from `src/buildings`, `26-extra.js` from `src/VERSION` and `src/setup`, and `27-portraits.js` from `src/portraits`.
 - `art/`: how the buildings are drawn. Nothing here ships until it is installed into `src/buildings`.
   - `kit/`: the 256 px kit.
@@ -33,6 +35,7 @@ GitHub Pages serves `index.html` straight from the branch: in Settings, Pages, p
   - `props/`: the street props, finished from their PixelLab stills; the tool ships the cropped copies in `src/buildings`.
   - `canon/`: the original 128 px designs. `render.py` draws them into `canon/out/` to compare.
   - `sources/`: stills made elsewhere that a script starts from.
+  - `app/icons.py`: draws the app's icon from the city hall's dome; `--install` writes it into `src/app/`.
   - `slim_gifs.py`: shrinks the shipped GIFs, keeping each only if it decodes pixel-identical.
   - `projects/`: art for the projects in the city. It stays on this machine; git leaves it out.
 - `tests/`: the test passes, `testkit.py` for their shared setup, and `run_tests.py`.

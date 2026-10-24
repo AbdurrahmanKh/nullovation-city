@@ -8,10 +8,10 @@ The file imported above is the knowledge file: features, code, data, art, skills
 
 ## Where things go
 
-- `src/`: everything the page is built from, and nothing else: `VERSION`, `body.html`, `style.css`, the modules in `src/js/`, the shipped buildings and lots in `src/buildings/`, the characters' portraits in `src/portraits/`, the fonts, and the setups for folder links and Claude Code at work in `src/setup/`.
-- `art/`: how the buildings are drawn. `art/kit/` is the 256 px kit, `art/buildings/` has one script per building, `art/lots/` the park lots, `art/props/` the street props, `art/canon/` the original 128 px designs, `art/sources/` the stills a script starts from, and `art/projects/` the art for Abdurrahman's own projects, which git leaves out. Scripts render into `art/out/`.
+- `src/`: everything the page is built from, and nothing else: `VERSION`, `body.html`, `style.css`, the modules in `src/js/`, the shipped buildings and lots in `src/buildings/`, the characters' portraits in `src/portraits/`, the fonts, the setups for folder links and Claude Code at work in `src/setup/`, and the installed app's manifest, icons and service worker source in `src/app/`.
+- `art/`: how the buildings are drawn. `art/kit/` is the 256 px kit, `art/buildings/` has one script per building, `art/lots/` the park lots, `art/props/` the street props, `art/canon/` the original 128 px designs, `art/sources/` the stills a script starts from, and `art/projects/` the art for Abdurrahman's own projects, which git leaves out, and `art/app/` the app's icon. Scripts render into `art/out/`.
 - `tests/`: the passes, `tests/testkit.py` and `tests/run_tests.py`. `tools/`: `tools/pack.py`.
-- The root keeps `build.py`, `index.html` (the page it builds), the docs and the config. New files go in their folder, never the root.
+- The root keeps `build.py`, `index.html` (the page it builds), `sw.js` (the app's service worker, built beside the page since a worker only looks after its own folder), the docs and the config. New files go in their folder, never the root.
 
 ## Setup, once per machine
 
@@ -22,9 +22,9 @@ The file imported above is the knowledge file: features, code, data, art, skills
 
 ## Build and test
 
-- Build: `python3 build.py` writes the page to `index.html` at the root. The repo keeps it and GitHub Pages serves it, so rebuild it with every change; test17 fails when it is older than the source.
+- Build: `python3 build.py` writes the page to `index.html` at the root, and `sw.js` beside it. The repo keeps both and GitHub Pages serves them, so rebuild with every change; test17 fails when either is older than the source.
 - Test: `python3 tests/run_tests.py` builds, then runs every pass in order and prints one line per pass. `python3 tests/run_tests.py 9 16` runs only those. Logs go to `tests/data/logs/`, screenshots to `tests/shots/`.
-- The passes are named by number and topic, from `tests/test02_map.py` to `tests/test41_leaders_alive.py`. `tests/testkit.py` holds their shared paths, draws the files they upload, and sets up the test city every browser pass starts from, so the passes do not depend on what a new city starts with.
+- The passes are named by number and topic, from `tests/test02_map.py` to `tests/test42_app.py`. `tests/testkit.py` holds their shared paths, draws the files they upload, and sets up the test city every browser pass starts from, so the passes do not depend on what a new city starts with.
 
 ## Every change to the tool
 

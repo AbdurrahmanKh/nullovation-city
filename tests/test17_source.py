@@ -81,8 +81,8 @@ with tempfile.TemporaryDirectory() as tmp:
     need = ['nc/CLAUDE.md', 'nc/README.md', 'nc/docs/nullovation-city-knowledge.md', 'nc/src/VERSION', 'nc/build.py',
             'nc/tests/testkit.py', 'nc/tests/run_tests.py', 'nc/tools/pack.py', 'nc/src/buildings/meta.json', 'nc/index.html',
             'nc/.claude/skills/nullovation-city/SKILL.md', 'nc/.claude/skills/nullovation-city-builder/SKILL.md',
-            'nc/src/portraits/gus.png', 'nc/src/portraits/proxima.png']
-    ok('the archive holds the rules, the knowledge, the skills, the tooling and the portraits', all(n in names for n in need))
+            'nc/src/portraits/gus.png', 'nc/src/portraits/proxima.png', 'nc/sw.js', 'nc/src/app/manifest.webmanifest', 'nc/src/app/sw.js']
+    ok('the archive holds the rules, the knowledge, the skills, the tooling, the portraits and the files of the app', all(n in names for n in need))
     left = [n for n in names if re.match(r'nc/(dist|tests/shots|tests/data|\.git|art/out|art/canon/out)/', n) or '__pycache__' in n]
     ok(f'the archive leaves out builds, screenshots, test data and caches ({len(names)} files; {left[:3] or "none left in"})',
        names and all(n.startswith('nc/') for n in names) and not left)
@@ -100,6 +100,9 @@ with tempfile.TemporaryDirectory() as tmp:
     page = ROOT / 'index.html'
     ok('index.html at the root is the page this source builds, so the repo and GitHub Pages never show an old one',
        a.returncode == 0 and page.exists() and page.read_bytes() == (tmp / 'here.html').read_bytes())
+    ok('sw.js at the root is the worker this source builds, written beside the page wherever it goes (0.1.67)',
+       a.returncode == 0 and (ROOT / 'sw.js').exists() and (ROOT / 'sw.js').read_bytes() == (tmp / 'sw.js').read_bytes()
+       and (copy / 'sw.js').read_bytes() == (tmp / 'sw.js').read_bytes())
 
     # applying an archive brings a folder back to it, keeping local test data
     (copy / 'build.py').write_text('changed locally\n', encoding='utf-8')
