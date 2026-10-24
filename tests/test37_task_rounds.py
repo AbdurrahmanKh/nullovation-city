@@ -3,7 +3,8 @@ Task, Rounds 1 to 3. A task carries its own decision wizard round: made through 
 from Claude Code's inbox or by a file dropped on the task's panel, answered in the wizard through the Claude folder's
 wizard-rounds or an answers file dropped back, its answers kept in the task, and a hat on the task's rows, gray until
 answered, teal after. Since 0.1.65 Wizard it opens the wizard through a link carrying the round, which the installed app
-takes, so the wizard opens this round whatever it had open."""
+takes, so the wizard opens this round whatever it had open. Since 0.1.66, with the Claude folder connected, it opens the
+installed wizard app from any browser through a web+dwizard: link naming the round, or a tab, as Settings, Links says."""
 import base64, json, pathlib
 from urllib.parse import unquote
 from playwright.sync_api import sync_playwright
@@ -76,7 +77,8 @@ window.showDirectoryPicker = async () => window.__cdir;
 /* the wizard: Wizard it is a link to it, opened by a click; every one is recorded here rather than followed */
 window.__opened = [];
 const anchorClick = HTMLAnchorElement.prototype.click;
-HTMLAnchorElement.prototype.click = function () { if (this.target === '_blank') { window.__opened.push([this.href, this.target, this.rel]); return; } return anchorClick.call(this); };
+HTMLAnchorElement.prototype.click = function () { const href = this.getAttribute('href') || '';
+  if (this.target === '_blank' || /^web\+dwizard:/i.test(href)) { window.__opened.push([href, this.target, this.rel]); return; } return anchorClick.call(this); };
 """
 
 with sync_playwright() as p:
@@ -124,6 +126,11 @@ with sync_playwright() as p:
         base, _, code = href.partition('#open=')
         return base, json.loads(base64.urlsafe_b64decode(code + '=' * (-len(code) % 4)).decode('utf-8'))
     sent = lambda: unlink(opened()[-1][0])
+    def unref(href):
+        """What a web+dwizard: link names, as the wizard app reads it."""
+        assert href.startswith('web+dwizard:open/'), href
+        code = href[len('web+dwizard:open/'):]
+        return json.loads(base64.urlsafe_b64decode(code + '=' * (-len(code) % 4)).decode('utf-8'))
     hat = lambda sel: ev(f"() => {{ const b = document.querySelector({json.dumps(sel)}); return b ? (b.classList.contains('hat-done') || !!b.querySelector('.hat-done') ? 'done' : 'open') : null; }}")
     quiet()
 
@@ -399,6 +406,8 @@ with sync_playwright() as p:
     # ---------- Settings, Links: the wizard's address ----------
     ev("() => FullView.close()"); pg.wait_for_timeout(200)
     open_settings(pg, 'links')
+    ok('Settings, Links has Wizard app and Browser tab, the app pressed by default', ev("() => [...document.querySelectorAll('#optWizardOpen .set-choice')].map(b => b.textContent + ':' + b.getAttribute('aria-pressed'))") == ['Wizard app:true', 'Browser tab:false']
+       and not ev("() => document.querySelector('[data-set=\"wizardOpen\"]').classList.contains('changed')"))
     ok('Settings, Links has the wizard\'s address, empty for the hosted one', pg.is_visible('#optWizard') and pg.input_value('#optWizard') == '' and pg.get_attribute('#optWizard', 'placeholder') == 'https://abdurrahmankh.github.io/decision-wizard/')
     pg.fill('#optWizard', 'file:///D:/Tools/decision-wizard/index.html'); pg.press('#optWizard', 'Tab'); pg.wait_for_timeout(150)
     ok('an address of your own is kept on this computer, with its dot', ev("() => localStorage.getItem('nullovation-city:wizard')") == 'file:///D:/Tools/decision-wizard/index.html'
@@ -414,6 +423,11 @@ with sync_playwright() as p:
     open_settings(pg, 'links')
     pg.click('#btnTabReset'); pg.wait_for_timeout(150)
     ok('Reset to defaults goes back to the hosted wizard', pg.input_value('#optWizard') == '' and ev("() => wizardUrl()") == 'https://abdurrahmankh.github.io/decision-wizard/')
+    pg.click('#optWizardOpen [data-value="tab"]'); pg.wait_for_timeout(150)
+    ok('Browser tab is kept on this computer, with its dot', ev("() => localStorage.getItem('nullovation-city:wizardOpen')") == 'tab' and ev("() => wizardOpens()") == 'tab'
+       and ev("() => document.querySelector('[data-set=\"wizardOpen\"]').classList.contains('changed')") and pg.get_attribute('#optWizardOpen [data-value="tab"]', 'aria-pressed') == 'true')
+    pg.click('#btnTabReset'); pg.wait_for_timeout(150)
+    ok('and Reset to defaults puts the app back', ev("() => wizardOpens()") == 'app' and ev("() => localStorage.getItem('nullovation-city:wizardOpen')") is None)
     pg.screenshot(path=str(SHOTS / '380-settings-wizard.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 1000})
 
     # ---------- with the Claude folder: wizard-rounds, shared with the wizard (F1) ----------
@@ -439,12 +453,29 @@ with sync_playwright() as p:
     pg.click('#pvRoundWizard'); pg.wait_for_timeout(500)
     f = ev("() => window.__subjson('wizard-rounds/2026-10-22-draw-the-beds-round1.json')")
     ok('Wizard it writes the round\'s file in wizard-rounds when it is not there, with its answers so far', f and f['round']['config']['title'] == TITLE and f['meta']['answered'] == 5)
-    ok(f'and opens the wizard, the first time saying to give it that folder ({said()})', len(opened()) == n0 + 1
-       and said() == 'Opening ' + TITLE + " in your wizard. Give it the Claude folder's wizard-rounds folder once, and your answers come back here as you go.")
+    ok(f'and opens the wizard app through a web+dwizard: link, followed in place rather than in a tab ({opened()[-1][1:]})', len(opened()) == n0 + 1
+       and opened()[-1][0].startswith('web+dwizard:open/') and opened()[-1][1:] == ['', ''])
+    ok(f'the link names the round by its file and title, short enough for the system ({len(opened()[-1][0])} characters)',
+       unref(opened()[-1][0]) == {'file': '2026-10-22-draw-the-beds-round1.json', 'title': TITLE} and len(opened()[-1][0]) < 2000)
+    ok(f'the first time saying to give the app that folder ({said()})',
+       said() == 'Opening ' + TITLE + " in your wizard app. The first time, give the app the Claude folder's wizard-rounds folder, and rounds open there by themselves.")
+    ok('with Open in a tab, which opens the hosted wizard carrying the round', undo() and sent()[0] == 'https://abdurrahmankh.github.io/decision-wizard/'
+       and opened()[-1][1:] == ['_blank', 'noopener'] and sent()[1]['round']['config']['title'] == TITLE and len(opened()) == n0 + 2)
     quiet()
     w0 = ev("() => window.__writes")
     pg.click('#pvRoundWizard'); pg.wait_for_timeout(500)
-    ok(f'the next time it is shorter, and a file already there is left as it is ({said()})', said() == 'Opening ' + TITLE + ' in your wizard.' and ev("() => window.__writes") == w0)
+    ok(f'the next time it is shorter, and a file already there is left as it is ({said()})', said() == 'Opening ' + TITLE + ' in your wizard app.' and ev("() => window.__writes") == w0
+       and opened()[-1][0].startswith('web+dwizard:open/'))
+    quiet()
+    ev("() => localStorage.setItem('nullovation-city:wizardOpen', 'tab')")
+    pg.click('#pvRoundWizard'); pg.wait_for_timeout(500)
+    ok(f'set to a browser tab, it opens a tab carrying the round, as with no Claude folder ({said()})', said() == 'Opening ' + TITLE + ' in your wizard.'
+       and opened()[-1][1:] == ['_blank', 'noopener'] and sent()[1]['file'] == '2026-10-22-draw-the-beds-round1.json')
+    quiet()
+    ev("() => { localStorage.removeItem('nullovation-city:wizardOpen'); localStorage.setItem('nullovation-city:wizard', 'file:///D:/Tools/decision-wizard/index.html'); }")
+    pg.click('#pvRoundWizard'); pg.wait_for_timeout(500)
+    ok('an address of your own opens in a tab there, since the app is the hosted wizard', sent()[0] == 'file:///D:/Tools/decision-wizard/index.html' and opened()[-1][1:] == ['_blank', 'noopener'])
+    ev("() => localStorage.removeItem('nullovation-city:wizard')")
     quiet()
 
     # the wizard saves the answers into the file as you go, and the task takes them

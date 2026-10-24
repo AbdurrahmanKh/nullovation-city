@@ -34,6 +34,8 @@ const Settings = (() => {
     explorer: { tab: 'links', get: () => explorerLinks(), def: () => false, set: v => { try { localStorage.setItem(EXPLORER_KEY, v ? '1' : '0'); } catch (e) { /* this visit only */ } if (FullView.isOpen()) FullView.render(); } },
     /* where Wizard it opens the decision wizard (0.1.55): empty for the hosted one, or your own copy's address */
     wizard: { tab: 'links', get: () => wizardSetting(), def: () => '', set: v => { try { if (v) localStorage.setItem(WIZARD_KEY, v); else localStorage.removeItem(WIZARD_KEY); } catch (e) { /* this visit only */ } } },
+    /* and whether it opens a round in the installed wizard app or in a tab (0.1.66) */
+    wizardOpen: { tab: 'links', get: () => wizardOpens(), def: () => 'app', set: v => { try { if (v === 'tab') localStorage.setItem(WIZARD_OPEN_KEY, 'tab'); else localStorage.removeItem(WIZARD_OPEN_KEY); } catch (e) { /* this visit only */ } } },
   };
   const changedFromDefault = k => !same(DEFS[k].get(), DEFS[k].def());
   function setCity(k, v) {
@@ -104,6 +106,7 @@ const Settings = (() => {
   const DAYS = [[6, 'Sat'], [0, 'Sun'], [1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri']];   // weeks run Saturday to Friday
   const MOTIONS = [{ value: 'full', label: 'Full' }, { value: 'saver', label: 'Saver', hint: 'At most 30 frames a second' }, { value: 'still', label: 'Still', hint: 'Nothing moves' }];
   const SIZES = [{ value: 'screen', label: 'As on screen' }, { value: 'double', label: 'Doubled' }];
+  const WIZARD_OPENS = [{ value: 'app', label: 'Wizard app', hint: 'The installed Decision Wizard app, from any browser' }, { value: 'tab', label: 'Browser tab', hint: 'A tab in this browser' }];
   const times = v => (Math.round(v * 100) / 100) + 'x';
   function slider(id, key) {
     const inp = $('#' + id);
@@ -199,7 +202,7 @@ const Settings = (() => {
     life: () => { DEFS.traffic.set(true); for (const k of LIFE) DEFS[k].set(DEFS[k].def()); },
     look: () => { for (const k of ['light', 'hours', 'bubbles', 'garbage', 'ghosts', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
     projects: () => { DEFS.rest.set([]); DEFS.away.set(''); },
-    links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); },
+    links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); DEFS.wizardOpen.set('app'); },
   };
   function resetTab(id) { if (TAB_RESET[id]) { TAB_RESET[id](); refresh(); } }
 
@@ -238,6 +241,7 @@ const Settings = (() => {
     $('#btnAwayClear').disabled = !c.away;
     $('#optExplorer').checked = explorerLinks();
     if (document.activeElement !== $('#optWizard')) $('#optWizard').value = wizardSetting();
+    choiceRow($('#optWizardOpen'), WIZARD_OPENS, wizardOpens(), v => set('wizardOpen', v));
     /* the dots */
     const tabs = new Set();
     for (const row of $$('#setBody [data-set]')) {

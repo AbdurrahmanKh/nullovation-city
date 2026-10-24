@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.66 (2026-10-24)
+
+Wizard it, after Abdurrahman's second test: from Maxthon, the link still opened a tab, since a link clicked in one browser never reaches an app installed from another, and his wizard app is installed from Chrome.
+- Wizard it opens the installed wizard app through a web+dwizard: link, which the app registers with Windows, so it opens from any browser. The link names the round by its file and title, and the app opens the round's file in the Claude folder's wizard-rounds. It needs wizard 0.11.2.
+- Settings, Links: Wizard it opens rounds in the Wizard app or a Browser tab. The app is the default; it needs the Claude folder, and a tab opens with an address of your own or with no Claude folder.
+- The toast offers Open in a tab, for a computer without the app, or before the app knows the link.
+- Tests: test37_task_rounds checks the link, what it names and its length, the toast and Open in a tab, and the setting with its dot and Reset.
+
 ## 0.1.65 (2026-10-24)
 
 Wizard it, after Abdurrahman's test: it opened the wizard in a browser tab, on whatever round the wizard had open last.

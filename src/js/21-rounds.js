@@ -19,6 +19,10 @@ const BRAINSTORM_LINE = 'Explore this task with a brainstorm: write it with the 
 /* Where Wizard it opens the wizard: the hosted one, unless Settings, Links names your own copy. */
 function wizardSetting() { try { return (localStorage.getItem(WIZARD_KEY) || '').trim(); } catch (e) { return ''; } }
 function wizardUrl() { const v = wizardSetting(); return /^(https?|file):\/\//i.test(v) ? v : WIZARD_HOSTED; }
+/* How Wizard it opens a round (0.1.66): in the installed wizard app, through the web+dwizard: link it registers with
+   the system, so from any browser; or in a browser tab. Kept in this browser; the app is the default. */
+const WIZARD_OPEN_KEY = 'nullovation-city:wizardOpen';
+function wizardOpens() { try { return localStorage.getItem(WIZARD_OPEN_KEY) === 'tab' ? 'tab' : 'app'; } catch (e) { return 'app'; } }
 
 /* What a wizard's file holds: a round ({ config, questions }) or a brainstorm ({ config with kind 'brainstorm', topic,
    and its cards }), its answers ({ meta, answers }, with the round under `round` when the wizard saved them), or

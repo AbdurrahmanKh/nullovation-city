@@ -4,9 +4,10 @@
    - Make a wizard round, in Open in Claude's second row, sends the task's copy asking Claude for a round. From Claude
      Code it comes back through the inbox (add-round, applied at once with Undo), its file already in wizard-rounds;
      from a chat, you drop the file Claude gives you on the task's panel (W1, P2).
-   - Wizard it (or a click on a hat) opens your wizard on the round, in the installed app when there is one (0.1.65),
-     and makes sure the round's file is in wizard-rounds, where the wizard, given that folder once, saves the answers
-     as you go (W3, F1). With no Claude folder, the answers file is dropped back on the task.
+   - Wizard it (or a click on a hat) opens your wizard on the round, in the installed app through a web+dwizard: link
+     (0.1.66) or in a tab carrying the round (0.1.65), and makes sure the round's file is in wizard-rounds, where the
+     wizard, given that folder once, saves the answers as you go (W3, F1). With no Claude folder, the answers file is
+     dropped back on the task.
    - The answers come back into the task as the wizard saves them, with a toast once they stop arriving (X1), and the
      hat turns teal once nothing is open, or once you mark the round answered with the rest skipped (A1, S1). */
 const Rounds = (() => {
@@ -37,34 +38,53 @@ const Rounds = (() => {
   }
 
   /* ---------- the wizard ---------- */
-  /* The wizard's address with the round after #open= (0.1.65): its file's name, the round and its answers so far, as
-     JSON in base64url, so the wizard opens this round, whatever it had open (wizard 0.11.1). */
-  function openLink(r) {
-    const bytes = new TextEncoder().encode(JSON.stringify({ app: 'nullovation-city', kind: 'open-round', file: r.file, round: r.q, answers: r.a || null }));
+  const b64url = text => {
+    const bytes = new TextEncoder().encode(text);
     let bin = '';
     for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-    return wizardUrl().replace(/#.*$/, '') + '#open=' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-  /* Opens the wizard on the round through a link, not window.open: Chrome and Edge take a link into the installed app,
-     which focuses the window it has and opens the round there; without the app it opens in a tab. Called straight
-     from the click. */
-  function openWizard(r) {
-    const a = h('a', { href: openLink(r), target: '_blank', rel: 'noopener', hidden: true });
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+  /* The wizard's address with the round after #open= (0.1.65): its file's name, the round and its answers so far, as
+     JSON in base64url, so the wizard opens this round, whatever it had open (wizard 0.11.1). */
+  const openLink = r => wizardUrl().replace(/#.*$/, '') + '#open=' + b64url(JSON.stringify({ app: 'nullovation-city', kind: 'open-round', file: r.file, round: r.q, answers: r.a || null }));
+  /* The link that opens the installed wizard app from any browser (0.1.66): web+dwizard:, which the app registers with
+     the system (wizard 0.11.2). The system takes only about 2,000 characters, so it names the round, its file and
+     title, and the app opens the file in the Claude folder's wizard-rounds. */
+  const appLink = r => 'web+dwizard:open/' + b64url(JSON.stringify({ file: r.file, title: r.title }));
+  /* Follows a link as a click on it does, straight from the click, so the browser lets it: a tab for the address, the
+     system for web+dwizard:. A link, not window.open, since Chrome and Edge take a link into an installed app clicked
+     in the same browser. */
+  function follow(href, tab) {
+    const a = h('a', { href, target: tab ? '_blank' : null, rel: tab ? 'noopener' : null, hidden: true });
     document.body.append(a); a.click(); a.remove();
   }
+  const openWizard = r => follow(openLink(r), true);
   /* Wizard it: the wizard opens on the round, and the round's file is in wizard-rounds, where the wizard saves its
-     answers (written again when it is gone). With no Claude folder, its answers come back as a file dropped here. */
+     answers (written again when it is gone). In the wizard app when Settings, Links says so and the Claude folder is
+     connected, the file in place first for the app to read; else in a tab, carrying the round. With no Claude folder,
+     its answers come back as a file dropped here. */
   function wizard(p, t) {
     const r = t && t.round;
     if (!r) return;
-    openWizard(r);
     const dir = typeof ClaudeWork !== 'undefined' ? ClaudeWork.folder() : null, opening = 'Opening ' + r.title + ' in your wizard.';
+    const app = !!dir && wizardOpens() === 'app' && !wizardSetting();
+    if (!app) openWizard(r);
     if (!dir) { toast(opening + ' Once it is answered, save its file there and drop it on this task.'); return; }
     (async () => {
       try { if (!(await hasFile(dir, r.file))) { await writeFile(dir, r); stamps.delete(t.id); } }
-      catch (e) { toast(opening + ' Its file could not be written in the Claude folder, so save its file in the wizard once it is answered, and drop it on this task.', 'error'); return; }
+      catch (e) {
+        if (app) openWizard(r);
+        toast(opening + ' Its file could not be written in the Claude folder, so save its file in the wizard once it is answered, and drop it on this task.', 'error');
+        return;
+      }
       let hinted = false;
       try { hinted = localStorage.getItem(HINT_KEY) === '1'; localStorage.setItem(HINT_KEY, '1'); } catch (e) { /* say it each time */ }
+      if (app) {
+        follow(appLink(r), false);
+        toast('Opening ' + r.title + ' in your wizard app.' + (hinted ? '' : ' The first time, give the app the Claude folder\'s ' + ROUNDS_DIR + ' folder, and rounds open there by themselves.'),
+          '', { label: 'Open in a tab', run: () => openWizard(r) });
+        return;
+      }
       toast(hinted ? opening : opening + ' Give it the Claude folder\'s ' + ROUNDS_DIR + ' folder once, and your answers come back here as you go.');
     })();
   }
@@ -257,6 +277,6 @@ const Rounds = (() => {
   /* The round's file for Cowork, when its full path is known. */
   const files = t => (t && t.round && roundPath(t.round) ? [roundPath(t.round)] : []);
 
-  return { wizard, openWizard, openLink, take, dropFile, poll, fromChange, mark, remove, hatButton, chip, card, dropLine, files, fileText, writeFile, readFile,
+  return { wizard, openWizard, openLink, appLink, take, dropFile, poll, fromChange, mark, remove, hatButton, chip, card, dropLine, files, fileText, writeFile, readFile,
     foldAll: () => unfolded.clear(), ANNOUNCE_MS };
 })();
