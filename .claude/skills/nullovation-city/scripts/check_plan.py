@@ -176,6 +176,8 @@ def check_change(data, errors, warnings):
         errors.append('the top level needs "app": "nullovation-city", "kind": "change", "version": 1')
     if not isinstance(data.get('project'), str) or not data['project'].strip():
         errors.append('a change needs "project": the project name, exactly as in the city summary')
+    if 'task' in data and (not isinstance(data['task'], str) or not data['task'].strip()):
+        errors.append('"task", when given, is the title of the task this update reports on, exactly as in the summary')
     changes = data.get('changes')
     if not isinstance(changes, list) or not changes:
         errors.append('a change needs a non-empty "changes" list')

@@ -8,6 +8,9 @@
   What applies at once is applied, what asks first waits in inbox/pending/, and the file itself moves to inbox/done/
   (or inbox/rejected/, when the city cannot read it or has no project by that name), so nothing applies twice.
   One tab takes new files: the one that writes the data file.
+  Since 0.1.68 (Claude's News on the Status Card, Round 1) an update is one report, said by its building's leader
+  under the finish of the task it reports on (News.report), and each change that asks first has its own line, applied
+  or dismissed on its own.
 */
 const ClaudeInbox = (() => {
   const AT_ONCE = new Set(['add-tasks', 'add-note', 'add-link', 'add-round']);
@@ -50,7 +53,7 @@ const ClaudeInbox = (() => {
       const next = [], pend = await sub(dir, 'inbox/pending');
       for await (const [name, fh] of pend.entries()) {
         if (fh.kind !== 'file' || !/\.json$/i.test(name)) continue;
-        try { const d = JSON.parse(await (await fh.getFile()).text()); if (d && Array.isArray(d.changes)) next.push({ name, project: str(d.project, 120), summary: str(d.summary, 300), changes: d.changes, at: d.received || 0 }); } catch (e) { /* half written: next time */ }
+        try { const d = JSON.parse(await (await fh.getFile()).text()); if (d && Array.isArray(d.changes)) next.push({ name, project: str(d.project, 120), summary: str(d.summary, 300), changes: d.changes, at: d.received || 0, logged: !!d.logged }); } catch (e) { /* half written: next time */ }
       }
       next.sort((a, b) => a.at - b.at);
       const sig = next.map(x => x.name).join('|');
@@ -75,20 +78,11 @@ const ClaudeInbox = (() => {
     if (now.length) undo = applyNow(p, now, str(data.summary, 300));
     if (later.length) await put(await sub(dir, 'inbox/pending'), name, JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: p.name, summary: str(data.summary, 300), changes: later, received: Date.now() }, null, 1));
     await move(inbox, name, await sub(dir, 'inbox/done'), text);
-    if (undo && undo.what) tell(p, undo);
-    /* what asks first is its leader's news too, once the pending file is read (News.claude) */
-  }
-  /* Its leader says what Claude added, in place of the toast (Leader UX, T1, 0.1.59): the tasks, notes and links as one
-     item, each wizard round as one of its own, each with its own Undo. */
-  function tell(p, u) {
-    const none = { todos: [], ms: [], notes: [], links: [], rounds: [] };
-    const bits = [u.todos.length && plural(u.todos.length, 'task', 'tasks'), u.notes.length && (u.notes.length === 1 ? 'a note' : plural(u.notes.length, 'note', 'notes')),
-      u.links.length && plural(u.links.length, 'link', 'links')].filter(Boolean);
-    if (bits.length) News.add(p, 'added', { what: bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] }, { undo: { ...none, todos: u.todos, ms: u.ms, notes: u.notes, links: u.links } });
-    for (const r of u.rounds) {
-      const t = p.todos.find(x => x.id === r.id);
-      if (t && t.round) News.add(p, 'round', { task: t.text, round: t.round.title }, { ref: { tid: t.id }, undo: { ...none, rounds: [r] } });
-    }
+    /* Its leader says it, in place of the toast (Leader UX, T1): one report, under the finish of the task it reports on
+       (A1, 0.1.68). The task is the one the update names, else the one a tick, a description or a round is for. */
+    const named = c => (c && (c.do === 'done' || c.do === 'edit-description' || c.do === 'add-round') ? str(c.task, 500) : '');
+    News.report(p, { task: str(data.task, 500) || data.changes.map(named).find(Boolean) || '', named: !!str(data.task, 500),
+      summary: str(data.summary, 300), undo: undo && undo.what ? undo : null, entry: later.length ? name : '' });
   }
   async function prune(inbox) {
     const cutoff = Date.now() - KEEP_DAYS * 86400e3;
@@ -157,57 +151,87 @@ const ClaudeInbox = (() => {
   }
 
   /* ---------- what asks first ---------- */
+  /* What a change would do: ok when it can, with the task it names (an edit may name a done task, never one in the
+     archive) or the plan read. */
   function readable(p, c) {
-    if (c.do === 'done') { const t = taskNamed(p, c.task); return { text: 'Tick off: ' + str(c.task, 200) + (t && t.repeat ? ', on to its next date' : ''), ok: !!t, why: t ? '' : 'not open in this project' }; }
-    if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); return { text: 'New description for ' + str(c.task, 200) + ': ' + str(c.description, 8000).replace(/\s+/g, ' ').slice(0, 140), ok: !!t, why: t ? '' : 'no task by that name' }; }
+    if (c.do === 'done') { const t = taskNamed(p, c.task); return { ok: !!t, t, why: t ? '' : 'not open in this project' }; }
+    if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); return { ok: !!t, t, why: t ? '' : 'no task by that name' }; }
     if (c.do === 'replace-plan') {
-      try { const plan = readPlan(c.plan); return { text: 'Replace the plan: ' + plural(plan.milestones.length, 'milestone', 'milestones') + ', ' + plural(plan.milestones.reduce((n, m) => n + m.tasks.length, 0), 'task', 'tasks') + '. The About, milestones and tasks are replaced.', ok: true, plan }; }
-      catch (e) { return { text: 'Replace the plan', ok: false, why: e.message }; }
+      try { return { ok: true, plan: readPlan(c.plan) }; }
+      catch (e) { return { ok: false, why: e.message }; }
     }
-    return { text: c.do, ok: false, why: 'unknown' };
+    return { ok: false, why: 'unknown' };
   }
-  async function apply(entry) {
+  /* The changes still waiting in an entry. Since 0.1.68 each has its own line, applied or dismissed on its own, and
+     marked so in its pending file until the last one goes; then the file moves to inbox/done. */
+  const openIdx = entry => entry.changes.map((c, i) => (c && !c._settled ? i : -1)).filter(i => i >= 0);
+  /* Applies one change (i), or every one still waiting. A tick from its own line is its leader's toast, as Tick it's. */
+  async function apply(entry, i = null) {
     const p = projectNamed(entry.project), dir = ClaudeWork.folder();
     if (!p || !dir) return;
-    let n = 0;
-    for (const c of entry.changes) {
-      const r = readable(p, c);
+    const which = openIdx(entry).filter(k => i == null || k === i);
+    let n = 0, one = null;
+    for (const k of which) {
+      const c = entry.changes[k], r = readable(p, c);
+      c._settled = r.ok ? 'applied' : 'skipped';
       if (!r.ok) continue;
-      if (c.do === 'done') tickTask(p, taskNamed(p, c.task));            // a repeat moves on to its next date
-      else if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); t.description = str(c.description, 8000); logActivity(p, 'Claude updated the description of ' + t.text); }
+      if (c.do === 'done') { if (i == null) tickTask(p, r.t); else ClaudeWork.tick(p, r.t); }   // a repeat moves on to its next date
+      else if (c.do === 'edit-description') { r.t.description = str(c.description, 8000); logActivity(p, 'Claude updated the description of ' + r.t.text); }
       else if (c.do === 'replace-plan') applyPlan(p, r.plan);
-      n++;
+      n++; one = { c, r };
     }
-    if (n) { if (entry.summary) logActivity(p, 'Claude: ' + entry.summary); window.changed(p); if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render(); }
-    await settle(dir, entry, 'applied');
-    toast(n ? 'Applied what Claude asked in ' + p.name + '.' : 'Nothing in it could be applied, so it was put away.');
+    if (n) {
+      if (entry.summary && !entry.logged) { logActivity(p, 'Claude: ' + entry.summary); entry.logged = true; }
+      window.changed(p);
+      if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
+    }
+    await keep(dir, entry);
+    if (i == null) toast(n ? 'Applied what Claude asked in ' + p.name + '.' : 'Nothing in it could be applied, so it was put away.');
+    else if (one && one.c.do === 'edit-description') toast('Gave ' + one.r.t.text + ' its new description.');
+    else if (one && one.c.do === 'replace-plan') toast('Replaced the plan of ' + p.name + '.');
   }
-  async function dismiss(entry) {
+  async function dismiss(entry, i = null) {
     const dir = ClaudeWork.folder();
     if (!dir) return;
-    await settle(dir, entry, 'dismissed');
-    toast('Dismissed what Claude asked.');
+    const which = openIdx(entry).filter(k => i == null || k === i);
+    for (const k of which) entry.changes[k]._settled = 'dismissed';
+    await keep(dir, entry);
+    const c = i != null && which.length ? entry.changes[which[0]] : null, task = c ? lineTitle(str(c.task, 200)) : '';
+    toast(!c ? 'Dismissed what Claude asked.' : c.do === 'done' ? 'Left ' + task + ' open.' : c.do === 'edit-description' ? 'Kept the description of ' + task + '.'
+      : c.do === 'replace-plan' ? 'Kept the plan of ' + entry.project + '.' : 'Dismissed what Claude asked.');
+  }
+  const entryFile = (entry, extra = {}) => JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: entry.project, summary: entry.summary,
+    changes: entry.changes, received: entry.at, logged: !!entry.logged, ...extra }, null, 1);
+  /* What is left waits in its pending file, marked; with nothing left the file moves to inbox/done. */
+  async function keep(dir, entry) {
+    if (!openIdx(entry).length) { await settle(dir, entry, 'settled'); return; }
+    try { await put(await sub(dir, 'inbox/pending'), entry.name, entryFile(entry)); } catch (e) { /* settled by another tab */ }
+    pendingSig = '';
+    ClaudeWork.redraw();
   }
   async function settle(dir, entry, how) {
     try {
       const pend = await sub(dir, 'inbox/pending');
-      await move(pend, entry.name, await sub(dir, 'inbox/done'), JSON.stringify({ ...entry, [how]: Date.now() }, null, 1));
+      await move(pend, entry.name, await sub(dir, 'inbox/done'), entryFile(entry, { [how]: Date.now() }));
     } catch (e) { /* already settled by another tab */ }
     pending = pending.filter(x => x.name !== entry.name);
     pendingSig = pending.map(x => x.name).join('|');
     ClaudeWork.redraw();
   }
 
-  /* What waits for this building: its leader says it in its status card and its bubble (Leader UX, 0.1.59), with each
-     change listed under the line, then Apply and Dismiss. */
+  /* What waits for this building: its leader says it in its status card and its bubble (Leader UX, 0.1.59). */
   const forProject = p => pending.filter(x => keyOf(x.project) === keyOf(p.name));
-  /* The change Claude asks about, for the leader's line: its summary, else the first change and how many more. */
+  /* A change in a few words, its task's title cut short as a leader's line cuts it. */
+  const changeWords = c => (c.do === 'done' ? 'tick off ' + lineTitle(str(c.task, 200)) : c.do === 'edit-description' ? 'a new description for ' + lineTitle(str(c.task, 200))
+    : c.do === 'replace-plan' ? 'a new plan' : 'a change');
+  /* The change Claude asks about, for the leader's line (0.1.68): the change itself, or how many wait. Claude's summary
+     is its own words, said on a line of its own (C2), never as the change. */
   function gist(p, entry) {
-    if (entry.summary) return entry.summary.replace(/[.!?]+$/, '');
-    const c = entry.changes[0] || {}, more = entry.changes.length - 1;
-    const one = c.do === 'done' ? 'tick off ' + str(c.task, 200) : c.do === 'edit-description' ? 'a new description for ' + str(c.task, 200) : c.do === 'replace-plan' ? 'a new plan' : 'a change';
-    return one + (more > 0 ? ' and ' + plural(more, 'more change', 'more changes') : '');
+    const open = openIdx(entry), c = open.length === 1 ? entry.changes[open[0]] : null;
+    if (!c) return plural(open.length || entry.changes.length, 'change', 'changes');
+    const t = c.do === 'done' ? taskNamed(p, c.task) : null;
+    return changeWords(c) + (t && t.repeat ? ', on to its next date' : '');
   }
-  const list = (p, entry) => h('ul', { class: 'b-claude-list' }, entry.changes.map(c => { const r = readable(p, c); return h('li', { class: r.ok ? null : 'off', dir: 'auto', title: r.why || null }, r.text, r.ok ? null : ' (' + r.why + ')'); }));
-  return { poll, gist, list, apply, dismiss, undo: undoNow, count: p => forProject(p).length, total: () => pending.length, pending: () => pending, AT_ONCE, ASK };
+  return { poll, gist, readable, openIdx, taskNamed, planSize: plan => plural(plan.milestones.length, 'milestone', 'milestones') + ' and ' + plural(plan.milestones.reduce((n, m) => n + m.tasks.length, 0), 'task', 'tasks'),
+    apply, dismiss, undo: undoNow, count: p => forProject(p).length, total: () => pending.length, pending: () => pending, AT_ONCE, ASK };
 })();

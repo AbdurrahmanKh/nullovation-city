@@ -241,13 +241,13 @@ const Confirm = (() => {
   return { ask, isOpen: () => !!back, cancel: () => done(false) };
 })();
 
-/* A plain centered panel: used by the week recap. */
+/* A plain centered panel: used by the week recap, and since 0.1.68 to read what Claude sent (cls 'cr', a smaller one). */
 const Panel = (() => {
   let back = null, prevFocus = null;
-  function open(titleText, bodyNodes) {
+  function open(titleText, bodyNodes, cls = '') {
     close();
     prevFocus = document.activeElement;
-    const m = h('div', { class: 'modal panel', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'pnTitle', tabindex: '-1' },
+    const m = h('div', { class: 'modal panel' + (cls ? ' ' + cls : ''), role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'pnTitle', tabindex: '-1' },
       h('header', { class: 'fv-head' },
         h('h2', { id: 'pnTitle', class: 'fv-title' }, titleText),
         h('div', { class: 'fv-actions' }, h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close', html: iconSvg('close', 18), onclick: close }))),

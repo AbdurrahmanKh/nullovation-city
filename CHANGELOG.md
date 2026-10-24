@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.68 (2026-10-24)
+
+Claude's news as one report, from Claude's News on the Status Card, Round 1 (Abdurrahman's task "Improve how leaders deliver Claude's news and asks on the status card" in Nullovation City Hall, UX Mastery): A1, A2, B3 and C2. B1, B2 and C1 came back as questions and are not built.
+- An update Claude sends is one report, said by the building's leader under the finish of the task it reports on: the finish with its time, Claude's summary in its own words, then a short line for each part with its own buttons. It is one item in News and in the leader's bubble, not three.
+- An update from a session still at work waits for that session's finish, so the report opens once, whole. One with no finish to sit under is said on its own, as before.
+- What Claude added has Read, a small panel with the notes, tasks and links whole, beside Undo.
+- Each change that asks first has its own line and buttons: Tick it and Dismiss for a tick, Read, Apply and Dismiss for a description or a plan. Read shows a new description whole, over the one it would replace. A change file waits until its last change is applied or dismissed.
+- Tick it shows when Claude asks to tick the task off, and on a finish with no update; a finish whose update does not ask has none, since work is left.
+- What asks first names the change itself, never Claude's summary. Every report has one time. What Claude added is named, not only counted. Cut titles end with an ellipsis. The start of a reply shows without its markdown, on one line.
+- The nullovation-city skill names the task an update reports on (`task`), and check_plan.py checks it.
+- Tests: test43_claude_report checks the report held until its finish, its lines and buttons, Read, Undo, Apply, Tick it, a finish alone, an update alone, and the checker. test24_claude_work and test37_task_rounds follow the new lines.
+
 ## 0.1.67 (2026-10-24)
 
 The city installs as an app, the first of the two Quick Sync builds (Abdurrahman's task "Make the city an installable app" in Nullovation City Hall, Quick Wins). Sync comes after it.

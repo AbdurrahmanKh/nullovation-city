@@ -438,6 +438,17 @@ kbd {
 .confirm-body { margin: 12px 0 20px; font-size: 15px; color: var(--ink-soft); }
 .modal.panel { width: min(700px, 100%); }
 .modal.panel.wide { width: min(980px, 100%); }
+/* what Claude sent, read whole (0.1.68): a small panel */
+.modal.panel.cr { width: min(560px, 100%); }
+.modal.panel.cr .fv-title { font-size: 24px; }
+.cr-body { display: grid; gap: 16px; margin-top: 14px; }
+.cr-sec { display: grid; gap: 6px; min-width: 0; }
+.cr-h { margin: 0; font: 400 15px/1.25 var(--f-pixel); color: var(--ink); overflow-wrap: anywhere; }
+.cr-title { justify-self: start; font-size: 14px; font-weight: 600; text-align: start; overflow-wrap: anywhere; }
+.cr-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }
+.cr-text.was { color: var(--muted); }
+.cr-url { margin: 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.cr-list { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }
 .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; margin-top: 14px; align-items: stretch; }
 .pick-card { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; margin: 2px; padding: 10px 8px 9px; background: var(--paper); border: 0; box-shadow: var(--px-edge); cursor: pointer; }
 .pick-card:hover { background: #FBF0F6; }
@@ -863,15 +874,19 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 @keyframes claude-pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .b-claude.working .b-claude-dot { animation: none; } }
 .b-claude-when { font-weight: 400; opacity: .8; }
-.b-claude-said { margin: 2px 0 0 18px; font-size: 12px; line-height: 1.4; opacity: .85; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* Claude's own words (0.1.68, C2): one line, marked with its spark, cut short with the whole in its tooltip */
+.b-claude-said { display: flex; align-items: center; gap: 5px; min-width: 0; margin: 2px 0 0 18px; font-size: 12px; line-height: 1.4; color: var(--ink-soft); }
+.b-claude-said .ic { flex: none; }
+.b-claude-said > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: italic; }
 .b-claude-acts { margin: 6px 0 0 18px; display: flex; align-items: center; gap: 8px; }
 .b-claude-fin { flex: 1; min-width: 0; font-size: 12px; line-height: 1.4; color: #8EEBC6; overflow-wrap: anywhere; }
 .b-claude-tick { background: #123F33; color: #8EEBC6; }
 .b-claude-asks .b-claude-line { color: #F5B39A; }
-.b-claude-list { margin: 4px 0 0 18px; padding-left: 16px; font-size: 12px; line-height: 1.45; color: var(--ink-soft, #CFC8E4); }
-.b-claude-list li { overflow-wrap: anywhere; }
-.b-claude-list li.off { opacity: .6; text-decoration: line-through; }
 .b-claude-apply { background: #5C2416; color: #FFE1D4; }
+/* a report's parts (0.1.68, A2): a short line each, two lines at most, with its own buttons */
+.ld-part { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; margin: 5px 0 0 10px; font-size: 12.5px; line-height: 1.4; color: var(--ink-soft); }
+.ld-part-text { flex: 1 1 140px; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.ld-part-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-left: auto; }
 .claude-lost { margin: 0 0 4px; padding-left: 18px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .b-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .b-actions .btn { margin: 0; }
@@ -1406,7 +1421,6 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-line .ld-says { margin: 6px 0 0; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
 .ld-line .b-claude-when { font-size: 12px; color: var(--muted); }
 .ld-line .b-claude-said { margin: 3px 0 0 10px; }
-.ld-line .b-claude-list { margin: 4px 0 0 10px; }
 .ld-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0 10px; }
 .ld-line.b-claude.working .ld-says { box-shadow: inset 2px 0 0 #F5B39A; }
 .ld-card.has-news { align-items: flex-start; }
@@ -1448,7 +1462,8 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-say-thumb { flex: none; display: grid; place-items: end center; width: 24px; height: 22px; }
 .ld-say-thumb canvas.thumb { width: 24px; height: auto; max-height: 22px; object-fit: contain; image-rendering: auto; }
 .ld-say-more:empty { display: none; }
-.ld-say-more .b-claude-list { margin: 0 0 0 2px; }
+.ld-say-more { display: grid; gap: 2px; min-width: 0; }
+.ld-say-more .b-claude-said, .ld-say-more .ld-part { margin-left: 2px; }
 .ld-say-acts { flex-wrap: wrap; align-items: center; }
 .ld-say-count { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ld-say-acts .ld-go { padding: 4px 10px 3px; }
@@ -1608,7 +1623,7 @@ li.task .round-hat { margin-inline-start: 2px; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.67</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.68</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -3997,7 +4012,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.67";
+const APP_VERSION = "0.1.68";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -8729,13 +8744,13 @@ const Confirm = (() => {
   return { ask, isOpen: () => !!back, cancel: () => done(false) };
 })();
 
-/* A plain centered panel: used by the week recap. */
+/* A plain centered panel: used by the week recap, and since 0.1.68 to read what Claude sent (cls 'cr', a smaller one). */
 const Panel = (() => {
   let back = null, prevFocus = null;
-  function open(titleText, bodyNodes) {
+  function open(titleText, bodyNodes, cls = '') {
     close();
     prevFocus = document.activeElement;
-    const m = h('div', { class: 'modal panel', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'pnTitle', tabindex: '-1' },
+    const m = h('div', { class: 'modal panel' + (cls ? ' ' + cls : ''), role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'pnTitle', tabindex: '-1' },
       h('header', { class: 'fv-head' },
         h('h2', { id: 'pnTitle', class: 'fv-title' }, titleText),
         h('div', { class: 'fv-actions' }, h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close', html: iconSvg('close', 18), onclick: close }))),
@@ -12065,9 +12080,10 @@ const ClaudeWork = (() => {
     busy = false;
     const writer = typeof DataFile === 'undefined' || DataFile.isWriter();
     if (canWrite && !summaryAt) writeSummary();
+    let placed = place();                              // the sessions as they are now, so an update finds the session it came from (0.1.68)
     if (canWrite && typeof ClaudeInbox !== 'undefined' && await ClaudeInbox.poll(dir, writer)) moved = true;
     if (state === 'on' && typeof Rounds !== 'undefined') await Rounds.poll(dir, writer);   // a round's answers, as the wizard saves them (0.1.55)
-    const placed = place();
+    placed = place() || placed;
     if (writer) logFinishes();
     if (placed || moved) redraw();
     else if (shown()) render();                        // keeps "last heard" true while Settings shows it
@@ -12221,7 +12237,8 @@ const ClaudeWork = (() => {
 
   /* What its leader says of Claude's sessions on the building, in the status card (Leader UX, B3, 0.1.59), for as long
      as the card showed them before: one line a session, the most pressing first, at most four. A finish offers Tick it
-     for the open task a city copy started from, once per task, with the start of Claude's reply. */
+     for the open task a city copy started from, once per task, with the start of Claude's reply; when an update reports
+     on the finish, News says it as one report, with Tick it only if Claude asks to tick the task off (0.1.68, B3). */
   function voice(p) {
     const st = statusOf(p, true);
     if (!st) return [];
@@ -12364,6 +12381,9 @@ const ClaudeWork = (() => {
   What applies at once is applied, what asks first waits in inbox/pending/, and the file itself moves to inbox/done/
   (or inbox/rejected/, when the city cannot read it or has no project by that name), so nothing applies twice.
   One tab takes new files: the one that writes the data file.
+  Since 0.1.68 (Claude's News on the Status Card, Round 1) an update is one report, said by its building's leader
+  under the finish of the task it reports on (News.report), and each change that asks first has its own line, applied
+  or dismissed on its own.
 */
 const ClaudeInbox = (() => {
   const AT_ONCE = new Set(['add-tasks', 'add-note', 'add-link', 'add-round']);
@@ -12406,7 +12426,7 @@ const ClaudeInbox = (() => {
       const next = [], pend = await sub(dir, 'inbox/pending');
       for await (const [name, fh] of pend.entries()) {
         if (fh.kind !== 'file' || !/\.json$/i.test(name)) continue;
-        try { const d = JSON.parse(await (await fh.getFile()).text()); if (d && Array.isArray(d.changes)) next.push({ name, project: str(d.project, 120), summary: str(d.summary, 300), changes: d.changes, at: d.received || 0 }); } catch (e) { /* half written: next time */ }
+        try { const d = JSON.parse(await (await fh.getFile()).text()); if (d && Array.isArray(d.changes)) next.push({ name, project: str(d.project, 120), summary: str(d.summary, 300), changes: d.changes, at: d.received || 0, logged: !!d.logged }); } catch (e) { /* half written: next time */ }
       }
       next.sort((a, b) => a.at - b.at);
       const sig = next.map(x => x.name).join('|');
@@ -12431,20 +12451,11 @@ const ClaudeInbox = (() => {
     if (now.length) undo = applyNow(p, now, str(data.summary, 300));
     if (later.length) await put(await sub(dir, 'inbox/pending'), name, JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: p.name, summary: str(data.summary, 300), changes: later, received: Date.now() }, null, 1));
     await move(inbox, name, await sub(dir, 'inbox/done'), text);
-    if (undo && undo.what) tell(p, undo);
-    /* what asks first is its leader's news too, once the pending file is read (News.claude) */
-  }
-  /* Its leader says what Claude added, in place of the toast (Leader UX, T1, 0.1.59): the tasks, notes and links as one
-     item, each wizard round as one of its own, each with its own Undo. */
-  function tell(p, u) {
-    const none = { todos: [], ms: [], notes: [], links: [], rounds: [] };
-    const bits = [u.todos.length && plural(u.todos.length, 'task', 'tasks'), u.notes.length && (u.notes.length === 1 ? 'a note' : plural(u.notes.length, 'note', 'notes')),
-      u.links.length && plural(u.links.length, 'link', 'links')].filter(Boolean);
-    if (bits.length) News.add(p, 'added', { what: bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] }, { undo: { ...none, todos: u.todos, ms: u.ms, notes: u.notes, links: u.links } });
-    for (const r of u.rounds) {
-      const t = p.todos.find(x => x.id === r.id);
-      if (t && t.round) News.add(p, 'round', { task: t.text, round: t.round.title }, { ref: { tid: t.id }, undo: { ...none, rounds: [r] } });
-    }
+    /* Its leader says it, in place of the toast (Leader UX, T1): one report, under the finish of the task it reports on
+       (A1, 0.1.68). The task is the one the update names, else the one a tick, a description or a round is for. */
+    const named = c => (c && (c.do === 'done' || c.do === 'edit-description' || c.do === 'add-round') ? str(c.task, 500) : '');
+    News.report(p, { task: str(data.task, 500) || data.changes.map(named).find(Boolean) || '', named: !!str(data.task, 500),
+      summary: str(data.summary, 300), undo: undo && undo.what ? undo : null, entry: later.length ? name : '' });
   }
   async function prune(inbox) {
     const cutoff = Date.now() - KEEP_DAYS * 86400e3;
@@ -12513,59 +12524,89 @@ const ClaudeInbox = (() => {
   }
 
   /* ---------- what asks first ---------- */
+  /* What a change would do: ok when it can, with the task it names (an edit may name a done task, never one in the
+     archive) or the plan read. */
   function readable(p, c) {
-    if (c.do === 'done') { const t = taskNamed(p, c.task); return { text: 'Tick off: ' + str(c.task, 200) + (t && t.repeat ? ', on to its next date' : ''), ok: !!t, why: t ? '' : 'not open in this project' }; }
-    if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); return { text: 'New description for ' + str(c.task, 200) + ': ' + str(c.description, 8000).replace(/\s+/g, ' ').slice(0, 140), ok: !!t, why: t ? '' : 'no task by that name' }; }
+    if (c.do === 'done') { const t = taskNamed(p, c.task); return { ok: !!t, t, why: t ? '' : 'not open in this project' }; }
+    if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); return { ok: !!t, t, why: t ? '' : 'no task by that name' }; }
     if (c.do === 'replace-plan') {
-      try { const plan = readPlan(c.plan); return { text: 'Replace the plan: ' + plural(plan.milestones.length, 'milestone', 'milestones') + ', ' + plural(plan.milestones.reduce((n, m) => n + m.tasks.length, 0), 'task', 'tasks') + '. The About, milestones and tasks are replaced.', ok: true, plan }; }
-      catch (e) { return { text: 'Replace the plan', ok: false, why: e.message }; }
+      try { return { ok: true, plan: readPlan(c.plan) }; }
+      catch (e) { return { ok: false, why: e.message }; }
     }
-    return { text: c.do, ok: false, why: 'unknown' };
+    return { ok: false, why: 'unknown' };
   }
-  async function apply(entry) {
+  /* The changes still waiting in an entry. Since 0.1.68 each has its own line, applied or dismissed on its own, and
+     marked so in its pending file until the last one goes; then the file moves to inbox/done. */
+  const openIdx = entry => entry.changes.map((c, i) => (c && !c._settled ? i : -1)).filter(i => i >= 0);
+  /* Applies one change (i), or every one still waiting. A tick from its own line is its leader's toast, as Tick it's. */
+  async function apply(entry, i = null) {
     const p = projectNamed(entry.project), dir = ClaudeWork.folder();
     if (!p || !dir) return;
-    let n = 0;
-    for (const c of entry.changes) {
-      const r = readable(p, c);
+    const which = openIdx(entry).filter(k => i == null || k === i);
+    let n = 0, one = null;
+    for (const k of which) {
+      const c = entry.changes[k], r = readable(p, c);
+      c._settled = r.ok ? 'applied' : 'skipped';
       if (!r.ok) continue;
-      if (c.do === 'done') tickTask(p, taskNamed(p, c.task));            // a repeat moves on to its next date
-      else if (c.do === 'edit-description') { const t = taskNamed(p, c.task, false); t.description = str(c.description, 8000); logActivity(p, 'Claude updated the description of ' + t.text); }
+      if (c.do === 'done') { if (i == null) tickTask(p, r.t); else ClaudeWork.tick(p, r.t); }   // a repeat moves on to its next date
+      else if (c.do === 'edit-description') { r.t.description = str(c.description, 8000); logActivity(p, 'Claude updated the description of ' + r.t.text); }
       else if (c.do === 'replace-plan') applyPlan(p, r.plan);
-      n++;
+      n++; one = { c, r };
     }
-    if (n) { if (entry.summary) logActivity(p, 'Claude: ' + entry.summary); window.changed(p); if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render(); }
-    await settle(dir, entry, 'applied');
-    toast(n ? 'Applied what Claude asked in ' + p.name + '.' : 'Nothing in it could be applied, so it was put away.');
+    if (n) {
+      if (entry.summary && !entry.logged) { logActivity(p, 'Claude: ' + entry.summary); entry.logged = true; }
+      window.changed(p);
+      if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
+    }
+    await keep(dir, entry);
+    if (i == null) toast(n ? 'Applied what Claude asked in ' + p.name + '.' : 'Nothing in it could be applied, so it was put away.');
+    else if (one && one.c.do === 'edit-description') toast('Gave ' + one.r.t.text + ' its new description.');
+    else if (one && one.c.do === 'replace-plan') toast('Replaced the plan of ' + p.name + '.');
   }
-  async function dismiss(entry) {
+  async function dismiss(entry, i = null) {
     const dir = ClaudeWork.folder();
     if (!dir) return;
-    await settle(dir, entry, 'dismissed');
-    toast('Dismissed what Claude asked.');
+    const which = openIdx(entry).filter(k => i == null || k === i);
+    for (const k of which) entry.changes[k]._settled = 'dismissed';
+    await keep(dir, entry);
+    const c = i != null && which.length ? entry.changes[which[0]] : null, task = c ? lineTitle(str(c.task, 200)) : '';
+    toast(!c ? 'Dismissed what Claude asked.' : c.do === 'done' ? 'Left ' + task + ' open.' : c.do === 'edit-description' ? 'Kept the description of ' + task + '.'
+      : c.do === 'replace-plan' ? 'Kept the plan of ' + entry.project + '.' : 'Dismissed what Claude asked.');
+  }
+  const entryFile = (entry, extra = {}) => JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: entry.project, summary: entry.summary,
+    changes: entry.changes, received: entry.at, logged: !!entry.logged, ...extra }, null, 1);
+  /* What is left waits in its pending file, marked; with nothing left the file moves to inbox/done. */
+  async function keep(dir, entry) {
+    if (!openIdx(entry).length) { await settle(dir, entry, 'settled'); return; }
+    try { await put(await sub(dir, 'inbox/pending'), entry.name, entryFile(entry)); } catch (e) { /* settled by another tab */ }
+    pendingSig = '';
+    ClaudeWork.redraw();
   }
   async function settle(dir, entry, how) {
     try {
       const pend = await sub(dir, 'inbox/pending');
-      await move(pend, entry.name, await sub(dir, 'inbox/done'), JSON.stringify({ ...entry, [how]: Date.now() }, null, 1));
+      await move(pend, entry.name, await sub(dir, 'inbox/done'), entryFile(entry, { [how]: Date.now() }));
     } catch (e) { /* already settled by another tab */ }
     pending = pending.filter(x => x.name !== entry.name);
     pendingSig = pending.map(x => x.name).join('|');
     ClaudeWork.redraw();
   }
 
-  /* What waits for this building: its leader says it in its status card and its bubble (Leader UX, 0.1.59), with each
-     change listed under the line, then Apply and Dismiss. */
+  /* What waits for this building: its leader says it in its status card and its bubble (Leader UX, 0.1.59). */
   const forProject = p => pending.filter(x => keyOf(x.project) === keyOf(p.name));
-  /* The change Claude asks about, for the leader's line: its summary, else the first change and how many more. */
+  /* A change in a few words, its task's title cut short as a leader's line cuts it. */
+  const changeWords = c => (c.do === 'done' ? 'tick off ' + lineTitle(str(c.task, 200)) : c.do === 'edit-description' ? 'a new description for ' + lineTitle(str(c.task, 200))
+    : c.do === 'replace-plan' ? 'a new plan' : 'a change');
+  /* The change Claude asks about, for the leader's line (0.1.68): the change itself, or how many wait. Claude's summary
+     is its own words, said on a line of its own (C2), never as the change. */
   function gist(p, entry) {
-    if (entry.summary) return entry.summary.replace(/[.!?]+$/, '');
-    const c = entry.changes[0] || {}, more = entry.changes.length - 1;
-    const one = c.do === 'done' ? 'tick off ' + str(c.task, 200) : c.do === 'edit-description' ? 'a new description for ' + str(c.task, 200) : c.do === 'replace-plan' ? 'a new plan' : 'a change';
-    return one + (more > 0 ? ' and ' + plural(more, 'more change', 'more changes') : '');
+    const open = openIdx(entry), c = open.length === 1 ? entry.changes[open[0]] : null;
+    if (!c) return plural(open.length || entry.changes.length, 'change', 'changes');
+    const t = c.do === 'done' ? taskNamed(p, c.task) : null;
+    return changeWords(c) + (t && t.repeat ? ', on to its next date' : '');
   }
-  const list = (p, entry) => h('ul', { class: 'b-claude-list' }, entry.changes.map(c => { const r = readable(p, c); return h('li', { class: r.ok ? null : 'off', dir: 'auto', title: r.why || null }, r.text, r.ok ? null : ' (' + r.why + ')'); }));
-  return { poll, gist, list, apply, dismiss, undo: undoNow, count: p => forProject(p).length, total: () => pending.length, pending: () => pending, AT_ONCE, ASK };
+  return { poll, gist, readable, openIdx, taskNamed, planSize: plan => plural(plan.milestones.length, 'milestone', 'milestones') + ' and ' + plural(plan.milestones.reduce((n, m) => n + m.tasks.length, 0), 'task', 'tasks'),
+    apply, dismiss, undo: undoNow, count: p => forProject(p).length, total: () => pending.length, pending: () => pending, AT_ONCE, ASK };
 })();
 
 const Menu = (() => {
@@ -13965,6 +14006,11 @@ const Proxima = (() => {
      and leaves what it held waiting; one opened by a click stays until closed.
    - Reading (D1): an item is read once its bubble showed it and was closed, or Next went past it. Opening a
      building's status card reads its news too: the card says it, and keeps saying it while it stays open.
+   - Claude's reports (0.1.68, Claude's News on the Status Card, Round 1): an update Claude sends is one report, said
+     under the finish of the task it reports on (A1): the finish, Claude's summary in its own words (C2), then a short
+     line for each part with its own buttons, Read and Undo for what it added, Tick it, Apply and Dismiss for what it
+     asks (A2). An update whose session still works waits for its finish; one with no finish to sit under is said on
+     its own, as before. Tick it shows when Claude asks to tick the task off, and on a finish with no update (B3).
    Kept in this browser (nullovation-city:news): nothing new in the city. Undo, for Claude's additions, lasts while the
    page stays open, as a toast's does. */
 const NEWS_RANK = { behind_more: 0, behind_day: 0, behind: 0, waiting: 1, asks: 1, failed: 1, due: 2, due_many: 2, one_left: 3,
@@ -13985,12 +14031,18 @@ const newsTask = p => nextTask(p) || openTasks(p)[0] || null;
 
 const News = (() => {
   const KEY = 'nullovation-city:news', SAY_MS = 14000, KEEP_RAISED = 21 * 86400e3;
-  const fresh = () => ({ items: [], raised: {}, lvl: {}, dueDay: '', week: '' });
+  /* A report lasts as long as a finish shows on the status card (12 hours); an update finds the finish of its task
+     within 10 minutes, and one that names no task the one finish of the last 2 minutes. */
+  const REPORT_KEEP = 13 * 3600e3, FIN_NEAR = 10 * 60e3, FIN_JUST = 2 * 60e3;
+  const fresh = () => ({ items: [], raised: {}, lvl: {}, dueDay: '', week: '', reports: [] });
   function load() {
-    try { const v = JSON.parse(localStorage.getItem(KEY)); if (v && typeof v === 'object' && Array.isArray(v.items)) return Object.assign(fresh(), v); } catch (e) { /* a fresh start */ }
+    try {
+      const v = JSON.parse(localStorage.getItem(KEY));
+      if (v && typeof v === 'object' && Array.isArray(v.items)) { const o = Object.assign(fresh(), v); if (!Array.isArray(o.reports)) o.reports = []; return o; }
+    } catch (e) { /* a fresh start */ }
     return fresh();
   }
-  let st = load(), started = false, sayMs = SAY_MS;
+  let st = load(), started = false, sayMs = SAY_MS, flush = false;
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* this visit only */ } };
   /* Another tab with the city open changes the same store: read it again first, so neither undoes the other. */
   const edit = fn => { st = load(); const was = JSON.stringify(st), r = fn(); if (JSON.stringify(st) !== was) save(); return r; };
@@ -14007,7 +14059,7 @@ const News = (() => {
   const lineOf = it => leaderSay(it.moment, it.v);
   /* The most pressing first; among the same, the leaders before Proxima, as in the side bar, then the oldest first. */
   const proximaSays = it => { const p = getProject(it.pid); return p && !leaderOf(p) ? 1 : 0; };
-  const sortItems = list => [...list].sort((a, b) => (NEWS_RANK[a.moment] ?? 9) - (NEWS_RANK[b.moment] ?? 9) || proximaSays(a) - proximaSays(b) || a.at - b.at);
+  const sortItems = list => [...list].sort((a, b) => rankOf(a) - rankOf(b) || proximaSays(a) - proximaSays(b) || a.at - b.at);
   const live = () => st.items.filter(it => getProject(it.pid));
 
   /* ---------- raising news ---------- */
@@ -14051,6 +14103,7 @@ const News = (() => {
       const today = ymd(now), wk = ymd(weekStartOf(now));
       const n0 = st.items.length;
       st.items = st.items.filter(it => getProject(it.pid));
+      st.reports = st.reports.filter(r => getProject(r.pid) && now - r.at < REPORT_KEEP);   // Claude's reports, gone with their finish's 12 hours
       for (const p of DB.projects) {
         /* behind its pace: on the change, and not when you picked the system or its days yourself */
         const lv = behindLevel(p, now), u = p.urgency || {}, cfg = [u.system, u.days, u.pickedAt].join(':'), old = st.lvl[p.id];
@@ -14101,6 +14154,7 @@ const News = (() => {
         }
       }
       for (const [k, at] of Object.entries(st.raised)) if (now - at > KEEP_RAISED) delete st.raised[k];
+      st.reports = st.reports.filter(r => getProject(r.pid) && now - r.at < REPORT_KEEP);
       for (const id of Object.keys(st.lvl)) if (!getProject(id)) delete st.lvl[id];
       if (st.items.length !== n0) moved = true;
     });
@@ -14133,11 +14187,19 @@ const News = (() => {
   /* ---------- Claude's moments: its sessions, and the changes that ask first ---------- */
   function claude() {
     if (!started || typeof ClaudeWork === 'undefined') return;
-    let moved = false;
+    let moved = flush;
+    flush = false;
     edit(() => {
       const n0 = st.items.length;
       for (const p of DB.projects) {
         const ss = ClaudeWork.sessionsOf(p);
+        /* an update waiting for its session: said with its finish once it finishes, or on its own once the session
+           stops without one (A1) */
+        for (const rep of st.reports.filter(r => r.pid === p.id && r.sid && !r.alone && !r.fin)) {
+          const s = ss.find(x => x.session === rep.sid);
+          if (s && s.state === 'done') { attach(p, rep, s); moved = true; }
+          else if (!s || (s.state !== 'working' && s.state !== 'waiting')) { alone(p, rep); moved = true; }
+        }
         for (const s of ss) {
           const task = s.task || s.ask || 'a task';
           if (s.state === 'waiting') {
@@ -14147,7 +14209,7 @@ const News = (() => {
             const key = 'failed:' + s.session + ':' + s.since;
             if (!wasRaised(key)) { raise(p, 'failed', { task }, { session: s.session }, key); moved = true; }
           } else if (s.state === 'done' && !ClaudeWork.isSeen(s)) {
-            const key = 'finished:' + s.session + ':' + task.trim().toLowerCase().slice(0, 160);
+            const key = finKey(s);
             if (!wasRaised(key)) { raise(p, 'finished', { task }, { session: s.session, task: s.task, project: s.project }, key); moved = true; }
           }
         }
@@ -14158,7 +14220,8 @@ const News = (() => {
           return it.moment === 'waiting' ? !!s && s.state === 'waiting' : !s || s.state === 'failed';
         });
       }
-      /* what asks first: one item for each change file waiting in inbox/pending, gone once applied or dismissed */
+      /* what asks first: one item for each change file waiting in inbox/pending, gone once applied or dismissed; what a
+         report holds is said with its report (report marks it raised) */
       if (typeof ClaudeInbox !== 'undefined') {
         const pend = ClaudeInbox.pending(), names = new Set(pend.map(x => x.name));
         for (const e of pend) {
@@ -14175,6 +14238,115 @@ const News = (() => {
     if (moved) after();
   }
 
+  /* ---------- Claude's reports (0.1.68, Claude's News on the Status Card, A1) ---------- */
+  const tkey = s => String(s || '').trim().toLowerCase();
+  const finKey = s => 'finished:' + s.session + ':' + tkey(s.task || s.ask || 'a task').slice(0, 160);
+  const reportOf = id => (id && st.reports.find(r => r.id === id)) || null;
+  const entryOf = name => (name && typeof ClaudeInbox !== 'undefined' ? ClaudeInbox.pending().find(e => e.name === name) : null) || null;
+  /* The report a finish heads: the one its session sent in the turn that finished, known by the turn's reply. */
+  const finishReport = s => [...st.reports].reverse().find(r => r.sid === s.session && r.fin && r.reply === (s.reply || '')) || null;
+  /* The report a session still working has sent, waiting for its finish. */
+  const heldReport = s => [...st.reports].reverse().find(r => r.sid === s.session && !r.alone && !r.fin) || null;
+  /* The session an update came from: the one working on the task it names (or that just finished it), else, when it
+     names none of its own, the one session working on the building, or the one that finished there a moment ago. */
+  function sessionFor(p, rep, named) {
+    if (typeof ClaudeWork === 'undefined') return null;
+    const ss = ClaudeWork.sessionsOf(p), k = tkey(rep.task), now = Date.now();
+    const busy = s => s.state === 'working' || s.state === 'waiting';
+    const best = list => [...list].sort((a, b) => busy(b) - busy(a) || b.at - a.at)[0] || null;
+    if (k) {
+      const m = ss.filter(s => tkey(s.task || s.ask) === k && (busy(s) || (s.state === 'done' && now - s.at < FIN_NEAR)));
+      if (m.length) return best(m);
+      if (named) return null;
+    }
+    const b = ss.filter(busy);
+    if (b.length) return b.length === 1 ? b[0] : null;
+    const d = ss.filter(s => s.state === 'done' && now - s.at < FIN_JUST);
+    return d.length === 1 ? d[0] : null;
+  }
+  /* An update Claude sent (the inbox, 0.1.68): what it added, with Undo, what it asks first, and its summary, as one
+     report. Its session still working, it waits for the finish; finished, it is said under the finish; with no session,
+     it is said on its own, as before: what it added, each round, and what it asks. Said once the poll that brought it
+     is done (claude), so what it asks is read by then. */
+  function report(p, { task = '', named = false, summary = '', undo = null, entry = '' } = {}) {
+    if (!p) return null;
+    const add = undo && (undo.todos.length || undo.notes.length || undo.links.length) ? { todos: [...undo.todos], notes: [...undo.notes], links: [...undo.links] } : null;
+    const rounds = (undo && undo.rounds || []).map(r => { const t = p.todos.find(x => x.id === r.id); return { tid: r.id, title: t && t.round ? t.round.title : '' }; });
+    if (!add && !rounds.length && !entry) return null;
+    const rep = { id: uid('rp'), pid: p.id, task, summary, at: Date.now(), sid: '', fin: 0, reply: '', alone: false, entry, add, rounds };
+    const none = { todos: [], ms: [], notes: [], links: [], rounds: [] };
+    if (add) undos.set(rep.id, { ...none, todos: undo.todos, ms: undo.ms, notes: undo.notes, links: undo.links });
+    for (const r of undo && undo.rounds || []) undos.set(rep.id + ':' + r.id, { ...none, rounds: [r] });
+    const s = sessionFor(p, rep, named);
+    edit(() => {
+      st.reports.push(rep);
+      if (entry) st.raised['asks:' + entry] = rep.at;            // said in this report, never as an item of its own
+      if (!s) alone(p, rep);
+      else { rep.sid = s.session; if (s.state === 'done') attach(p, rep, s); }
+    });
+    flush = true;
+    return rep;
+  }
+  /* Under its finish: the finish's news carries it, and opens by itself again while it holds something to act on. */
+  function attach(p, rep, s) {
+    rep.fin = s.at; rep.reply = s.reply || '';
+    const key = finKey(s), it = st.items.find(x => x.key === key);
+    if (it) { it.ref.report = rep.id; it.popped = false; }
+    else raise(p, 'finished', { task: s.task || s.ask || 'a task' }, { session: s.session, task: s.task, project: s.project, report: rep.id }, key);
+  }
+  /* On its own, with no finish to sit under: as before, what it added, each round, and what it asks, each its item. */
+  function alone(p, rep) {
+    rep.alone = true;
+    if (rep.add) raise(p, 'added', { what: addedWords(p, rep.add) || 'what it sent' }, { report: rep.id }, 'added:' + rep.id);
+    for (const r of rep.rounds) {
+      const t = p.todos.find(x => x.id === r.tid);
+      if (t && t.round) raise(p, 'round', { task: t.text, round: t.round.title }, { tid: t.id, report: rep.id }, 'round:' + rep.id + ':' + t.id);
+    }
+    if (rep.entry) { const e = entryOf(rep.entry); raise(p, 'asks', { change: e ? ClaudeInbox.gist(p, e) : 'a change' }, { entry: rep.entry, report: rep.id }, 'asks:' + rep.entry); }
+  }
+  /* What is still there of what Claude added, and whether its Undo is. */
+  const addedOf = (p, add) => ({ ts: add.todos.map(id => p.todos.find(t => t.id === id)).filter(Boolean),
+    ns: add.notes.map(id => p.notes.find(n => n.id === id)).filter(Boolean), ls: add.links.map(id => p.links.find(l => l.id === id)).filter(Boolean) });
+  const addLive = (p, add) => { const a = addedOf(p, add); return a.ts.length + a.ns.length + a.ls.length > 0; };
+  /* What Claude added, named, not just counted: one of a kind by its name, more by their count. */
+  function addedWords(p, add) {
+    const a = addedOf(p, add);
+    const kind = (list, one, many, name) => (!list.length ? '' : list.length > 1 ? plural(list.length, one, many) : 'a ' + one + (name(list[0]) ? ', ' + cut(name(list[0]), 40) : ''));
+    const bits = [kind(a.ts, 'task', 'tasks', t => t.text), kind(a.ns, 'note', 'notes', n => n.title), kind(a.ls, 'link', 'links', l => l.label || suggestLabel(l.url))].filter(Boolean);
+    if (bits.length < 2) return bits[0] || '';
+    return bits.slice(0, -1).join(', ') + (bits.some(b => b.includes(', ')) ? ', and ' : ' and ') + bits[bits.length - 1];
+  }
+  /* Whether a report still holds something to act on: an Undo, or a change waiting for your OK. */
+  function repActs(p, rep) {
+    if (rep.add && undos.has(rep.id) && addLive(p, rep.add)) return true;
+    if (rep.rounds.some(r => undos.has(rep.id + ':' + r.tid))) return true;
+    const e = entryOf(rep.entry);
+    return !!e && ClaudeInbox.openIdx(e).length > 0;
+  }
+  function hasActs(p, it) {
+    if (it.moment === 'asks') { const e = entryOf(it.ref.entry); return !!e && ClaudeInbox.openIdx(e).length > 0; }
+    if (it.moment === 'added') return undos.has(it.ref.report || it.id);
+    if (it.moment === 'round') { const rep = reportOf(it.ref.report); return undos.has(rep ? rep.id + ':' + it.ref.tid : it.id); }
+    if (it.moment === 'finished') { const rep = reportOf(it.ref.report); return !!rep && repActs(p, rep); }
+    return false;
+  }
+  /* A report ranks by the most pressing thing in it: what asks first, then what Claude added, then the finish. */
+  function repRank(p, rep) {
+    const e = entryOf(rep.entry);
+    if (e && ClaudeInbox.openIdx(e).length) return NEWS_RANK.asks;
+    return repActs(p, rep) ? NEWS_RANK.added : NEWS_RANK.finished;
+  }
+  function rankOf(it) {
+    const p = it.moment === 'finished' && it.ref && it.ref.report ? getProject(it.pid) : null, rep = p && reportOf(it.ref.report);
+    return rep ? repRank(p, rep) : NEWS_RANK[it.moment] ?? 9;
+  }
+  /* What opens a bubble by itself: the moments that do, and a finish whose report holds something to act on. */
+  function opens(it) {
+    if (NEWS_OPENS.has(it.moment)) return true;
+    const p = it.moment === 'finished' ? getProject(it.pid) : null;
+    return !!p && hasActs(p, it);
+  }
+
   /* ---------- the side bar's News section ---------- */
   function faces() {
     const by = new Map();
@@ -14184,7 +14356,7 @@ const News = (() => {
       by.get(sp.k).items.push(it);
     }
     const list = [...by.values()].map(f => ({ ...f, items: sortItems(f.items) }));
-    list.sort((a, b) => (a.k === 'px') - (b.k === 'px') || (NEWS_RANK[a.items[0].moment] ?? 9) - (NEWS_RANK[b.items[0].moment] ?? 9) || a.name.localeCompare(b.name));
+    list.sort((a, b) => (a.k === 'px') - (b.k === 'px') || rankOf(a.items[0]) - rankOf(b.items[0]) || a.name.localeCompare(b.name));
     return list;
   }
   /* Under a face, the first word of its name, so Gus and Proxima fit as the leaders do; the tooltip has it whole. */
@@ -14243,7 +14415,7 @@ const News = (() => {
   function pump() {
     clearTimeout(waitT);
     if (!started || bub) return;
-    const due = sortItems(live().filter(it => !it.popped && NEWS_OPENS.has(it.moment)));
+    const due = sortItems(live().filter(it => !it.popped && opens(it)));
     if (!due.length) return;
     if (blocked()) { waitT = setTimeout(pump, 500); return; }
     show(due, { auto: true });
@@ -14251,7 +14423,7 @@ const News = (() => {
   /* New news while the bubble shows joins it, as one more of N. */
   function grow() {
     const have = new Set(bub.list.map(it => it.id));
-    const more = sortItems(live().filter(it => !it.popped && NEWS_OPENS.has(it.moment) && !have.has(it.id)));
+    const more = sortItems(live().filter(it => !it.popped && opens(it) && !have.has(it.id)));
     if (!more.length) return;
     bub.list.push(...more);
     popped(more);
@@ -14299,11 +14471,11 @@ const News = (() => {
     /* the building: a click goes to it on the map, as Go to it does, without opening it (0.1.60) */
     $('#ldSayWhere').replaceChildren(h('button', { class: 'ld-say-bld', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } },
       h('span', { class: 'ld-say-thumb', 'aria-hidden': 'true' }, MapView.thumb(p)), h('bdi', null, p.name)));
-    $('#ldSayText').replaceChildren(...sayNodes(p, it.moment, it.v, taskFor(p, it), 'say', it));
+    const v = viewOf(p, it, 'say');
+    $('#ldSayText').replaceChildren(...v.nodes);
     speak(it.id);
-    $('#ldSayMore').replaceChildren(...extraOf(p, it, 'say'));
-    const acts = actsOf(p, it, 'say');
-    $('#ldSayActs').replaceChildren(...[...acts,
+    $('#ldSayMore').replaceChildren(...v.more);
+    $('#ldSayActs').replaceChildren(...[...v.acts,
       h('button', { class: 'btn btn-small btn-quiet ld-go', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } }, 'Go to it'),
       n > 1 ? h('span', { id: 'ldSayCount', class: 'ld-say-count' }, (bub.i + 1) + ' of ' + n) : null,
       n > 1 && bub.i < n - 1 ? h('button', { id: 'ldSayNext', class: 'btn btn-small ld-next', type: 'button', onclick: () => { hold(); next(); } }, 'Next') : null].filter(Boolean));
@@ -14436,36 +14608,166 @@ const News = (() => {
     });
   }
 
-  /* ---------- what an item adds under its line, and its buttons ---------- */
-  function extraOf(p, it, where) {
-    if (it.moment === 'asks') {
-      const e = ClaudeInbox.pending().find(x => x.name === it.ref.entry);
-      return e ? [ClaudeInbox.list(p, e)] : [];
-    }
-    return [];
+  /* ---------- how an item reads (0.1.68): its line with its one time, Claude's own words, and a short line for
+     each part of a report with its own buttons, none longer than two lines (A2) ---------- */
+  const cut = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s; };
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const whenEl = (at, lead = '') => h('span', { class: 'b-claude-when' }, (lead ? lead + relAgo(at) : cap(relAgo(at))) + '.');
+  /* The start of Claude's last reply, written for the chat: its markdown comes off. */
+  function plainReply(s) {
+    return String(s || '').replace(/```[\s\S]*?(?:```|$)/g, ' ').replace(/`([^`]*)`/g, '$1').replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/(\*\*|__)(.+?)\1/g, '$2').replace(/(^|[\s(])\*(\S(?:[^*]*\S)?)\*(?=[\s).,;:!?]|$)/g, '$1$2')
+      .replace(/(^|\s)#{1,6}\s+/g, '$1').replace(/^\s*(?:>|[-*+]|\d+\.)\s+/, '').replace(/\s\*\s/g, ' ').replace(/\s+/g, ' ').trim();
   }
-  /* Each button acts, then the item is read and the bubble goes on to the next one. */
-  function actsOf(p, it, where) {
-    const done = () => {
-      if (where === 'say') next();
-      else { dropHeld(p.id, it.id); Bubble.refresh(); Leaders.redrawCard(); }
-    };
-    const btn = (label, cls, title, run) => h('button', { class: 'btn btn-small ' + cls, type: 'button', title, onclick: () => { hold(); run(); done(); } }, label);
+  /* Claude's own words, on a line of their own, marked as its (C2): one line, cut short, whole in its tooltip. */
+  function wordsEl(text) {
+    const t = cut(text, 200);
+    return t ? h('p', { class: 'b-claude-said', dir: 'auto', title: 'In Claude’s words: ' + String(text).trim() }, iconEl('claude', 12), h('span', null, t)) : null;
+  }
+  /* A task named in a part's line: in its own color, a click opening it, as in a leader's line. */
+  function taskLink(p, t, where, it) {
+    return h('button', { class: 'ld-task', type: 'button', dir: 'auto', title: 'Open ' + t.text, 'data-task': t.id, onclick: e => {
+      e.stopPropagation();
+      if (where === 'say' && it) { readIds([it.id]); hide({ read: false }); }
+      FullView.openTask(p.id, t.id);
+    } }, lineTitle(t.text));
+  }
+  const partEl = (kind, text, acts) => h('div', { class: 'ld-part', 'data-part': kind }, h('span', { class: 'ld-part-text', dir: 'auto' }, ...text),
+    acts.filter(Boolean).length ? h('span', { class: 'ld-part-acts' }, ...acts.filter(Boolean)) : null);
+  /* A button. It acts, then the item is read and the bubble goes on to the next one; a part's button (stay) keeps the
+     item while it has something left to act on, drawn again without what was done. */
+  function act(p, it, where, label, cls, title, run, stay = false) {
+    return h('button', { class: 'btn btn-small ' + cls, type: 'button', title, onclick: () => {
+      hold();
+      Promise.resolve(run()).then(() => acted(p, it, where, stay));
+    } }, label);
+  }
+  function acted(p, it, where, stay) {
+    const left = !!it && stay && hasActs(p, it);
+    if (where === 'say') { if (bub) { if (left) draw(); else next(); } return; }
+    if (it && !left) dropHeld(p.id, it.id);
+    Bubble.refresh(); Leaders.redrawCard();
+  }
+  /* Read: a small panel with the whole of it (A2's note). */
+  const readBtn = (title, body) => h('button', { class: 'btn btn-small btn-quiet ld-read', type: 'button', title: 'Read it whole', onclick: () => {
+    hold();
+    Panel.open(title, h('div', { class: 'cr-body' }, body()), 'cr');
+  } }, 'Read');
+  const crSec = (head, ...kids) => h('section', { class: 'cr-sec' }, h('h3', { class: 'cr-h', dir: 'auto' }, head), ...kids);
+  const crText = (text, cls = '') => h('p', { class: 'cr-text' + (cls ? ' ' + cls : ''), dir: 'auto' }, text);
+  function readAdded(p, add) {
+    const a = addedOf(p, add);
+    return [
+      ...a.ts.map(t => crSec('A task', h('button', { class: 'linkish cr-title', type: 'button', dir: 'auto', title: 'Open it in ' + p.name, onclick: () => { Panel.close(); FullView.openTask(p.id, t.id); } }, t.text),
+        t.description ? crText(t.description) : null)),
+      ...a.ns.map(n => crSec(n.title || 'A note', n.text ? crText(n.text) : crText('Nothing written in it.', 'was'))),
+      ...a.ls.map(l => { const lt = linkTarget(l); return crSec('A link', lt.href ? h('a', { class: 'cr-title', href: lt.href, target: lt.blank ? '_blank' : null, rel: 'noopener', dir: 'auto', title: lt.title }, lt.name) : h('b', { class: 'cr-title', dir: 'auto' }, lt.name),
+        h('p', { class: 'cr-url', dir: 'ltr' }, l.url)); }),
+    ];
+  }
+  const readDescription = (t, c) => [crSec('The new description', crText(String(c.description || '').trim())),
+    crSec('Its description now', (t.description || '').trim() ? crText(t.description.trim(), 'was') : crText('No description yet.', 'was'))];
+  const readPlanBody = plan => [plan.description ? crSec('The About', crText(plan.description)) : null,
+    ...plan.milestones.map(m => crSec(m.name, h('ul', { class: 'cr-list' }, m.tasks.map(t => h('li', { dir: 'auto' }, t.text)))))].filter(Boolean);
+
+  /* One change Claude asks about: a short line saying it, its task a link (this task when it is the report's own),
+     and its buttons: Tick it for a tick (B3), Read, Apply and Dismiss for a description or a plan. */
+  function askOf(p, e, i, task, it, where) {
+    const c = e.changes[i], r = ClaudeInbox.readable(p, c), mine = !!task && tkey(c.task) === tkey(task);
+    const name = t => (t ? taskLink(p, t, where, it) : h('bdi', null, lineTitle(String(c.task || '').trim())));
+    const no = title => act(p, it, where, 'Dismiss', 'btn-quiet b-claude-dismiss', title, () => ClaudeInbox.dismiss(e, i), true);
+    const ok = (label, cls, title) => act(p, it, where, label, cls, title, () => ClaudeInbox.apply(e, i), true);
+    if (c.do === 'done') {
+      if (!r.ok) {
+        const was = p.todos.some(t => t.done && tkey(t.text) === tkey(c.task));
+        return { text: [mine ? 'Wants this task ticked off' : ['Wants ', name(null), ' ticked off'], was ? '. It is ticked off already.' : '. It is not open here.'], acts: [no('Put it away: nothing changes')] };
+      }
+      const on = r.t.repeat ? ', on to its next date' : '';
+      return { text: mine ? ['Wants this task ticked off', on, '.'] : ['Wants ', name(r.t), ' ticked off', on, '.'],
+        acts: [ok('Tick it', 'b-claude-tick', 'Tick off ' + r.t.text + (on ? ': it moves on to its next date' : '')), no('Leave ' + r.t.text + ' open')] };
+    }
+    if (c.do === 'edit-description') {
+      if (!r.ok) return { text: ['Wants a new description for ', name(null), '. It is not in this project.'], acts: [no('Put it away: nothing changes')] };
+      return { text: mine ? ['Wants a new description for this task.'] : ['Wants a new description for ', name(r.t), '.'],
+        acts: [readBtn('A new description for ' + r.t.text, () => readDescription(r.t, c)), ok('Apply', 'b-claude-apply', 'Give ' + r.t.text + ' the new description'), no('Keep the description ' + r.t.text + ' has')] };
+    }
+    if (c.do === 'replace-plan') {
+      if (!r.ok) return { text: ['Sent a new plan the city cannot read.'], acts: [no('Put it away: nothing changes')] };
+      return { text: ['Wants to replace the plan with ' + ClaudeInbox.planSize(r.plan) + '.'],
+        acts: [readBtn('A new plan for ' + p.name, () => readPlanBody(r.plan)), ok('Apply', 'b-claude-apply', 'Replace the About, milestones and tasks with the new plan'), no('Keep the plan ' + p.name + ' has')] };
+    }
+    return { text: ['Sent a change the city does not know.'], acts: [no('Put it away')] };
+  }
+  const askParts = (p, e, task, it, where) => ClaudeInbox.openIdx(e).map(i => { const a = askOf(p, e, i, task, it, where); return partEl('ask ' + e.changes[i].do, a.text, a.acts); });
+  /* A report's parts, under its finish: what Claude added, with Read and Undo; each wizard round; what it asks. */
+  function parts(p, rep, it, where) {
     const out = [];
-    if ((it.moment === 'added' || it.moment === 'round') && undos.has(it.id))
-      out.push(btn('Undo', 'ld-undo', 'Take back what Claude ' + (it.moment === 'round' ? 'attached' : 'added'), () => { ClaudeInbox.undo(p, undos.get(it.id)); undos.delete(it.id); }));
-    if (it.moment === 'asks') {
-      const e = ClaudeInbox.pending().find(x => x.name === it.ref.entry);
-      if (e) out.push(btn('Apply', 'b-claude-apply', 'Apply what Claude asks', () => ClaudeInbox.apply(e)),
-        btn('Dismiss', 'btn-quiet b-claude-dismiss', 'Dismiss what Claude asks: nothing changes', () => ClaudeInbox.dismiss(e)));
+    if (rep.add && addLive(p, rep.add)) {
+      const u = undos.get(rep.id);
+      out.push(partEl('added', ['Added ' + addedWords(p, rep.add) + '.'], [readBtn('What Claude added to ' + p.name, () => readAdded(p, rep.add)),
+        u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back what Claude added', () => { ClaudeInbox.undo(p, u); undos.delete(rep.id); }, true) : null]));
     }
+    for (const r of rep.rounds) {
+      const t = p.todos.find(x => x.id === r.tid), uk = rep.id + ':' + r.tid, u = undos.get(uk);
+      if (!t || !t.round || t.round.title !== r.title) continue;                        // taken off, or another round since
+      const same = tkey(t.text) === tkey(rep.task);
+      out.push(partEl('round', same ? ['Attached a wizard round, ', h('bdi', null, t.round.title), '.'] : ['Attached a wizard round to ', taskLink(p, t, where, it), ', ', h('bdi', null, t.round.title), '.'],
+        [u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }, true) : null]));
+    }
+    const e = entryOf(rep.entry);
+    if (e) out.push(...askParts(p, e, rep.task, it, where));
+    return out;
+  }
+  /* A finish heads its report (A1): Claude's summary under it (C2), then its parts. Tick it comes only from Claude
+     asking to tick the task off (B3); a finish with no update keeps Tick it, with the start of the reply as its words. */
+  function finishView(p, { task, at, s, rep, it = null, tick }, where) {
+    const nodes = [...sayNodes(p, 'finished', { task }, task ? taskNamed(p, task) : null, where, it), ' ', whenEl(at)];
+    if (rep) return { nodes, more: [wordsEl(rep.summary), ...parts(p, rep, it, where)].filter(Boolean), acts: [] };
+    const tk = tick !== undefined ? tick : typeof ClaudeWork === 'undefined' ? null : s ? ClaudeWork.taskOf(p, s)
+      : it && it.ref.task ? ClaudeWork.taskOf(p, { task: it.ref.task, project: it.ref.project || '' }) : null;
+    return { nodes, more: [wordsEl(plainReply(s && s.reply))].filter(Boolean),
+      acts: tk ? [act(p, it, where, 'Tick it', 'b-claude-tick', 'Tick off ' + tk.text + ', the task this session started from', () => ClaudeWork.tick(p, tk))] : [] };
+  }
+  /* On its own: what Claude added, with Read and Undo, and its summary. */
+  function addedView(p, it, where) {
+    const rep = reportOf(it.ref && it.ref.report), uk = rep ? rep.id : it.id, u = undos.get(uk), live = !!rep && !!rep.add && addLive(p, rep.add);
+    return { nodes: [...sayNodes(p, 'added', { what: live ? addedWords(p, rep.add) : it.v.what }, null, where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
+      more: [rep ? wordsEl(rep.summary) : null].filter(Boolean),
+      acts: [live ? readBtn('What Claude added to ' + p.name, () => readAdded(p, rep.add)) : null,
+        u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back what Claude added', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }) : null].filter(Boolean) };
+  }
+  function roundView(p, it, where) {
+    const rep = reportOf(it.ref && it.ref.report), uk = rep ? rep.id + ':' + it.ref.tid : it.id, u = undos.get(uk);
+    return { nodes: [...sayNodes(p, 'round', it.v, taskFor(p, it), where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
+      more: [rep && !rep.add ? wordsEl(rep.summary) : null].filter(Boolean),
+      acts: u ? [act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); })] : [] };
+  }
+  /* On its own: what Claude asks first, named (the change itself, never the summary), with its time; one change has its
+     buttons on the line, several a short line each. */
+  function asksView(p, e, it, where) {
+    if (!e) return { nodes: sayNodes(p, 'asks', { change: it && it.v.change || 'a change' }, null, where, it), more: [], acts: [] };
+    const rep = reportOf(it && it.ref.report) || [...st.reports].reverse().find(r => r.entry === e.name) || null, open = ClaudeInbox.openIdx(e);
+    const more = [rep && (rep.add || rep.rounds.length) ? null : wordsEl(e.summary)];
+    if (open.length > 1) more.push(...askParts(p, e, '', it, where));          // no finish heads it, so each names its task
+    return { nodes: [...sayNodes(p, 'asks', { change: ClaudeInbox.gist(p, e) }, null, where, it), ' ', whenEl(e.at || (rep ? rep.at : Date.now()), 'Sent ')],
+      more: more.filter(Boolean), acts: open.length === 1 ? askOf(p, e, open[0], '', it, where).acts : [] };
+  }
+  /* Any item: { nodes, more, acts }, the same on the status card, the leader card and in the bubble. */
+  function viewOf(p, it, where) {
     if (it.moment === 'finished') {
-      const t = it.ref.task && ClaudeWork.taskOf(p, { task: it.ref.task, project: it.ref.project || '' });
-      if (t) out.push(btn('Tick it', 'b-claude-tick', 'Tick off ' + t.text + ', the task this session started from', () => ClaudeWork.tick(p, t)));
+      const s = typeof ClaudeWork !== 'undefined' ? ClaudeWork.sessionsOf(p).find(x => x.session === it.ref.session) || null : null;
+      return finishView(p, { task: it.v.task, at: s && s.state === 'done' ? s.at : it.at, s, rep: reportOf(it.ref.report), it }, where);
     }
+    if (it.moment === 'added') return addedView(p, it, where);
+    if (it.moment === 'round') return roundView(p, it, where);
+    if (it.moment === 'asks') return asksView(p, entryOf(it.ref.entry), it, where);
+    return { nodes: sayNodes(p, it.moment, it.v, taskFor(p, it), where, it), more: [], acts: actsOf(p, it, where) };
+  }
+  function actsOf(p, it, where) {
+    const out = [];
     if (it.moment === 'answers') {
       const t = p.todos.find(x => x.id === it.ref.tid);
-      if (t) out.push(btn('Open', 'ld-open', 'Open ' + t.text + ' and its round', () => { if (where === 'say') { readIds([it.id]); hide({ read: false }); } FullView.openTask(p.id, t.id); }));
+      if (t) out.push(act(p, it, where, 'Open', 'ld-open', 'Open ' + t.text + ' and its round', () => { if (where === 'say') { readIds([it.id]); hide({ read: false }); } FullView.openTask(p.id, t.id); }));
     }
     return out;
   }
@@ -14490,46 +14792,51 @@ const News = (() => {
     held.delete(pid);
   }
   /* One line the leader says, with what goes under it and its buttons. */
-  function lineEl(nodes, { more = [], acts = [], moment = '' } = {}) {
-    return h('div', { class: 'ld-line', 'data-moment': moment },
+  function lineEl(nodes, { more = [], acts = [], moment = '', cls = '' } = {}) {
+    return h('div', { class: 'ld-line' + (cls ? ' ' + cls : ''), 'data-moment': moment },
       h('p', { class: 'ld-says', dir: 'auto' }, ...nodes), ...more, acts.length ? h('div', { class: 'ld-acts' }, acts) : null);
   }
   /* The status card: its news, then what Claude is doing there, in the leader's voice, for as long as the card showed
-     it before (B3): working, waiting, finished with Tick it and the start of its reply, stopped, asking first with
-     Apply and Dismiss. Claude's news the live lines already say is not said twice. */
+     it before (B3): working, waiting, finished, stopped, and what asks first while it waits. A finish an update reports
+     on is one report, its parts under it (A1, A2); an update a working session sent shows under its working line.
+     Nothing is said twice. */
   function cardLines(p) {
-    const lines = [];
+    const lines = [], said = new Set();
     const voice = typeof ClaudeWork !== 'undefined' ? ClaudeWork.voice(p) : [];
-    const pend = typeof ClaudeInbox !== 'undefined' ? ClaudeInbox.pending().filter(e => e.project.trim().toLowerCase() === p.name.trim().toLowerCase()) : [];
+    const pend = typeof ClaudeInbox !== 'undefined' ? ClaudeInbox.pending().filter(e => tkey(e.project) === tkey(p.name)) : [];
     /* under the project view the card is hidden: what it would say waits for the leader card, or the News section */
     const mine = typeof FullView !== 'undefined' && FullView.shows(p.id) ? sortItems(held.get(p.id) || []) : take(p.id);
-    for (const it of mine) {
-      if (it.moment === 'asks' && pend.some(e => e.name === it.ref.entry)) continue;
-      if (NEWS_CLAUDE.has(it.moment) && it.moment !== 'asks' && voice.some(x => x.s.session === it.ref.session)) continue;
-      lines.push({ rank: NEWS_RANK[it.moment], el: lineEl(sayNodes(p, it.moment, it.v, taskFor(p, it), 'card'), { more: extraOf(p, it, 'card'), acts: actsOf(p, it, 'card'), moment: it.moment }) });
-    }
-    for (const e of pend) {
-      lines.push({ rank: NEWS_RANK.asks, el: h('div', { class: 'ld-line b-claude-asks', 'data-moment': 'asks' },
-        h('p', { class: 'ld-says', dir: 'auto' }, leaderSay('asks', { change: ClaudeInbox.gist(p, e) }), ' ', h('span', { class: 'b-claude-when' }, 'Sent ' + relAgo(e.at) + '.')),
-        ClaudeInbox.list(p, e),
-        h('div', { class: 'ld-acts' },
-          h('button', { class: 'btn btn-small b-claude-apply', type: 'button', onclick: () => ClaudeInbox.apply(e) }, 'Apply'),
-          h('button', { class: 'btn btn-small btn-quiet b-claude-dismiss', type: 'button', onclick: () => ClaudeInbox.dismiss(e) }, 'Dismiss'))) });
-    }
     const VOICE_RANK = { waiting: 1, working: 1.2, failed: 1.4, finished: 5 };      // Claude's own order: waiting, working, stopped, finished
     for (const x of voice) {
-      lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: h('div', { class: 'ld-line b-claude ' + x.s.state, 'data-moment': x.moment },
-        h('p', { class: 'ld-says', dir: 'auto' }, ...sayNodes(p, x.moment, x.v, x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null, 'card')),
-        x.reply ? h('p', { class: 'b-claude-said', dir: 'auto', title: x.reply }, x.reply) : null,
-        x.tick ? h('div', { class: 'ld-acts' }, h('button', { class: 'btn btn-small b-claude-tick', type: 'button', title: 'Tick off ' + x.tick.text + ', the task this session started from',
-          onclick: () => ClaudeWork.tick(p, x.tick) }, 'Tick it')) : null) });
+      const rep = x.moment === 'finished' ? finishReport(x.s) : heldReport(x.s);
+      if (rep) { said.add(rep.id); if (rep.entry) said.add('e:' + rep.entry); }
+      if (x.moment === 'finished') {
+        const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, rep, tick: x.tick }, 'card');
+        lines.push({ rank: rep ? repRank(p, rep) : VOICE_RANK.finished, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'finished', cls: 'b-claude ' + x.s.state }) });
+      } else {
+        const t = x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null;
+        lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, x.v, t, 'card'),
+          { more: rep ? [wordsEl(rep.summary), ...parts(p, rep, null, 'card')].filter(Boolean) : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
+      }
+    }
+    for (const it of mine) {
+      if (it.ref && it.ref.report && said.has(it.ref.report)) continue;
+      if (it.moment === 'asks' && pend.some(e => e.name === it.ref.entry)) continue;           // said below, for as long as it waits
+      if (NEWS_CLAUDE.has(it.moment) && it.moment !== 'asks' && voice.some(x => x.s.session === it.ref.session)) continue;
+      const v = viewOf(p, it, 'card');
+      lines.push({ rank: rankOf(it), el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: it.moment }) });
+    }
+    for (const e of pend) {
+      if (said.has('e:' + e.name)) continue;
+      const v = asksView(p, e, null, 'card');
+      lines.push({ rank: NEWS_RANK.asks, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'asks', cls: 'b-claude-asks' }) });
     }
     return lines.sort((a, b) => a.rank - b.rank).map(x => x.el);
   }
   /* The leader card in the project view: its news for this building, else nothing (its greeting shows). */
   function viewLines(p) {
     return take(p.id).filter(it => !NEWS_CLAUDE.has(it.moment) || it.moment === 'finished')
-      .map(it => lineEl(sayNodes(p, it.moment, it.v, taskFor(p, it), 'view'), { more: extraOf(p, it, 'view'), acts: actsOf(p, it, 'view'), moment: it.moment }));
+      .map(it => { const v = viewOf(p, it, 'view'); return lineEl(v.nodes, { more: v.more, acts: v.acts, moment: it.moment }); });
   }
 
   /* ---------- Reports: the leader's face beside a building's row ---------- */
@@ -14560,10 +14867,10 @@ const News = (() => {
     pump();
     setInterval(check, 60000);                               // a new day, a new week, and pace slipping while the city stays open
   }
-  return { init, check, claude, ticked, add, renderSection, take, release, cardLines, viewLines, reportFace, yieldTo, hide, pump, redraw,
+  return { init, check, claude, ticked, add, report, renderSection, take, release, cardLines, viewLines, reportFace, yieldTo, hide, pump, redraw, plainReply,
     isShowing: () => !!bub, isHeld: () => !!bub && !bub.auto, items: () => sortItems(live()), lineOf,
     _test: { sayMs: ms => { sayMs = ms; }, typeMs: ms => { typeMs = ms; }, talk: () => ({ id: talk.id, n: talk.n, done: talk.done }), state: () => JSON.parse(JSON.stringify(st)), bubble: () => bub && { ids: bub.list.map(x => x.id), i: bub.i, auto: bub.auto },
-      forget: () => { st = fresh(); save(); held.clear(); undos.clear(); }, held: pid => (held.get(pid) || []).map(x => x.id) } };
+      forget: () => { st = fresh(); save(); held.clear(); undos.clear(); }, held: pid => (held.get(pid) || []).map(x => x.id), reports: () => JSON.parse(JSON.stringify(st.reports)) } };
 })();
 
 (function boot() {

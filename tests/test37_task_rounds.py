@@ -516,7 +516,7 @@ with sync_playwright() as p:
     ok('add-round attaches the round Claude wrote in wizard-rounds to the task it names', t3.get('round') and t3['round']['title'] == 'Icons, Round 1' and t3['round']['file'] == '2026-10-22-icons-round1.json'
        and t3['round']['folder'] == 'D:\\City\\Claude\\wizard-rounds')
     news = ev("() => { const b = document.querySelector('#ldSay'); return b.hidden ? null : [$('#ldSayText').textContent, [...b.querySelectorAll('#ldSayActs button')].map(x => x.textContent)]; }")
-    ok(f'at once, its building\'s news saying so in place of the toast, with Undo (Leader UX, 0.1.59) ({news})', news == ['Claude attached a wizard round to ' + T3 + ': Icons, Round 1.', ['Undo', 'Go to it']] and said() == '')
+    ok(f'at once, its building\'s news saying so in place of the toast, with Undo (Leader UX, 0.1.59) ({news})', news == ['Claude attached a wizard round to ' + T3 + ': Icons, Round 1. Sent just now.', ['Undo', 'Go to it']] and said() == '')
     ok('with lines in Activity', any(e['text'] == 'Claude attached a wizard round to ' + T3 + ': Icons, Round 1' for e in proj()['activity']) and any(e['text'] == 'Claude: A wizard round for the icons' for e in proj()['activity']))
     ok('the change file moves to inbox/done', ev("() => [...window.__sub.keys()].some(k => k === 'inbox/done/2026-10-22-1900-garden.json') && !window.__sub.has('inbox/2026-10-22-1900-garden.json')"))
     ok('its row wears a gray hat', hat(f'li.task[data-id="{tid(T3)}"] .round-hat') == 'open')

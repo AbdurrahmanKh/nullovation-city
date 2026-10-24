@@ -121,7 +121,7 @@ Every copy from the city (a task, a note, a milestone, a project's status, the s
 **Read the summary first.** `summary.json` lists every project with its milestones, open tasks (with descriptions and due dates), done tasks, notes, links and folders. Use its names exactly: the city matches the project by name and a task by its title. If the work is not clearly about one project, or a task you mean is not in the summary, ask rather than guess.
 
 **What to send, only what you know.** The rule above holds here too.
-- `done`: a task the work finished. Only when it is really finished; the user approves it before it counts.
+- `done`: a task the work finished. Only when it is really finished; the user approves it before it counts. For the task the copy named, it is what offers the user Tick it on your finish: an update without it says work is left.
 - `add-note`: a short note on what was done, decided or found, when it is worth keeping. Its title says what it is about.
 - `add-tasks`: work that is left, only what the user asked for or agreed to, or what they said is still to do. Each task has a description written as above.
 - `edit-description`: a task's description brought up to date, such as what is done and what is left. The user approves it first.
@@ -131,12 +131,15 @@ Every copy from the city (a task, a note, a milestone, a project's status, the s
 
 Adding tasks, notes, links and a round applies at once, with an Undo; ticking tasks, editing descriptions and replacing the plan wait on the building for the user to apply. Send one file per update, for one project.
 
+When a copy from the city started the work, set `task` to the copy's task (its `# Task:` title, exactly). The city shows the update under that task's finish as one report, with your `summary` as your own words, so write the summary as one plain line for the city, not markdown.
+
 ```json
 {
   "app": "nullovation-city",
   "kind": "change",
   "version": 1,
   "project": "The project's name, exactly as in the summary",
+  "task": "Optional: the task this update reports on, exactly as in the summary",
   "summary": "One line: what this update is about",
   "changes": [
     { "do": "done", "task": "The task's title, exactly" },

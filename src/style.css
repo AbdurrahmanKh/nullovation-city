@@ -423,6 +423,17 @@ kbd {
 .confirm-body { margin: 12px 0 20px; font-size: 15px; color: var(--ink-soft); }
 .modal.panel { width: min(700px, 100%); }
 .modal.panel.wide { width: min(980px, 100%); }
+/* what Claude sent, read whole (0.1.68): a small panel */
+.modal.panel.cr { width: min(560px, 100%); }
+.modal.panel.cr .fv-title { font-size: 24px; }
+.cr-body { display: grid; gap: 16px; margin-top: 14px; }
+.cr-sec { display: grid; gap: 6px; min-width: 0; }
+.cr-h { margin: 0; font: 400 15px/1.25 var(--f-pixel); color: var(--ink); overflow-wrap: anywhere; }
+.cr-title { justify-self: start; font-size: 14px; font-weight: 600; text-align: start; overflow-wrap: anywhere; }
+.cr-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }
+.cr-text.was { color: var(--muted); }
+.cr-url { margin: 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.cr-list { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }
 .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; margin-top: 14px; align-items: stretch; }
 .pick-card { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; margin: 2px; padding: 10px 8px 9px; background: var(--paper); border: 0; box-shadow: var(--px-edge); cursor: pointer; }
 .pick-card:hover { background: #FBF0F6; }
@@ -848,15 +859,19 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 @keyframes claude-pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .b-claude.working .b-claude-dot { animation: none; } }
 .b-claude-when { font-weight: 400; opacity: .8; }
-.b-claude-said { margin: 2px 0 0 18px; font-size: 12px; line-height: 1.4; opacity: .85; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* Claude's own words (0.1.68, C2): one line, marked with its spark, cut short with the whole in its tooltip */
+.b-claude-said { display: flex; align-items: center; gap: 5px; min-width: 0; margin: 2px 0 0 18px; font-size: 12px; line-height: 1.4; color: var(--ink-soft); }
+.b-claude-said .ic { flex: none; }
+.b-claude-said > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: italic; }
 .b-claude-acts { margin: 6px 0 0 18px; display: flex; align-items: center; gap: 8px; }
 .b-claude-fin { flex: 1; min-width: 0; font-size: 12px; line-height: 1.4; color: #8EEBC6; overflow-wrap: anywhere; }
 .b-claude-tick { background: #123F33; color: #8EEBC6; }
 .b-claude-asks .b-claude-line { color: #F5B39A; }
-.b-claude-list { margin: 4px 0 0 18px; padding-left: 16px; font-size: 12px; line-height: 1.45; color: var(--ink-soft, #CFC8E4); }
-.b-claude-list li { overflow-wrap: anywhere; }
-.b-claude-list li.off { opacity: .6; text-decoration: line-through; }
 .b-claude-apply { background: #5C2416; color: #FFE1D4; }
+/* a report's parts (0.1.68, A2): a short line each, two lines at most, with its own buttons */
+.ld-part { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; margin: 5px 0 0 10px; font-size: 12.5px; line-height: 1.4; color: var(--ink-soft); }
+.ld-part-text { flex: 1 1 140px; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.ld-part-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-left: auto; }
 .claude-lost { margin: 0 0 4px; padding-left: 18px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .b-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .b-actions .btn { margin: 0; }
@@ -1391,7 +1406,6 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-line .ld-says { margin: 6px 0 0; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
 .ld-line .b-claude-when { font-size: 12px; color: var(--muted); }
 .ld-line .b-claude-said { margin: 3px 0 0 10px; }
-.ld-line .b-claude-list { margin: 4px 0 0 10px; }
 .ld-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0 10px; }
 .ld-line.b-claude.working .ld-says { box-shadow: inset 2px 0 0 #F5B39A; }
 .ld-card.has-news { align-items: flex-start; }
@@ -1433,7 +1447,8 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-say-thumb { flex: none; display: grid; place-items: end center; width: 24px; height: 22px; }
 .ld-say-thumb canvas.thumb { width: 24px; height: auto; max-height: 22px; object-fit: contain; image-rendering: auto; }
 .ld-say-more:empty { display: none; }
-.ld-say-more .b-claude-list { margin: 0 0 0 2px; }
+.ld-say-more { display: grid; gap: 2px; min-width: 0; }
+.ld-say-more .b-claude-said, .ld-say-more .ld-part { margin-left: 2px; }
 .ld-say-acts { flex-wrap: wrap; align-items: center; }
 .ld-say-count { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ld-say-acts .ld-go { padding: 4px 10px 3px; }

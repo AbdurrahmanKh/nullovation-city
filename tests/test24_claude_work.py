@@ -342,7 +342,7 @@ with sync_playwright() as p:
     fin = [x.strip() for x in pg.locator('#bubble .b-claude .ld-says').all_text_contents()]
     tick = pg.get_attribute('#bubble .b-claude-tick', 'title') or ''
     ok(f'one line a session, the working one first; Tick it under its own finish only, another project\'s copy and a missing task offering none ({fin})',
-       fin[0] == 'Claude is working on Try the project view for a week. Started 2 minutes ago.' and 'Claude finished Round 3: decide the block art loop.' in fin
+       fin[0] == 'Claude is working on Try the project view for a week. Started 2 minutes ago.' and 'Claude finished Round 3: decide the block art loop. Just now.' in fin
        and pg.locator('#bubble .b-claude-tick').count() == 1 and 'Round 3: decide the block art loop' in tick and len(fin) <= 4)
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     for k in ('t1', 't2', 't3', 't4', 't5'):
@@ -359,6 +359,9 @@ with sync_playwright() as p:
         js(f"() => window.__sub.set('inbox/{name}', {{ text: {json.dumps(json.dumps(d))}, t: Date.now() }})")
     gp_state = lambda: js(f"() => {{ const p = getProject('{gp}'); return {{ todos: p.todos.map(t => t.text), notes: p.notes.map(n => n.title), links: p.links.map(l => l.url), ms: p.milestones.map(m => m.name) }}; }}")
     st0 = gp_state()
+    # with no session at work on the building, an update is said on its own, as before (test43 has it under a finish)
+    js(S('a1', 'idle', 'C:\\Users\\me\\garden\\src', task='Water the beds on time'))
+    settle()
     drop('2026-10-14-0900-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'garden planner', 'summary': 'Reminders built',
         'changes': [{'do': 'add-tasks', 'milestone': 'Launch', 'tasks': [{'text': 'Test the reminders on a phone', 'description': 'Both platforms.'}, {'text': 'Write the reminder copy', 'description': 'Short and kind.'}]},
                     {'do': 'add-note', 'title': 'Reminder timing', 'text': 'They fire at 7, from the last watering.'},
@@ -369,8 +372,11 @@ with sync_playwright() as p:
     ok(f'adding tasks, a note and a link applies at once, in the milestone named, by the project\'s name in any case ({launch[-2:]})',
        launch[-2:] == ['Test the reminders on a phone', 'Write the reminder copy'] and 'Reminder timing' in st1['notes'] and 'https://github.com/me/garden/pull/12' in st1['links'] and st1['ms'] == st0['ms'])
     said = js("() => document.querySelector('#ldSay').hidden ? null : [$('#ldSayName').textContent, $('#ldSayWhere').textContent, $('#ldSayText').textContent, [...document.querySelectorAll('#ldSayActs button')].map(b => b.textContent)]")
-    ok(f'its building\'s news says so, in place of the toast, with Undo (Leader UX, 0.1.59) ({said})', said == ['Proxima Pace', 'Garden planner', 'Claude added 2 tasks, a note and 1 link.', ['Undo', 'Go to it']]
+    ok(f'its building\'s news says so, in place of the toast, naming what it added, with its time, Read and Undo (0.1.68) ({said})',
+       said == ['Proxima Pace', 'Garden planner', 'Claude added 2 tasks, a note, Reminder timing, and a link, Reminders PR. Sent just now.', ['Read', 'Undo', 'Go to it']]
        and 'Claude added' not in (pg.text_content('#toast') or ''))
+    words = js("() => { const w = document.querySelector('#ldSayMore .b-claude-said'); return w && [w.textContent, !!w.querySelector('svg')]; }")
+    ok(f'Claude\'s summary under it, in its own words, marked with its spark (C2) ({words})', words == ['Reminders built', True])
     ok('the file moves to inbox/done, so nothing applies twice', js("() => window.__sub.has('inbox/done/2026-10-14-0900-garden.json') && !window.__sub.has('inbox/2026-10-14-0900-garden.json')"))
     acts = js(f"() => getProject('{gp}').activity.slice(-6).map(e => e.text)")
     ok(f'and Activity says what Claude did ({acts[-3:]})', 'Claude: Reminders built' in acts and 'Claude wrote a note: Reminder timing' in acts and 'Added todo: Write the reminder copy' in acts)
@@ -385,30 +391,50 @@ with sync_playwright() as p:
     settle()
     ok('ticking, a new description and a new plan wait in inbox/pending, untouched', js("() => window.__sub.has('inbox/pending/2026-10-14-0910-garden.json') && window.__sub.has('inbox/pending/2026-10-14-0920-garden.json')")
        and gp_state() == st0 and not js(f"() => getProject('{gp}').todos.find(t => t.text === 'Save a plan as a file').done"))
+    js(S('a1', 'working', 'C:\\Users\\me\\garden\\src', task='Water the beds on time'))
+    settle()
     ok(f'the building\'s Claude bubble asks with a ?, over a session working there ({cb(gp)})', cb(gp)['state'] == 'waiting' and cb(gp)['text'] == '?')
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(800)
     asks = pg.locator('#bubble .b-claude-asks')
-    first = asks.nth(0).text_content() if asks.count() else ''
-    ok(f'the status card lists each, in the leaders\' line, with Apply and Dismiss ({asks.count()} | {first[:90]})', asks.count() == 2 and 'Claude wants your OK first: Plans save as files.' in first and 'Tick off: Save a plan as a file' in first
-       and 'New description for Draw the beds on a grid: Drawn at 1:50.' in first and '(not open in this project)' in first and 'Claude wants your OK first: a new plan.' in asks.nth(1).text_content()
-       and 'Replace the plan: 1 milestone, 1 task' in asks.nth(1).text_content())
+    first = asks.nth(0) if asks.count() else None
+    head = first.locator('.ld-says').text_content() if first else ''
+    lines = [x.strip() for x in first.locator('.ld-part-text').all_text_contents()] if first else []
+    btns = [[b.strip() for b in first.locator('.ld-part').nth(i).locator('button.btn').all_text_contents()] for i in range(len(lines))] if first else []
+    ok(f'the status card names what Claude asks, never its summary, with one time (0.1.68) ({asks.count()} | {head})', asks.count() == 2 and head == 'Claude wants your OK first: 3 changes. Sent just now.'
+       and first.locator('.b-claude-said').text_content() == 'Plans save as files')
+    ok(f'a short line for each change, each with its own buttons (A2) ({lines} | {btns})', lines == ['Wants Save a plan as a file ticked off.', 'Wants a new description for Draw the beds on a grid.', 'Wants A task that is not there ticked off. It is not open here.']
+       and btns == [['Tick it', 'Dismiss'], ['Read', 'Apply', 'Dismiss'], ['Dismiss']])
+    second = asks.nth(1).text_content() if asks.count() > 1 else ''
+    ok(f'one change alone has its buttons on the line ({second[:80]})', second.startswith('Claude wants your OK first: a new plan. Sent just now.') and [b.strip() for b in asks.nth(1).locator('.ld-acts button').all_text_contents()] == ['Read', 'Apply', 'Dismiss'])
     pg.screenshot(path=str(SH / '248-claude-asks-first.png'), clip=pg.query_selector('#bubble').bounding_box())
-    asks.nth(0).locator('.b-claude-apply').click(); pg.wait_for_timeout(700)
+    first.locator('.ld-part').nth(1).locator('.ld-read').click(); pg.wait_for_timeout(300)
+    rd = js("() => { const m = document.querySelector('.modal.panel.cr'); return m && [m.querySelector('#pnTitle').textContent, [...m.querySelectorAll('.cr-h')].map(x => x.textContent), [...m.querySelectorAll('.cr-text')].map(x => x.textContent)]; }")
+    ok(f'Read shows the new description whole, and the one it would replace ({rd})', rd and rd[0] == 'A new description for Draw the beds on a grid' and rd[1] == ['The new description', 'Its description now'] and rd[2][0] == 'Drawn at 1:50. Left: labels.')
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    asks.nth(0).locator('.ld-part').nth(0).locator('.b-claude-tick').click(); pg.wait_for_timeout(700)
     g = js(f"() => {{ const p = getProject('{gp}'); return {{ done: p.todos.find(t => t.text === 'Save a plan as a file').done, desc: p.todos.find(t => t.text === 'Draw the beds on a grid').description }}; }}")
-    ok(f'Apply ticks the task and writes the description, skipping what it cannot find ({g})', g == {'done': True, 'desc': 'Drawn at 1:50. Left: labels.'})
-    ok('and the entry is put away in inbox/done', js("() => !window.__sub.has('inbox/pending/2026-10-14-0910-garden.json') && window.__sub.has('inbox/done/2026-10-14-0910-garden.json')") and pg.locator('#bubble .b-claude-asks').count() == 1)
+    ok(f'Tick it ticks that task alone, and the rest waits, marked in its pending file ({g})', g['done'] is True and g['desc'] != 'Drawn at 1:50. Left: labels.'
+       and js("() => { const f = window.__subjson('inbox/pending/2026-10-14-0910-garden.json'); return !!f && f.changes[0]._settled === 'applied' && !f.changes[1]._settled; }")
+       and pg.locator('#bubble .b-claude-asks').nth(0).locator('.ld-part').count() == 2)
+    asks.nth(0).locator('.ld-part').nth(0).locator('.b-claude-apply').click(); pg.wait_for_timeout(700)
+    g = js(f"() => getProject('{gp}').todos.find(t => t.text === 'Draw the beds on a grid').description")
+    ok(f'Apply writes the description ({g})', g == 'Drawn at 1:50. Left: labels.' and 'Gave Draw the beds on a grid its new description.' in pg.text_content('#toast'))
+    asks.nth(0).locator('.b-claude-dismiss').click(); pg.wait_for_timeout(700)
+    ok('with the last one dismissed, the entry is put away in inbox/done', js("() => !window.__sub.has('inbox/pending/2026-10-14-0910-garden.json') && window.__sub.has('inbox/done/2026-10-14-0910-garden.json')") and pg.locator('#bubble .b-claude-asks').count() == 1)
     pg.locator('#bubble .b-claude-asks .b-claude-dismiss').click(); pg.wait_for_timeout(600)
     ok('Dismiss puts it away without applying it', js("() => !window.__sub.has('inbox/pending/2026-10-14-0920-garden.json')") and pg.locator('#bubble .b-claude-asks').count() == 0
        and js(f"() => getProject('{gp}').milestones.map(m => m.name)") == st0['ms'])
+    js(S('a1', 'idle', 'C:\\Users\\me\\garden\\src', task='Water the beds on time'))
+    settle()
     # 0.1.42: Claude ticking a repeat moves it on to its next date (Tasks, Round 2, R4), when you apply it
     js(f"() => {{ const p = getProject('{gp}'), t = p.todos.find(t => t.text === 'Tune the watering reminders'); t.repeat = {{ every: 'day', n: 7 }}; t.due = ymd(); changed(p); }}")
     drop('2026-10-14-0925-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'Garden planner', 'changes': [{'do': 'done', 'task': 'Tune the watering reminders'}]})
     settle()
     asks = pg.locator('#bubble .b-claude-asks')
     said = asks.nth(0).text_content() if asks.count() else ''
-    if asks.count(): asks.nth(0).locator('.b-claude-apply').click(); pg.wait_for_timeout(700)
+    if asks.count(): asks.nth(0).locator('.b-claude-tick').click(); pg.wait_for_timeout(700)
     rep = js(f"() => {{ const t = getProject('{gp}').todos.find(t => t.text === 'Tune the watering reminders'); return [t.done, t.due === ymd(plusDays(startOfDay(Date.now()), 7)), !!t.waiting]; }}")
-    ok(f'Claude ticking a repeat asks first, and Apply moves it on a week, waiting ({rep})', 'Tick off: Tune the watering reminders, on to its next date' in said and rep == [False, True, True])
+    ok(f'Claude ticking a repeat asks first, and Tick it moves it on a week, waiting ({rep} | {said[:90]})', 'Claude wants your OK first: tick off Tune the watering reminders, on to its next date.' in said and rep == [False, True, True])
     js(f"() => {{ const p = getProject('{gp}'), t = p.todos.find(t => t.text === 'Tune the watering reminders'); delete t.repeat; delete t.waiting; t.due = ''; changed(p); }}")
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     drop('2026-10-14-0930-nowhere.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'A project the city has not', 'changes': [{'do': 'add-note', 'title': 'x', 'text': 'y'}]})
@@ -453,6 +479,7 @@ with sync_playwright() as p:
     settle()
     ok(f'a change that asks first counts too ({pg.title()})', pg.title() == '(2) Nullovation City')
     js("() => { window.__cf.delete('w1.json'); }")
+    settle()                                   # the update waited for w1, the session waiting there; gone, it is said on its own
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(600)
     pg.locator('#bubble .b-claude-asks .b-claude-dismiss').click(); pg.wait_for_timeout(500)
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
@@ -460,6 +487,8 @@ with sync_playwright() as p:
     ok(f'with nothing waiting, the title is the city\'s own ({pg.title()})', pg.title() == 'Nullovation City')
 
     # Claude's drones: six fly in and work round the building while its session works
+    js(S('a1', 'working', 'C:\\Users\\me\\garden\\src', task='Water the beds on time'))
+    settle()
     js("() => { Traffic.setOn(true); MapView.invalidate(); MapView.kick(); }"); pg.wait_for_timeout(1600)
     crew = lambda: js(f"""() => {{ const key = [...MapView.layout()].find(([k, p]) => p.id === '{gp}')[0], [u, v] = key.split(',').map(Number),
       ci = WORLD.MARGIN + u * WORLD.PITCH + WORLD.S / 2, cj = WORLD.MARGIN + v * WORLD.PITCH + WORLD.S / 2, cd = Traffic._state().cdrones;

@@ -103,9 +103,10 @@ const ClaudeWork = (() => {
     busy = false;
     const writer = typeof DataFile === 'undefined' || DataFile.isWriter();
     if (canWrite && !summaryAt) writeSummary();
+    let placed = place();                              // the sessions as they are now, so an update finds the session it came from (0.1.68)
     if (canWrite && typeof ClaudeInbox !== 'undefined' && await ClaudeInbox.poll(dir, writer)) moved = true;
     if (state === 'on' && typeof Rounds !== 'undefined') await Rounds.poll(dir, writer);   // a round's answers, as the wizard saves them (0.1.55)
-    const placed = place();
+    placed = place() || placed;
     if (writer) logFinishes();
     if (placed || moved) redraw();
     else if (shown()) render();                        // keeps "last heard" true while Settings shows it
@@ -259,7 +260,8 @@ const ClaudeWork = (() => {
 
   /* What its leader says of Claude's sessions on the building, in the status card (Leader UX, B3, 0.1.59), for as long
      as the card showed them before: one line a session, the most pressing first, at most four. A finish offers Tick it
-     for the open task a city copy started from, once per task, with the start of Claude's reply. */
+     for the open task a city copy started from, once per task, with the start of Claude's reply; when an update reports
+     on the finish, News says it as one report, with Tick it only if Claude asks to tick the task off (0.1.68, B3). */
   function voice(p) {
     const st = statusOf(p, true);
     if (!st) return [];
