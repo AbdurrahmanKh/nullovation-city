@@ -1,11 +1,8 @@
----
-name: nullovation-city-builder
-description: Design the building for a project in Nullovation City, the user's isometric pixel-art project city, as three concepts to choose from, each with a subject-only image prompt, a full image prompt for any service, and an animation prompt. Use this skill whenever the user pastes a Nullovation City builder card, asks for a building, block, or block art for one of their projects, wants a project's building redesigned, or describes the building they want, even if they never name the skill. Do not use it for changes to the city tool's own code, or for a project's tasks or plan, which is nullovation-city.
----
-
 # Nullovation City builder
 
-Nullovation City shows every project as one building on an isometric pixel map. Each building is a company that is always alive, whatever the project's status. This skill works out what a project's building should be and writes three concepts for the user to choose from. The user takes the chosen concept's prompts to an image service; Claude does not draw the building.
+Read this when the user pastes a builder card, asks for a building, block, or block art for one of their projects, wants a project's building redesigned, or describes the building they want.
+
+Nullovation City shows every project as one building on an isometric pixel map. Each building is a company that is always alive, whatever the project's status. This part of the skill works out what a project's building should be and writes three concepts for the user to choose from. The user takes the chosen concept's prompts to an image service; Claude does not draw the building.
 
 ## 1. Understand the project
 
@@ -63,6 +60,6 @@ In every prompt, describe colors in plain words, such as "pale pink trims" or "s
 
 Reply in the chat, never as a file. Write the three concepts in order, each as its pitch, its card, and its three prompt blocks. Nothing follows: each concept already carries what the user needs.
 
-Do not remind the user of service settings such as the image size. When the user asks how to set up a service, what size to use, or how to animate, read `references/services.md` and answer from it.
+Do not remind the user of service settings such as the image size. When the user asks how to set up a service, what size to use, or how to animate, read `references/builder-services.md` and answer from it.
 
 Never use an em dash or an en dash in anything you write; use a comma, colon, semicolon, or hyphen instead.

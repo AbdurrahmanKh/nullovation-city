@@ -62,15 +62,13 @@ The source travels as `nullovation-city-source-v<version>.zip`, with one `nc/` f
 - Building art is 256 px wide, true pixel art, 2:1 isometric, lit from the top left, with a 1 px dark outline, drawn on the plot geometry in the knowledge file. Animations are GIFs with calm motion.
 - Every GIF must decode exactly in the tool's own decoder. Optimize with `art/slim_gifs.py`, which keeps a file only if it decodes pixel-identical and smaller.
 - Show redesigns and new buildings for approval before installing them in the tool.
-- No image model runs here. Images are drawn in code, or made by Abdurrahman in a service such as PixelLab from the builder skill's prompts.
+- No image model runs here. Images are drawn in code, or made by Abdurrahman in a service such as PixelLab from the city skill's building prompts.
 
 ## Skills
 
-The project's skills are in `.claude/skills/`, where Claude Code loads them:
+The city's skill is in `.claude/skills/nullovation-city/`, where Claude Code loads it: one skill (since 0.1.72 in the repo; on claude.ai since 0.1.38) that writes a tasks file or a whole plan as JSON, which the tool loads with Load plan or tasks, sends updates into the city's inbox, and designs a project's building as three concepts (`.claude/skills/nullovation-city/references/builder.md`).
 
-- `nullovation-city`: writes a tasks file or a whole plan as JSON, which the tool loads with Load plan or tasks.
-- `nullovation-city-builder`: designs a project's building as three concepts, each with a subject-only image prompt, a full prompt and an animation prompt.
-
-They are also the sources of the skills in Abdurrahman's claude.ai plugin. After changing one here, it gets reinstalled there.
+- It has a version of its own, `metadata.version` in its header, apart from the city's: bump it with every change to the skill. Its `compatibility` line says which city versions its parts need.
+- It is also the source of the skill on claude.ai, which Claude Code sessions outside this repo load. After changing it, zip the folder as `nullovation-city.skill` (the folder at its top, LF line ends) into `AI-nullovation-city/`, one folder up, for Abdurrahman to upload.
 
 `d-wizard`, for decision rounds, is not part of this repo: it has its own. Claude Code gets it from the personal skills folder (`~/.claude/skills/d-wizard/`), chats and Cowork from the claude.ai plugin.

@@ -1,14 +1,21 @@
 ---
 name: nullovation-city
-description: Write tasks, or a whole plan, for a project in Nullovation City, the user's pixel-city project tracker, as a JSON file the tool loads with Load plan or tasks in the project view's more menu, or send an update straight into the city's inbox from Claude Code. Use this skill whenever the user says "create nullovation tasks", "nullovation tasks", "add this to nullovation", "update the city", or "nullovation-city"; whenever a copy from the city ends with "When you finish, send Nullovation City an update"; asks to build, plan, set up, or restructure a project for Nullovation City or for their city; or pastes a Nullovation City project export (app "nullovation-city", kind "project"). It decides from the request whether to write a few tasks, a whole plan, or an update. Do not use it for a project's building art or leader, which is nullovation-city-builder; for changes to the city tool's own code; for Asana tasks, which is create-asana-task; or for to-do lists that are not meant for the city.
+description: For Nullovation City, the user's pixel-city project tracker. Writes tasks or a whole plan as a JSON file the tool loads with Load plan or tasks, sends an update straight into the city's inbox from Claude Code, or designs a project's building as three concepts with image and animation prompts. Use it whenever the user says "create nullovation tasks", "nullovation tasks", "add this to nullovation", "update the city", or "nullovation-city"; when a copy from the city ends with "When you finish, send Nullovation City an update"; asks to build, plan, set up, or restructure a project for their city; pastes a project export (app "nullovation-city", kind "project") or a builder card; or asks for a building, block, or block art for a project, a redesign, or describes the building they want, even without naming the skill. Not for changes to the city tool's own code, Asana tasks (create-asana-task), or to-do lists not meant for the city.
 metadata:
-  version: "0.1.72"
+  version: "0.1.0"
 compatibility: Needs Nullovation City 0.1.36 or later for updates through the inbox, 0.1.55 for wizard rounds, 0.1.68 for an update to name its task, 0.1.71 for notes in a task, their kinds and icons
 ---
 
-# Nullovation City: tasks and plans
+# Nullovation City
 
-Nullovation City shows every project as a building. Inside, a project has an About, milestones with tasks, notes, and links. This skill writes one of two JSON files for it:
+Nullovation City shows every project as a building. Inside, a project has an About, milestones with tasks, notes, and links. This skill does two jobs for it:
+
+- **Tasks, plans and updates** for a project, below.
+- **A project's building:** when the user pastes a builder card (it starts with `# Nullovation City builder card`), asks for a building, block, or block art for a project, wants a building redesigned, or describes the building they want, read `references/builder.md` and follow it. The rest of this file is not needed for that.
+
+## Tasks, plans and updates
+
+For tasks and plans, this skill writes one of two JSON files:
 
 - **A tasks file** adds one or a few tasks to a project. The user picks the milestone they go into when loading it, and nothing already in the project changes. This is the common case: dropping the tasks a conversation produced into the project it belongs to.
 - **A plan** sets up or restructures a whole project: its About, milestones, tasks, and ideas. Loading it replaces the project's About, milestones, and tasks, after a warning, and adds its ideas to the notes.

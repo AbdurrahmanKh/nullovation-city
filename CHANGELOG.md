@@ -2,8 +2,11 @@
 
 ## 0.1.72 (2026-10-27)
 
-- The nullovation-city skill names its version, 0.1.72, and the city versions it needs, as the d-wizard skill does.
-- Tests: test17_source checks the skill names its version, never ahead of the city's.
+One skill for the city in the repo, as on claude.ai, with a version of its own.
+- The nullovation-city skill in the repo is now the one on claude.ai: tasks, plans, updates and building designs, the building part in `references/builder.md`, with the note rules of 0.1.71 added. The separate nullovation-city-builder skill is gone.
+- The skill names a version of its own, 0.1.0, apart from the city's, and the city versions its parts need, as the d-wizard skill does.
+- The skill's upload for claude.ai is zipped from the repo's folder as it is.
+- Tests: test17_source checks one skill for the city, with its building part and its version.
 
 ## 0.1.71 (2026-10-27)
 

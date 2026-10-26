@@ -9,7 +9,7 @@ Read this only when the user asks how to set up a service, what size to use, or 
 - The plot is part of the art: its surface is a flat diamond twice as wide as it is tall, spanning nearly the full image width (x 5 to 250 of 256, outline included), with its front corner at the bottom edge, centered. Draw the surface and everything on it; the city draws nothing under it.
 - No empty margins; the canvas ends where the art ends.
 - A PNG for a still building, a GIF for an animated one.
-- Colors from the city palette. In the tool, Tools in the side bar has Download palette, which saves the palette as a PNG for services that accept a forced palette.
+- Colors from the city palette. In the tool, Settings, Look, has Download palette, which saves the palette as a PNG for services that accept a forced palette.
 
 ## PixelLab
 

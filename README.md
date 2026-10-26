@@ -42,7 +42,7 @@ GitHub Pages serves `index.html` straight from the branch: in Settings, Pages, p
 - `tools/pack.py`: the source archive that carries the work to a claude.ai chat and back.
 - `docs/nullovation-city-knowledge.md`: everything about the tool: features, code, data, art, decisions and open items.
 - `CLAUDE.md`: the working rules for Claude Code. It imports the knowledge file.
-- `.claude/skills/`: the `nullovation-city` and `nullovation-city-builder` skills, where Claude Code loads them.
+- `.claude/skills/`: the `nullovation-city` skill (tasks, plans, updates and building designs), where Claude Code loads it.
 
 ## Art
 

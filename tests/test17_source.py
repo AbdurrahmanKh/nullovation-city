@@ -62,11 +62,12 @@ knowledge = ROOT / 'docs' / 'nullovation-city-knowledge.md'
 ok('the knowledge file is in docs/ and states this version', knowledge.exists() and f'version {VERSION}' in knowledge.read_text(encoding='utf-8'))
 skills = sorted(p.parent.name for p in (ROOT / '.claude' / 'skills').glob('*/SKILL.md'))
 names = [re.search(r'^name:\s*"?([\w-]+)"?', (ROOT / '.claude' / 'skills' / s / 'SKILL.md').read_text(encoding='utf-8'), re.M) for s in skills]
-ver = re.search(r'^metadata:\n  version: "(\d+\.\d+\.\d+)"\n', (ROOT / '.claude' / 'skills' / 'nullovation-city' / 'SKILL.md').read_text(encoding='utf-8'), re.M)
-tool = tuple(int(x) for x in (ROOT / 'src' / 'VERSION').read_text(encoding='utf-8').strip().split('.'))
-ok(f'the nullovation-city skill names its version, as the d-wizard skill does, never ahead of the city ({ver and ver.group(1)})', ver and tuple(int(x) for x in ver.group(1).split('.')) <= tool)
-ok(f'the two skills of the city sit where Claude Code loads them ({skills})',
-   skills == ['nullovation-city', 'nullovation-city-builder'] and all(n and n.group(1) == s for n, s in zip(names, skills)))
+skill_md = (ROOT / '.claude' / 'skills' / 'nullovation-city' / 'SKILL.md').read_text(encoding='utf-8')
+ver = re.search(r'^metadata:\n  version: "(\d+\.\d+\.\d+)"\n', skill_md, re.M)
+ok(f'the city\'s skill names a version of its own, as the d-wizard skill does ({ver and ver.group(1)})', ver is not None)
+ok(f'one skill for the city (0.1.72): tasks, plans, updates and building designs, where Claude Code loads it ({skills})',
+   skills == ['nullovation-city'] and all(n and n.group(1) == s for n, s in zip(names, skills))
+   and (ROOT / '.claude' / 'skills' / 'nullovation-city' / 'references' / 'builder.md').exists() and 'references/builder.md' in skill_md)
 texts = [ROOT / 'CLAUDE.md', ROOT / 'README.md', ROOT / 'CHANGELOG.md', ROOT / 'requirements.txt', knowledge,
          ROOT / 'tests' / 'testkit.py', ROOT / 'tests' / 'run_tests.py', ROOT / 'tools' / 'pack.py', ROOT / 'build.py',
          ROOT / 'tests' / 'test17_source.py', ROOT / 'art' / 'sources' / 'README.md',
@@ -83,7 +84,7 @@ with tempfile.TemporaryDirectory() as tmp:
     names = zipfile.ZipFile(archive).namelist() if archive.exists() else []
     need = ['nc/CLAUDE.md', 'nc/README.md', 'nc/docs/nullovation-city-knowledge.md', 'nc/src/VERSION', 'nc/build.py',
             'nc/tests/testkit.py', 'nc/tests/run_tests.py', 'nc/tools/pack.py', 'nc/src/buildings/meta.json', 'nc/index.html',
-            'nc/.claude/skills/nullovation-city/SKILL.md', 'nc/.claude/skills/nullovation-city-builder/SKILL.md',
+            'nc/.claude/skills/nullovation-city/SKILL.md', 'nc/.claude/skills/nullovation-city/references/builder.md',
             'nc/src/portraits/gus.png', 'nc/src/portraits/proxima.png', 'nc/src/portraits/quill.png', 'nc/sw.js', 'nc/src/app/manifest.webmanifest', 'nc/src/app/sw.js']
     ok('the archive holds the rules, the knowledge, the skills, the tooling, the portraits and the files of the app', all(n in names for n in need))
     left = [n for n in names if re.match(r'nc/(dist|tests/shots|tests/data|\.git|art/out|art/canon/out)/', n) or '__pycache__' in n]
