@@ -62,6 +62,9 @@ knowledge = ROOT / 'docs' / 'nullovation-city-knowledge.md'
 ok('the knowledge file is in docs/ and states this version', knowledge.exists() and f'version {VERSION}' in knowledge.read_text(encoding='utf-8'))
 skills = sorted(p.parent.name for p in (ROOT / '.claude' / 'skills').glob('*/SKILL.md'))
 names = [re.search(r'^name:\s*"?([\w-]+)"?', (ROOT / '.claude' / 'skills' / s / 'SKILL.md').read_text(encoding='utf-8'), re.M) for s in skills]
+ver = re.search(r'^metadata:\n  version: "(\d+\.\d+\.\d+)"\n', (ROOT / '.claude' / 'skills' / 'nullovation-city' / 'SKILL.md').read_text(encoding='utf-8'), re.M)
+tool = tuple(int(x) for x in (ROOT / 'src' / 'VERSION').read_text(encoding='utf-8').strip().split('.'))
+ok(f'the nullovation-city skill names its version, as the d-wizard skill does, never ahead of the city ({ver and ver.group(1)})', ver and tuple(int(x) for x in ver.group(1).split('.')) <= tool)
 ok(f'the two skills of the city sit where Claude Code loads them ({skills})',
    skills == ['nullovation-city', 'nullovation-city-builder'] and all(n and n.group(1) == s for n, s in zip(names, skills)))
 texts = [ROOT / 'CLAUDE.md', ROOT / 'README.md', ROOT / 'CHANGELOG.md', ROOT / 'requirements.txt', knowledge,

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.72 (2026-10-27)
+
+- The nullovation-city skill names its version, 0.1.72, and the city versions it needs, as the d-wizard skill does.
+- Tests: test17_source checks the skill names its version, never ahead of the city's.
+
 ## 0.1.71 (2026-10-27)
 
 Claude's notes and notes in a task, from Claude's Notes, Rounds 1 and 2: what Claude keeps in the city, kind by kind, and where.

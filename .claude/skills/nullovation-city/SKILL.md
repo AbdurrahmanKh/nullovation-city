@@ -1,6 +1,9 @@
 ---
 name: nullovation-city
 description: Write tasks, or a whole plan, for a project in Nullovation City, the user's pixel-city project tracker, as a JSON file the tool loads with Load plan or tasks in the project view's more menu, or send an update straight into the city's inbox from Claude Code. Use this skill whenever the user says "create nullovation tasks", "nullovation tasks", "add this to nullovation", "update the city", or "nullovation-city"; whenever a copy from the city ends with "When you finish, send Nullovation City an update"; asks to build, plan, set up, or restructure a project for Nullovation City or for their city; or pastes a Nullovation City project export (app "nullovation-city", kind "project"). It decides from the request whether to write a few tasks, a whole plan, or an update. Do not use it for a project's building art or leader, which is nullovation-city-builder; for changes to the city tool's own code; for Asana tasks, which is create-asana-task; or for to-do lists that are not meant for the city.
+metadata:
+  version: "0.1.72"
+compatibility: Needs Nullovation City 0.1.36 or later for updates through the inbox, 0.1.55 for wizard rounds, 0.1.68 for an update to name its task, 0.1.71 for notes in a task, their kinds and icons
 ---
 
 # Nullovation City: tasks and plans

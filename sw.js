@@ -1,4 +1,4 @@
-/* Nullovation City's service worker, version 0.1.71. It keeps a copy of the city so the installed app opens
+/* Nullovation City's service worker, version 0.1.72. It keeps a copy of the city so the installed app opens
    offline. Online, the newest version always loads: the network is tried first, and the copy is used only when the
    network fails. build.py writes it to sw.js beside the page, since a worker only looks after the pages in its own
    folder and GitHub Pages cannot widen that; each version changes this file, so the browser takes the new worker.
