@@ -86,7 +86,11 @@ const Leaders = (() => {
   const noFace = size => { const el = h('span', { class: 'ld-face ld-none', 'aria-hidden': 'true' }); el.style.setProperty('--face', size + 'px'); return el; };
 
   /* ---------- portraits ---------- */
+  /* Quill's portrait ships with the city (0.1.69): kept with the leaders' under his id, so his face is framed and
+     breathes as theirs do. */
+  const keepQuill = () => { if (typeof PORTRAITS !== 'undefined' && PORTRAITS.quill) urls.set(QUILL.id, PORTRAITS.quill); };
   async function loadAll() {
+    keepQuill();
     for (const l of DB.leaders) if (l.portrait && !urls.has(l.id)) { const u = await Store.getArt(portraitKey(l.id)); if (u) urls.set(l.id, u); }
     for (const u of urls.values()) await measure(u);
     refreshAll();
@@ -116,6 +120,7 @@ const Leaders = (() => {
   let editing = null;                                        // the leader the editor shows, while it shows
   const isOpen = () => !!$('#leadersPanel') && !$('#leadersPanel').hidden;
   function init() {
+    keepQuill();
     $('#ldPlus').innerHTML = iconSvg('plus', 12); $('#ldPlus').style.display = 'inline-flex';
     $('#sbLeaderIcon').innerHTML = iconSvg('leader', 16); $('#sbLeaderIcon').style.display = 'inline-flex';
     $('#ldBack').innerHTML = iconSvg('back', 18);
@@ -351,16 +356,25 @@ const Leaders = (() => {
 
   /* ---------- where a leader shows ---------- */
   /* the leader card under the building's picture in the project view: the face at 96 px (64 until 0.1.57), the name in
-     its color, the role, and what the leader says (0.1.58): its news for this building (0.1.59), else its greeting with
-     the next task, in a quote with a bar in its color. The full title is the line's tooltip when the line cuts it
-     short. */
+     its color, the role, and what the leader says (0.1.58): since 0.1.69 what the status card says, with its buttons
+     (Leader Bubbles, Round 2, N1: "it tells you the latest things, and if there is an action you can take, you can take
+     it there"), Claude at work included; else its greeting with the next task, in a quote with a bar in its color. The
+     full title is the line's tooltip when the line cuts it short. A building with no leader has Proxima say it, as on
+     the status card, with Pick a leader; with nothing to say, the card offers to pick one. */
   let lastPick = null;
   function card(p, onPick) {
     lastPick = { pid: p.id, onPick };
-    const l = leaderOf(p);
-    if (!l) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
+    const l = leaderOf(p), news = News.viewLines(p);
+    if (!l && !news.length) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
       noFace(48), h('span', { class: 'ld-card-text' }, h('b', null, 'No leader yet'), h('span', null, 'Pick a leader')));
-    const t = nextTask(p), news = News.viewLines(p);
+    if (!l) {
+      const box = h('div', { id: 'pvLeader', class: 'ld-card has-news px-voice' }, breathe(Proxima.faceEl(96), 'proxima'),
+        h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name' }, 'Proxima Pace'), h('span', null, 'Productivity Inspector'), ...news),
+        h('button', { class: 'btn btn-quiet btn-small ld-change', type: 'button', title: 'Pick a leader for this building', onclick: onPick }, 'Pick a leader'));
+      box.style.setProperty('--ld', '#8FD0F7');
+      return box;
+    }
+    const t = nextTask(p);
     const says = news.length ? news : [h('span', { class: 'ld-says', dir: 'auto', title: t && t.text.length > LEADER_TITLE_MAX ? t.text : null }, leaderGreeting(p))];
     const box = h('div', { id: 'pvLeader', class: 'ld-card' + (news.length ? ' has-news' : '') }, face(l, 96),
       h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null, ...says),
@@ -399,7 +413,7 @@ const Leaders = (() => {
   /* ---------- leaders in backups and project files ---------- */
   async function dropAll() {
     for (const l of DB.leaders) await Store.deleteArt(portraitKey(l.id));
-    urls.clear(); DB.leaders = [];
+    urls.clear(); keepQuill(); DB.leaders = [];
   }
   /* A backup's leaders, with their portraits; resolves how many portraits this browser holds for this session only. */
   async function restore(list) {

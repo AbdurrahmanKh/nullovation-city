@@ -7,6 +7,7 @@
     DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(saved.city, oldCrowd), leaders: sanitizeLeaders(saved.leaders), projects: sanitizeProjects(saved.projects).map(x => x.p) };
     tidyLeaders();
     archiveDueTasks();                                     // done tasks past their 7 days go to the archive (A2a, D1)
+    logOverdue();                                          // a task gone overdue, a line in Activity (0.1.69)
     Store.save(DB);
   } else {
     DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null, oldCrowd), leaders: [], projects: seedProjects() };
@@ -87,6 +88,7 @@
   let today = ymd();
   setInterval(() => {
     Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); Backups.tick();
+    if (logOverdue()) persistSoon();                       // within a minute of a task going overdue, or a date set in the past
     if (ymd() === today) return;
     today = ymd();
     if (archiveDueTasks()) { persistSoon(); Menu.refresh(); }

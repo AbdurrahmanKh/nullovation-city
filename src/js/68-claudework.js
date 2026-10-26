@@ -107,7 +107,6 @@ const ClaudeWork = (() => {
     if (canWrite && typeof ClaudeInbox !== 'undefined' && await ClaudeInbox.poll(dir, writer)) moved = true;
     if (state === 'on' && typeof Rounds !== 'undefined') await Rounds.poll(dir, writer);   // a round's answers, as the wizard saves them (0.1.55)
     placed = place() || placed;
-    if (writer) logFinishes();
     if (placed || moved) redraw();
     else if (shown()) render();                        // keeps "last heard" true while Settings shows it
     if (state === 'on') schedule();
@@ -206,28 +205,9 @@ const ClaudeWork = (() => {
     title();
   }
 
-  /* A finish, once per session and what it worked on, as a line in the project's Activity at the time it finished.
-     It makes the building busier for the week, as Activity does; it is not work for urgency (only a tick is). */
-  const FIN = 'Claude Code finished';
-  function logFinishes() {
-    for (const [id, ss] of byProject) {
-      const p = DB.projects.find(x => x.id === id);
-      if (!p) continue;
-      let added = false;
-      for (const s of ss) {
-        if (s.state !== 'done') continue;
-        const what = s.task || s.ask, ref = 'claude:' + s.session + ':' + what.trim().toLowerCase().slice(0, 160);
-        if (!Array.isArray(p.activity)) p.activity = [];
-        if (p.activity.some(e => e.ref === ref)) continue;
-        const e = { at: s.at, text: (what ? FIN + ': ' + what : FIN).slice(0, 300), ref };
-        const k = p.activity.findIndex(x => x.at > e.at);
-        if (k < 0) p.activity.push(e); else p.activity.splice(k, 0, e);
-        if (p.activity.length > ACTIVITY_MAX) p.activity.splice(0, p.activity.length - ACTIVITY_MAX);
-        added = true;
-      }
-      if (added) window.changed(p, { touch: false });
-    }
-  }
+  /* A finish wrote "Claude Code finished: <task>" in Activity from 0.1.37 to 0.1.68. Claude writes nothing there since
+     0.1.69 but a wizard round it attaches (Leader Bubbles, Round 2, C2: "I don't want Claude to add to activity anymore
+     for now"); the lines already written stay. */
 
   /* The tab's title: '(2) Nullovation City' while sessions wait for you, finished or stopped unseen, or Claude's
      changes ask first, so it shows from another tab. */
@@ -339,6 +319,7 @@ const ClaudeWork = (() => {
     if (typeof News !== 'undefined') News.claude();      // Claude waiting, stopped, finished or asking first: its leader's news
     if (typeof MapView !== 'undefined') MapView.invalidate();
     if (typeof Bubble !== 'undefined') Bubble.refresh();
+    if (typeof Leaders !== 'undefined') Leaders.redrawCard();   // the leader card says Claude at work too (0.1.69)
   }
   function render() {
     const box = $('#claudeBox');

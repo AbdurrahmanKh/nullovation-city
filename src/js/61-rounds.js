@@ -9,9 +9,11 @@
      wizard, given that folder once, saves the answers as you go (W3, F1). With no Claude folder, the answers file is
      dropped back on the task.
    - The answers come back into the task as the wizard saves them, with a toast once they stop arriving (X1), and the
-     hat turns teal once nothing is open, or once you mark the round answered with the rest skipped (A1, S1). */
+     hat turns teal once nothing is open, or once you mark the round answered with the rest skipped (A1, S1).
+   - Since 0.1.69 (Leader Bubbles, Round 2, C1 and C2) Quill says a round's answers coming in, and writes them in the
+     task's Activity; and a round reads in a small popup with Open in wizard, from Quill's bubble, the leaders' cards,
+     and the card's Show the answers. */
 const Rounds = (() => {
-  const unfolded = new Set();            // the cards showing their answers; every panel opens folded (P1a)
   const stamps = new Map();              // task id -> the round file's stamp when last read
   const waits = new Map();               // task id -> the toast waiting for its answers to stop arriving
   const HINT_KEY = 'nullovation-city:wizardHint';
@@ -178,11 +180,16 @@ const Rounds = (() => {
       waits.delete(t.id);
       const st = roundState(t);
       if (!st) return;
-      /* its leader says it, in place of the toast (Leader UX, T1, 0.1.59), with Open; it waits with its leader */
+      /* Quill says it, in place of the toast (Leader UX, T1, 0.1.59; Quill since 0.1.69), with Read and Open; it waits in
+         News. Wizard rounds appear in Activity (Leader Bubbles, Round 2, C2): each time they come in, how far it is. */
+      logActivity(p, answersLine(t.round.title, st));
+      changed(p, { touch: false });
       News.add(p, 'answers', { round: t.round.title, n: st.answered, total: st.total }, { ref: { tid: t.id }, key: 'answers:' + t.id });
     }, ANNOUNCE_MS));
   }
   const ANNOUNCE_MS = 4000;
+  /* The Activity line: "Answers in for <round>: 7 of 8", in cards seen for a brainstorm. */
+  const answersLine = (title, st) => 'Answers in for ' + title + ': ' + st.answered + ' of ' + st.total + (st.brainstorm ? ' cards seen' : '');
 
   /* ---------- in the change files Claude sends (add-round) ---------- */
   /* A change naming a task and its round's file in wizard-rounds, or carrying the round itself. */
@@ -230,16 +237,16 @@ const Rounds = (() => {
       h('span', { class: 'hat ' + (st.done ? 'hat-done' : 'hat-open'), 'aria-hidden': 'true', html: hatSvg(12) }), st.done ? 'Answered' : st.answered + ' of ' + st.total);
   }
   /* The card in the task panel, under Pin and Star (P1): the state, the title, the file, Wizard it, Mark answered,
-     Remove, and the answers, folded until asked for (P1a). An archived task's card is to read. */
+     Remove, and Show the answers, which opens the round in its popup since 0.1.69 (it unfolded them in place until
+     then, P1a). An archived task's card is to read. */
   function card(p, t, { readOnly = false } = {}) {
     const r = t && t.round;
     if (!r) return null;
-    const st = roundState(t), open = unfolded.has(t.id), hasAnswers = !!r.a || st.marked;
+    const st = roundState(t), hasAnswers = !!r.a || st.marked;
     const label = st.brainstorm ? 'Brainstorm, round ' + st.brainstorm : 'Wizard round';
     const el = h('section', { class: 'pv-round' + (st.done ? ' done' : '') + (st.brainstorm ? ' brainstorm' : ''), 'aria-label': label });
-    const fold = hasAnswers ? h('button', { class: 'pv-round-fold', type: 'button', 'aria-expanded': String(open),
-      onclick: () => { if (open) unfolded.delete(t.id); else unfolded.add(t.id); const nu = card(p, t, { readOnly }); el.replaceWith(nu); const b = $('.pv-round-fold', nu); if (b) b.focus(); } },
-      h('span', { 'aria-hidden': 'true', html: iconSvg(open ? 'caretD' : 'caretR', 9) }), open ? 'Answers' : 'Show the answers') : null;
+    const fold = hasAnswers ? h('button', { class: 'pv-round-fold', type: 'button', 'aria-haspopup': 'dialog', title: 'Read the round with its answers',
+      onclick: () => view(p, t) }, h('span', { 'aria-hidden': 'true', html: iconSvg('caretR', 9) }), 'Show the answers') : null;
     el.append(
       h('div', { class: 'pv-round-head' }, hatEl(t, 16), h('span', { class: 'pv-round-lbl' }, label), h('span', { class: 'pv-round-state' }, roundStateText(st))),
       h('p', { class: 'pv-round-title', dir: 'auto' }, r.title),
@@ -251,8 +258,23 @@ const Rounds = (() => {
           onclick: () => { mark(p, t); const b = side() && $('#pvRoundWizard', side()); if (b) b.focus(); } }, 'Mark answered') : null,
         !readOnly ? h('button', { id: 'pvRoundRemove', class: 'btn btn-quiet btn-small pv-round-remove', type: 'button', title: 'Takes the round off this task; its file stays in the folder',
           onclick: () => remove(p, t) }, 'Remove') : null),
-      ...[fold, open && hasAnswers ? answersList(r, st) : null].filter(Boolean));
+      ...[fold].filter(Boolean));
     return el;
+  }
+  /* The round in a small popup (0.1.69, Leader Bubbles, Round 2, C1: "it opens a small popup, and the same popup will
+     open when we click Show the answers"): where it stands, its title and file, each question with its answer so far
+     (Open, or Skipped once marked), and Open in wizard, which is Wizard it. Esc closes it. */
+  function view(p, t) {
+    const r = t && t.round;
+    if (!r) return;
+    const st = roundState(t), label = st.brainstorm ? 'Brainstorm, round ' + st.brainstorm : 'Wizard round';
+    Panel.open(r.title, h('div', { class: 'cr-body rd-body' },
+      h('div', { class: 'rd-head' }, hatEl(t, 16), h('span', { class: 'pv-round-lbl' }, label), h('span', { class: 'pv-round-state' }, roundStateText(st))),
+      h('p', { class: 'rd-for', dir: 'auto' }, 'For ', h('bdi', null, t.text), ', in ', h('bdi', null, p.name), '.'),
+      h('p', { class: 'pv-round-file', dir: 'ltr', title: roundPath(r) || ROUNDS_DIR + '\\' + r.file + ', in the Claude folder' }, ROUNDS_DIR + '\\' + r.file),
+      answersList(r, st),
+      h('div', { class: 'rd-btns' }, h('button', { id: 'rdWizard', class: 'btn btn-accent', type: 'button', title: st.done ? 'Opens it in your wizard' : 'Answers it in your wizard',
+        onclick: () => { Panel.close(); wizard(p, t); } }, h('span', { class: 'hat', 'aria-hidden': 'true', html: hatSvg(14) }), 'Open in wizard'))), 'cr rd');
   }
   const side = () => $('#pvSide');
   function answersList(r, st) {
@@ -277,6 +299,6 @@ const Rounds = (() => {
   /* The round's file for Cowork, when its full path is known. */
   const files = t => (t && t.round && roundPath(t.round) ? [roundPath(t.round)] : []);
 
-  return { wizard, openWizard, openLink, appLink, take, dropFile, poll, fromChange, mark, remove, hatButton, chip, card, dropLine, files, fileText, writeFile, readFile,
-    foldAll: () => unfolded.clear(), ANNOUNCE_MS };
+  return { wizard, openWizard, openLink, appLink, take, dropFile, poll, fromChange, mark, remove, hatButton, chip, card, view, dropLine, files, fileText, writeFile, readFile,
+    answersLine, ANNOUNCE_MS };
 })();

@@ -251,18 +251,19 @@ with sync_playwright() as p:
     ok('Wizard it now carries the answers so far, so a wizard without the round gets them too', sent()[1]['answers']['meta']['answered'] == 3
        and sent()[1]['answers'] == answers(3) and sent()[1]['round']['config']['title'] == TITLE)
     quiet()
-    ok('with Mark answered now, and the answers folded (P1a)', pg.is_visible('#pvRoundMark') and pg.text_content('#pvSide .pv-round-fold').strip() == 'Show the answers'
-       and pg.locator('#pvSide .pv-round-ans').count() == 0 and pg.get_attribute('#pvSide .pv-round-fold', 'aria-expanded') == 'false')
+    ok('with Mark answered now, and Show the answers, the answers not in the card (P1a; a popup since 0.1.69)', pg.is_visible('#pvRoundMark') and pg.text_content('#pvSide .pv-round-fold').strip() == 'Show the answers'
+       and pg.locator('#pvSide .pv-round-ans').count() == 0 and pg.get_attribute('#pvSide .pv-round-fold', 'aria-haspopup') == 'dialog')
     pg.screenshot(path=str(SHOTS / '372-card-folded.png'), clip=pg.query_selector('#pvSide').bounding_box())
-    pg.click('#pvSide .pv-round-fold'); pg.wait_for_timeout(150)
-    li = ev("() => [...document.querySelectorAll('#pvSide .pv-round-ans li')].map(l => [l.className, l.querySelector('.id').textContent, l.querySelector('.a').textContent])")
-    ok(f'a click shows every question with its answer ({len(li)})', len(li) == 8 and li[0][1:] == ['B1', 'A grid'] and li[1][2] == '30 cm' and li[2][2] == 'Yes, in gravel grey')
+    pg.click('#pvSide .pv-round-fold'); pg.wait_for_timeout(200)
+    li = ev("() => [...document.querySelectorAll('.modal.panel.rd .pv-round-ans li')].map(l => [l.className, l.querySelector('.id').textContent, l.querySelector('.a').textContent])")
+    ok(f'a click opens the round in its popup, every question with its answer ({len(li)})', len(li) == 8 and li[0][1:] == ['B1', 'A grid'] and li[1][2] == '30 cm' and li[2][2] == 'Yes, in gravel grey')
     ok('the open ones say Open', li[3] == ['open', 'B4', 'Open'] and li[7] == ['open', 'B8', 'Open'])
-    ok('a note and a follow-up under their answer', 'Note: keep the middle path wide' in pg.text_content('#pvSide .pv-round-ans li:first-child') and 'Grid paths: 50 cm' in pg.text_content('#pvSide .pv-round-ans li:first-child'))
-    ok('the focus stays on the fold', ev("() => document.activeElement && document.activeElement.classList.contains('pv-round-fold')") and pg.get_attribute('#pvSide .pv-round-fold', 'aria-expanded') == 'true')
-    pg.screenshot(path=str(SHOTS / '373-card-answers.png'), clip=pg.query_selector('#pvSide').bounding_box())
+    ok('a note and a follow-up under their answer', 'Note: keep the middle path wide' in pg.text_content('.modal.panel.rd .pv-round-ans li:first-child') and 'Grid paths: 50 cm' in pg.text_content('.modal.panel.rd .pv-round-ans li:first-child'))
+    pg.screenshot(path=str(SHOTS / '373-card-answers.png'))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    ok('Esc closes it, the focus back on Show the answers', pg.locator('.modal.panel.rd').count() == 0 and ev("() => document.activeElement && document.activeElement.classList.contains('pv-round-fold')"))
     open_task(T1)
-    ok('the panel opened again starts folded (P1a)', pg.locator('#pvSide .pv-round-ans').count() == 0)
+    ok('the panel opened again shows no answers in the card', pg.locator('#pvSide .pv-round-ans').count() == 0)
 
     # what will not attach
     drop('other-answers.json', answers(3, title='Another round, Round 4'))
@@ -282,9 +283,10 @@ with sync_playwright() as p:
     ok(f'Mark answered: the round counts as answered, the rest skipped ({said()})', said() == 'Marked answered: 5 questions skipped.' and pg.text_content('#pvSide .pv-round-state') == 'Answered: 3 of 8, 5 skipped')
     ok('the hat turns teal, the card\'s edge too, and Wizard it reads Open in wizard', hat('#pvSide .pv-round-head .hat') == 'done' and ev("() => document.querySelector('#pvSide .pv-round').classList.contains('done')")
        and pg.text_content('#pvRoundWizard').strip() == 'Open in wizard' and pg.locator('#pvRoundMark').count() == 0)
-    pg.click('#pvSide .pv-round-fold'); pg.wait_for_timeout(150)
-    ok('its open questions say Skipped', ev("() => [...document.querySelectorAll('#pvSide .pv-round-ans li.skip .a')].map(a => a.textContent)") == ['Skipped'] * 5)
-    pg.screenshot(path=str(SHOTS / '374-card-marked.png'), clip=pg.query_selector('#pvSide').bounding_box())
+    pg.click('#pvSide .pv-round-fold'); pg.wait_for_timeout(200)
+    ok('its open questions say Skipped', ev("() => [...document.querySelectorAll('.modal.panel.rd .pv-round-ans li.skip .a')].map(a => a.textContent)") == ['Skipped'] * 5)
+    pg.screenshot(path=str(SHOTS / '374-card-marked.png'))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     ok('Undo takes the mark back', undo() and not get(T1)['round']['marked'] and pg.text_content('#pvSide .pv-round-state') == 'Waiting: 3 of 8 answered')
     quiet()
     pg.click('#pvRoundRemove'); pg.wait_for_timeout(150)
@@ -489,16 +491,18 @@ with sync_playwright() as p:
     pg.wait_for_timeout(3400)
     ok('the last one lands: answered, the hat teal', get(T1)['round']['a']['meta']['answered'] == 8 and hat(f'li.task[data-id="{tid(T1)}"] .round-hat') == 'done')
     pg.wait_for_timeout(4200)
-    news = ev("() => News.items().filter(it => it.moment === 'answers').map(it => News.lineOf(it))")
-    ok(f'once they stop arriving, its building\'s news says so in place of the toast, waiting with Proxima for a building with no leader (X1, Leader UX T1) ({news})',
-       news == ['Your answers are in for ' + TITLE + ': 8 of 8.'] and said() == '' and ev("() => !!document.querySelector('#newsList .news-tile[data-k=\"px\"]')"))
-    pg.click('#newsList .news-tile[data-k="px"] .news-face'); pg.wait_for_timeout(300)
-    acts = ev("() => [...document.querySelectorAll('#ldSayActs button')].map(b => b.textContent)")
-    ok(f'a click on the face says it, with Open ({acts})', acts[:1] == ['Open'])
+    card = ev("() => { const l = document.querySelector('#pvLeader .ld-line.by-other'); return l && [l.querySelector('.ld-says').textContent, [...l.querySelectorAll('.ld-acts button')].map(b => b.textContent)]; }")
+    ok(f'once they stop arriving, Quill says so in place of the toast: with the project view open, on its card, where Proxima speaks for a building with no leader (X1, Leader UX T1; 0.1.69) ({card})',
+       card == ['Quill: Your answers are in for ' + TITLE + ': 8 of 8.', ['Read', 'Open']] and said() == '')
+    ok('the card read it, as the status card does: nothing waits in News', ev("() => News.items().filter(it => it.moment === 'answers').length") == 0)
+    act_lines = ev("() => getProject(DB.projects.find(p => p.name === 'Garden planner').id).activity.filter(e => e.text.startsWith('Answers in for')).map(e => e.text)")
+    ok(f'and each time they come in, a line in Activity (0.1.69, C2) ({act_lines})', act_lines[-1:] == ['Answers in for ' + TITLE + ': 8 of 8'])
     pg.screenshot(path=str(SHOTS / '381-answers-in.png'))
-    pg.click('#ldSay .ld-open'); pg.wait_for_timeout(400)
-    ok('Open opens the task, and the news is read', ev("() => News.items().filter(it => it.moment === 'answers').length") == 0 and ev("() => document.querySelector('#ldSay').hidden")
-       and ev("() => !!document.querySelector('#pvSide #pvTaskDesc')"))
+    pg.click('#pvLeader .ld-line.by-other .ld-round-read'); pg.wait_for_timeout(300)
+    ok('Read opens the round in its popup, with Open in wizard', pg.locator('.modal.panel.rd .pv-round-ans li').count() == 8 and pg.is_visible('#rdWizard'))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    pg.click('#pvLeader .ld-line.by-other .ld-open'); pg.wait_for_timeout(400)
+    ok('Open opens the task', ev("() => !!document.querySelector('#pvSide #pvTaskDesc')"))
     ev("() => document.activeElement && document.activeElement.blur()")
     ok('the answers coming in are not work: Updated stays', proj()['updatedAt'] == u0)
     quiet()
@@ -515,12 +519,13 @@ with sync_playwright() as p:
     t3 = get(T3)
     ok('add-round attaches the round Claude wrote in wizard-rounds to the task it names', t3.get('round') and t3['round']['title'] == 'Icons, Round 1' and t3['round']['file'] == '2026-10-22-icons-round1.json'
        and t3['round']['folder'] == 'D:\\City\\Claude\\wizard-rounds')
-    news = ev("() => { const b = document.querySelector('#ldSay'); return b.hidden ? null : [$('#ldSayText').textContent, [...b.querySelectorAll('#ldSayActs button')].map(x => x.textContent)]; }")
-    ok(f'at once, its building\'s news saying so in place of the toast, with Undo (Leader UX, 0.1.59) ({news})', news == ['Claude attached a wizard round to ' + T3 + ': Icons, Round 1. Sent just now.', ['Undo', 'Go to it']] and said() == '')
-    ok('with lines in Activity', any(e['text'] == 'Claude attached a wizard round to ' + T3 + ': Icons, Round 1' for e in proj()['activity']) and any(e['text'] == 'Claude: A wizard round for the icons' for e in proj()['activity']))
+    news = ev("() => { const l = document.querySelector('#pvLeader .ld-line[data-moment=\"round\"]'); return l ? [l.querySelector('.ld-says').textContent, [...l.querySelectorAll('.ld-acts button')].map(x => x.textContent)] : null; }")
+    ok(f'at once Quill says so in place of the toast, with Read and Undo: the project view open, on its card (Leader UX, 0.1.59; Quill, 0.1.69) ({news})', news == ['Quill: Claude attached a wizard round to ' + T3 + ': Icons, Round 1. Sent just now.', ['Read', 'Undo']] and said() == '')
+    ok('with its line in Activity, the only one Claude writes there (0.1.69, C2)', any(e['text'] == 'Claude attached a wizard round to ' + T3 + ': Icons, Round 1' for e in proj()['activity']) and not any(e['text'].startswith('Claude: ') for e in proj()['activity']))
     ok('the change file moves to inbox/done', ev("() => [...window.__sub.keys()].some(k => k === 'inbox/done/2026-10-22-1900-garden.json') && !window.__sub.has('inbox/2026-10-22-1900-garden.json')"))
     ok('its row wears a gray hat', hat(f'li.task[data-id="{tid(T3)}"] .round-hat') == 'open')
-    ok('Undo takes it off', ev("() => { const b = document.querySelector('#ldSay .ld-undo'); if (!b) return false; b.click(); return true; }") and not get(T3).get('round'))
+    ok('Undo takes it off, and its line in Activity with it', ev("() => { const b = document.querySelector('#pvLeader .ld-line[data-moment=\"round\"] .ld-undo'); if (!b) return false; b.click(); return true; }") and not get(T3).get('round')
+       and not any(e['text'] == 'Claude attached a wizard round to ' + T3 + ': Icons, Round 1' for e in proj()['activity']) and not any(e['text'] == 'Undid what Claude added' for e in proj()['activity']))
     quiet()
     ev(f"""() => window.__subput('inbox/2026-10-22-1901-garden.json', {{ app: 'nullovation-city', kind: 'change', version: 1, project: 'Garden planner', summary: 'Round, inline',
          changes: [{{ do: 'add-round', task: '{T3}', file: 'inline-round.json', round: {json.dumps({**ROUND, 'config': {**ROUND['config'], 'title': 'Inline, Round 1'}})} }}] }})""")
@@ -591,11 +596,12 @@ with sync_playwright() as p:
         '- Blue, your turn: Where is this going? "Icons a child can read."; "Photos of each plant." (killed).',
         "- Yellow's sparks:", '  - What if the icon grew with the plant? "A sprout, then a leaf, then a flower."',
         "- White suggests: What's within reach?", '  - "Leaf shapes for herbs." (kept)', '  - "Emoji for everything." (killed)']) and '5 of 17 cards seen.' in chat)
-    pg.click('#pvSide .pv-round-fold'); pg.wait_for_timeout(150)
-    lines = ev("() => [...document.querySelectorAll('#pvSide .pv-round-brain li')].map(l => (l.classList.contains('sub') ? '> ' : '') + l.textContent)")
-    ok(f'Show the answers lists them card by card ({len(lines)} lines)', lines[:2] == ['Blue, your turn: Where is this going? "Icons a child can read."; "Photos of each plant." (killed).', "Yellow's sparks:"]
+    pg.click('#pvSide .pv-round-fold'); pg.wait_for_timeout(200)
+    lines = ev("() => [...document.querySelectorAll('.modal.panel.rd .pv-round-brain li')].map(l => (l.classList.contains('sub') ? '> ' : '') + l.textContent)")
+    ok(f'Show the answers lists them card by card, in the popup ({len(lines)} lines)', lines[:2] == ['Blue, your turn: Where is this going? "Icons a child can read."; "Photos of each plant." (killed).', "Yellow's sparks:"]
        and '> "Leaf shapes for herbs." (kept)' in lines)
-    pg.screenshot(path=str(SHOTS / '383-brainstorm-card.png'), clip=pg.query_selector('#pvSide').bounding_box())
+    pg.screenshot(path=str(SHOTS / '383-brainstorm-card.png'))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     pg.click('#pvRoundMark'); pg.wait_for_timeout(200)
     ok(f'Mark answered counts the cards not seen as skipped ({said()})', said() == 'Marked answered: 12 cards skipped.' and state(T3)['done'] and state(T3)['skipped'] == 12)
     undo(); pg.wait_for_timeout(150); quiet()
@@ -623,8 +629,8 @@ with sync_playwright() as p:
     st = state(T3)
     ok(f'Claude\'s add-round brings round 2, which replaces round 1: aims, extras, 1 extra, 2 ideas and the order make 6 cards ({st})', get(T3)['round']['title'] == BT + ', Round 2'
        and st['brainstorm'] == 2 and st['total'] == 6 and st['answered'] == 0)
-    news = ev("() => News.items().filter(it => it.moment === 'round').map(it => News.lineOf(it))")
-    ok(f'its building\'s news says so ({news[-1:]})', news[-1:] == ['Claude attached a wizard round to ' + T3 + ': ' + BT + ', Round 2.'])
+    news = ev("() => [...News.items().filter(it => it.moment === 'round').map(it => News.lineOf(it)), ...[...document.querySelectorAll('#pvLeader .ld-line[data-moment=\"round\"] .ld-says')].map(x => x.textContent.replace(/^Quill: /, '').replace(/ Sent just now\\.$/, ''))]")
+    ok(f'Quill says so, in News or on the card of the project view open ({news[-1:]})', news[-1:] == ['Claude attached a wizard round to ' + T3 + ': ' + BT + ', Round 2.'])
     ev("() => { const b = document.querySelector('#ldSayClose'); if (b && !document.querySelector('#ldSay').hidden) b.click(); }"); quiet()
     A2 = {'meta': {'tool': 'decision-wizard', 'kind': 'brainstorm', 'round': 2, 'wizard_version': '0.10.1', 'wizard_title': BT + ', Round 2', 'total': 6, 'seen': 6, 'ideas': 3},
           'topic': BS1['topic'], 'answers': [
@@ -644,8 +650,9 @@ with sync_playwright() as p:
         '## Brainstorm, round 2: ' + BT + ', Round 2', '- Extras:', '  - "Icons that smile when watered." (kept)', '- Idea i1: "A sprout, then a leaf, then a flower."',
         '  - In your words: "Icons that grow in three stages."', '  - A change, from Black: "Three stages only."', '  - You answered White (Which plants first?): "Herbs first."',
         '  - Taken from Green as a new idea: "Animate the growth."', '  - Your variant: "A seed before the sprout."', '- Your order:', '  1. "Icons that grow in three stages."', '  2. "Leaf shapes for herbs."']))
-    news = ev("() => News.items().filter(it => it.moment === 'answers').map(it => News.lineOf(it))")
+    news = ev("() => [...News.items().filter(it => it.moment === 'answers').map(it => News.lineOf(it)), ...[...document.querySelectorAll('#pvLeader .ld-line[data-moment=\"answers\"] .ld-says')].map(x => x.textContent.replace(/^Quill: /, ''))]")
     ok(f'its news says the answers are in, in cards ({news})', news == ['Your answers are in for ' + BT + ', Round 2: 6 of 6.'])
+    ok('and its Activity line counts cards seen', any(e['text'] == 'Answers in for ' + BT + ', Round 2: 6 of 6 cards seen' for e in proj()['activity']))
     quiet()
 
     print('errors:', errors)

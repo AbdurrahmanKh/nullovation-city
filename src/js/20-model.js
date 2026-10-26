@@ -510,6 +510,35 @@ function logActivity(p, text) {
   p.activity.push({ at: now, text: String(text).slice(0, 300) });
   if (p.activity.length > ACTIVITY_MAX) p.activity.splice(0, p.activity.length - ACTIVITY_MAX);
 }
+/* A task going overdue (0.1.69, Leader Bubbles, Round 2, N2): a line in its project's Activity, "Overdue: <task>",
+   dated the day after its due date, in time order, once per task and due date (its ref). Nobody says it (N1). It is
+   not something done in the building, so it draws no crowd (busyness leaves it out). A line older than the 400 the log
+   keeps is not written. Runs on start-up and once a minute; returns whether it wrote any. */
+const OVERDUE_LINE = 'Overdue: ';
+const isOverdueLine = e => !!e && typeof e.ref === 'string' && e.ref.startsWith('overdue:');
+function logOverdue(now = Date.now()) {
+  const today = ymd(now);
+  let any = false;
+  for (const p of DB.projects) {
+    if (!Array.isArray(p.activity)) p.activity = [];
+    let added = false;
+    for (const t of p.todos) {
+      if (!t.due || t.due >= today || !isOpenTask(t, now)) continue;
+      const ref = 'overdue:' + t.id + ':' + t.due;
+      if (p.activity.some(e => e.ref === ref)) continue;
+      const ts = parseYmd(t.due); if (ts == null) continue;
+      const d = new Date(ts), at = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+      if (p.activity.length >= ACTIVITY_MAX && at < p.activity[0].at) continue;
+      const e = { at, text: (OVERDUE_LINE + t.text).slice(0, 300), ref };
+      const k = p.activity.findIndex(x => x.at > at);
+      if (k < 0) p.activity.push(e); else p.activity.splice(k, 0, e);
+      if (p.activity.length > ACTIVITY_MAX) p.activity.splice(0, p.activity.length - ACTIVITY_MAX);
+      added = true;
+    }
+    if (added) any = true;
+  }
+  return any;
+}
 /* Projects saved before the log existed get their history back from what they already record. */
 function backfillActivity(p) {
   if (Array.isArray(p.activity) && p.activity.length) return;
@@ -635,17 +664,18 @@ function readTasks(data) {
   return { milestone: str(data.milestone, 120), tasks };
 }
 const isTasksFile = data => !!data && typeof data === 'object' && (data.kind === 'tasks' || (Array.isArray(data.tasks) && !data.project && !Array.isArray(data.milestones)));
-/* Adds tasks at the end of one milestone: an existing one by id, or a new one by name. */
-function addTasks(p, tasks, target) {
+/* Adds tasks at the end of one milestone: an existing one by id, or a new one by name. Each writes its line in
+   Activity, unless log is off: Claude's add-tasks writes none since 0.1.69 (Leader Bubbles, Round 2, C2). */
+function addTasks(p, tasks, target, { log = true } = {}) {
   let ms = target.id ? p.milestones.find(m => m.id === target.id) : null;
-  if (!ms) { ms = { id: uid('m'), name: (target.name || '').trim().slice(0, 120) || 'To do', collapsed: false }; p.milestones.push(ms); logActivity(p, 'New milestone: ' + ms.name); }
+  if (!ms) { ms = { id: uid('m'), name: (target.name || '').trim().slice(0, 120) || 'To do', collapsed: false }; p.milestones.push(ms); if (log) logActivity(p, 'New milestone: ' + ms.name); }
   ms.collapsed = false;
   for (const t of tasks) {
     const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due });
     if (t.repeat) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat); }
     if (t.shift) x.shift = t.shift;
     p.todos.push(x);
-    logActivity(p, 'Added todo: ' + t.text);
+    if (log) logActivity(p, 'Added todo: ' + t.text);
   }
   normalizeOrder(p);
   return ms;

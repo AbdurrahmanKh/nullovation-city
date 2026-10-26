@@ -57,15 +57,19 @@ const News = (() => {
   const held = new Map();                                    // a building's id: the news its status card or project view read
 
   /* ---------- who says it ---------- */
+  const voiceOf = l => ({ k: 'ld:' + l.id, l, name: leaderName(l), role: l.role, color: l.color });
   function speakerOf(p) {
     const l = p && leaderOf(p);
-    return l ? { k: 'ld:' + l.id, l, name: leaderName(l), role: l.role, color: l.color } : { k: 'px', l: null, name: 'Proxima Pace', role: 'Productivity Inspector', color: '#8FD0F7' };
+    return l ? voiceOf(l) : { k: 'px', l: null, name: 'Proxima Pace', role: 'Productivity Inspector', color: '#8FD0F7' };
   }
+  /* Who says an item: Quill says a round Claude attached on its own and a round's answers, for every building (0.1.69,
+     Leader Bubbles, Round 2, C1); its building's leader, or Proxima, the rest. */
+  const speakerFor = it => (it && QUILL_MOMENTS.has(it.moment) ? voiceOf(quillLeader()) : speakerOf(getProject(it.pid)));
   /* A speaker's face; Proxima breathes too while she brings a building's news in the leaders' place (0.1.62). */
   const faceOf = (sp, size) => (sp.l ? Leaders.face(sp.l, size) : Leaders.breathe(Proxima.faceEl(size), 'proxima'));
   const lineOf = it => leaderSay(it.moment, it.v);
   /* The most pressing first; among the same, the leaders before Proxima, as in the side bar, then the oldest first. */
-  const proximaSays = it => { const p = getProject(it.pid); return p && !leaderOf(p) ? 1 : 0; };
+  const proximaSays = it => (speakerFor(it).k === 'px' ? 1 : 0);
   const sortItems = list => [...list].sort((a, b) => rankOf(a) - rankOf(b) || proximaSays(a) - proximaSays(b) || a.at - b.at);
   const live = () => st.items.filter(it => getProject(it.pid));
 
@@ -358,7 +362,7 @@ const News = (() => {
   function faces() {
     const by = new Map();
     for (const it of live()) {
-      const sp = speakerOf(getProject(it.pid));
+      const sp = speakerFor(it);
       if (!by.has(sp.k)) by.set(sp.k, { ...sp, items: [] });
       by.get(sp.k).items.push(it);
     }
@@ -404,7 +408,7 @@ const News = (() => {
   /* A face's dismiss: its news is read without being heard; what sticks for a reason (a bubble on the map, Claude's
      changes in the status card) stays where it shows (N2). */
   function dismiss(k) {
-    const ids = live().filter(it => speakerOf(getProject(it.pid)).k === k).map(it => it.id);
+    const ids = live().filter(it => speakerFor(it).k === k).map(it => it.id);
     if (bub && bub.list.some(it => ids.includes(it.id))) hide();
     readIds(ids);
     const next = $('#newsList .news-face');
@@ -441,7 +445,7 @@ const News = (() => {
     edit(() => { for (const it of st.items) if (ids.has(it.id)) it.popped = true; });
   }
   function openFace(k) {
-    const list = sortItems(live().filter(it => speakerOf(getProject(it.pid)).k === k));
+    const list = sortItems(live().filter(it => speakerFor(it).k === k));
     if (!list.length) return;
     if (typeof Gus !== 'undefined' && Gus.isSaying()) Gus.hush();
     show(list, { auto: false, k });
@@ -466,7 +470,7 @@ const News = (() => {
     if (!bub || !b) return;
     const it = bub.list[bub.i], p = getProject(it.pid);
     if (!p) { next(); return; }
-    const sp = speakerOf(p), n = bub.list.length;
+    const sp = speakerFor(it), n = bub.list.length;
     b.style.setProperty('--ld', sp.color);
     b.classList.toggle('px-voice', !sp.l);
     b.dataset.k = sp.k; b.dataset.moment = it.moment;
@@ -674,6 +678,12 @@ const News = (() => {
   }
   const readDescription = (t, c) => [crSec('The new description', crText(String(c.description || '').trim())),
     crSec('Its description now', (t.description || '').trim() ? crText(t.description.trim(), 'was') : crText('No description yet.', 'was'))];
+  /* A wizard round's Read (0.1.69, Leader Bubbles, Round 2, C1): the round in a small popup, the one Show the answers
+     opens in the task panel, with Open in wizard. */
+  const roundRead = (p, t) => h('button', { class: 'btn btn-small btn-quiet ld-read ld-round-read', type: 'button', title: 'Read the round, and its answers so far', onclick: () => {
+    hold();
+    Rounds.view(p, t);
+  } }, 'Read');
   const readPlanBody = plan => [plan.description ? crSec('The About', crText(plan.description)) : null,
     ...plan.milestones.map(m => crSec(m.name, h('ul', { class: 'cr-list' }, m.tasks.map(t => h('li', { dir: 'auto' }, t.text)))))].filter(Boolean);
 
@@ -719,7 +729,7 @@ const News = (() => {
       if (!t || !t.round || t.round.title !== r.title) continue;                        // taken off, or another round since
       const same = tkey(t.text) === tkey(rep.task);
       out.push(partEl('round', same ? ['Attached a wizard round, ', h('bdi', null, t.round.title), '.'] : ['Attached a wizard round to ', taskLink(p, t, where, it), ', ', h('bdi', null, t.round.title), '.'],
-        [u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }, true) : null]));
+        [roundRead(p, t), u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }, true) : null]));
     }
     const e = entryOf(rep.entry);
     if (e) out.push(...askParts(p, e, rep.task, it, where));
@@ -744,10 +754,10 @@ const News = (() => {
         u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back what Claude added', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }) : null].filter(Boolean) };
   }
   function roundView(p, it, where) {
-    const rep = reportOf(it.ref && it.ref.report), uk = rep ? rep.id + ':' + it.ref.tid : it.id, u = undos.get(uk);
-    return { nodes: [...sayNodes(p, 'round', it.v, taskFor(p, it), where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
+    const rep = reportOf(it.ref && it.ref.report), uk = rep ? rep.id + ':' + it.ref.tid : it.id, u = undos.get(uk), t = taskFor(p, it);
+    return { nodes: [...sayNodes(p, 'round', it.v, t, where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
       more: [rep && !rep.add ? wordsEl(rep.summary) : null].filter(Boolean),
-      acts: u ? [act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); })] : [] };
+      acts: [t && t.round ? roundRead(p, t) : null, u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }) : null].filter(Boolean) };
   }
   /* On its own: what Claude asks first, named (the change itself, never the summary), with its time; one change has its
      buttons on the line, several a short line each. */
@@ -774,6 +784,7 @@ const News = (() => {
     const out = [];
     if (it.moment === 'answers') {
       const t = p.todos.find(x => x.id === it.ref.tid);
+      if (t && t.round) out.push(roundRead(p, t));
       if (t) out.push(act(p, it, where, 'Open', 'ld-open', 'Open ' + t.text + ' and its round', () => { if (where === 'say') { readIds([it.id]); hide({ read: false }); } FullView.openTask(p.id, t.id); }));
     }
     return out;
@@ -798,53 +809,56 @@ const News = (() => {
     if (Bubble.openId() === pid || (typeof FullView !== 'undefined' && FullView.shows(pid))) return;
     held.delete(pid);
   }
-  /* One line the leader says, with what goes under it and its buttons. */
-  function lineEl(nodes, { more = [], acts = [], moment = '', cls = '' } = {}) {
-    return h('div', { class: 'ld-line' + (cls ? ' ' + cls : ''), 'data-moment': moment },
-      h('p', { class: 'ld-says', dir: 'auto' }, ...nodes), ...more, acts.length ? h('div', { class: 'ld-acts' }, acts) : null);
+  /* One line the leader says, with what goes under it and its buttons. A line someone else says on the leader's card,
+     Quill's (0.1.69), starts with his face and his name, its bar in his color. */
+  function lineEl(nodes, { more = [], acts = [], moment = '', cls = '', by = null } = {}) {
+    const lead = by ? [h('span', { class: 'ld-by', title: by.name + (by.role ? ', ' + by.role : '') }, faceOf(by, 20), h('b', { dir: 'auto' }, by.name + ':')), ' '] : [];
+    const el = h('div', { class: 'ld-line' + (by ? ' by-other' : '') + (cls ? ' ' + cls : ''), 'data-moment': moment },
+      h('p', { class: 'ld-says', dir: 'auto' }, ...lead, ...nodes), ...more, acts.length ? h('div', { class: 'ld-acts' }, acts) : null);
+    if (by) el.style.setProperty('--ld', by.color);
+    return el;
   }
   /* The status card: its news, then what Claude is doing there, in the leader's voice, for as long as the card showed
      it before (B3): working, waiting, finished, stopped, and what asks first while it waits. A finish an update reports
      on is one report, its parts under it (A1, A2); an update a working session sent shows under its working line.
-     Nothing is said twice. */
-  function cardLines(p) {
-    const lines = [], said = new Set();
+     Nothing is said twice. The leader card in the project view says the same, with the same buttons (0.1.69). */
+  function cardLines(p, where = 'card') {
+    const lines = [], said = new Set(), own = speakerOf(p).k;
     const voice = typeof ClaudeWork !== 'undefined' ? ClaudeWork.voice(p) : [];
     const pend = typeof ClaudeInbox !== 'undefined' ? ClaudeInbox.pending().filter(e => tkey(e.project) === tkey(p.name)) : [];
     /* under the project view the card is hidden: what it would say waits for the leader card, or the News section */
-    const mine = typeof FullView !== 'undefined' && FullView.shows(p.id) ? sortItems(held.get(p.id) || []) : take(p.id);
+    const mine = where === 'card' && typeof FullView !== 'undefined' && FullView.shows(p.id) ? sortItems(held.get(p.id) || []) : take(p.id);
     const VOICE_RANK = { waiting: 1, working: 1.2, failed: 1.4, finished: 5 };      // Claude's own order: waiting, working, stopped, finished
     for (const x of voice) {
       const rep = x.moment === 'finished' ? finishReport(x.s) : heldReport(x.s);
       if (rep) { said.add(rep.id); if (rep.entry) said.add('e:' + rep.entry); }
       if (x.moment === 'finished') {
-        const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, rep, tick: x.tick }, 'card');
+        const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, rep, tick: x.tick }, where);
         lines.push({ rank: rep ? repRank(p, rep) : VOICE_RANK.finished, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'finished', cls: 'b-claude ' + x.s.state }) });
       } else {
         const t = x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null;
-        lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, x.v, t, 'card'),
-          { more: rep ? [wordsEl(rep.summary), ...parts(p, rep, null, 'card')].filter(Boolean) : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
+        lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, x.v, t, where),
+          { more: rep ? [wordsEl(rep.summary), ...parts(p, rep, null, where)].filter(Boolean) : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
       }
     }
     for (const it of mine) {
       if (it.ref && it.ref.report && said.has(it.ref.report)) continue;
-      if (it.moment === 'asks' && pend.some(e => e.name === it.ref.entry)) continue;           // said below, for as long as it waits
+      if (it.moment === 'asks') continue;                     // said below for as long as it waits in inbox/pending; once applied or dismissed, gone
+      if (it.moment === 'waiting') continue;                  // Claude's own line says it while it waits; once the session moves on, gone
       if (NEWS_CLAUDE.has(it.moment) && it.moment !== 'asks' && voice.some(x => x.s.session === it.ref.session)) continue;
-      const v = viewOf(p, it, 'card');
-      lines.push({ rank: rankOf(it), el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: it.moment }) });
+      const v = viewOf(p, it, where), sp = speakerFor(it);
+      lines.push({ rank: rankOf(it), el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: it.moment, by: sp.k !== own ? sp : null }) });
     }
     for (const e of pend) {
       if (said.has('e:' + e.name)) continue;
-      const v = asksView(p, e, null, 'card');
+      const v = asksView(p, e, null, where);
       lines.push({ rank: NEWS_RANK.asks, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'asks', cls: 'b-claude-asks' }) });
     }
     return lines.sort((a, b) => a.rank - b.rank).map(x => x.el);
   }
-  /* The leader card in the project view: its news for this building, else nothing (its greeting shows). */
-  function viewLines(p) {
-    return take(p.id).filter(it => !NEWS_CLAUDE.has(it.moment) || it.moment === 'finished')
-      .map(it => { const v = viewOf(p, it, 'view'); return lineEl(v.nodes, { more: v.more, acts: v.acts, moment: it.moment }); });
-  }
+  /* The leader card in the project view: what the status card says, read as it shows it (0.1.69, Leader Bubbles,
+     Round 2, N1); with nothing to say, its greeting shows. */
+  const viewLines = p => cardLines(p, 'view');
 
   /* ---------- Reports: the leader's face beside a building's row ---------- */
   function reportFace(p, size = 24) {

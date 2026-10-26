@@ -661,7 +661,6 @@ const FullView = (() => {
     if (side) closeSide();
     const t = p.todos.find(x => x.id === id); if (!t) return;
     sideTask = id; taskSnap = clone(t); sideTicked = false;
-    Rounds.foldAll();                                                           // its round's answers start folded (P1a)
     openSide('task');
     const f = $('#pvTaskDesc', side); if (f) f.focus();
   }

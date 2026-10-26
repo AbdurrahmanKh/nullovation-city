@@ -1386,7 +1386,7 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-card { display: flex; align-items: center; gap: 12px; width: 440px; max-width: 100%; margin-top: 12px; padding: 10px 12px; background: var(--field); box-shadow: var(--px-edge), inset 4px 0 0 var(--ld, transparent); }
 .ld-card-text { display: grid; gap: 2px; min-width: 0; }
 .ld-card-text b { font: 400 17px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; overflow-wrap: anywhere; }
-.ld-card-text span { font-size: 13px; color: var(--muted); }
+.ld-card-text > span { font-size: 13px; color: var(--muted); }
 .ld-card .ld-change { margin-left: auto; flex: none; }
 /* what the leader says (0.1.58): a quote with a bar in its signature color, as Gus's and Proxima's lines have theirs */
 .ld-card-text .ld-says { margin-top: 6px; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
@@ -1410,6 +1410,11 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-line.b-claude.working .ld-says { box-shadow: inset 2px 0 0 #F5B39A; }
 .ld-card.has-news { align-items: flex-start; }
 .ld-card-text .ld-line .ld-says { margin-top: 6px; }
+.ld-card.px-voice .ld-name { color: #8FD0F7; }
+/* a line someone else says on a leader's card (0.1.69): Quill's, with his face and name before it, in his color */
+.ld-by { display: inline-flex; align-items: center; gap: 5px; vertical-align: -5px; margin-right: 1px; }
+.ld-by .ld-face { box-shadow: 0 0 0 1px var(--ld-ring, #3E3854); }
+.ld-line .ld-by b { font: 400 13px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: color-mix(in srgb, var(--ld, #ECE8F6) 55%, #FFFFFF); }
 
 /* ---------- the side bar's News section (0.1.59): Gus and the leaders with news, as faces with ! or a count ---------- */
 .news-list { display: flex; flex-wrap: wrap; gap: 10px 8px; }
@@ -1594,6 +1599,13 @@ li.task .round-hat { margin-inline-start: 2px; }
 .pv-round-brain li { display: block; color: var(--ink); overflow-wrap: anywhere; }
 .pv-round-brain li.sub { grid-column: auto; position: relative; padding-left: 14px; color: var(--ink-soft); font-size: 12.5px; }
 .pv-round-brain li.sub::before { content: ''; position: absolute; left: 4px; top: 0.62em; width: 4px; height: 4px; background: var(--muted); }
+/* a round in its popup (0.1.69): from Quill's bubble, the leaders' cards and Show the answers, with Open in wizard */
+.cr-body.rd-body { gap: 10px; }
+.rd-head { display: flex; align-items: center; gap: 8px; }
+.rd-for { margin: 0; font-size: 13px; color: var(--ink-soft); overflow-wrap: anywhere; }
+.rd-body .pv-round-ans { max-height: min(52vh, 460px); overflow: auto; padding: 8px 4px 0 0; box-shadow: inset 0 2px 0 var(--edge); }
+.rd-btns { display: flex; justify-content: flex-end; margin-top: 4px; }
+.rd-btns .btn { display: inline-flex; align-items: center; gap: 6px; }
 .pv-round-slot { display: grid; gap: 8px; }
 .pv-round-slot:empty { display: none; }
 /* A round file over the panel (P2): the line shows only while dragging. */

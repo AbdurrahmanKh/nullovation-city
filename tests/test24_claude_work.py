@@ -306,7 +306,7 @@ with sync_playwright() as p:
     js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(800)
     line = pg.text_content('#bubble .b-claude') or ''
     who = pg.text_content('#bubble .b-leader .ld-name') or ''
-    ok(f'the status card says Claude finished, and what, in the leaders\' line, Proxima saying it for a building with no leader (0.1.59) ({who}: {line[:80]})', who == 'Proxima Pace' and line.startswith('Claude finished Fix the bubble.'))
+    ok(f'the status card says Claude finished, and what, in the leaders\' line, Proxima saying it for a building with no leader (0.1.59) ({who}: {line[:80]})', who == 'Proxima Pace' and line.startswith('Claude handed Fix the bubble back to you.'))
     ok('with the start of its reply', 'the bubble sits beside the red one now' in line)
     pg.screenshot(path=str(SH / '242-claude-card-done.png'), clip=pg.query_selector('#bubble').bounding_box())
     ok('looking at the card counts as seeing it: the tick goes', cb(nc) is None and js(f"() => MapView.bubbleAt('{nc}')['color']") == 'red')
@@ -342,7 +342,7 @@ with sync_playwright() as p:
     fin = [x.strip() for x in pg.locator('#bubble .b-claude .ld-says').all_text_contents()]
     tick = pg.get_attribute('#bubble .b-claude-tick', 'title') or ''
     ok(f'one line a session, the working one first; Tick it under its own finish only, another project\'s copy and a missing task offering none ({fin})',
-       fin[0] == 'Claude is working on Try the project view for a week. Started 2 minutes ago.' and 'Claude finished Round 3: decide the block art loop. Just now.' in fin
+       fin[0] == 'Claude is working on Try the project view for a week. Started 2 minutes ago.' and 'Claude handed Round 3: decide the block art loop back to you. Just now.' in fin
        and pg.locator('#bubble .b-claude-tick').count() == 1 and 'Round 3: decide the block art loop' in tick and len(fin) <= 4)
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     for k in ('t1', 't2', 't3', 't4', 't5'):
@@ -379,7 +379,7 @@ with sync_playwright() as p:
     ok(f'Claude\'s summary under it, in its own words, marked with its spark (C2) ({words})', words == ['Reminders built', True])
     ok('the file moves to inbox/done, so nothing applies twice', js("() => window.__sub.has('inbox/done/2026-10-14-0900-garden.json') && !window.__sub.has('inbox/2026-10-14-0900-garden.json')"))
     acts = js(f"() => getProject('{gp}').activity.slice(-6).map(e => e.text)")
-    ok(f'and Activity says what Claude did ({acts[-3:]})', 'Claude: Reminders built' in acts and 'Claude wrote a note: Reminder timing' in acts and 'Added todo: Write the reminder copy' in acts)
+    ok(f'and Activity says nothing of it: Claude writes nothing there since 0.1.69, but a wizard round ({acts[-3:]})', not any(x.startswith('Claude') or x.startswith('Added todo: Write the reminder') for x in acts))
     pg.click('#ldSay .ld-undo'); pg.wait_for_timeout(400)
     ok('Undo takes back exactly what Claude added', gp_state() == st0 and js("() => document.querySelector('#ldSay').hidden"))
 
@@ -453,23 +453,20 @@ with sync_playwright() as p:
     c1 = js("() => window.__cf.get('c1.json').text")
     ok('seeing it again clears it again', cb(nc) is None)
 
-    # a finish in Activity, once per session and what it worked on
+    # a finish writes no line in Activity since 0.1.69 (Leader Bubbles, Round 2, C2); 0.1.37 to 0.1.68 wrote "Claude Code finished: <task>"
     fins = js(f"() => getProject('{nc}').activity.filter(e => e.text.startsWith('Claude Code finished')).map(e => e.text)")
-    ok(f'a finish leaves a line in its project\'s Activity, once per session and task, however often it finishes ({fins.count("Claude Code finished: Fix the bubble")})',
-       fins.count('Claude Code finished: Fix the bubble') == 1 and 'Claude Code finished: Round 3: decide the block art loop' in fins)
+    ok(f'a finish leaves no line in its project\'s Activity ({fins})', fins == [])
     before = js(f"() => {{ const p = getProject('{gp}'); return {{ up: p.updatedAt, worked: p.urgency.lastWorked, n: p.activity.length }}; }}")
     js(S('f1', 'done', 'C:\\Users\\me\\garden', mins=5, task='Mulch the beds', reply='Mulched.'))
     js(S('w1', 'waiting', 'C:\\Users\\me\\garden', task='Pick a mulch'))
     settle()
-    f1 = js(f"""() => {{ const p = getProject('{gp}'), k = p.activity.findIndex(e => e.text === 'Claude Code finished: Mulch the beds'), e = p.activity[k];
-      return {{ found: k >= 0, ago: e ? Math.round((Date.now() - e.at) / 60000) : null, ordered: p.activity.every((x, i) => !i || p.activity[i - 1].at <= x.at), up: p.updatedAt, worked: p.urgency.lastWorked, n: p.activity.length }}; }}""")
-    ok(f'at the time it finished, in order, and not as work: urgency and Updated stay as they were ({f1})', f1['found'] and f1['ago'] == 5 and f1['ordered']
-       and f1['up'] == before['up'] and f1['worked'] == before['worked'] and f1['n'] == before['n'] + 1)
+    f1 = js(f"() => {{ const p = getProject('{gp}'); return {{ up: p.updatedAt, worked: p.urgency.lastWorked, n: p.activity.length }}; }}")
+    ok(f'and it is not work: urgency, Updated and Activity stay as they were ({f1})', f1 == before)
     ok(f'the tab\'s title counts sessions waiting for you and finishes you have not seen ({pg.title()})', pg.title() == '(2) Nullovation City')
     js(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
     pg.locator('.pv button:has-text("Activity")').first.click()
     pg.wait_for_timeout(400)
-    ok('the Activity panel shows it', 'Claude Code finished: Mulch the beds' in (pg.text_content('.pv-activity') or ''))
+    ok('the Activity panel has no finish line', 'Claude Code finished' not in (pg.text_content('.pv-activity') or ''))
     js("() => FullView.close()"); pg.wait_for_timeout(300)
 
     # the tab's title counts what waits for you
@@ -545,8 +542,8 @@ with sync_playwright() as p:
     nc_seen = js(f"() => ClaudeWork.statusOf(getProject('{nc}'))")
     ok('Allow reads it again and the alert goes', js("() => ClaudeWork.state()") == 'on' and not pg.is_visible('#claudeAlert') and st(gp)['state'] == 'working')
     ok('a finish you saw stays seen after a reload', nc_seen is None)
-    kept = js(f"() => getProject('{nc}').activity.filter(e => e.text === 'Claude Code finished: Fix the bubble').map(e => e.ref)")
-    ok(f'a finish\'s line survives a reload with its mark, and is not written twice ({len(kept)})', len(kept) == 1 and kept[0].startswith('claude:c1:'))
+    kept = js(f"() => getProject('{nc}').activity.filter(e => e.text.startsWith('Claude Code finished')).length")
+    ok(f'and after a reload a finish still writes no line ({kept})', kept == 0)
     js("() => { window.__cgone = true; }"); settle()
     ok('a folder that was moved or deleted says so, with Pick it again', js("() => ClaudeWork.state()") == 'failed' and 'Pick it again' in pg.text_content('#claudeAlert') and st(gp) is None)
     js("() => { window.__cgone = false; }")

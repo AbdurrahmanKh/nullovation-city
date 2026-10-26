@@ -20,17 +20,17 @@ ok(f'the only script at the root is build.py ({loose})', loose == ['build.py'])
 ok('src/js holds only hand-written modules: the build makes 25-generics.js, 26-extra.js and 27-portraits.js in memory',
    not any((ROOT / 'src' / 'js' / n).exists() for n in ('25-generics.js', '26-extra.js', '27-portraits.js')))
 
-# the portraits (0.1.48): Gus's and Proxima's, 256 px on a see-through background with no half-see-through pixel, and in the page
+# the portraits (0.1.48): Gus's and Proxima's, and Quill's since 0.1.69, 256 px on a see-through background with no half-see-through pixel, and in the page
 from PIL import Image
 import base64
 shots = {p.stem: Image.open(p) for p in sorted((ROOT / 'src' / 'portraits').glob('*.png'))}
-ok(f'src/portraits holds Gus\'s and Proxima\'s portraits ({sorted(shots)})', sorted(shots) == ['gus', 'proxima'])
+ok(f'src/portraits holds Gus\'s, Proxima\'s and Quill\'s portraits ({sorted(shots)})', sorted(shots) == ['gus', 'proxima', 'quill'])
 for who, im in shots.items():
     a = im.convert('RGBA').getchannel('A')
     ok(f'{who}.png is 256 by 256 with a hard see-through background ({im.size}, alpha {sorted(set(a.getdata()))})',
        im.size == (256, 256) and set(a.getdata()) == {0, 255})
 page_text = (ROOT / 'index.html').read_text(encoding='utf-8')
-ok('the page carries both portraits, byte for byte, as PORTRAITS', 'const PORTRAITS = {' in page_text and all(
+ok('the page carries every portrait, byte for byte, as PORTRAITS', 'const PORTRAITS = {' in page_text and all(
    base64.b64encode((ROOT / 'src' / 'portraits' / (who + '.png')).read_bytes()).decode() in page_text for who in shots))
 ignored = (ROOT / '.gitignore').read_text(encoding='utf-8').splitlines() if (ROOT / '.gitignore').exists() else []
 made = ['tests/shots/', 'tests/data/', 'art/out/', 'art/canon/out/', 'art/unslimmed/']
@@ -81,7 +81,7 @@ with tempfile.TemporaryDirectory() as tmp:
     need = ['nc/CLAUDE.md', 'nc/README.md', 'nc/docs/nullovation-city-knowledge.md', 'nc/src/VERSION', 'nc/build.py',
             'nc/tests/testkit.py', 'nc/tests/run_tests.py', 'nc/tools/pack.py', 'nc/src/buildings/meta.json', 'nc/index.html',
             'nc/.claude/skills/nullovation-city/SKILL.md', 'nc/.claude/skills/nullovation-city-builder/SKILL.md',
-            'nc/src/portraits/gus.png', 'nc/src/portraits/proxima.png', 'nc/sw.js', 'nc/src/app/manifest.webmanifest', 'nc/src/app/sw.js']
+            'nc/src/portraits/gus.png', 'nc/src/portraits/proxima.png', 'nc/src/portraits/quill.png', 'nc/sw.js', 'nc/src/app/manifest.webmanifest', 'nc/src/app/sw.js']
     ok('the archive holds the rules, the knowledge, the skills, the tooling, the portraits and the files of the app', all(n in names for n in need))
     left = [n for n in names if re.match(r'nc/(dist|tests/shots|tests/data|\.git|art/out|art/canon/out)/', n) or '__pycache__' in n]
     ok(f'the archive leaves out builds, screenshots, test data and caches ({len(names)} files; {left[:3] or "none left in"})',

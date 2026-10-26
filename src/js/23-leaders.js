@@ -65,7 +65,7 @@ const LEADER_LINES = {
   waiting: 'Claude is waiting for you on {task}.',
   asks: 'Claude wants your OK first: {change}.',
   failed: 'Claude stopped on an error while working on {task}.',
-  finished: 'Claude finished {task}.',
+  finished: 'Claude handed {task} back to you.',                             // whether it is done is yours to say (0.1.69)
   answers: 'Your answers are in for {round}: {n} of {total}.',
   week: 'Last week we finished {n} tasks. Next up: {task}.',
   week_quiet: 'Quiet week: nothing finished. {task} is a good start.',
@@ -73,6 +73,14 @@ const LEADER_LINES = {
   greet: 'Welcome back. Next up: {task}.',                                      // the leader card only
   greet_empty: 'Nothing open here yet. Add the next task.',
 };
+/* Quill, the Pocket Wizard (0.1.69, Leader Bubbles, Round 2): the city's voice for wizard rounds, as Gus is for the
+   garbage and Proxima for the reports. For every building he says a round Claude attached with no finish to sit under,
+   and a round's answers coming in; under a finish, a round is part of its leader's report. His portrait ships with
+   the city. A leader of the city's own named Quill is him: his rounds come under that leader's face, portrait and
+   color, so one Quill shows in News, never two (Abdurrahman has him lead Decision Wizard). */
+const QUILL = { id: 'quill', name: 'Quill', role: 'The Pocket Wizard', color: '#8E5A9E', portrait: true };
+const QUILL_MOMENTS = new Set(['round', 'answers']);
+const quillLeader = () => (Array.isArray(DB.leaders) && DB.leaders.find(l => leaderName(l).toLowerCase() === 'quill')) || QUILL;
 const LEADER_TITLE_MAX = 60;                                 // a task's title in a line is cut short past this, as Gus cuts his
 const lineTitle = s => (s.length > LEADER_TITLE_MAX ? s.slice(0, LEADER_TITLE_MAX - 1).trimEnd() + '\u2026' : s);
 /* A moment's line with its blanks filled: {task} cut short past 60 characters, "{n} tasks" in the singular for one,

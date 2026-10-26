@@ -107,33 +107,33 @@ const ClaudeInbox = (() => {
         const name = str(c.milestone, 120), have = name && p.milestones.find(m => keyOf(m.name) === keyOf(name));
         const cur = currentGroup(p), live = liveMilestones(p);    // a milestone named in the archive comes back with them
         const target = have ? { id: have.id } : name ? { name } : cur && cur.ms ? { id: cur.ms.id } : live.length ? { id: live[live.length - 1].id } : { name: 'To do' };
-        addTasks(p, list, target);
+        addTasks(p, list, target, { log: false });              // Claude writes nothing in Activity but its rounds (0.1.69, C2)
         tasks += list.length;
       } else if (c.do === 'add-note') {
         const title = str(c.title, 200), text = str(c.text, 8000);
         if (!title && !text) continue;
         const n = { id: uid('n'), title, text, at: Date.now() };
         p.notes.push(n); added.notes.push(n.id);
-        logActivity(p, 'Claude wrote a note' + (title ? ': ' + title : ''));
       } else if (c.do === 'add-link') {
         const url = str(c.url, 2000);
         if (!url || p.links.some(l => addressKey(l.url) === addressKey(url))) continue;
         const l = { id: uid('l'), label: str(c.label, 120), url, icon: LINK_ICONS.includes(c.icon) ? c.icon : guessIcon(url), shortcut: true };
         p.links.push(l); added.links.push(l.id);
-        logActivity(p, 'Claude added a link: ' + (l.label || suggestLabel(url)));
       } else if (c.do === 'add-round') {
         /* a wizard round for a task (0.1.55, W1): it replaces any round the task had (W6) */
         const t = taskNamed(p, c.task) || taskNamed(p, c.task, false), got = c._got;
         if (!t || !got) continue;
-        added.rounds.push({ id: t.id, was: t.round ? JSON.parse(JSON.stringify(t.round)) : null });
+        const was = t.round ? JSON.parse(JSON.stringify(t.round)) : null;
         t.round = makeRound(got.w, got.file);
+        /* wizard rounds appear in Activity (Leader Bubbles, Round 2, C2), the one line Claude still writes there; Undo
+           takes it back out */
         logActivity(p, 'Claude attached a wizard round to ' + t.text + ': ' + t.round.title);
+        added.rounds.push({ id: t.id, was, line: p.activity[p.activity.length - 1] });
       }
     }
     const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links')),
       added.rounds.length && (added.rounds.length === 1 ? 'attached a wizard round' : 'attached ' + added.rounds.length + ' wizard rounds')].filter(Boolean);
     const what = bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] || '';
-    if (what && summary) logActivity(p, 'Claude: ' + summary);
     if (what) { window.changed(p); if (added.rounds.length && typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }
     return { what, todos: p.todos.filter(t => !before.todos.has(t.id)).map(t => t.id), ms: p.milestones.filter(m => !before.ms.has(m.id)).map(m => m.id), ...added };
   }
@@ -142,9 +142,12 @@ const ClaudeInbox = (() => {
     p.todos = p.todos.filter(t => !drop.has(t.id));
     p.notes = p.notes.filter(n => !notes.has(n.id));
     p.links = p.links.filter(l => !links.has(l.id));
-    for (const r of u.rounds || []) { const t = p.todos.find(x => x.id === r.id); if (!t) continue; if (r.was) t.round = r.was; else delete t.round; }
+    for (const r of u.rounds || []) {
+      const k = r.line && Array.isArray(p.activity) ? p.activity.indexOf(r.line) : -1;
+      if (k >= 0) p.activity.splice(k, 1);                      // its line goes with it
+      const t = p.todos.find(x => x.id === r.id); if (!t) continue; if (r.was) t.round = r.was; else delete t.round;
+    }
     p.milestones = p.milestones.filter(m => !u.ms.includes(m.id) || p.todos.some(t => t.milestoneId === m.id));
-    logActivity(p, 'Undid what Claude added');
     window.changed(p);
     if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
     toast('Took back what Claude added to ' + p.name + '.');
@@ -176,12 +179,11 @@ const ClaudeInbox = (() => {
       c._settled = r.ok ? 'applied' : 'skipped';
       if (!r.ok) continue;
       if (c.do === 'done') { if (i == null) tickTask(p, r.t); else ClaudeWork.tick(p, r.t); }   // a repeat moves on to its next date
-      else if (c.do === 'edit-description') { r.t.description = str(c.description, 8000); logActivity(p, 'Claude updated the description of ' + r.t.text); }
+      else if (c.do === 'edit-description') r.t.description = str(c.description, 8000);
       else if (c.do === 'replace-plan') applyPlan(p, r.plan);
       n++; one = { c, r };
     }
     if (n) {
-      if (entry.summary && !entry.logged) { logActivity(p, 'Claude: ' + entry.summary); entry.logged = true; }
       window.changed(p);
       if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
     }

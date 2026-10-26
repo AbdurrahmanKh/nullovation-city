@@ -24,7 +24,7 @@ const Traffic = (() => {
   function busyness(p, now = Date.now()) {
     const WEEK = 7 * 864e5;
     let score = 0;
-    for (const e of p.activity || []) { const age = now - e.at; if (age >= 0 && age < WEEK) score += 1 - age / WEEK; }
+    for (const e of p.activity || []) { if (isOverdueLine(e)) continue; const age = now - e.at; if (age >= 0 && age < WEEK) score += 1 - age / WEEK; }   // a task going overdue is nothing done (0.1.69)
     const t = Math.max(p.updatedAt || 0, (p.urgency && p.urgency.lastWorked) || 0);
     if (now - t < 864e5) score += 1.5;
     return 1 - Math.exp(-score / 5);

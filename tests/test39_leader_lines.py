@@ -20,7 +20,7 @@ LINES = {
     'waiting': 'Claude is waiting for you on {task}.',
     'asks': 'Claude wants your OK first: {change}.',
     'failed': 'Claude stopped on an error while working on {task}.',
-    'finished': 'Claude finished {task}.',
+    'finished': 'Claude handed {task} back to you.',                         # since 0.1.69 (Leader Bubbles, Round 2, C1)
     'answers': 'Your answers are in for {round}: {n} of {total}.',
     'week': 'Last week we finished {n} tasks. Next up: {task}.',
     'week_quiet': 'Quiet week: nothing finished. {task} is a good start.',
@@ -59,7 +59,7 @@ with sync_playwright() as p:
        and say('due_many', {'n': 3, 'task': 'Add icons'}) == '3 tasks are due today. First up: Add icons.')
     ok('a line a task starts begins with a capital', say('due', {'task': 'water the beds'}) == 'Water the beds is due today.')
     cut = say('finished', {'task': LONG})
-    ok(f'a title past 60 characters is cut short with an ellipsis ({len(cut)} characters)', cut == 'Claude finished ' + LONG[:59].rstrip() + '….')
+    ok(f'a title past 60 characters is cut short with an ellipsis ({len(cut)} characters)', cut == 'Claude handed ' + LONG[:59].rstrip() + '… back to you.')
     ok('every other blank fills as given', say('answers', {'round': 'Leader UX, Round 1', 'n': 7, 'total': 8}) == 'Your answers are in for Leader UX, Round 1: 7 of 8.'
        and say('added', {'what': '2 tasks, a note and 1 link'}) == 'Claude added 2 tasks, a note and 1 link.'
        and say('working', {'task': 'Fix the map', 'ago': '12 minutes ago'}) == 'Claude is working on Fix the map. Started 12 minutes ago.'

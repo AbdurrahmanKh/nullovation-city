@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.69 (2026-10-27)
+
+Leader Bubbles, Round 2: every trigger of a leader's bubble designed on its own, after Abdurrahman asked to decide again what bubbles and what leaves a note. 21 of the 31 triggers stay as they were; these are the 10 that change.
+- Quill, the Pocket Wizard, is the city's voice for wizard rounds, like Gus for the garbage and Proxima for the reports. He says a round Claude attached with no finish to sit under, and a round's answers coming in, for every building, with his own face in News. His portrait ships with the city, and a leader of the city's own named Quill is him, so one Quill shows.
+- A wizard round reads in a small popup: where it stands, each question with its answer so far, and Open in wizard. It opens from Read in Quill's bubble, on the status card and the leader card, and from Show the answers in the task panel, which no longer unfolds the answers in place.
+- On a leader's status card or leader card, a line Quill says starts with his small face and his name.
+- A finish says "Claude handed <task> back to you.", since whether the task is done is yours to say.
+- Claude writes nothing in Activity but a wizard round it attaches: no finish line, no summary, and no lines for the tasks, milestones, notes and links it adds. Undo on a round takes its line back out. A tick you give from Claude's ask still writes its Done line.
+- A round's answers coming in write "Answers in for <round>: 7 of 8" in Activity.
+- A task going overdue writes "Overdue: <task>" in Activity, dated the day after its due date, once per due date. It draws no crowd round the building.
+- The leader card in the project view says what the status card says, with the same buttons: Claude at work, waiting, stopped, finished and what it asks, and the building's news. A building with no leader has Proxima say it there, with Pick a leader.
+- Fixed: a change Claude asked about, once applied or dismissed, and a session that was waiting for you, once it moves on, no longer linger on a card that read them.
+- Tests: test44_leader_bubbles checks Quill, the popup, the cards, the Activity lines and the overdue line. test17, test24, test37, test39, test40 and test43 follow the new lines.
+
 ## 0.1.68 (2026-10-24)
 
 Claude's news as one report, from Claude's News on the Status Card, Round 1 (Abdurrahman's task "Improve how leaders deliver Claude's news and asks on the status card" in Nullovation City Hall, UX Mastery): A1, A2, B3 and C2. B1, B2 and C1 came back as questions and are not built.

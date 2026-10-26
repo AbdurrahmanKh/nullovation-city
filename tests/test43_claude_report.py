@@ -94,7 +94,7 @@ with sync_playwright() as p:
     js(S('r1', 'done', GARDEN, task='Draw the beds on a grid', project='Garden planner', reply='I drew the **beds** at `1:50`; see [the sketch](https://example.com/beds).'))
     settle()
     s = say()
-    ok(f'once it finishes, one report opens by itself, the finish heading it with its one time ({s and s["text"]})', s and s['text'] == 'Claude finished Draw the beds on a grid. Just now.' and s['when'] == 1)
+    ok(f'once it finishes, one report opens by itself, the finish heading it with its one time ({s and s["text"]})', s and s['text'] == 'Claude handed Draw the beds on a grid back to you. Just now.' and s['when'] == 1)
     ok(f'Claude\'s summary under it, in its own words, not the start of its reply (C2) ({s and s["words"]})', s and s['words'] == ['Beds drawn at 1:50; labels are left'])
     ok(f'a short line for each part, each with its own buttons (A2) ({s and s["parts"]})', s and s['parts'] == [['Added a note, Bed layout, and a link, Beds sketch.', ['Read', 'Undo']],
        ['Wants a new description for this task.', ['Read', 'Apply', 'Dismiss']]])
@@ -129,7 +129,7 @@ with sync_playwright() as p:
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(700)
     card = js("""() => { const l = document.querySelector('#bubble .b-claude.done'); return l && { says: l.querySelector('.ld-says').textContent, words: [...l.querySelectorAll('.b-claude-said')].map(x => x.textContent),
       parts: [...l.querySelectorAll('.ld-part-text')].map(x => x.textContent), tick: !!l.querySelector('.b-claude-tick'), lead: Math.round(document.querySelector('#bubble .b-leader').getBoundingClientRect().height) }; }""")
-    ok(f'the status card says the same report, in the leader\'s line ({card})', card and card['says'] == 'Claude finished Draw the beds on a grid. Just now.' and card['words'] == ['Beds drawn at 1:50; labels are left']
+    ok(f'the status card says the same report, in the leader\'s line ({card})', card and card['says'] == 'Claude handed Draw the beds on a grid back to you. Just now.' and card['words'] == ['Beds drawn at 1:50; labels are left']
        and card['parts'] == ['Wants a new description for this task.'] and not card['tick'])
     ok(f'and keeps to a few lines, the next tasks in view under it ({card and card["lead"]} px)', card and card['lead'] <= 200 and pg.is_visible('#bubble .b-todos'))
     pg.screenshot(path=str(SH / '432-report-card.png'), clip=pg.query_selector('#bubble').bounding_box())
@@ -149,12 +149,12 @@ with sync_playwright() as p:
     js(S('r2', 'done', GARDEN, task='Save a plan as a file', project='Garden planner', reply='Done.'))
     settle()
     s = say()
-    ok(f'Claude asking to tick it off: Tick it on its own line (B3) ({s and s["parts"]})', s and s['text'] == 'Claude finished Save a plan as a file. Just now.'
+    ok(f'Claude asking to tick it off: Tick it on its own line (B3) ({s and s["parts"]})', s and s['text'] == 'Claude handed Save a plan as a file back to you. Just now.'
        and s['parts'] == [['Added a note, Plan files.', ['Read', 'Undo']], ['Wants this task ticked off.', ['Tick it', 'Dismiss']]] and s['acts'] == ['Go to it'])
     pg.click('#ldSay .ld-part[data-part="ask done"] .b-claude-tick'); pg.wait_for_timeout(800)
     t = js(f"() => {{ const p = getProject('{gp}'), t = p.todos.find(t => t.text === 'Save a plan as a file'); return [t.done, p.activity.slice(-3).map(e => e.text)]; }}")
     s = say()
-    ok(f'Tick it ticks it off as a tick does, said by its leader ({t})', t[0] is True and 'Done: Save a plan as a file' in t[1] and 'Claude: Plans save as files' in t[1]
+    ok(f'Tick it ticks it off as a tick does, said by its leader ({t})', t[0] is True and 'Done: Save a plan as a file' in t[1] and not any(x.startswith('Claude') for x in t[1])   # Claude writes nothing in Activity since 0.1.69
        and 'Ticked off: Save a plan as a file.' in pg.text_content('#toast') and 'Talal' in pg.text_content('#toast'))
     ok(f'the report stays while it has something left: the Undo ({s and s["parts"]})', s and s['parts'] == [['Added a note, Plan files.', ['Read', 'Undo']]])
     close_say(); pg.wait_for_timeout(300)
@@ -166,7 +166,7 @@ with sync_playwright() as p:
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(700)
     fin = js("""() => { const l = [...document.querySelectorAll('#bubble .b-claude.done')].find(x => x.textContent.includes('Tune the watering reminders'));
       return l && [l.querySelector('.ld-says').textContent, (l.querySelector('.b-claude-said') || {}).textContent, !!l.querySelector('.b-claude-tick'), l.querySelectorAll('.ld-part').length]; }""")
-    ok(f'its card line keeps Tick it, with the start of its reply, markdown taken off ({fin})', fin and fin[0] == 'Claude finished Tune the watering reminders. Just now.'
+    ok(f'its card line keeps Tick it, with the start of its reply, markdown taken off ({fin})', fin and fin[0] == 'Claude handed Tune the watering reminders back to you. Just now.'
        and fin[1] == 'Done: the reminders now fire at 7:00, see the PR.' and fin[2] and fin[3] == 0)
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     for k in ('r1', 'r2', 'r3'):

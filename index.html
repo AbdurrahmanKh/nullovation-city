@@ -1401,7 +1401,7 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-card { display: flex; align-items: center; gap: 12px; width: 440px; max-width: 100%; margin-top: 12px; padding: 10px 12px; background: var(--field); box-shadow: var(--px-edge), inset 4px 0 0 var(--ld, transparent); }
 .ld-card-text { display: grid; gap: 2px; min-width: 0; }
 .ld-card-text b { font: 400 17px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; overflow-wrap: anywhere; }
-.ld-card-text span { font-size: 13px; color: var(--muted); }
+.ld-card-text > span { font-size: 13px; color: var(--muted); }
 .ld-card .ld-change { margin-left: auto; flex: none; }
 /* what the leader says (0.1.58): a quote with a bar in its signature color, as Gus's and Proxima's lines have theirs */
 .ld-card-text .ld-says { margin-top: 6px; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
@@ -1425,6 +1425,11 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-line.b-claude.working .ld-says { box-shadow: inset 2px 0 0 #F5B39A; }
 .ld-card.has-news { align-items: flex-start; }
 .ld-card-text .ld-line .ld-says { margin-top: 6px; }
+.ld-card.px-voice .ld-name { color: #8FD0F7; }
+/* a line someone else says on a leader's card (0.1.69): Quill's, with his face and name before it, in his color */
+.ld-by { display: inline-flex; align-items: center; gap: 5px; vertical-align: -5px; margin-right: 1px; }
+.ld-by .ld-face { box-shadow: 0 0 0 1px var(--ld-ring, #3E3854); }
+.ld-line .ld-by b { font: 400 13px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: color-mix(in srgb, var(--ld, #ECE8F6) 55%, #FFFFFF); }
 
 /* ---------- the side bar's News section (0.1.59): Gus and the leaders with news, as faces with ! or a count ---------- */
 .news-list { display: flex; flex-wrap: wrap; gap: 10px 8px; }
@@ -1609,6 +1614,13 @@ li.task .round-hat { margin-inline-start: 2px; }
 .pv-round-brain li { display: block; color: var(--ink); overflow-wrap: anywhere; }
 .pv-round-brain li.sub { grid-column: auto; position: relative; padding-left: 14px; color: var(--ink-soft); font-size: 12.5px; }
 .pv-round-brain li.sub::before { content: ''; position: absolute; left: 4px; top: 0.62em; width: 4px; height: 4px; background: var(--muted); }
+/* a round in its popup (0.1.69): from Quill's bubble, the leaders' cards and Show the answers, with Open in wizard */
+.cr-body.rd-body { gap: 10px; }
+.rd-head { display: flex; align-items: center; gap: 8px; }
+.rd-for { margin: 0; font-size: 13px; color: var(--ink-soft); overflow-wrap: anywhere; }
+.rd-body .pv-round-ans { max-height: min(52vh, 460px); overflow: auto; padding: 8px 4px 0 0; box-shadow: inset 0 2px 0 var(--edge); }
+.rd-btns { display: flex; justify-content: flex-end; margin-top: 4px; }
+.rd-btns .btn { display: inline-flex; align-items: center; gap: 6px; }
 .pv-round-slot { display: grid; gap: 8px; }
 .pv-round-slot:empty { display: none; }
 /* A round file over the panel (P2): the line shows only while dragging. */
@@ -1623,7 +1635,7 @@ li.task .round-hat { margin-inline-start: 2px; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.68</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.69</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -3090,6 +3102,35 @@ function logActivity(p, text) {
   p.activity.push({ at: now, text: String(text).slice(0, 300) });
   if (p.activity.length > ACTIVITY_MAX) p.activity.splice(0, p.activity.length - ACTIVITY_MAX);
 }
+/* A task going overdue (0.1.69, Leader Bubbles, Round 2, N2): a line in its project's Activity, "Overdue: <task>",
+   dated the day after its due date, in time order, once per task and due date (its ref). Nobody says it (N1). It is
+   not something done in the building, so it draws no crowd (busyness leaves it out). A line older than the 400 the log
+   keeps is not written. Runs on start-up and once a minute; returns whether it wrote any. */
+const OVERDUE_LINE = 'Overdue: ';
+const isOverdueLine = e => !!e && typeof e.ref === 'string' && e.ref.startsWith('overdue:');
+function logOverdue(now = Date.now()) {
+  const today = ymd(now);
+  let any = false;
+  for (const p of DB.projects) {
+    if (!Array.isArray(p.activity)) p.activity = [];
+    let added = false;
+    for (const t of p.todos) {
+      if (!t.due || t.due >= today || !isOpenTask(t, now)) continue;
+      const ref = 'overdue:' + t.id + ':' + t.due;
+      if (p.activity.some(e => e.ref === ref)) continue;
+      const ts = parseYmd(t.due); if (ts == null) continue;
+      const d = new Date(ts), at = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+      if (p.activity.length >= ACTIVITY_MAX && at < p.activity[0].at) continue;
+      const e = { at, text: (OVERDUE_LINE + t.text).slice(0, 300), ref };
+      const k = p.activity.findIndex(x => x.at > at);
+      if (k < 0) p.activity.push(e); else p.activity.splice(k, 0, e);
+      if (p.activity.length > ACTIVITY_MAX) p.activity.splice(0, p.activity.length - ACTIVITY_MAX);
+      added = true;
+    }
+    if (added) any = true;
+  }
+  return any;
+}
 /* Projects saved before the log existed get their history back from what they already record. */
 function backfillActivity(p) {
   if (Array.isArray(p.activity) && p.activity.length) return;
@@ -3215,17 +3256,18 @@ function readTasks(data) {
   return { milestone: str(data.milestone, 120), tasks };
 }
 const isTasksFile = data => !!data && typeof data === 'object' && (data.kind === 'tasks' || (Array.isArray(data.tasks) && !data.project && !Array.isArray(data.milestones)));
-/* Adds tasks at the end of one milestone: an existing one by id, or a new one by name. */
-function addTasks(p, tasks, target) {
+/* Adds tasks at the end of one milestone: an existing one by id, or a new one by name. Each writes its line in
+   Activity, unless log is off: Claude's add-tasks writes none since 0.1.69 (Leader Bubbles, Round 2, C2). */
+function addTasks(p, tasks, target, { log = true } = {}) {
   let ms = target.id ? p.milestones.find(m => m.id === target.id) : null;
-  if (!ms) { ms = { id: uid('m'), name: (target.name || '').trim().slice(0, 120) || 'To do', collapsed: false }; p.milestones.push(ms); logActivity(p, 'New milestone: ' + ms.name); }
+  if (!ms) { ms = { id: uid('m'), name: (target.name || '').trim().slice(0, 120) || 'To do', collapsed: false }; p.milestones.push(ms); if (log) logActivity(p, 'New milestone: ' + ms.name); }
   ms.collapsed = false;
   for (const t of tasks) {
     const x = Object.assign(todo(t.text, ms.id), { description: t.description, due: t.due });
     if (t.repeat) { x.repeat = t.repeat; if (!x.due) x.due = firstRepeatDue(t.repeat); }
     if (t.shift) x.shift = t.shift;
     p.todos.push(x);
-    logActivity(p, 'Added todo: ' + t.text);
+    if (log) logActivity(p, 'Added todo: ' + t.text);
   }
   normalizeOrder(p);
   return ms;
@@ -3844,7 +3886,7 @@ const LEADER_LINES = {
   waiting: 'Claude is waiting for you on {task}.',
   asks: 'Claude wants your OK first: {change}.',
   failed: 'Claude stopped on an error while working on {task}.',
-  finished: 'Claude finished {task}.',
+  finished: 'Claude handed {task} back to you.',                             // whether it is done is yours to say (0.1.69)
   answers: 'Your answers are in for {round}: {n} of {total}.',
   week: 'Last week we finished {n} tasks. Next up: {task}.',
   week_quiet: 'Quiet week: nothing finished. {task} is a good start.',
@@ -3852,6 +3894,14 @@ const LEADER_LINES = {
   greet: 'Welcome back. Next up: {task}.',                                      // the leader card only
   greet_empty: 'Nothing open here yet. Add the next task.',
 };
+/* Quill, the Pocket Wizard (0.1.69, Leader Bubbles, Round 2): the city's voice for wizard rounds, as Gus is for the
+   garbage and Proxima for the reports. For every building he says a round Claude attached with no finish to sit under,
+   and a round's answers coming in; under a finish, a round is part of its leader's report. His portrait ships with
+   the city. A leader of the city's own named Quill is him: his rounds come under that leader's face, portrait and
+   color, so one Quill shows in News, never two (Abdurrahman has him lead Decision Wizard). */
+const QUILL = { id: 'quill', name: 'Quill', role: 'The Pocket Wizard', color: '#8E5A9E', portrait: true };
+const QUILL_MOMENTS = new Set(['round', 'answers']);
+const quillLeader = () => (Array.isArray(DB.leaders) && DB.leaders.find(l => leaderName(l).toLowerCase() === 'quill')) || QUILL;
 const LEADER_TITLE_MAX = 60;                                 // a task's title in a line is cut short past this, as Gus cuts his
 const lineTitle = s => (s.length > LEADER_TITLE_MAX ? s.slice(0, LEADER_TITLE_MAX - 1).trimEnd() + '\u2026' : s);
 /* A moment's line with its blanks filled: {task} cut short past 60 characters, "{n} tasks" in the singular for one,
@@ -4012,7 +4062,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.68";
+const APP_VERSION = "0.1.69";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -4020,6 +4070,7 @@ const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets th
 const PORTRAITS = {
   "gus": 'data:image/png;base64,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',
   "proxima": 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAAZlBMVEUAAAAAAAAHAQESEBgUAAEeAQIgHiUjT4QuLDI3Nj5BlMpHSFJKGBhQqdxZXGpkJCNweIR6y/mE3fWeq5yhT0e8zNjG9ufYe2ve6fHftp7pk3z3oob9kn/9ro/+0qv+/v7/8+P/97FPKe9RAAAAAXRSTlMAQObYZgAAEG5JREFUeNrtnYl2ozoMhotjp9nptOlNB4Z25v1f8vIjFNnGENIlGIjOzGnKVv4PSV6wnYeHu93tbne7293udre73e1ud7vb3e52t0FMB2xeAExp2ljyjZnLk4dqo5Kk/OfaLCDo6tEb01APAGbiAPDsWeyhtFVpSQjEVPMBnnAvAGV2mJx4dvtFaYcDyYfYVWWHs002H+DpK9UfgJlaPiCxkL+ujMVvt5D9dLZVbXUuMBMFsN2iELwEYDJegIKf5CYJ5C+Xi0WSLJccCrbZ2yaTC5DVuwCs1+0AJuEFqPdBEGSv1wgD4CAUFBaLhesF8rlkoEZfKGqTtAFY9QCQjNwH8PxJIBWCJJ+FV2lx1TQ7O5Q+YCYNYDVlAFT7twGoZOHZqsUsBOMNA218AMm8AKD5QyJZehMAbRUTJBMIg28DMFYf0EYEtwNwt0kjyfMBPW8A4/QBDoHHFmOnbyJRahIIZg8AIQChm9J+eYZthGGxCCdGSofSOLoDGCEAHRYvCAhCTwTjKwkYwPP3ABibD7B8tr1j9p5+CNCRNioE3w5gXL0D6M9LetrlMBhhEMwWgKpfeEslx+7+6GoKhffhbAaA36MvCeoXwOY6AKq0CQCw3V76+liAj4J+E2lhP3ARxA7Aeve/uhaACgNQPgAT7dOnuLdlufJJsr3NRdDmBXazqCoK4/QBjvsbADBRPn2VcIe3LdyV72JoIrCzQTuCSAEk8wWgtCQ9W6Zt7d3f9rH0abn0EdhdZFVRaCJ7/rMGgJdfS6+ga4pcdZobBsvKQgiiDALq+f0BAEqNAYDSqMKKjEtS24FIesQn3wfsIEBNIJq6AOJ/EAAmGvnr2jH7ir8UChhIBQCHLVV7og4CGv70vQCW4wGA2p90WX5dPl9nuaShNBhIIwhk6MQyFgDGJD8DYFEDWK/XKl4A5fNX6/V3y3eL08Nhu236wHaLBDl4OXAbAKEgqAEM6wNK/4T7OwjWuCoPq47OA7T5aQDrGsCyDYAZOP+vW+SHKzmfCwMSLGEQDwCTzByApmkv1DxdLWUYQ1jq9QDoykiyLy80kUKCAADUsO8J4QGDAlgMCgA9AHRjXFiJUH8GQF/5ch5/Ohx4go2PAAAGrQ7T8x8SwCImAK77NwH0df86nCwEELpePz3hL/FguihelM4cADeBMdUFN0gg/GAQIW0AmtvJ6WXqzMsLKkNPTzLNzkYwGABuA5YA1jcFoCIBwHPAcAuY+gQAHAxNAO3dJOHt6AqzJ1MuFjS1ToZbDw/AWAAWswNgzlNgcEPb7csLAKBmRsnKn/ZCXaah0AgNjCfJ9JOuzEUhvzIbfLCEvAWIAoAZCAC11hfnAEDjBDe83YocF4CLhuX4k6QIAFd/KqBrTq3+kKmBAaznCYBKAJ4CIzeOzwTAlkLVF/xmB4ft0PwbV6sYmiRB6hbhpGlDGwaAuTWAVWQAGh7Ar7MhUiY/k6D1lkXa+0gqD6Syj0cBaC+tIKi40HQBDIDgDkDzICg7HbmDI+jWRWYXgHOCXEtlyr6iD4BDarAguAPQ/MrCvpEQANz6cuW6ufzEOUUuAGi7XMGXaQMYtCDU5hoAq04A+fgAGE3tAHsSvLilDISThrCkM7eKjC7NPM8yf68AcLs+BDHGVQ/WGuB2wKwB2G7pA/A7xmTQNDVx5NVWkmRZUQBAeDidH2Lyd+09dwBDhYArWrb5g6Mh099LnZ1Jcjq9v9Ne6gDpAiC/2QDqitAoARwIwGlsAKRLioumZQCAHSZhADgGAPL8ePSD4HwVpZIJADj1ALAMA0iiBsDFoV1kXQLgFmwAAATNRMjHK6e4k6t4AEzUALIvAHCz/WgASHpE4QV5fKxbsDEAqhA3p9iEANgLMY0BgFLqBgBunwOk6LMXSJKhbWfBKs8h0V1CywVQ1gXqkqA5tcZ2e066UXjAdQCyCwDyrwKIxQP86c746XuA3YUiAHBEeCEVavZMEgCygwBQbQCSSAG4Sx/Zzy9Rso9CoKzwnngJJbcwe38/I8j8a4QA2HOJ4wWQ2ACKAgI5xtsBZFMB0FwYgQTaAOQslt9caN2+7sgB/C4qAKoLQDIFAO0mRWGiqNprA/iTtZ9pHx05AKU+CyCbBgCRURRFXv4r/xeF5AF28zxHiWDnB/qkEhSGRW3dAPzUGAMAZQHIxWptqgcAlfvnxQlAlkd0iz4CQIWeaxBErp5lJO90ymqj/cGzCh8AD5FrVpBvCkDpEABVAyCpYQB//jCCU2XZiVuDIQBZ7gNQcQCQIHA9oIrggHwfRcHpIWcw7UfjoGbR6C7LjK03fjfYEgIXBcGtc88u4YoSABbK58VSVF36GXNJ/OeMu8sYuCzSYgNIktsCMHIj5+8D0TMDsEvTVFn1v9OJAWS5W5HpBwbJITnXpsqUmjuNpHM1Ot3tdi4A2nNrACptBSBRi6/SupwXJOFZ3KyeAg9Amg4PIN1RsaXqNEgAitx/+nZFuNvClWHqSpFmMlecsmyXDg2gkkT+ygC45+czAMLnFUUYwJ9hAex26Y5um6tEpYdquln5iiRPSn6NfD67rBz/wV5EvQ3g/T1Nzc4FcMOqENJfA4C6AKDoAuBEv3M2eVUIwM4HYG7m/iT/WJoASFNbxO/f/OlvadLoaTP/WPsKgHA8SgcZ/i4hSFO7eXQzALsAAFUCyAWA+gEASWQAqsZczoumUwqUm/8OAHINeXFGLY6iQBNqxgDQlhwcQJbpeslUCgFkeQoC3LoIEUFdAGyHZxiMoEquRReA+h708ADyIADVH4AKAcj7AdC3BaDNa2U0foPLeVRZIB8AeDG86z0AZ+Ia2ErX5eG0NLSWKtcEAF/NyWF4oyAgACYIADf6rQDq12oXAKgBAGjzUdrrqzE2APgAA5Ahkhgt/vHRBeDvBx1VrUO8Xq0ZgDSIZJImN67OADR30AwCQPcAgMFuH387AVgeU552HQAzCADjAZCmMOQQgH//6vmvlz3g73nYxPLfPwFgN7BpeG2nB+gIAaz6A1jSvKNRAMjzMwDtAkAVWdIgvk4Re/t0iPDXL+J4kk9V3iYA6lytASjppL0lgGJoAAUDSCwAt8sBZWu8LAYBQCme+CJN2+MRApDZ+zSFm30C1dl/j0fpQ3AAZBwAaUoBwAhu6AG9APzt1xnSDiAPAsgcAPzUb/xugIMA9QD6qmy88Ojf1Q2B/Y/Gq2Ys10IAKMzS1J0sdWsAu9sCKHwAp4EB7HbHIwUBA5BO8cKyzwDIG+eX7f8sUQwA2+H+0QDA6i6J+j4AzfNzzCrqAeCmX9KOprAFICmDIvdvP4zgdOrCEzo/L3apOocA4p87ROWZI3ne+N2QC2DHAPLLAN6vBZAj30cGgBAAALKAAOgTAlSEte1t5gDqFqeptfhLux0Pwp0kgOICAHTLRwEACBAEWlcA0r4vQUnke9H3WFyXASxX7oStOABUHpBeCaCYDgBl+LX1Dw2QKMsAXD8IQA8KQNch8NMA0jOAlQdADwsAK0lQUUgApDLUkt3ztqzfFQCnEzV7/YXU/BBYLAYDoA3GCVwC0Bb3FwAUcQMwXBKgIEx3mAzfJh+ATqc/nmFbV/CUGaAq91sA6EEDgAC8VQCU+mEAqssDBgOAP00+gEBoml/9+WjY21t6Hm7RVgSSZEmB8wJQRA8ATRKze3WM5Sl9CcHF55/ywFhZUtcHgBT88DAsABMGcNkHLgFIewBIhgaAm3Fdn0G4AEoEx+PRToFo2nYNqyb3t2ei2wDoxfyA7n89gGMDgPT9fw4ADaYbGABNoqXWAQqtLOPvHG7K8ovBbvc3HQC4MgwbEIAKAfijqUj4AgBMlEDPT/QAOAgkDvHihMYNt/YFND41xZ9Ou50x7ncO+1+35TaHJgWgGBsAd7AywqCrg6S7w4xKf7x8ky/hZgA+gii+e7gJwDCA4rMA0jEBOCNQdl8RdXzm+TUdZTShCufB/TnBQjgGWthT8sNN4vEDyF0AycgAJP7rM3qR3g8CHVXFfnmefV2WHQIQSRCoIIBSiPkMgN0ZgBoLAHpWoRq5qb0gTTHcIYwB29EmSB3xrm/Zk6YbQaAiKQovAmjrE3QBmKsBxFEXaG+TMQIYxtgX51nDtMRAallbdvEXaPERqESbgQGoXgDyLM/qSsB5rYQuAKongAjKAnzztEraOk5haYfxMaGOd/8L2GUNAbdSTJNOB2safw2AaQdg+gOgKQfD+YAK0efukcdHNJFC4rH18ZG6T5oImh5QLaOg/EoxhlrDA14f4gOgvwKg9CwdAJBECCD8/pifPwEIGwD08QE7ERrtQsERWj/EZt8BQIUBmBEAQPojYQSAl05xDc0fBvD42FYWaO0vwcWewcs3xPn89bUAdBAAOlmVD8DY08x0PADs7nGSRdKq1kCBWZ+2eKoI28fZ5/teQIMxbNevu59NZHHfCiD/PADqaldhALE9faQzdmt6Ufb69vh4ngBTV4a5MYTjaPoFhwtdIVQ5qvvbjeb6lY4u67cAKIX9zpw+wc8B0CQ/OgAinecTbjYEgF+DQlqzQVwULJ8RPD5uNvZ12irJEZb4lwH8niYAWzoLYQDuYIjHRx+Af4wLoN72FjmEvgAg7lMAXqMGQIOm7dulSm0TQBNB+AgCYIcPDbaIFMGtAOj4AdBNVwWU3mxCAFwEbftxrj3QYowAzPcDiDoE2O1J+n6/3/wqDQhceZDsAmgesanP9TFEC0A3AMBmA4Ak29JJQAgAVY65TVBVgd+wLQRAIPDV9/soEaBmfi0Aqg9mJYC3KQBAzOM29+cbF7PTHKTiOA4C7KNUKQiwr3mV6ur7X7+AIGYA+x8FsMHP6ACQ47O7hwCwOGrkMgC8I2QA1HCWo0JXwd/477/n5+jqAlVszhvAZvP8/N9/dJsh5yVp5P7G0DZKfZCP36nSzMdtNqGr0M/n5+iCYPYAtAVAbtR136cnTn8EgJKaSOVqMx3ZLv8OID4AFAACIGwsn4oxCQ2Rj5/7fTgB2vb8HFlR+J0ANtMAEE5hvLULgH1cOADuAGIDwPJxW3yzVGFtd2IpCgmAyA8f7WMB6mgQBAHsZw5gc6UH6B4A7EbWHUDsAFCU7TddRRl3b6AjpTsAztfbN68QNYBNTwBm3ADo5t0qEN1wd2Vm/4u60amTs9tbuBIVgjhaAL8cAJuxA/ArPN0AIJlu/6k0rd0r+K9I3Gr0FAGYUQN4ePBvzG3kBuTrtw9gw6szLIlDbxDt82350tMY+jtRlAJXAzA1AEMAdNXXP2IAPoTLAJ6eXl6MpsVYYS+vrg/sLZO06v+NqHqErgegjQDAutQjB2BDuASgqgLpj4/Dk9jb26XKsACIUvy1APQUATAEBtAVBB8fZRiUssv4f3l7AwJUiNrl8xWjFt8fAJ7/RAGw8e2Gn//rK7k9DAUhENDQhzb5APAwJrsGwNMUAdjhEAbwVtvhSWn8DAfBqNz+cwDKtoCaKAAfhAx0AQAkP8hWlfyXFwLgHrkft/CvA9hMA0CzAS0hIMmQADzMwe4AnCQoyfAOYD4AtlsfAeRvtzMHgM6xh4eZIDgcGAE1hmYlHyOKZg5AfIBsdvLvACgMtoez6bnJJx8QM/MDIMvqjGJG8M/4QAwA/gdITzHn3bkSGAAAAABJRU5ErkJggg==',
+  "quill": 'data:image/png;base64,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',
 };
 
 const PAL = {
@@ -6407,7 +6458,7 @@ const Traffic = (() => {
   function busyness(p, now = Date.now()) {
     const WEEK = 7 * 864e5;
     let score = 0;
-    for (const e of p.activity || []) { const age = now - e.at; if (age >= 0 && age < WEEK) score += 1 - age / WEEK; }
+    for (const e of p.activity || []) { if (isOverdueLine(e)) continue; const age = now - e.at; if (age >= 0 && age < WEEK) score += 1 - age / WEEK; }   // a task going overdue is nothing done (0.1.69)
     const t = Math.max(p.updatedAt || 0, (p.urgency && p.urgency.lastWorked) || 0);
     if (now - t < 864e5) score += 1.5;
     return 1 - Math.exp(-score / 5);
@@ -9431,7 +9482,6 @@ const FullView = (() => {
     if (side) closeSide();
     const t = p.todos.find(x => x.id === id); if (!t) return;
     sideTask = id; taskSnap = clone(t); sideTicked = false;
-    Rounds.foldAll();                                                           // its round's answers start folded (P1a)
     openSide('task');
     const f = $('#pvTaskDesc', side); if (f) f.focus();
   }
@@ -10423,9 +10473,11 @@ const FullView = (() => {
      wizard, given that folder once, saves the answers as you go (W3, F1). With no Claude folder, the answers file is
      dropped back on the task.
    - The answers come back into the task as the wizard saves them, with a toast once they stop arriving (X1), and the
-     hat turns teal once nothing is open, or once you mark the round answered with the rest skipped (A1, S1). */
+     hat turns teal once nothing is open, or once you mark the round answered with the rest skipped (A1, S1).
+   - Since 0.1.69 (Leader Bubbles, Round 2, C1 and C2) Quill says a round's answers coming in, and writes them in the
+     task's Activity; and a round reads in a small popup with Open in wizard, from Quill's bubble, the leaders' cards,
+     and the card's Show the answers. */
 const Rounds = (() => {
-  const unfolded = new Set();            // the cards showing their answers; every panel opens folded (P1a)
   const stamps = new Map();              // task id -> the round file's stamp when last read
   const waits = new Map();               // task id -> the toast waiting for its answers to stop arriving
   const HINT_KEY = 'nullovation-city:wizardHint';
@@ -10592,11 +10644,16 @@ const Rounds = (() => {
       waits.delete(t.id);
       const st = roundState(t);
       if (!st) return;
-      /* its leader says it, in place of the toast (Leader UX, T1, 0.1.59), with Open; it waits with its leader */
+      /* Quill says it, in place of the toast (Leader UX, T1, 0.1.59; Quill since 0.1.69), with Read and Open; it waits in
+         News. Wizard rounds appear in Activity (Leader Bubbles, Round 2, C2): each time they come in, how far it is. */
+      logActivity(p, answersLine(t.round.title, st));
+      changed(p, { touch: false });
       News.add(p, 'answers', { round: t.round.title, n: st.answered, total: st.total }, { ref: { tid: t.id }, key: 'answers:' + t.id });
     }, ANNOUNCE_MS));
   }
   const ANNOUNCE_MS = 4000;
+  /* The Activity line: "Answers in for <round>: 7 of 8", in cards seen for a brainstorm. */
+  const answersLine = (title, st) => 'Answers in for ' + title + ': ' + st.answered + ' of ' + st.total + (st.brainstorm ? ' cards seen' : '');
 
   /* ---------- in the change files Claude sends (add-round) ---------- */
   /* A change naming a task and its round's file in wizard-rounds, or carrying the round itself. */
@@ -10644,16 +10701,16 @@ const Rounds = (() => {
       h('span', { class: 'hat ' + (st.done ? 'hat-done' : 'hat-open'), 'aria-hidden': 'true', html: hatSvg(12) }), st.done ? 'Answered' : st.answered + ' of ' + st.total);
   }
   /* The card in the task panel, under Pin and Star (P1): the state, the title, the file, Wizard it, Mark answered,
-     Remove, and the answers, folded until asked for (P1a). An archived task's card is to read. */
+     Remove, and Show the answers, which opens the round in its popup since 0.1.69 (it unfolded them in place until
+     then, P1a). An archived task's card is to read. */
   function card(p, t, { readOnly = false } = {}) {
     const r = t && t.round;
     if (!r) return null;
-    const st = roundState(t), open = unfolded.has(t.id), hasAnswers = !!r.a || st.marked;
+    const st = roundState(t), hasAnswers = !!r.a || st.marked;
     const label = st.brainstorm ? 'Brainstorm, round ' + st.brainstorm : 'Wizard round';
     const el = h('section', { class: 'pv-round' + (st.done ? ' done' : '') + (st.brainstorm ? ' brainstorm' : ''), 'aria-label': label });
-    const fold = hasAnswers ? h('button', { class: 'pv-round-fold', type: 'button', 'aria-expanded': String(open),
-      onclick: () => { if (open) unfolded.delete(t.id); else unfolded.add(t.id); const nu = card(p, t, { readOnly }); el.replaceWith(nu); const b = $('.pv-round-fold', nu); if (b) b.focus(); } },
-      h('span', { 'aria-hidden': 'true', html: iconSvg(open ? 'caretD' : 'caretR', 9) }), open ? 'Answers' : 'Show the answers') : null;
+    const fold = hasAnswers ? h('button', { class: 'pv-round-fold', type: 'button', 'aria-haspopup': 'dialog', title: 'Read the round with its answers',
+      onclick: () => view(p, t) }, h('span', { 'aria-hidden': 'true', html: iconSvg('caretR', 9) }), 'Show the answers') : null;
     el.append(
       h('div', { class: 'pv-round-head' }, hatEl(t, 16), h('span', { class: 'pv-round-lbl' }, label), h('span', { class: 'pv-round-state' }, roundStateText(st))),
       h('p', { class: 'pv-round-title', dir: 'auto' }, r.title),
@@ -10665,8 +10722,23 @@ const Rounds = (() => {
           onclick: () => { mark(p, t); const b = side() && $('#pvRoundWizard', side()); if (b) b.focus(); } }, 'Mark answered') : null,
         !readOnly ? h('button', { id: 'pvRoundRemove', class: 'btn btn-quiet btn-small pv-round-remove', type: 'button', title: 'Takes the round off this task; its file stays in the folder',
           onclick: () => remove(p, t) }, 'Remove') : null),
-      ...[fold, open && hasAnswers ? answersList(r, st) : null].filter(Boolean));
+      ...[fold].filter(Boolean));
     return el;
+  }
+  /* The round in a small popup (0.1.69, Leader Bubbles, Round 2, C1: "it opens a small popup, and the same popup will
+     open when we click Show the answers"): where it stands, its title and file, each question with its answer so far
+     (Open, or Skipped once marked), and Open in wizard, which is Wizard it. Esc closes it. */
+  function view(p, t) {
+    const r = t && t.round;
+    if (!r) return;
+    const st = roundState(t), label = st.brainstorm ? 'Brainstorm, round ' + st.brainstorm : 'Wizard round';
+    Panel.open(r.title, h('div', { class: 'cr-body rd-body' },
+      h('div', { class: 'rd-head' }, hatEl(t, 16), h('span', { class: 'pv-round-lbl' }, label), h('span', { class: 'pv-round-state' }, roundStateText(st))),
+      h('p', { class: 'rd-for', dir: 'auto' }, 'For ', h('bdi', null, t.text), ', in ', h('bdi', null, p.name), '.'),
+      h('p', { class: 'pv-round-file', dir: 'ltr', title: roundPath(r) || ROUNDS_DIR + '\\' + r.file + ', in the Claude folder' }, ROUNDS_DIR + '\\' + r.file),
+      answersList(r, st),
+      h('div', { class: 'rd-btns' }, h('button', { id: 'rdWizard', class: 'btn btn-accent', type: 'button', title: st.done ? 'Opens it in your wizard' : 'Answers it in your wizard',
+        onclick: () => { Panel.close(); wizard(p, t); } }, h('span', { class: 'hat', 'aria-hidden': 'true', html: hatSvg(14) }), 'Open in wizard'))), 'cr rd');
   }
   const side = () => $('#pvSide');
   function answersList(r, st) {
@@ -10691,8 +10763,8 @@ const Rounds = (() => {
   /* The round's file for Cowork, when its full path is known. */
   const files = t => (t && t.round && roundPath(t.round) ? [roundPath(t.round)] : []);
 
-  return { wizard, openWizard, openLink, appLink, take, dropFile, poll, fromChange, mark, remove, hatButton, chip, card, dropLine, files, fileText, writeFile, readFile,
-    foldAll: () => unfolded.clear(), ANNOUNCE_MS };
+  return { wizard, openWizard, openLink, appLink, take, dropFile, poll, fromChange, mark, remove, hatButton, chip, card, view, dropLine, files, fileText, writeFile, readFile,
+    answersLine, ANNOUNCE_MS };
 })();
 
 /* The building picker: every generic building, live, in one grid. It opens as a dialog when a new
@@ -10813,7 +10885,11 @@ const Leaders = (() => {
   const noFace = size => { const el = h('span', { class: 'ld-face ld-none', 'aria-hidden': 'true' }); el.style.setProperty('--face', size + 'px'); return el; };
 
   /* ---------- portraits ---------- */
+  /* Quill's portrait ships with the city (0.1.69): kept with the leaders' under his id, so his face is framed and
+     breathes as theirs do. */
+  const keepQuill = () => { if (typeof PORTRAITS !== 'undefined' && PORTRAITS.quill) urls.set(QUILL.id, PORTRAITS.quill); };
   async function loadAll() {
+    keepQuill();
     for (const l of DB.leaders) if (l.portrait && !urls.has(l.id)) { const u = await Store.getArt(portraitKey(l.id)); if (u) urls.set(l.id, u); }
     for (const u of urls.values()) await measure(u);
     refreshAll();
@@ -10843,6 +10919,7 @@ const Leaders = (() => {
   let editing = null;                                        // the leader the editor shows, while it shows
   const isOpen = () => !!$('#leadersPanel') && !$('#leadersPanel').hidden;
   function init() {
+    keepQuill();
     $('#ldPlus').innerHTML = iconSvg('plus', 12); $('#ldPlus').style.display = 'inline-flex';
     $('#sbLeaderIcon').innerHTML = iconSvg('leader', 16); $('#sbLeaderIcon').style.display = 'inline-flex';
     $('#ldBack').innerHTML = iconSvg('back', 18);
@@ -11078,16 +11155,25 @@ const Leaders = (() => {
 
   /* ---------- where a leader shows ---------- */
   /* the leader card under the building's picture in the project view: the face at 96 px (64 until 0.1.57), the name in
-     its color, the role, and what the leader says (0.1.58): its news for this building (0.1.59), else its greeting with
-     the next task, in a quote with a bar in its color. The full title is the line's tooltip when the line cuts it
-     short. */
+     its color, the role, and what the leader says (0.1.58): since 0.1.69 what the status card says, with its buttons
+     (Leader Bubbles, Round 2, N1: "it tells you the latest things, and if there is an action you can take, you can take
+     it there"), Claude at work included; else its greeting with the next task, in a quote with a bar in its color. The
+     full title is the line's tooltip when the line cuts it short. A building with no leader has Proxima say it, as on
+     the status card, with Pick a leader; with nothing to say, the card offers to pick one. */
   let lastPick = null;
   function card(p, onPick) {
     lastPick = { pid: p.id, onPick };
-    const l = leaderOf(p);
-    if (!l) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
+    const l = leaderOf(p), news = News.viewLines(p);
+    if (!l && !news.length) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
       noFace(48), h('span', { class: 'ld-card-text' }, h('b', null, 'No leader yet'), h('span', null, 'Pick a leader')));
-    const t = nextTask(p), news = News.viewLines(p);
+    if (!l) {
+      const box = h('div', { id: 'pvLeader', class: 'ld-card has-news px-voice' }, breathe(Proxima.faceEl(96), 'proxima'),
+        h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name' }, 'Proxima Pace'), h('span', null, 'Productivity Inspector'), ...news),
+        h('button', { class: 'btn btn-quiet btn-small ld-change', type: 'button', title: 'Pick a leader for this building', onclick: onPick }, 'Pick a leader'));
+      box.style.setProperty('--ld', '#8FD0F7');
+      return box;
+    }
+    const t = nextTask(p);
     const says = news.length ? news : [h('span', { class: 'ld-says', dir: 'auto', title: t && t.text.length > LEADER_TITLE_MAX ? t.text : null }, leaderGreeting(p))];
     const box = h('div', { id: 'pvLeader', class: 'ld-card' + (news.length ? ' has-news' : '') }, face(l, 96),
       h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null, ...says),
@@ -11126,7 +11212,7 @@ const Leaders = (() => {
   /* ---------- leaders in backups and project files ---------- */
   async function dropAll() {
     for (const l of DB.leaders) await Store.deleteArt(portraitKey(l.id));
-    urls.clear(); DB.leaders = [];
+    urls.clear(); keepQuill(); DB.leaders = [];
   }
   /* A backup's leaders, with their portraits; resolves how many portraits this browser holds for this session only. */
   async function restore(list) {
@@ -12084,7 +12170,6 @@ const ClaudeWork = (() => {
     if (canWrite && typeof ClaudeInbox !== 'undefined' && await ClaudeInbox.poll(dir, writer)) moved = true;
     if (state === 'on' && typeof Rounds !== 'undefined') await Rounds.poll(dir, writer);   // a round's answers, as the wizard saves them (0.1.55)
     placed = place() || placed;
-    if (writer) logFinishes();
     if (placed || moved) redraw();
     else if (shown()) render();                        // keeps "last heard" true while Settings shows it
     if (state === 'on') schedule();
@@ -12183,28 +12268,9 @@ const ClaudeWork = (() => {
     title();
   }
 
-  /* A finish, once per session and what it worked on, as a line in the project's Activity at the time it finished.
-     It makes the building busier for the week, as Activity does; it is not work for urgency (only a tick is). */
-  const FIN = 'Claude Code finished';
-  function logFinishes() {
-    for (const [id, ss] of byProject) {
-      const p = DB.projects.find(x => x.id === id);
-      if (!p) continue;
-      let added = false;
-      for (const s of ss) {
-        if (s.state !== 'done') continue;
-        const what = s.task || s.ask, ref = 'claude:' + s.session + ':' + what.trim().toLowerCase().slice(0, 160);
-        if (!Array.isArray(p.activity)) p.activity = [];
-        if (p.activity.some(e => e.ref === ref)) continue;
-        const e = { at: s.at, text: (what ? FIN + ': ' + what : FIN).slice(0, 300), ref };
-        const k = p.activity.findIndex(x => x.at > e.at);
-        if (k < 0) p.activity.push(e); else p.activity.splice(k, 0, e);
-        if (p.activity.length > ACTIVITY_MAX) p.activity.splice(0, p.activity.length - ACTIVITY_MAX);
-        added = true;
-      }
-      if (added) window.changed(p, { touch: false });
-    }
-  }
+  /* A finish wrote "Claude Code finished: <task>" in Activity from 0.1.37 to 0.1.68. Claude writes nothing there since
+     0.1.69 but a wizard round it attaches (Leader Bubbles, Round 2, C2: "I don't want Claude to add to activity anymore
+     for now"); the lines already written stay. */
 
   /* The tab's title: '(2) Nullovation City' while sessions wait for you, finished or stopped unseen, or Claude's
      changes ask first, so it shows from another tab. */
@@ -12316,6 +12382,7 @@ const ClaudeWork = (() => {
     if (typeof News !== 'undefined') News.claude();      // Claude waiting, stopped, finished or asking first: its leader's news
     if (typeof MapView !== 'undefined') MapView.invalidate();
     if (typeof Bubble !== 'undefined') Bubble.refresh();
+    if (typeof Leaders !== 'undefined') Leaders.redrawCard();   // the leader card says Claude at work too (0.1.69)
   }
   function render() {
     const box = $('#claudeBox');
@@ -12480,33 +12547,33 @@ const ClaudeInbox = (() => {
         const name = str(c.milestone, 120), have = name && p.milestones.find(m => keyOf(m.name) === keyOf(name));
         const cur = currentGroup(p), live = liveMilestones(p);    // a milestone named in the archive comes back with them
         const target = have ? { id: have.id } : name ? { name } : cur && cur.ms ? { id: cur.ms.id } : live.length ? { id: live[live.length - 1].id } : { name: 'To do' };
-        addTasks(p, list, target);
+        addTasks(p, list, target, { log: false });              // Claude writes nothing in Activity but its rounds (0.1.69, C2)
         tasks += list.length;
       } else if (c.do === 'add-note') {
         const title = str(c.title, 200), text = str(c.text, 8000);
         if (!title && !text) continue;
         const n = { id: uid('n'), title, text, at: Date.now() };
         p.notes.push(n); added.notes.push(n.id);
-        logActivity(p, 'Claude wrote a note' + (title ? ': ' + title : ''));
       } else if (c.do === 'add-link') {
         const url = str(c.url, 2000);
         if (!url || p.links.some(l => addressKey(l.url) === addressKey(url))) continue;
         const l = { id: uid('l'), label: str(c.label, 120), url, icon: LINK_ICONS.includes(c.icon) ? c.icon : guessIcon(url), shortcut: true };
         p.links.push(l); added.links.push(l.id);
-        logActivity(p, 'Claude added a link: ' + (l.label || suggestLabel(url)));
       } else if (c.do === 'add-round') {
         /* a wizard round for a task (0.1.55, W1): it replaces any round the task had (W6) */
         const t = taskNamed(p, c.task) || taskNamed(p, c.task, false), got = c._got;
         if (!t || !got) continue;
-        added.rounds.push({ id: t.id, was: t.round ? JSON.parse(JSON.stringify(t.round)) : null });
+        const was = t.round ? JSON.parse(JSON.stringify(t.round)) : null;
         t.round = makeRound(got.w, got.file);
+        /* wizard rounds appear in Activity (Leader Bubbles, Round 2, C2), the one line Claude still writes there; Undo
+           takes it back out */
         logActivity(p, 'Claude attached a wizard round to ' + t.text + ': ' + t.round.title);
+        added.rounds.push({ id: t.id, was, line: p.activity[p.activity.length - 1] });
       }
     }
     const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links')),
       added.rounds.length && (added.rounds.length === 1 ? 'attached a wizard round' : 'attached ' + added.rounds.length + ' wizard rounds')].filter(Boolean);
     const what = bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] || '';
-    if (what && summary) logActivity(p, 'Claude: ' + summary);
     if (what) { window.changed(p); if (added.rounds.length && typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }
     return { what, todos: p.todos.filter(t => !before.todos.has(t.id)).map(t => t.id), ms: p.milestones.filter(m => !before.ms.has(m.id)).map(m => m.id), ...added };
   }
@@ -12515,9 +12582,12 @@ const ClaudeInbox = (() => {
     p.todos = p.todos.filter(t => !drop.has(t.id));
     p.notes = p.notes.filter(n => !notes.has(n.id));
     p.links = p.links.filter(l => !links.has(l.id));
-    for (const r of u.rounds || []) { const t = p.todos.find(x => x.id === r.id); if (!t) continue; if (r.was) t.round = r.was; else delete t.round; }
+    for (const r of u.rounds || []) {
+      const k = r.line && Array.isArray(p.activity) ? p.activity.indexOf(r.line) : -1;
+      if (k >= 0) p.activity.splice(k, 1);                      // its line goes with it
+      const t = p.todos.find(x => x.id === r.id); if (!t) continue; if (r.was) t.round = r.was; else delete t.round;
+    }
     p.milestones = p.milestones.filter(m => !u.ms.includes(m.id) || p.todos.some(t => t.milestoneId === m.id));
-    logActivity(p, 'Undid what Claude added');
     window.changed(p);
     if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
     toast('Took back what Claude added to ' + p.name + '.');
@@ -12549,12 +12619,11 @@ const ClaudeInbox = (() => {
       c._settled = r.ok ? 'applied' : 'skipped';
       if (!r.ok) continue;
       if (c.do === 'done') { if (i == null) tickTask(p, r.t); else ClaudeWork.tick(p, r.t); }   // a repeat moves on to its next date
-      else if (c.do === 'edit-description') { r.t.description = str(c.description, 8000); logActivity(p, 'Claude updated the description of ' + r.t.text); }
+      else if (c.do === 'edit-description') r.t.description = str(c.description, 8000);
       else if (c.do === 'replace-plan') applyPlan(p, r.plan);
       n++; one = { c, r };
     }
     if (n) {
-      if (entry.summary && !entry.logged) { logActivity(p, 'Claude: ' + entry.summary); entry.logged = true; }
       window.changed(p);
       if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render();
     }
@@ -14050,15 +14119,19 @@ const News = (() => {
   const held = new Map();                                    // a building's id: the news its status card or project view read
 
   /* ---------- who says it ---------- */
+  const voiceOf = l => ({ k: 'ld:' + l.id, l, name: leaderName(l), role: l.role, color: l.color });
   function speakerOf(p) {
     const l = p && leaderOf(p);
-    return l ? { k: 'ld:' + l.id, l, name: leaderName(l), role: l.role, color: l.color } : { k: 'px', l: null, name: 'Proxima Pace', role: 'Productivity Inspector', color: '#8FD0F7' };
+    return l ? voiceOf(l) : { k: 'px', l: null, name: 'Proxima Pace', role: 'Productivity Inspector', color: '#8FD0F7' };
   }
+  /* Who says an item: Quill says a round Claude attached on its own and a round's answers, for every building (0.1.69,
+     Leader Bubbles, Round 2, C1); its building's leader, or Proxima, the rest. */
+  const speakerFor = it => (it && QUILL_MOMENTS.has(it.moment) ? voiceOf(quillLeader()) : speakerOf(getProject(it.pid)));
   /* A speaker's face; Proxima breathes too while she brings a building's news in the leaders' place (0.1.62). */
   const faceOf = (sp, size) => (sp.l ? Leaders.face(sp.l, size) : Leaders.breathe(Proxima.faceEl(size), 'proxima'));
   const lineOf = it => leaderSay(it.moment, it.v);
   /* The most pressing first; among the same, the leaders before Proxima, as in the side bar, then the oldest first. */
-  const proximaSays = it => { const p = getProject(it.pid); return p && !leaderOf(p) ? 1 : 0; };
+  const proximaSays = it => (speakerFor(it).k === 'px' ? 1 : 0);
   const sortItems = list => [...list].sort((a, b) => rankOf(a) - rankOf(b) || proximaSays(a) - proximaSays(b) || a.at - b.at);
   const live = () => st.items.filter(it => getProject(it.pid));
 
@@ -14351,7 +14424,7 @@ const News = (() => {
   function faces() {
     const by = new Map();
     for (const it of live()) {
-      const sp = speakerOf(getProject(it.pid));
+      const sp = speakerFor(it);
       if (!by.has(sp.k)) by.set(sp.k, { ...sp, items: [] });
       by.get(sp.k).items.push(it);
     }
@@ -14397,7 +14470,7 @@ const News = (() => {
   /* A face's dismiss: its news is read without being heard; what sticks for a reason (a bubble on the map, Claude's
      changes in the status card) stays where it shows (N2). */
   function dismiss(k) {
-    const ids = live().filter(it => speakerOf(getProject(it.pid)).k === k).map(it => it.id);
+    const ids = live().filter(it => speakerFor(it).k === k).map(it => it.id);
     if (bub && bub.list.some(it => ids.includes(it.id))) hide();
     readIds(ids);
     const next = $('#newsList .news-face');
@@ -14434,7 +14507,7 @@ const News = (() => {
     edit(() => { for (const it of st.items) if (ids.has(it.id)) it.popped = true; });
   }
   function openFace(k) {
-    const list = sortItems(live().filter(it => speakerOf(getProject(it.pid)).k === k));
+    const list = sortItems(live().filter(it => speakerFor(it).k === k));
     if (!list.length) return;
     if (typeof Gus !== 'undefined' && Gus.isSaying()) Gus.hush();
     show(list, { auto: false, k });
@@ -14459,7 +14532,7 @@ const News = (() => {
     if (!bub || !b) return;
     const it = bub.list[bub.i], p = getProject(it.pid);
     if (!p) { next(); return; }
-    const sp = speakerOf(p), n = bub.list.length;
+    const sp = speakerFor(it), n = bub.list.length;
     b.style.setProperty('--ld', sp.color);
     b.classList.toggle('px-voice', !sp.l);
     b.dataset.k = sp.k; b.dataset.moment = it.moment;
@@ -14667,6 +14740,12 @@ const News = (() => {
   }
   const readDescription = (t, c) => [crSec('The new description', crText(String(c.description || '').trim())),
     crSec('Its description now', (t.description || '').trim() ? crText(t.description.trim(), 'was') : crText('No description yet.', 'was'))];
+  /* A wizard round's Read (0.1.69, Leader Bubbles, Round 2, C1): the round in a small popup, the one Show the answers
+     opens in the task panel, with Open in wizard. */
+  const roundRead = (p, t) => h('button', { class: 'btn btn-small btn-quiet ld-read ld-round-read', type: 'button', title: 'Read the round, and its answers so far', onclick: () => {
+    hold();
+    Rounds.view(p, t);
+  } }, 'Read');
   const readPlanBody = plan => [plan.description ? crSec('The About', crText(plan.description)) : null,
     ...plan.milestones.map(m => crSec(m.name, h('ul', { class: 'cr-list' }, m.tasks.map(t => h('li', { dir: 'auto' }, t.text)))))].filter(Boolean);
 
@@ -14712,7 +14791,7 @@ const News = (() => {
       if (!t || !t.round || t.round.title !== r.title) continue;                        // taken off, or another round since
       const same = tkey(t.text) === tkey(rep.task);
       out.push(partEl('round', same ? ['Attached a wizard round, ', h('bdi', null, t.round.title), '.'] : ['Attached a wizard round to ', taskLink(p, t, where, it), ', ', h('bdi', null, t.round.title), '.'],
-        [u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }, true) : null]));
+        [roundRead(p, t), u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }, true) : null]));
     }
     const e = entryOf(rep.entry);
     if (e) out.push(...askParts(p, e, rep.task, it, where));
@@ -14737,10 +14816,10 @@ const News = (() => {
         u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back what Claude added', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }) : null].filter(Boolean) };
   }
   function roundView(p, it, where) {
-    const rep = reportOf(it.ref && it.ref.report), uk = rep ? rep.id + ':' + it.ref.tid : it.id, u = undos.get(uk);
-    return { nodes: [...sayNodes(p, 'round', it.v, taskFor(p, it), where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
+    const rep = reportOf(it.ref && it.ref.report), uk = rep ? rep.id + ':' + it.ref.tid : it.id, u = undos.get(uk), t = taskFor(p, it);
+    return { nodes: [...sayNodes(p, 'round', it.v, t, where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
       more: [rep && !rep.add ? wordsEl(rep.summary) : null].filter(Boolean),
-      acts: u ? [act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); })] : [] };
+      acts: [t && t.round ? roundRead(p, t) : null, u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }) : null].filter(Boolean) };
   }
   /* On its own: what Claude asks first, named (the change itself, never the summary), with its time; one change has its
      buttons on the line, several a short line each. */
@@ -14767,6 +14846,7 @@ const News = (() => {
     const out = [];
     if (it.moment === 'answers') {
       const t = p.todos.find(x => x.id === it.ref.tid);
+      if (t && t.round) out.push(roundRead(p, t));
       if (t) out.push(act(p, it, where, 'Open', 'ld-open', 'Open ' + t.text + ' and its round', () => { if (where === 'say') { readIds([it.id]); hide({ read: false }); } FullView.openTask(p.id, t.id); }));
     }
     return out;
@@ -14791,53 +14871,56 @@ const News = (() => {
     if (Bubble.openId() === pid || (typeof FullView !== 'undefined' && FullView.shows(pid))) return;
     held.delete(pid);
   }
-  /* One line the leader says, with what goes under it and its buttons. */
-  function lineEl(nodes, { more = [], acts = [], moment = '', cls = '' } = {}) {
-    return h('div', { class: 'ld-line' + (cls ? ' ' + cls : ''), 'data-moment': moment },
-      h('p', { class: 'ld-says', dir: 'auto' }, ...nodes), ...more, acts.length ? h('div', { class: 'ld-acts' }, acts) : null);
+  /* One line the leader says, with what goes under it and its buttons. A line someone else says on the leader's card,
+     Quill's (0.1.69), starts with his face and his name, its bar in his color. */
+  function lineEl(nodes, { more = [], acts = [], moment = '', cls = '', by = null } = {}) {
+    const lead = by ? [h('span', { class: 'ld-by', title: by.name + (by.role ? ', ' + by.role : '') }, faceOf(by, 20), h('b', { dir: 'auto' }, by.name + ':')), ' '] : [];
+    const el = h('div', { class: 'ld-line' + (by ? ' by-other' : '') + (cls ? ' ' + cls : ''), 'data-moment': moment },
+      h('p', { class: 'ld-says', dir: 'auto' }, ...lead, ...nodes), ...more, acts.length ? h('div', { class: 'ld-acts' }, acts) : null);
+    if (by) el.style.setProperty('--ld', by.color);
+    return el;
   }
   /* The status card: its news, then what Claude is doing there, in the leader's voice, for as long as the card showed
      it before (B3): working, waiting, finished, stopped, and what asks first while it waits. A finish an update reports
      on is one report, its parts under it (A1, A2); an update a working session sent shows under its working line.
-     Nothing is said twice. */
-  function cardLines(p) {
-    const lines = [], said = new Set();
+     Nothing is said twice. The leader card in the project view says the same, with the same buttons (0.1.69). */
+  function cardLines(p, where = 'card') {
+    const lines = [], said = new Set(), own = speakerOf(p).k;
     const voice = typeof ClaudeWork !== 'undefined' ? ClaudeWork.voice(p) : [];
     const pend = typeof ClaudeInbox !== 'undefined' ? ClaudeInbox.pending().filter(e => tkey(e.project) === tkey(p.name)) : [];
     /* under the project view the card is hidden: what it would say waits for the leader card, or the News section */
-    const mine = typeof FullView !== 'undefined' && FullView.shows(p.id) ? sortItems(held.get(p.id) || []) : take(p.id);
+    const mine = where === 'card' && typeof FullView !== 'undefined' && FullView.shows(p.id) ? sortItems(held.get(p.id) || []) : take(p.id);
     const VOICE_RANK = { waiting: 1, working: 1.2, failed: 1.4, finished: 5 };      // Claude's own order: waiting, working, stopped, finished
     for (const x of voice) {
       const rep = x.moment === 'finished' ? finishReport(x.s) : heldReport(x.s);
       if (rep) { said.add(rep.id); if (rep.entry) said.add('e:' + rep.entry); }
       if (x.moment === 'finished') {
-        const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, rep, tick: x.tick }, 'card');
+        const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, rep, tick: x.tick }, where);
         lines.push({ rank: rep ? repRank(p, rep) : VOICE_RANK.finished, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'finished', cls: 'b-claude ' + x.s.state }) });
       } else {
         const t = x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null;
-        lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, x.v, t, 'card'),
-          { more: rep ? [wordsEl(rep.summary), ...parts(p, rep, null, 'card')].filter(Boolean) : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
+        lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, x.v, t, where),
+          { more: rep ? [wordsEl(rep.summary), ...parts(p, rep, null, where)].filter(Boolean) : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
       }
     }
     for (const it of mine) {
       if (it.ref && it.ref.report && said.has(it.ref.report)) continue;
-      if (it.moment === 'asks' && pend.some(e => e.name === it.ref.entry)) continue;           // said below, for as long as it waits
+      if (it.moment === 'asks') continue;                     // said below for as long as it waits in inbox/pending; once applied or dismissed, gone
+      if (it.moment === 'waiting') continue;                  // Claude's own line says it while it waits; once the session moves on, gone
       if (NEWS_CLAUDE.has(it.moment) && it.moment !== 'asks' && voice.some(x => x.s.session === it.ref.session)) continue;
-      const v = viewOf(p, it, 'card');
-      lines.push({ rank: rankOf(it), el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: it.moment }) });
+      const v = viewOf(p, it, where), sp = speakerFor(it);
+      lines.push({ rank: rankOf(it), el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: it.moment, by: sp.k !== own ? sp : null }) });
     }
     for (const e of pend) {
       if (said.has('e:' + e.name)) continue;
-      const v = asksView(p, e, null, 'card');
+      const v = asksView(p, e, null, where);
       lines.push({ rank: NEWS_RANK.asks, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'asks', cls: 'b-claude-asks' }) });
     }
     return lines.sort((a, b) => a.rank - b.rank).map(x => x.el);
   }
-  /* The leader card in the project view: its news for this building, else nothing (its greeting shows). */
-  function viewLines(p) {
-    return take(p.id).filter(it => !NEWS_CLAUDE.has(it.moment) || it.moment === 'finished')
-      .map(it => { const v = viewOf(p, it, 'view'); return lineEl(v.nodes, { more: v.more, acts: v.acts, moment: it.moment }); });
-  }
+  /* The leader card in the project view: what the status card says, read as it shows it (0.1.69, Leader Bubbles,
+     Round 2, N1); with nothing to say, its greeting shows. */
+  const viewLines = p => cardLines(p, 'view');
 
   /* ---------- Reports: the leader's face beside a building's row ---------- */
   function reportFace(p, size = 24) {
@@ -14882,6 +14965,7 @@ const News = (() => {
     DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(saved.city, oldCrowd), leaders: sanitizeLeaders(saved.leaders), projects: sanitizeProjects(saved.projects).map(x => x.p) };
     tidyLeaders();
     archiveDueTasks();                                     // done tasks past their 7 days go to the archive (A2a, D1)
+    logOverdue();                                          // a task gone overdue, a line in Activity (0.1.69)
     Store.save(DB);
   } else {
     DB = { app: 'nullovation-city', version: 3, world: worldState(), city: sanitizeCity(null, oldCrowd), leaders: [], projects: seedProjects() };
@@ -14962,6 +15046,7 @@ const News = (() => {
   let today = ymd();
   setInterval(() => {
     Light.update(); MapView.invalidate(); Bubble.refresh(); Menu.refresh(); Backups.tick();
+    if (logOverdue()) persistSoon();                       // within a minute of a task going overdue, or a date set in the past
     if (ymd() === today) return;
     today = ymd();
     if (archiveDueTasks()) { persistSoon(); Menu.refresh(); }

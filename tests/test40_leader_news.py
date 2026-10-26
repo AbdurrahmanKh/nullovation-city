@@ -160,7 +160,7 @@ with sync_playwright() as p:
     ev("() => FullView.close()"); ev("() => MapView.deselect()"); settle(300)
     ev("() => { const s = JSON.parse(localStorage.getItem('nullovation-city:news')); s.items = []; localStorage.setItem('nullovation-city:news', JSON.stringify(s)); }")
     # pictures that load after the bubble opened: the leader's portrait and the building's own art
-    ev(f"() => News.add(getProject('{gp}'), 'round', {{ task: 'Add plant icons', round: 'Icons, Round 3' }}, {{ ref: {{ tid: '{tid('Add plant icons')}' }} }})")
+    ev(f"() => News.add(getProject('{gp}'), 'added', {{ what: '1 link' }})")   # its leader's (a round is Quill's since 0.1.69)
     settle()
     ok('before its portrait loads, the leader shows its silhouette', ev("() => !document.querySelector('#ldSayFace img') && !!document.querySelector('#ldSayFace svg')"))
     ev(f"""async () => {{ const l = DB.leaders[0]; await Store.putArt(portraitKey(l.id), PORTRAITS.gus); l.portrait = true; await Leaders.loadAll(); }}""")
@@ -187,16 +187,16 @@ with sync_playwright() as p:
     ok('Undo takes back what Claude added, reads the news and closes the bubble', ev(f"() => !getProject('{gp}').todos.some(t => t.id === 'tnew1') && !getProject('{gp}').notes.some(n => n.id === 'nnew1')") and unread() == [] and say() is None)
 
     # ---------- a click on a face: the bubble stays; Esc closes it ----------
-    ev(f"() => News.add(getProject('{gp}'), 'answers', {{ round: 'Leader UX, Round 1', n: 7, total: 8 }}, {{ ref: {{ tid: '{tid('Publish the app')}' }}, key: 'answers:x' }})")
+    ev(f"() => News.add(getProject('{gp}'), 'week_quiet', {{ task: 'Publish the app' }}, {{ ref: {{ week: ymd(weekStartOf(Date.now())), tid: '{tid('Publish the app')}' }}, key: 'week:q' }})")
     settle()
-    ok('a round\'s answers wait with their leader: no bubble opens', say() is None and unread() == ['answers:Garden planner'] and tiles()[0][0] == 'ld:' + lid)
+    ok('the week waits with its leader: no bubble opens', say() is None and unread() == ['week_quiet:Garden planner'] and tiles()[0][0] == 'ld:' + lid)   # a round's answers are Quill's since 0.1.69 (test44)
     ev(f"() => News.add(getProject('{gp}'), 'week', {{ n: 3, task: 'Draw the beds on a grid' }}, {{ ref: {{ week: ymd(weekStartOf(Date.now())) }}, key: 'week:x' }})")
     settle()
     ok(f'two waiting: the face counts them ({tiles()})', tiles() == [['ld:' + lid, '2', 'Talal', True]])
     pg.click('#newsList .news-face'); settle(300)
     s = say()
-    ok(f'a click on the face opens its bubble, the answers first, with Open ({s and (s["text"], s["acts"], s["count"])})',
-       s and s['text'] == 'Your answers are in for Leader UX, Round 1: 7 of 8.' and s['acts'] == ['Open', 'Go to it', 'Next'] and s['count'] == '1 of 2')
+    ok(f'a click on the face opens its bubble, the oldest first, with Next ({s and (s["text"], s["acts"], s["count"])})',
+       s and s['text'] == 'Quiet week: nothing finished. Publish the app is a good start.' and s['acts'] == ['Go to it', 'Next'] and s['count'] == '1 of 2')
     ok('the focus moves into the bubble', ev("() => document.querySelector('#ldSay').contains(document.activeElement)"))
     pg.wait_for_timeout(1700)
     ok('opened by a click, it stays', say() is not None)
