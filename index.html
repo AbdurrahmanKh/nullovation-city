@@ -721,9 +721,31 @@ a.oc-tile:hover, a.oc-tile:focus-visible, button.oc-tile:hover, button.oc-tile:f
 }
 .pv-note-card:hover, .pv-note-card:focus-visible { background: var(--hover); outline: none; }
 .pv-note-card.on { box-shadow: var(--px-edge), 0 0 0 3px var(--accent); }
-.pv-note-h { font-weight: 600; font-size: 14.5px; line-height: 1.3; overflow-wrap: anywhere; }
-.pv-note-b { font-size: 13px; line-height: 1.4; color: var(--ink-soft); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.pv-note-at { margin-top: auto; font-size: 12px; color: var(--muted); }
+.pv-note-h { display: flex; align-items: flex-start; gap: 7px; font-weight: 600; font-size: 14.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.pv-note-ht { min-width: 0; }
+.pv-note-b { font-size: 13px; line-height: 1.4; color: var(--ink-soft); white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pv-note-at { display: flex; align-items: center; gap: 5px; margin-top: auto; font-size: 12px; color: var(--muted); }
+/* a note's icon, and its notes in a task (0.1.71, Claude's Notes) */
+.note-ic { flex: none; display: inline-flex; color: var(--ink); margin-top: 1px; }
+.pv-note-icons { flex-wrap: wrap; align-items: center; gap: 8px; }
+.pv-note-icons .pv-note-icon { width: 34px; height: 34px; display: inline-grid; place-items: center; padding: 0; margin: 2px; box-shadow: var(--px-edge); }
+.pv-note-icons .pv-note-icon .note-ic { margin: 0; }
+.pv-note-icons .pv-note-icon.on { background: var(--hover); box-shadow: var(--px-edge), 0 0 0 4px var(--accent); }
+.pv-note-icon-name { font-size: 13px; color: var(--ink-soft); }
+.pv-note-icons > .lbl { margin-right: 4px; }
+.pv-note-in { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pv-note-task { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--ink); }
+.pv-note-in .btn { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; }
+.pv-tnotes { display: grid; gap: 6px; }
+.pv-tnotes-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pv-tnotes-head .btn { display: inline-flex; align-items: center; gap: 6px; }
+.pv-tnotes-empty { margin: 0; }
+.pv-tnote-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pv-tnote { display: grid; gap: 4px; width: calc(100% - 4px); margin: 2px; padding: 8px 10px; text-align: left; background: var(--field); border: 0; box-shadow: var(--px-edge); color: var(--ink); font: inherit; cursor: pointer; }
+.pv-tnote:hover, .pv-tnote:focus-visible { background: var(--hover); outline: none; }
+.pv-tnote-h { display: flex; align-items: flex-start; gap: 7px; font-weight: 600; font-size: 14px; line-height: 1.3; overflow-wrap: anywhere; }
+.pv-tnote-t { min-width: 0; }
+.pv-tnote-b { font-size: 13px; line-height: 1.4; color: var(--ink-soft); white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .pv-note-ed { display: grid; gap: 10px; }
 .pv-note-title { font: 400 20px/1.25 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
 .pv-note-body { min-height: 360px; resize: vertical; line-height: 1.5; }
@@ -1635,7 +1657,7 @@ li.task .round-hat { margin-inline-start: 2px; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.70</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.71</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -2716,7 +2738,7 @@ function matchesFilter(p) {
   if (!f.q) return true;
   const gname = p.generic && typeof GENERICS !== 'undefined' ? (GENERICS.find(g => g.id === p.generic) || {}).name : '';
   const hay = norm([p.name, p.description, gname, ...p.todos.map(t => t.text + ' ' + (t.description || '')), ...p.links.map(l => l.label + ' ' + l.url),
-    ...p.milestones.map(m => m.name), ...p.notes.map(n => (n.title || '') + ' ' + n.text)].join(' \n '));
+    ...p.milestones.map(m => m.name), ...allNotes(p).map(n => (n.title || '') + ' ' + n.text)].join(' \n '));
   return hay.includes(f.q);
 }
 
@@ -2819,6 +2841,44 @@ function ensureMilestones(p) {
   for (const t of loose) t.milestoneId = home.id;
   normalizeOrder(p);
 }
+/* ---------- notes (0.1.71, Claude's Notes, Rounds 1 and 2) ----------
+   A note lives in a project's Notes or, since 0.1.71, inside a task. Each has an icon, picked in its panel and changed
+   any time, a note of Claude's too (M1, I1). A note Claude wrote carries `by: 'claude'`, its spark and By Claude, and
+   the kind it is: where a piece of work stands (status), a plan, a decision, or how something works (how). Claude keeps
+   a status, a plan and a decision in the task they are about, how something works with your notes; a status, a plan
+   and how something works stay one note each, brought up to date, a decision is a new note each time (K1, K2). */
+const NOTE_ICONS = ['sticky', 'bulb', 'book', 'blueprint'];
+const NOTE_ICON_NAMES = { sticky: 'Sticky note', bulb: 'Idea bulb', book: 'Book', blueprint: 'Blueprint' };
+const NOTE_KINDS = ['status', 'plan', 'decision', 'how'];
+const KIND_ICON = { status: 'sticky', plan: 'blueprint', decision: 'bulb', how: 'book' };     // the icon Claude gives each kind; changed any time
+const isNote = n => !!n && typeof n.text === 'string' && typeof n.at === 'number';
+function readNote(n) {
+  return { id: typeof n.id === 'string' && n.id ? n.id.slice(0, 60) : uid('n'), title: typeof n.title === 'string' ? n.title.slice(0, 200) : '', text: n.text.slice(0, 8000), at: n.at,
+    ...(NOTE_ICONS.includes(n.icon) ? { icon: n.icon } : {}), ...(n.by === 'claude' ? { by: 'claude' } : {}), ...(NOTE_KINDS.includes(n.kind) ? { kind: n.kind } : {}),
+    ...(typeof n.updatedAt === 'number' ? { updatedAt: n.updatedAt } : {}) };
+}
+const noteIcon = n => (n && NOTE_ICONS.includes(n.icon) ? n.icon : 'sticky');
+const byClaude = n => !!n && n.by === 'claude';
+/* Every note of a project: its Notes, and those inside its tasks. */
+const allNotes = p => [...p.notes, ...p.todos.flatMap(t => (Array.isArray(t.notes) ? t.notes : []))];
+/* The task a note is in, or null for one in the project's Notes. */
+const noteTask = (p, id) => p.todos.find(t => Array.isArray(t.notes) && t.notes.some(n => n.id === id)) || null;
+/* A note's head and the rest of it: its title, else its first line. */
+const noteHead = n => (n.title.trim() || n.text.trim().split('\n')[0] || 'Untitled note').slice(0, 120);
+const noteBody = n => (n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join('\n').trim());
+/* Who wrote it and when, in words: "By Claude, 27 Oct, 10:00. Brought up to date 28 Oct, 09:15." */
+const noteWhen = n => (byClaude(n) ? 'By Claude, ' : 'Written ') + fmtStamp(n.at) + '.' + (n.updatedAt ? ' Brought up to date ' + fmtStamp(n.updatedAt) + '.' : '');
+/* A task's notes for Claude, newest first: in its copy, so the next session on it starts from them (K1). */
+function taskNotesForClaude(t) {
+  const ns = [...(t.notes || [])].sort((a, b) => (b.updatedAt || b.at) - (a.updatedAt || a.at));
+  if (!ns.length) return [];
+  const L = ['', '## Notes on this task'];
+  for (const n of ns) {
+    L.push('', '### ' + noteHead(n), (byClaude(n) ? 'By Claude' + (n.kind ? ', ' + n.kind : '') + ', ' : 'Yours, ') + fmtStamp(n.updatedAt || n.at));
+    const b = noteBody(n); if (b) L.push(b);
+  }
+  return L;
+}
 /* Every copy for Claude ends with this line, so work started from the city reports back by itself (Even Better Claude
    Connections, Round 1, A2: from the copy). The nullovation-city skill writes the change into the city's inbox. */
 const REPORT_LINE = 'When you finish, send Nullovation City an update with the nullovation-city skill.';
@@ -2842,6 +2902,7 @@ function taskForClaude(p, t, now = Date.now(), { kind = '', ask = false } = {}) 
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
+  L.push(...taskNotesForClaude(t));
   if (t.round) L.push(...roundForClaude(t, { inline: kind === 'chat' || !(typeof ClaudeWork !== 'undefined' && ClaudeWork.folder()) }));
   L.push('', ask === 'brainstorm' ? BRAINSTORM_LINE : ask ? ROUND_LINE : REPORT_LINE);
   return L.join('\n');
@@ -2850,7 +2911,9 @@ function taskForClaude(p, t, now = Date.now(), { kind = '', ask = false } = {}) 
 function noteForClaude(p, n) {
   const title = n.title.trim() || (n.text.trim().split('\n')[0] || 'Untitled note').slice(0, 120);
   const body = n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join('\n').trim();
-  const L = ['# Note: ' + title, 'Project: ' + p.name, ...(leaderLine(p) ? [leaderLine(p)] : []), 'Written: ' + fmtStamp(n.at), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title), '', REPORT_LINE];
+  const t = noteTask(p, n.id);
+  const L = ['# Note: ' + title, 'Project: ' + p.name, ...(leaderLine(p) ? [leaderLine(p)] : []), ...(t ? ['Task: ' + t.text] : []),
+    'Written: ' + fmtStamp(n.at) + (byClaude(n) ? ', by Claude' : '') + (n.updatedAt ? '; brought up to date ' + fmtStamp(n.updatedAt) : ''), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title), '', REPORT_LINE];
   return L.join('\n');
 }
 async function copyNote(p, n) {
@@ -2968,13 +3031,12 @@ function sanitizeProjects(raw) {
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
         ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}), ...readRound(t),
+        ...(Array.isArray(t.notes) && t.notes.some(isNote) ? { notes: t.notes.filter(isNote).map(readNote) } : {}),      // its notes (0.1.71)
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed, ...(m.archiveCollapsed === true ? { archiveCollapsed: true } : {}),
       })),
-      notes: (Array.isArray(r.notes) ? r.notes : []).filter(n => n && typeof n.text === 'string' && typeof n.at === 'number').map(n => ({
-        id: typeof n.id === 'string' && n.id ? n.id : uid('n'), title: typeof n.title === 'string' ? n.title.slice(0, 200) : '', text: n.text.slice(0, 8000), at: n.at,
-      })),
+      notes: (Array.isArray(r.notes) ? r.notes : []).filter(isNote).map(readNote),
       links: (Array.isArray(r.links) ? r.links : []).filter(l => l && typeof l.url === 'string').map(l => ({
         id: typeof l.id === 'string' && l.id ? l.id : uid('l'), label: str(l.label, 120), url: l.url.slice(0, 2000), icon: LINK_ICONS.includes(l.icon) ? l.icon : guessIcon(l.url),
         shortcut: l.shortcut !== false,
@@ -3136,7 +3198,7 @@ function backfillActivity(p) {
   if (Array.isArray(p.activity) && p.activity.length) return;
   const ev = [{ at: p.createdAt, text: 'Planted' }];
   for (const t of p.todos) if (t.done && t.doneAt) ev.push({ at: t.doneAt, text: 'Done: ' + t.text });
-  for (const n of p.notes) ev.push({ at: n.at, text: 'Wrote a note' });
+  for (const n of allNotes(p)) ev.push({ at: n.at, text: 'Wrote a note' });
   p.activity = ev.filter(e => typeof e.at === 'number').sort((a, b) => a.at - b.at).slice(-ACTIVITY_MAX);
 }
 
@@ -4062,7 +4124,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.70";
+const APP_VERSION = "0.1.71";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -4553,11 +4615,17 @@ const ICONS = {
   trophy: ['.########.', '##++++++##', '#.#++++#.#', '#.#++++#.#', '.##++++##.', '...#++#...', '....##....', '....##....', '..######..', '..######..'],
   flame: ['....#.....', '....##....', '...#++#...', '...#++#.#.', '..#+++###.', '.#++++++#.', '.#++oo++#.', '.#+oooo+#.', '..#+oo+#..', '...####...'],
   archive: ['##########', '#++++++++#', '##########', '.#......#.', '.#.####.#.', '.#......#.', '.#......#.', '.#......#.', '.########.', '..........'],
+  /* a note's icons (0.1.71, Claude's Notes, Round 2, I1): the sticky note, the idea bulb, the book (as in rules), and
+     the blueprint (a plan; the map redrawn at his ask) */
+  sticky: ['############', '#++++++++++#', '#+########+#', '#++++++++++#', '#+######+++#', '#++++++++++#', '#+#####++++#', '#++++++++++#', '#+++++++####', '#+++++++#o#.', '#+++++++##..', '#########...'],
+  bulb: ['....####....', '..##++++##..', '.#+o++++++#.', '.#o+++++++#.', '.#++++++++#.', '.#++++++++#.', '..#++++++#..', '...#++++#...', '...######...', '....####....', '...######...', '.....##.....'],
+  book: ['............', '.##########.', '.#+#++++++#.', '.#+#+oooo+#.', '.#+#++++++#.', '.#+#++++++#.', '.#+#++++++#.', '.#+#++++++#.', '.#+#++++++#.', '.##########.', '.#oooooooo#.', '.##########.'],
+  blueprint: ['############', '#++++++++++#', '#+oooooooo+#', '#+o+++o++o+#', '#+o+++o++o+#', '#+o+++o++o+#', '#+oooo+++o+#', '#+o++++++o+#', '#+o++++++o+#', '#+oooooooo+#', '#++++++++++#', '############'],
   arrow: ['######....', '######....', '####......', '##.##.....', '##..##....', '##...##...', '......##..', '.......##.', '........##', '..........'],
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
 const ICON_NAMES = { doc: 'Doc', code: 'Code', github: 'GitHub', claude: 'Claude', chat: 'Chat', folder: 'Folder', web: 'Web' };
-const ICON_ACCENT = { claude: '#D97757', star: '#FFD23F', pin: '#E0356F', flame: '#FF8A3D' };   // Claude's spark keeps its own orange; the star gold (Star and What is next, A2); the pin coral; the streak's flame orange
+const ICON_ACCENT = { claude: '#D97757', star: '#FFD23F', pin: '#E0356F', flame: '#FF8A3D', sticky: '#FFE58A', bulb: '#FFD27A', book: '#7FD6CE', blueprint: '#4A86D6' };   // Claude's spark keeps its own orange; the star gold (Star and What is next, A2); the pin coral; the streak's flame orange
 function iconSvg(name, size = 24, accent = ICON_ACCENT[name] || 'var(--accent)') {
   const rows = ICONS[name]; if (!rows) return '';
   const w = rows[0].length, ht = rows.length;
@@ -9503,9 +9571,10 @@ const FullView = (() => {
     const p = P(); if (!p || !sideTask) return;
     const i = p.todos.findIndex(x => x.id === sideTask);
     if (i >= 0 && taskSnap) {
-      const live = p.todos[i].round;                // a round came, went or was answered while open: Esc leaves it, as it leaves pins
+      const live = p.todos[i].round, liveNotes = p.todos[i].notes;   // a round, or a note, came, went or changed while open: Esc leaves it, as it leaves pins
       p.todos[i] = taskSnap;
       if (live) taskSnap.round = live; else delete taskSnap.round;
+      if (liveNotes) taskSnap.notes = liveNotes; else delete taskSnap.notes;
     }
     changed(p, { touch: false });
     sideTask = null; taskSnap = null; sideTicked = false;
@@ -9555,6 +9624,7 @@ const FullView = (() => {
         onclick: () => { set(!on); render(); const b = side && $(`[data-mark="${kind}"]`, side); if (b) b.focus(); } }, iconEl(kind, 14, on ? undefined : 'transparent'), on ? yes : no))),
       h('div', { class: 'pv-round-slot' }, Rounds.card(p, t)),                 // its wizard round (0.1.55, P1)
       h('span', { class: 'lbl' }, 'Description'), desc,
+      taskNotes(p, t),
       h('div', { class: 'pv-claude-row' },
         OpenInClaude.button({ id: 'pvTaskClaude', ...taskClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' },
@@ -9595,11 +9665,31 @@ const FullView = (() => {
       t.round ? h('div', { class: 'pv-round-slot' }, Rounds.card(p, t, { readOnly: true })) : null,
       h('span', { class: 'lbl' }, 'Description'),
       desc ? h('div', { id: 'pvTaskDesc', class: 'note-text pv-arch-desc', tabindex: '-1' }, ...paragraphs(desc)) : h('p', { id: 'pvTaskDesc', class: 'fv-empty', tabindex: '-1' }, 'No description.'),
+      taskNotes(p, t, { readOnly: true }),
       h('div', { class: 'pv-claude-row' },
         OpenInClaude.button({ id: 'pvTaskClaude', text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', files: () => Rounds.files(t), project: p })),
       h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
   }
+  /* A task's notes (0.1.71, Claude's Notes): under its description, newest first, each with its icon, its title, two
+     lines of it, and when; Claude's with its spark. A click opens one in the note panel, with Back to the task; Add a
+     note writes one of yours (Y1). An archived task's are to read: a click shows one whole. */
+  function taskNotes(p, t, { readOnly = false } = {}) {
+    const ns = [...(t.notes || [])].sort((a, b) => (b.updatedAt || b.at) - (a.updatedAt || a.at));
+    if (readOnly && !ns.length) return null;
+    const open = n => (readOnly ? Panel.open(noteHead(n), h('div', { class: 'cr-body' }, h('p', { class: 'cr-text was' }, noteWhen(n)), h('p', { class: 'cr-text', dir: 'auto' }, noteBody(n) || 'Nothing written in it.')), 'cr')
+      : openNote(p, n.id, t.id));
+    return h('section', { class: 'pv-tnotes', 'aria-label': 'Notes on this task' },
+      h('div', { class: 'pv-tnotes-head' }, h('span', { class: 'lbl' }, 'Notes'),
+        readOnly ? null : h('button', { id: 'pvTaskAddNote', class: 'btn btn-quiet btn-small', type: 'button', title: 'A note of yours, kept in this task', onclick: () => openNote(p, null, t.id) }, iconEl('plus', 12), 'Add a note')),
+      ns.length ? h('ul', { class: 'pv-tnote-list' }, ns.map(n => h('li', null,
+        h('button', { class: 'pv-tnote' + (byClaude(n) ? ' by-claude' : ''), type: 'button', 'data-id': n.id, onclick: () => open(n) },
+          h('span', { class: 'pv-tnote-h', dir: 'auto' }, h('span', { class: 'note-ic', 'aria-hidden': 'true', html: iconSvg(noteIcon(n), 16) }), h('span', { class: 'pv-tnote-t' }, noteHead(n))),
+          noteBody(n) ? h('span', { class: 'pv-tnote-b', dir: 'auto' }, noteBody(n).slice(0, 400)) : null,
+          h('span', { class: 'pv-note-at' }, ...noteStamp(n, true)))))) : h('p', { class: 'fv-empty pv-tnotes-empty' }, 'No notes on this task.'));
+  }
+  /* When a note was written, and Claude's spark and By Claude on one of Claude's (M1). */
+  const noteStamp = (n, latest = false) => [byClaude(n) ? iconEl('claude', 12) : null, fmtStamp(latest && n.updatedAt ? n.updatedAt : n.at) + (byClaude(n) ? ' \u00b7 By Claude' : '')].filter(Boolean);
   /* Shift: Create, Think or Errand, one or none; a click on the pressed one takes it off. Like the rest of the panel,
      Esc undoes it; on its own it is not work, so closing the panel leaves Updated alone. */
   function shiftEditor(p, t) {
@@ -9734,13 +9824,12 @@ const FullView = (() => {
     if (!list.length) { box.append(h('p', { class: 'fv-empty' }, 'No notes yet.')); return box; }
     const shown = allNotes ? list : list.slice(0, 6);
     box.append(h('div', { class: 'pv-note-grid' }, shown.map(n => {
-      const head = n.title.trim() || n.text.trim().split('\n')[0];
-      const body = n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join(' ');
+      const head = noteHead(n), body = noteBody(n);
       return h('div', { class: 'pv-note-cell' },
-        h('button', { class: 'pv-note-card' + (sideMode === 'note' && sideNote === n.id ? ' on' : ''), type: 'button', 'data-id': n.id, onclick: () => openNote(p, n.id) },
-          h('span', { class: 'pv-note-h', dir: 'auto' }, head.slice(0, 120)),
-          body ? h('span', { class: 'pv-note-b', dir: 'auto' }, body.replace(/\s+/g, ' ').slice(0, 220)) : null,
-          h('time', { class: 'pv-note-at' }, fmtStamp(n.at))),
+        h('button', { class: 'pv-note-card' + (sideMode === 'note' && sideNote === n.id ? ' on' : '') + (byClaude(n) ? ' by-claude' : ''), type: 'button', 'data-id': n.id, onclick: () => openNote(p, n.id) },
+          h('span', { class: 'pv-note-h', dir: 'auto' }, h('span', { class: 'note-ic', 'aria-hidden': 'true', html: iconSvg(noteIcon(n), 16) }), h('span', { class: 'pv-note-ht' }, head)),
+          body ? h('span', { class: 'pv-note-b', dir: 'auto' }, body.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').slice(0, 220)) : null,   // its lines kept, so a list reads as one (0.1.71)
+          h('span', { class: 'pv-note-at' }, ...noteStamp(n))),
         h('button', { class: 'icon-btn pv-note-copy', type: 'button', 'data-copy': n.id, 'aria-label': 'Copy this note for Claude', title: 'Copy this note for Claude', html: iconSvg('copy', 14),
           onclick: e => { e.stopPropagation(); copyNote(p, n); } }));
     })));
@@ -9859,73 +9948,108 @@ const FullView = (() => {
   }
 
   /* ---------- a note, open in full beside the view ---------- */
-  let sideNote = null, noteSnap = null;
-  function openNote(p, id) {
+  let sideNote = null, noteSnap = null, noteIn = null;     // noteIn: the task the note is in, or null for the project's Notes (0.1.71)
+  const noteTaskOf = p => (noteIn ? p.todos.find(x => x.id === noteIn) || null : null);
+  /* The list the open note lives in: its task's notes, or the project's. */
+  function notesOf(p, make = false) {
+    if (!noteIn) return p.notes;
+    const t = noteTaskOf(p);
+    if (!t) return [];
+    if (!Array.isArray(t.notes)) { if (!make) return []; t.notes = []; }
+    return t.notes;
+  }
+  function openNote(p, id, taskId) {
     finishEdit(); adding = null;
     if (side) closeSide();                                // a task or milestone open there closes as always first
-    let n = id ? p.notes.find(x => x.id === id) : null;
-    if (!n) { n = { id: uid('n'), title: '', text: '', at: Date.now() }; p.notes.push(n); noteSnap = null; }
+    noteIn = id ? ((noteTask(p, id) || {}).id || null) : taskId || null;
+    const list = notesOf(p, true);
+    let n = id ? list.find(x => x.id === id) : null;
+    if (!n) { n = { id: uid('n'), title: '', text: '', at: Date.now(), icon: 'sticky' }; list.push(n); noteSnap = null; }
     else noteSnap = clone(n);
     sideNote = n.id;
     openSide('note');
     const t = $(id ? '#pvNoteBody' : '#pvNoteTitle', side); if (t) t.focus();
   }
+  /* A task's note, closed: back to its task, as the archive's tasks go back to the archive. */
+  function backToTask(p, taskId) {
+    if (!taskId || !p.todos.some(x => x.id === taskId)) return false;
+    openTask(p, taskId);
+    const b = side && $('#pvTaskAddNote', side); if (b) b.focus({ preventScroll: true });
+    return true;
+  }
   /* Done or closing: keep what was written; an empty note is dropped. */
   function finishNote() {
     const p = P(); if (!p || !sideNote) return;
-    const n = p.notes.find(x => x.id === sideNote);
+    const list = notesOf(p), n = list.find(x => x.id === sideNote), t = noteTaskOf(p), where = t ? ' in ' + t.text : '';
     if (n) {
-      if (!n.title.trim() && !n.text.trim()) { p.notes.splice(p.notes.indexOf(n), 1); changed(p, { touch: false }); }
-      else if (!noteSnap) logActivity(p, 'Wrote a note' + (n.title.trim() ? ': ' + n.title.trim() : ''));
-      else if (noteSnap.title !== n.title || noteSnap.text !== n.text) logActivity(p, 'Edited a note');
-      changed(p);
+      const edited = !!noteSnap && (noteSnap.title !== n.title || noteSnap.text !== n.text);
+      if (!n.title.trim() && !n.text.trim()) { list.splice(list.indexOf(n), 1); changed(p, { touch: false }); }
+      else if (!noteSnap) { logActivity(p, 'Wrote a note' + where + (n.title.trim() ? ': ' + n.title.trim() : '')); changed(p); }
+      else if (edited) { logActivity(p, 'Edited a note' + where); changed(p); }
+      else changed(p, { touch: false });                   // its icon alone is not work, as a shift is not (0.1.71)
+      if (t && !t.notes.length) delete t.notes;
     }
-    sideNote = null; noteSnap = null;
+    sideNote = null; noteSnap = null; noteIn = null;
   }
   /* Esc: a new note is dropped, an existing one goes back to how it was when it opened. */
   function cancelNote() {
     const p = P(); if (!p || !sideNote) return;
-    const i = p.notes.findIndex(x => x.id === sideNote);
-    if (i >= 0) { if (noteSnap) p.notes[i] = noteSnap; else p.notes.splice(i, 1); }
+    const list = notesOf(p), i = list.findIndex(x => x.id === sideNote), t = noteTaskOf(p);
+    if (i >= 0) { if (noteSnap) list[i] = noteSnap; else list.splice(i, 1); }
+    if (t && Array.isArray(t.notes) && !t.notes.length) delete t.notes;
     changed(p, { touch: false });
-    sideNote = null; noteSnap = null;
+    sideNote = null; noteSnap = null; noteIn = null;
     side.remove(); side = null; sideMode = null;
     if (root.style.width) root.style.width = '';
     render();
     toast('Note changes undone.');
+    if (t && backToTask(p, t.id)) return;                 // a task's note: Esc goes back to its task
     const b = $('#pvAddNoteBtn', root); if (b) b.focus();
   }
   function noteEditor(p) {
-    const n = p.notes.find(x => x.id === sideNote);
+    const list = notesOf(p), n = list.find(x => x.id === sideNote), t = noteTaskOf(p);
     if (!n) return h('p', { class: 'fv-empty' }, 'This note is gone.');
     const goes = p.milestones.find(m => m.id === defaultMilestone(p));
-    const toTask = h('button', { id: 'pvNoteToTask', class: 'btn btn-small', type: 'button', disabled: !(n.title.trim() || n.text.trim()),
+    /* its icon, picked here and changed any time, Claude's too (M1, I1); not work */
+    const icons = h('div', { class: 'inline pv-note-icons', role: 'group', 'aria-label': 'Icon' }, h('span', { class: 'lbl' }, 'Icon'),
+      ...NOTE_ICONS.map(k => h('button', { class: 'icon-btn pv-note-icon' + (noteIcon(n) === k ? ' on' : ''), type: 'button', 'data-icon': k, 'aria-pressed': String(noteIcon(n) === k),
+        'aria-label': NOTE_ICON_NAMES[k], title: NOTE_ICON_NAMES[k], onclick: () => { n.icon = k; changed(p, { touch: false }); refreshCard(n); renderSide(); const b = side && $(`.pv-note-icon[data-icon="${k}"]`, side); if (b) b.focus(); } },
+        h('span', { class: 'note-ic', 'aria-hidden': 'true', html: iconSvg(k, 20) }))),
+      h('span', { class: 'pv-note-icon-name' }, NOTE_ICON_NAMES[noteIcon(n)]));
+    const toTask = t ? null : h('button', { id: 'pvNoteToTask', class: 'btn btn-small', type: 'button', disabled: !(n.title.trim() || n.text.trim()),
       title: 'Make it a task in ' + (goes ? goes.name : 'a new To do milestone') + ': the title names it, the text describes it',
       onclick: () => turnIntoTask(p, n.id) }, iconEl('task', 14), 'Turn into a task');
-    const typed = () => { toTask.disabled = !(n.title.trim() || n.text.trim()); };   // an empty note has nothing to turn
+    const typed = () => { if (toTask) toTask.disabled = !(n.title.trim() || n.text.trim()); };   // an empty note has nothing to turn
     const title = h('input', { id: 'pvNoteTitle', class: 'field pv-note-title', type: 'text', dir: 'auto', maxlength: '200', value: n.title, placeholder: 'Title', 'aria-label': 'Note title', autocomplete: 'off',
       oninput: e => { n.title = e.target.value; changed(p, { touch: false }); refreshCard(n); typed(); },
       onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); const b = $('#pvNoteBody', side); if (b) b.focus(); } } });
     const body = h('textarea', { id: 'pvNoteBody', class: 'field pv-note-body', dir: 'auto', rows: '16', placeholder: 'Write the note', 'aria-label': 'Note text',
       oninput: e => { n.text = e.target.value.slice(0, 8000); changed(p, { touch: false }); refreshCard(n); typed(); } }, n.text);
-    return h('div', { class: 'pv-note-ed' }, title, body,
+    return h('div', { class: 'pv-note-ed' },
+      t ? h('div', { class: 'pv-note-in' }, h('span', { class: 'lbl' }, 'In'), h('bdi', { class: 'pv-note-task', dir: 'auto' }, t.text),
+        h('button', { id: 'pvNoteBackTask', class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { closeSide(); backToTask(p, t.id); } }, iconEl('back', 14), 'Back to the task')) : null,
+      title, body, icons,
       h('div', { class: 'pv-claude-row' },
         OpenInClaude.button({ id: 'pvNoteClaude', text: () => noteForClaude(p, n), copied: 'Note copied for Claude.', project: p })),
       h('div', { class: 'pv-note-foot' }, toTask,                        // as in the task panel: turn it on the left, delete on the right
         h('button', { id: 'pvNoteDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
-          p.notes.splice(p.notes.indexOf(n), 1);
-          if (noteSnap) logActivity(p, 'Deleted a note');
+          list.splice(list.indexOf(n), 1);
+          if (t && !t.notes.length) delete t.notes;
+          if (noteSnap) logActivity(p, 'Deleted a note' + (t ? ' in ' + t.text : ''));
           changed(p, { touch: false });
-          sideNote = null; noteSnap = null;
+          sideNote = null; noteSnap = null; noteIn = null;
           closeSide(); render();
           toast('Note deleted.');
+          if (t) backToTask(p, t.id);
         } }, 'Delete note')),
-      h('p', { class: 'note' }, 'Written ' + fmtStamp(n.at) + '. Saves as you type; Esc undoes.'));
+      h('p', { class: 'note' }, (byClaude(n) ? [iconEl('claude', 12), ' '] : []).concat(noteWhen(n) + ' Saves as you type; Esc undoes.')));
   }
   function refreshCard(n) {
+    if (noteIn) return;                                   // a task's note has no card in Notes
     const card = root && $(`.pv-note-card[data-id="${n.id}"]`, root);
     if (!card) { if (root && !$(`.pv-note-card[data-id="${n.id}"]`, root) && (n.title.trim() || n.text.trim())) renderMainOnly(); return; }
-    const hd = $('.pv-note-h', card); if (hd) hd.textContent = (n.title.trim() || n.text.trim().split('\n')[0]).slice(0, 120);
+    const hd = $('.pv-note-ht', card); if (hd) hd.textContent = noteHead(n);
+    const ic = $('.pv-note-h .note-ic', card); if (ic) ic.innerHTML = iconSvg(noteIcon(n), 16);
   }
   function renderMainOnly() {
     const p = P(); if (!p) return;
@@ -9954,8 +10078,9 @@ const FullView = (() => {
     const i = p.todos.findIndex(x => x.id === id); if (i < 0) return;
     const t = p.todos[i], was = clone(t), pinned = p.pin === t.id, starred = p.star === t.id;
     const text = t.text.trim(), desc = (t.description || '').trim(), long = text.length > 200;    // a note's title holds 200
-    const n = { id: uid('n'), title: long ? '' : text, text: (long ? text + (desc ? '\n\n' + desc : '') : desc).slice(0, 8000), at: Date.now() };
-    p.todos.splice(i, 1); p.notes.push(n);
+    const n = { id: uid('n'), title: long ? '' : text, text: (long ? text + (desc ? '\n\n' + desc : '') : desc).slice(0, 8000), at: Date.now(), icon: 'sticky' };
+    const kept = (t.notes || []).map(x => x.id);          // its own notes join the project's Notes (0.1.71)
+    p.todos.splice(i, 1); p.notes.push(n, ...(t.notes || []));
     if (pinned) p.pin = '';
     if (starred) p.star = '';
     const line = logged(p, 'Turned into a note: ' + text);
@@ -9965,7 +10090,7 @@ const FullView = (() => {
       if (!getProject(p.id) || p.todos.some(x => x.id === was.id)) return;
       const showing = !!side && sideMode === 'note' && sideNote === n.id && openId === p.id;
       if (showing) dropSide();
-      p.notes = p.notes.filter(x => x.id !== n.id);
+      p.notes = p.notes.filter(x => x.id !== n.id && !kept.includes(x.id));
       p.todos.splice(Math.min(i, p.todos.length), 0, was);
       if (!p.milestones.some(m => m.id === was.milestoneId)) was.milestoneId = homeMilestone(p).ms.id;   // its milestone is gone
       normalizeOrder(p);
@@ -10196,7 +10321,7 @@ const FullView = (() => {
     if (sideMode === 'note') {
       side.replaceChildren(h('div', { class: 'pv-top' }, h('h2', { class: 'pv-title small' }, 'Note'),
         h('div', { class: 'pv-actions' },
-          h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { closeSide(); render(); const b = $('#pvAddNoteBtn', root); if (b) b.focus(); } }, 'Done'),
+          h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { const ti = noteIn; closeSide(); render(); if (ti && backToTask(p, ti)) return; const b = $('#pvAddNoteBtn', root); if (b) b.focus(); } }, 'Done'),
           h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close the note', title: 'Close', html: iconSvg('close', 18), onclick: () => { closeSide(); render(); } }))),
         noteEditor(p));
       return;
@@ -11373,7 +11498,7 @@ function weekOf(start) {
     const done = [...doneMap.entries()].map(([text, at]) => ({ text, at })).sort((x, y) => x.at - y.at);
     const added = log.map(e => ({ text: addedTodo(e.text), at: e.at })).filter(e => e.text != null);
     const worked = log.filter(e => e.text === 'I worked!').length;
-    const notes = p.notes.filter(n => inWeek(n.at)).sort((x, y) => x.at - y.at);
+    const notes = allNotes(p).filter(n => inWeek(n.at)).sort((x, y) => x.at - y.at);   // a task's notes too (0.1.71)
     const ms = p.milestones.filter(m => {
       const ts = p.todos.filter(t => t.milestoneId === m.id);
       return ts.length && ts.every(t => t.done) && inWeek(Math.max(...ts.map(t => t.doneAt || 0)));
@@ -11416,7 +11541,7 @@ function firstWeekStart() {
   for (const p of DB.projects) {
     min = Math.min(min, p.createdAt || min);
     for (const e of p.activity || []) min = Math.min(min, e.at);
-    for (const n of p.notes) min = Math.min(min, n.at);
+    for (const n of allNotes(p)) min = Math.min(min, n.at);
   }
   return weekStartOf(min);
 }
@@ -11482,7 +11607,7 @@ function projectStatus(p, now = Date.now()) {
     L.push('Repeats waiting for their next date:');
     for (const t of waiting.slice(0, 15)) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')');
   }
-  const last = [...p.notes].sort((a, b) => b.at - a.at)[0];
+  const last = [...allNotes(p)].sort((a, b) => b.at - a.at)[0];
   if (last) L.push('Latest note (' + fmtDate(last.at) + '): ' + ((last.title || '').trim() ? last.title.trim() + '. ' : '') + last.text.replace(/\s+/g, ' ').slice(0, 300));
   L.push('Updated ' + relAgo(p.updatedAt, now) + '.');
   return L.join('\n');
@@ -11522,7 +11647,7 @@ function builderCard(p) {
   L.push('## Project');
   L.push('Name: ' + p.name);
   L.push('Size signals: ' + [plural(p.todos.length, 'todo', 'todos') + ' (' + open.length + ' open)', plural(p.milestones.length, 'milestone', 'milestones'),
-    plural(p.notes.length, 'note', 'notes'), plural(p.links.length, 'link', 'links')].join(', '));
+    plural(allNotes(p).length, 'note', 'notes'), plural(p.links.length, 'link', 'links')].join(', '));
   L.push('');
   L.push('## Description');
   L.push(p.description.trim() || 'none');
@@ -12338,6 +12463,8 @@ const ClaudeWork = (() => {
      file, which is mostly building art. Rewritten a moment after every change, by the tab that writes the data file. */
   function citySummary(now = Date.now()) {
     const iso = ts => (ts ? new Date(ts).toISOString().slice(0, 10) : null);
+    /* a note: who wrote it, and for one of Claude's, its kind and when it was last brought up to date (0.1.71) */
+    const summaryNote = n => ({ title: n.title || '', text: n.text || '', written: iso(n.at), ...(byClaude(n) ? { by: 'Claude', ...(n.kind ? { kind: n.kind } : {}), ...(n.updatedAt ? { updated: iso(n.updatedAt) } : {}) } : {}) });
     return { app: 'nullovation-city', kind: 'city-summary', version: 1, written: new Date(now).toISOString(),
       about: 'Nullovation City, Abdurrahman\'s project tracker, rewrites this file on every change. Each project is a building. '
         + 'To change the city, write a change file into the inbox folder beside this one, as the nullovation-city skill says.',
@@ -12351,10 +12478,11 @@ const ClaudeWork = (() => {
           next: next ? next.text : null,
           milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)
             open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}), ...(t.shift ? { shift: shiftName(t.shift) } : {}),
-              ...(t.round ? { round: { title: t.round.title, kind: isBrainstorm(t.round) ? 'brainstorm' : 'round', file: ROUNDS_DIR + '/' + t.round.file, state: roundWords(roundState(t)) } } : {}) })),   // its wizard round (0.1.55)
+              ...(t.round ? { round: { title: t.round.title, kind: isBrainstorm(t.round) ? 'brainstorm' : 'round', file: ROUNDS_DIR + '/' + t.round.file, state: roundWords(roundState(t)) } } : {}),   // its wizard round (0.1.55)
+              ...(t.notes && t.notes.length ? { notes: t.notes.map(summaryNote) } : {}) })),   // its notes, Claude's status, plan and decisions among them (0.1.71)
             ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
             done: g.todos.filter(t => t.done && !t.archived).map(t => t.text) })),
-          notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),
+          notes: p.notes.map(summaryNote),
           links: p.links.map(l => ({ label: l.label || suggestLabel(l.url), url: l.url })) };
       }) };
   }
@@ -12525,7 +12653,7 @@ const ClaudeInbox = (() => {
     const now = data.changes.filter(c => c && AT_ONCE.has(c.do)), later = data.changes.filter(c => c && ASK.has(c.do));
     let undo = null;
     for (const c of now) if (c.do === 'add-round') c._got = await Rounds.fromChange(dir, c);   // its round, read from wizard-rounds
-    if (now.length) undo = applyNow(p, now, str(data.summary, 300));
+    if (now.length) undo = applyNow(p, now, str(data.summary, 300), str(data.task, 500));
     if (later.length) await put(await sub(dir, 'inbox/pending'), name, JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: p.name, summary: str(data.summary, 300), changes: later, received: Date.now() }, null, 1));
     await move(inbox, name, await sub(dir, 'inbox/done'), text);
     /* Its leader says it, in place of the toast (Leader UX, T1): one report, under the finish of the task it reports on
@@ -12546,9 +12674,9 @@ const ClaudeInbox = (() => {
   }
 
   /* ---------- what applies at once: adding, never removing ---------- */
-  function applyNow(p, changes, summary) {
+  function applyNow(p, changes, summary, task = '') {
     const before = { todos: new Set(p.todos.map(t => t.id)), ms: new Set(p.milestones.map(m => m.id)) };
-    const added = { notes: [], links: [], rounds: [] };
+    const added = { notes: [], links: [], rounds: [], updated: [] };
     let tasks = 0;
     for (const c of changes) {
       if (c.do === 'add-tasks') {
@@ -12562,8 +12690,23 @@ const ClaudeInbox = (() => {
       } else if (c.do === 'add-note') {
         const title = str(c.title, 200), text = str(c.text, 8000);
         if (!title && !text) continue;
-        const n = { id: uid('n'), title, text, at: Date.now() };
-        p.notes.push(n); added.notes.push(n.id);
+        /* Claude's Notes (0.1.71): a status, a plan or a decision goes in the task it is about, the note's own task or the
+           update's, and with your notes when it names none here (K1, T1); how something works, and a note of no kind, go
+           with your notes. A status, a plan and how something works stay one note, brought up to date: in a task its one
+           of that kind, with your notes its one of that kind and title; a decision is a new note each time (K2). Claude
+           only ever changes a note of its own. Its icon is the one it sends, else its kind's. */
+        const kind = NOTE_KINDS.includes(c.kind) ? c.kind : '';
+        const named = str(c.task, 500) || task;
+        const t = kind && kind !== 'how' && named ? taskNamed(p, named) || taskNamed(p, named, false) : null;
+        const list = t ? (t.notes || (t.notes = [])) : p.notes;
+        const same = kind && kind !== 'decision' ? list.find(n => byClaude(n) && n.kind === kind && (t || keyOf(n.title) === keyOf(title))) : null;
+        if (same) {
+          added.updated.push({ id: same.id, was: JSON.parse(JSON.stringify(same)) });
+          Object.assign(same, { title, text, updatedAt: Date.now() });
+          continue;
+        }
+        const n = { id: uid('n'), title, text, at: Date.now(), icon: NOTE_ICONS.includes(c.icon) ? c.icon : KIND_ICON[kind] || 'sticky', by: 'claude', ...(kind ? { kind } : {}) };
+        list.push(n); added.notes.push(n.id);
       } else if (c.do === 'add-link') {
         const url = str(c.url, 2000);
         if (!url || p.links.some(l => addressKey(l.url) === addressKey(url))) continue;
@@ -12581,16 +12724,22 @@ const ClaudeInbox = (() => {
         added.rounds.push({ id: t.id, was, line: p.activity[p.activity.length - 1] });
       }
     }
-    const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links')),
+    const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.updated.length && 'brought a note up to date', added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links')),
       added.rounds.length && (added.rounds.length === 1 ? 'attached a wizard round' : 'attached ' + added.rounds.length + ' wizard rounds')].filter(Boolean);
     const what = bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] || '';
-    if (what) { window.changed(p); if (added.rounds.length && typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }
+    if (what) { window.changed(p); if ((added.rounds.length || added.notes.length || added.updated.length) && typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }   // a round, or a note in a task (0.1.71)
     return { what, todos: p.todos.filter(t => !before.todos.has(t.id)).map(t => t.id), ms: p.milestones.filter(m => !before.ms.has(m.id)).map(m => m.id), ...added };
   }
   function undoNow(p, u) {
     const drop = new Set(u.todos), notes = new Set(u.notes), links = new Set(u.links);
     p.todos = p.todos.filter(t => !drop.has(t.id));
     p.notes = p.notes.filter(n => !notes.has(n.id));
+    for (const t of p.todos) if (Array.isArray(t.notes)) { t.notes = t.notes.filter(n => !notes.has(n.id)); if (!t.notes.length) delete t.notes; }   // a note Claude put in a task (0.1.71)
+    for (const w of u.updated || []) {                         // a note Claude brought up to date goes back to how it was
+      const n = allNotes(p).find(x => x.id === w.id); if (!n) continue;
+      for (const k of Object.keys(n)) delete n[k];
+      Object.assign(n, JSON.parse(JSON.stringify(w.was)));
+    }
     p.links = p.links.filter(l => !links.has(l.id));
     for (const r of u.rounds || []) {
       const k = r.line && Array.isArray(p.activity) ? p.activity.indexOf(r.line) : -1;
@@ -13880,7 +14029,7 @@ function proximaReport(kind, now = Date.now()) {
       if (k) r.repeats.push({ p, t, k });
     }
     r.repeats.sort((a, b) => b.k - a.k || a.t.text.localeCompare(b.t.text));
-    r.notes = DB.projects.flatMap(p => p.notes.filter(n => n.at >= per.from && n.at < per.to).map(n => ({ p, n }))).sort((a, b) => a.n.at - b.n.at);
+    r.notes = DB.projects.flatMap(p => allNotes(p).filter(n => n.at >= per.from && n.at < per.to).map(n => ({ p, n }))).sort((a, b) => a.n.at - b.n.at);
   }
   /* her facts (L2): a milestone one task from done, next week with nothing due, a repeat kept up */
   r.facts = milestonesOneLeft().slice(0, 5).map(x => proximaFill(PROXIMA_LINES.one_left[0], { milestone: x.m.name, task: x.t.text }));
@@ -14353,12 +14502,13 @@ const News = (() => {
      is done (claude), so what it asks is read by then. */
   function report(p, { task = '', named = false, summary = '', undo = null, entry = '' } = {}) {
     if (!p) return null;
-    const add = undo && (undo.todos.length || undo.notes.length || undo.links.length) ? { todos: [...undo.todos], notes: [...undo.notes], links: [...undo.links] } : null;
+    const upd = undo && Array.isArray(undo.updated) ? undo.updated : [];
+    const add = undo && (undo.todos.length || undo.notes.length || undo.links.length || upd.length) ? { todos: [...undo.todos], notes: [...undo.notes], links: [...undo.links], updated: upd.map(w => w.id) } : null;
     const rounds = (undo && undo.rounds || []).map(r => { const t = p.todos.find(x => x.id === r.id); return { tid: r.id, title: t && t.round ? t.round.title : '' }; });
     if (!add && !rounds.length && !entry) return null;
     const rep = { id: uid('rp'), pid: p.id, task, summary, at: Date.now(), sid: '', fin: 0, reply: '', alone: false, entry, add, rounds };
-    const none = { todos: [], ms: [], notes: [], links: [], rounds: [] };
-    if (add) undos.set(rep.id, { ...none, todos: undo.todos, ms: undo.ms, notes: undo.notes, links: undo.links });
+    const none = { todos: [], ms: [], notes: [], links: [], rounds: [], updated: [] };
+    if (add) undos.set(rep.id, { ...none, todos: undo.todos, ms: undo.ms, notes: undo.notes, links: undo.links, updated: upd });
     for (const r of undo && undo.rounds || []) undos.set(rep.id + ':' + r.id, { ...none, rounds: [r] });
     const s = sessionFor(p, rep, named);
     edit(() => {
@@ -14389,13 +14539,15 @@ const News = (() => {
   }
   /* What is still there of what Claude added, and whether its Undo is. */
   const addedOf = (p, add) => ({ ts: add.todos.map(id => p.todos.find(t => t.id === id)).filter(Boolean),
-    ns: add.notes.map(id => p.notes.find(n => n.id === id)).filter(Boolean), ls: add.links.map(id => p.links.find(l => l.id === id)).filter(Boolean) });
-  const addLive = (p, add) => { const a = addedOf(p, add); return a.ts.length + a.ns.length + a.ls.length > 0; };
+    ns: add.notes.map(id => allNotes(p).find(n => n.id === id)).filter(Boolean), ls: add.links.map(id => p.links.find(l => l.id === id)).filter(Boolean),
+    us: (add.updated || []).map(id => allNotes(p).find(n => n.id === id)).filter(Boolean) });     // notes Claude put in a task, and brought up to date (0.1.71)
+  const addLive = (p, add) => { const a = addedOf(p, add); return a.ts.length + a.ns.length + a.ls.length + a.us.length > 0; };
   /* What Claude added, named, not just counted: one of a kind by its name, more by their count. */
   function addedWords(p, add) {
     const a = addedOf(p, add);
     const kind = (list, one, many, name) => (!list.length ? '' : list.length > 1 ? plural(list.length, one, many) : 'a ' + one + (name(list[0]) ? ', ' + cut(name(list[0]), 40) : ''));
-    const bits = [kind(a.ts, 'task', 'tasks', t => t.text), kind(a.ns, 'note', 'notes', n => n.title), kind(a.ls, 'link', 'links', l => l.label || suggestLabel(l.url))].filter(Boolean);
+    const bits = [kind(a.ts, 'task', 'tasks', t => t.text), kind(a.ns, 'note', 'notes', n => n.title), kind(a.ls, 'link', 'links', l => l.label || suggestLabel(l.url)),
+      a.us.length ? (a.us.length > 1 ? 'new versions of ' + plural(a.us.length, 'note', 'notes') : 'a new version of ' + cut(noteHead(a.us[0]), 40)) : ''].filter(Boolean);
     if (bits.length < 2) return bits[0] || '';
     return bits.slice(0, -1).join(', ') + (bits.some(b => b.includes(', ')) ? ', and ' : ' and ') + bits[bits.length - 1];
   }
@@ -14743,7 +14895,9 @@ const News = (() => {
     return [
       ...a.ts.map(t => crSec('A task', h('button', { class: 'linkish cr-title', type: 'button', dir: 'auto', title: 'Open it in ' + p.name, onclick: () => { Panel.close(); FullView.openTask(p.id, t.id); } }, t.text),
         t.description ? crText(t.description) : null)),
-      ...a.ns.map(n => crSec(n.title || 'A note', n.text ? crText(n.text) : crText('Nothing written in it.', 'was'))),
+      ...[...a.ns, ...a.us].map(n => { const t = noteTask(p, n.id);
+        return crSec(n.title || 'A note', ...(t || a.us.includes(n) ? [crText((a.us.includes(n) ? 'Brought up to date' : 'A note') + (t ? ', in ' + t.text : ', in Notes') + '.', 'was')] : []),
+          n.text ? crText(n.text) : crText('Nothing written in it.', 'was')); }),
       ...a.ls.map(l => { const lt = linkTarget(l); return crSec('A link', lt.href ? h('a', { class: 'cr-title', href: lt.href, target: lt.blank ? '_blank' : null, rel: 'noopener', dir: 'auto', title: lt.title }, lt.name) : h('b', { class: 'cr-title', dir: 'auto' }, lt.name),
         h('p', { class: 'cr-url', dir: 'ltr' }, l.url)); }),
     ];

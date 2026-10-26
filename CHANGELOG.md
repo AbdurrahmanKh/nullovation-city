@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.71 (2026-10-27)
+
+Claude's notes and notes in a task, from Claude's Notes, Rounds 1 and 2: what Claude keeps in the city, kind by kind, and where.
+- A task can hold notes. They show in its panel under the description, newest first, each with its icon and two lines of it; a click opens one in the note panel, with Back to the task. Add a note writes one of yours there.
+- A task's copy carries its notes, so the next Claude session on it starts from them, and the city summary gives each open task its notes.
+- Claude names a note's kind and the city puts it in its place: where a piece of work stands, a plan and a decision in the task they are about; how something works in Notes; with no task named, in Notes.
+- Where a piece of work stands and a plan stay one note in their task, and how something works one note per title: sent again, Claude's note is brought up to date. A decision is a new note each time. Claude only ever changes a note of its own, and Undo puts the version before back.
+- Every note has an icon, picked in its panel and changed any time, Claude's too: the sticky note, the idea bulb, the book and the blueprint. Claude gives each kind its own.
+- A note Claude wrote shows Claude's spark and By Claude on its card and in its panel.
+- A note's card keeps its lines, so a numbered list reads as one.
+- A task turned into a note takes its own notes into Notes; Undo puts them back. Search, the week's recap and Proxima's reports count a task's notes too.
+- The nullovation-city skill writes notes for people to read: only status, plans, decisions and how something works, in a few lines, a numbered list, then bullets. check_plan.py checks a note's kind and icon.
+- Tests: test45_claude_notes checks the kinds and their places, updating and Undo, the icons, the task panel's notes, the copies, the summary, search and the checker.
+
 ## 0.1.70 (2026-10-27)
 
 Wizard rounds dropped by hand write in Activity too, after Abdurrahman's yes in the chat: rounds belong in Activity.

@@ -124,7 +124,7 @@ function matchesFilter(p) {
   if (!f.q) return true;
   const gname = p.generic && typeof GENERICS !== 'undefined' ? (GENERICS.find(g => g.id === p.generic) || {}).name : '';
   const hay = norm([p.name, p.description, gname, ...p.todos.map(t => t.text + ' ' + (t.description || '')), ...p.links.map(l => l.label + ' ' + l.url),
-    ...p.milestones.map(m => m.name), ...p.notes.map(n => (n.title || '') + ' ' + n.text)].join(' \n '));
+    ...p.milestones.map(m => m.name), ...allNotes(p).map(n => (n.title || '') + ' ' + n.text)].join(' \n '));
   return hay.includes(f.q);
 }
 
@@ -227,6 +227,44 @@ function ensureMilestones(p) {
   for (const t of loose) t.milestoneId = home.id;
   normalizeOrder(p);
 }
+/* ---------- notes (0.1.71, Claude's Notes, Rounds 1 and 2) ----------
+   A note lives in a project's Notes or, since 0.1.71, inside a task. Each has an icon, picked in its panel and changed
+   any time, a note of Claude's too (M1, I1). A note Claude wrote carries `by: 'claude'`, its spark and By Claude, and
+   the kind it is: where a piece of work stands (status), a plan, a decision, or how something works (how). Claude keeps
+   a status, a plan and a decision in the task they are about, how something works with your notes; a status, a plan
+   and how something works stay one note each, brought up to date, a decision is a new note each time (K1, K2). */
+const NOTE_ICONS = ['sticky', 'bulb', 'book', 'blueprint'];
+const NOTE_ICON_NAMES = { sticky: 'Sticky note', bulb: 'Idea bulb', book: 'Book', blueprint: 'Blueprint' };
+const NOTE_KINDS = ['status', 'plan', 'decision', 'how'];
+const KIND_ICON = { status: 'sticky', plan: 'blueprint', decision: 'bulb', how: 'book' };     // the icon Claude gives each kind; changed any time
+const isNote = n => !!n && typeof n.text === 'string' && typeof n.at === 'number';
+function readNote(n) {
+  return { id: typeof n.id === 'string' && n.id ? n.id.slice(0, 60) : uid('n'), title: typeof n.title === 'string' ? n.title.slice(0, 200) : '', text: n.text.slice(0, 8000), at: n.at,
+    ...(NOTE_ICONS.includes(n.icon) ? { icon: n.icon } : {}), ...(n.by === 'claude' ? { by: 'claude' } : {}), ...(NOTE_KINDS.includes(n.kind) ? { kind: n.kind } : {}),
+    ...(typeof n.updatedAt === 'number' ? { updatedAt: n.updatedAt } : {}) };
+}
+const noteIcon = n => (n && NOTE_ICONS.includes(n.icon) ? n.icon : 'sticky');
+const byClaude = n => !!n && n.by === 'claude';
+/* Every note of a project: its Notes, and those inside its tasks. */
+const allNotes = p => [...p.notes, ...p.todos.flatMap(t => (Array.isArray(t.notes) ? t.notes : []))];
+/* The task a note is in, or null for one in the project's Notes. */
+const noteTask = (p, id) => p.todos.find(t => Array.isArray(t.notes) && t.notes.some(n => n.id === id)) || null;
+/* A note's head and the rest of it: its title, else its first line. */
+const noteHead = n => (n.title.trim() || n.text.trim().split('\n')[0] || 'Untitled note').slice(0, 120);
+const noteBody = n => (n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join('\n').trim());
+/* Who wrote it and when, in words: "By Claude, 27 Oct, 10:00. Brought up to date 28 Oct, 09:15." */
+const noteWhen = n => (byClaude(n) ? 'By Claude, ' : 'Written ') + fmtStamp(n.at) + '.' + (n.updatedAt ? ' Brought up to date ' + fmtStamp(n.updatedAt) + '.' : '');
+/* A task's notes for Claude, newest first: in its copy, so the next session on it starts from them (K1). */
+function taskNotesForClaude(t) {
+  const ns = [...(t.notes || [])].sort((a, b) => (b.updatedAt || b.at) - (a.updatedAt || a.at));
+  if (!ns.length) return [];
+  const L = ['', '## Notes on this task'];
+  for (const n of ns) {
+    L.push('', '### ' + noteHead(n), (byClaude(n) ? 'By Claude' + (n.kind ? ', ' + n.kind : '') + ', ' : 'Yours, ') + fmtStamp(n.updatedAt || n.at));
+    const b = noteBody(n); if (b) L.push(b);
+  }
+  return L;
+}
 /* Every copy for Claude ends with this line, so work started from the city reports back by itself (Even Better Claude
    Connections, Round 1, A2: from the copy). The nullovation-city skill writes the change into the city's inbox. */
 const REPORT_LINE = 'When you finish, send Nullovation City an update with the nullovation-city skill.';
@@ -250,6 +288,7 @@ function taskForClaude(p, t, now = Date.now(), { kind = '', ask = false } = {}) 
   L.push('');
   L.push('## Description');
   L.push((t.description || '').trim() || 'No description yet.');
+  L.push(...taskNotesForClaude(t));
   if (t.round) L.push(...roundForClaude(t, { inline: kind === 'chat' || !(typeof ClaudeWork !== 'undefined' && ClaudeWork.folder()) }));
   L.push('', ask === 'brainstorm' ? BRAINSTORM_LINE : ask ? ROUND_LINE : REPORT_LINE);
   return L.join('\n');
@@ -258,7 +297,9 @@ function taskForClaude(p, t, now = Date.now(), { kind = '', ask = false } = {}) 
 function noteForClaude(p, n) {
   const title = n.title.trim() || (n.text.trim().split('\n')[0] || 'Untitled note').slice(0, 120);
   const body = n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join('\n').trim();
-  const L = ['# Note: ' + title, 'Project: ' + p.name, ...(leaderLine(p) ? [leaderLine(p)] : []), 'Written: ' + fmtStamp(n.at), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title), '', REPORT_LINE];
+  const t = noteTask(p, n.id);
+  const L = ['# Note: ' + title, 'Project: ' + p.name, ...(leaderLine(p) ? [leaderLine(p)] : []), ...(t ? ['Task: ' + t.text] : []),
+    'Written: ' + fmtStamp(n.at) + (byClaude(n) ? ', by Claude' : '') + (n.updatedAt ? '; brought up to date ' + fmtStamp(n.updatedAt) : ''), '', '## Note', body || (n.title.trim() ? 'No text yet.' : title), '', REPORT_LINE];
   return L.join('\n');
 }
 async function copyNote(p, n) {
@@ -376,13 +417,12 @@ function sanitizeProjects(raw) {
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
         ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}), ...readRound(t),
+        ...(Array.isArray(t.notes) && t.notes.some(isNote) ? { notes: t.notes.filter(isNote).map(readNote) } : {}),      // its notes (0.1.71)
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({
         id: typeof m.id === 'string' && m.id ? m.id : uid('m'), name: m.name.slice(0, 120) || 'Untitled milestone', collapsed: !!m.collapsed, ...(m.archiveCollapsed === true ? { archiveCollapsed: true } : {}),
       })),
-      notes: (Array.isArray(r.notes) ? r.notes : []).filter(n => n && typeof n.text === 'string' && typeof n.at === 'number').map(n => ({
-        id: typeof n.id === 'string' && n.id ? n.id : uid('n'), title: typeof n.title === 'string' ? n.title.slice(0, 200) : '', text: n.text.slice(0, 8000), at: n.at,
-      })),
+      notes: (Array.isArray(r.notes) ? r.notes : []).filter(isNote).map(readNote),
       links: (Array.isArray(r.links) ? r.links : []).filter(l => l && typeof l.url === 'string').map(l => ({
         id: typeof l.id === 'string' && l.id ? l.id : uid('l'), label: str(l.label, 120), url: l.url.slice(0, 2000), icon: LINK_ICONS.includes(l.icon) ? l.icon : guessIcon(l.url),
         shortcut: l.shortcut !== false,
@@ -544,7 +584,7 @@ function backfillActivity(p) {
   if (Array.isArray(p.activity) && p.activity.length) return;
   const ev = [{ at: p.createdAt, text: 'Planted' }];
   for (const t of p.todos) if (t.done && t.doneAt) ev.push({ at: t.doneAt, text: 'Done: ' + t.text });
-  for (const n of p.notes) ev.push({ at: n.at, text: 'Wrote a note' });
+  for (const n of allNotes(p)) ev.push({ at: n.at, text: 'Wrote a note' });
   p.activity = ev.filter(e => typeof e.at === 'number').sort((a, b) => a.at - b.at).slice(-ACTIVITY_MAX);
 }
 

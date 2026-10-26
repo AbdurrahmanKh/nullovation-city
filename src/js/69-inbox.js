@@ -75,7 +75,7 @@ const ClaudeInbox = (() => {
     const now = data.changes.filter(c => c && AT_ONCE.has(c.do)), later = data.changes.filter(c => c && ASK.has(c.do));
     let undo = null;
     for (const c of now) if (c.do === 'add-round') c._got = await Rounds.fromChange(dir, c);   // its round, read from wizard-rounds
-    if (now.length) undo = applyNow(p, now, str(data.summary, 300));
+    if (now.length) undo = applyNow(p, now, str(data.summary, 300), str(data.task, 500));
     if (later.length) await put(await sub(dir, 'inbox/pending'), name, JSON.stringify({ app: 'nullovation-city', kind: 'change', version: 1, project: p.name, summary: str(data.summary, 300), changes: later, received: Date.now() }, null, 1));
     await move(inbox, name, await sub(dir, 'inbox/done'), text);
     /* Its leader says it, in place of the toast (Leader UX, T1): one report, under the finish of the task it reports on
@@ -96,9 +96,9 @@ const ClaudeInbox = (() => {
   }
 
   /* ---------- what applies at once: adding, never removing ---------- */
-  function applyNow(p, changes, summary) {
+  function applyNow(p, changes, summary, task = '') {
     const before = { todos: new Set(p.todos.map(t => t.id)), ms: new Set(p.milestones.map(m => m.id)) };
-    const added = { notes: [], links: [], rounds: [] };
+    const added = { notes: [], links: [], rounds: [], updated: [] };
     let tasks = 0;
     for (const c of changes) {
       if (c.do === 'add-tasks') {
@@ -112,8 +112,23 @@ const ClaudeInbox = (() => {
       } else if (c.do === 'add-note') {
         const title = str(c.title, 200), text = str(c.text, 8000);
         if (!title && !text) continue;
-        const n = { id: uid('n'), title, text, at: Date.now() };
-        p.notes.push(n); added.notes.push(n.id);
+        /* Claude's Notes (0.1.71): a status, a plan or a decision goes in the task it is about, the note's own task or the
+           update's, and with your notes when it names none here (K1, T1); how something works, and a note of no kind, go
+           with your notes. A status, a plan and how something works stay one note, brought up to date: in a task its one
+           of that kind, with your notes its one of that kind and title; a decision is a new note each time (K2). Claude
+           only ever changes a note of its own. Its icon is the one it sends, else its kind's. */
+        const kind = NOTE_KINDS.includes(c.kind) ? c.kind : '';
+        const named = str(c.task, 500) || task;
+        const t = kind && kind !== 'how' && named ? taskNamed(p, named) || taskNamed(p, named, false) : null;
+        const list = t ? (t.notes || (t.notes = [])) : p.notes;
+        const same = kind && kind !== 'decision' ? list.find(n => byClaude(n) && n.kind === kind && (t || keyOf(n.title) === keyOf(title))) : null;
+        if (same) {
+          added.updated.push({ id: same.id, was: JSON.parse(JSON.stringify(same)) });
+          Object.assign(same, { title, text, updatedAt: Date.now() });
+          continue;
+        }
+        const n = { id: uid('n'), title, text, at: Date.now(), icon: NOTE_ICONS.includes(c.icon) ? c.icon : KIND_ICON[kind] || 'sticky', by: 'claude', ...(kind ? { kind } : {}) };
+        list.push(n); added.notes.push(n.id);
       } else if (c.do === 'add-link') {
         const url = str(c.url, 2000);
         if (!url || p.links.some(l => addressKey(l.url) === addressKey(url))) continue;
@@ -131,16 +146,22 @@ const ClaudeInbox = (() => {
         added.rounds.push({ id: t.id, was, line: p.activity[p.activity.length - 1] });
       }
     }
-    const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links')),
+    const bits = [tasks && 'added ' + plural(tasks, 'task', 'tasks'), added.notes.length && (tasks ? 'a note' : 'wrote a note'), added.updated.length && 'brought a note up to date', added.links.length && (tasks || added.notes.length ? plural(added.links.length, 'link', 'links') : 'added ' + plural(added.links.length, 'link', 'links')),
       added.rounds.length && (added.rounds.length === 1 ? 'attached a wizard round' : 'attached ' + added.rounds.length + ' wizard rounds')].filter(Boolean);
     const what = bits.length > 1 ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1] : bits[0] || '';
-    if (what) { window.changed(p); if (added.rounds.length && typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }
+    if (what) { window.changed(p); if ((added.rounds.length || added.notes.length || added.updated.length) && typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshRounds(); }   // a round, or a note in a task (0.1.71)
     return { what, todos: p.todos.filter(t => !before.todos.has(t.id)).map(t => t.id), ms: p.milestones.filter(m => !before.ms.has(m.id)).map(m => m.id), ...added };
   }
   function undoNow(p, u) {
     const drop = new Set(u.todos), notes = new Set(u.notes), links = new Set(u.links);
     p.todos = p.todos.filter(t => !drop.has(t.id));
     p.notes = p.notes.filter(n => !notes.has(n.id));
+    for (const t of p.todos) if (Array.isArray(t.notes)) { t.notes = t.notes.filter(n => !notes.has(n.id)); if (!t.notes.length) delete t.notes; }   // a note Claude put in a task (0.1.71)
+    for (const w of u.updated || []) {                         // a note Claude brought up to date goes back to how it was
+      const n = allNotes(p).find(x => x.id === w.id); if (!n) continue;
+      for (const k of Object.keys(n)) delete n[k];
+      Object.assign(n, JSON.parse(JSON.stringify(w.was)));
+    }
     p.links = p.links.filter(l => !links.has(l.id));
     for (const r of u.rounds || []) {
       const k = r.line && Array.isArray(p.activity) ? p.activity.indexOf(r.line) : -1;

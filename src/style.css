@@ -706,9 +706,31 @@ a.oc-tile:hover, a.oc-tile:focus-visible, button.oc-tile:hover, button.oc-tile:f
 }
 .pv-note-card:hover, .pv-note-card:focus-visible { background: var(--hover); outline: none; }
 .pv-note-card.on { box-shadow: var(--px-edge), 0 0 0 3px var(--accent); }
-.pv-note-h { font-weight: 600; font-size: 14.5px; line-height: 1.3; overflow-wrap: anywhere; }
-.pv-note-b { font-size: 13px; line-height: 1.4; color: var(--ink-soft); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.pv-note-at { margin-top: auto; font-size: 12px; color: var(--muted); }
+.pv-note-h { display: flex; align-items: flex-start; gap: 7px; font-weight: 600; font-size: 14.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.pv-note-ht { min-width: 0; }
+.pv-note-b { font-size: 13px; line-height: 1.4; color: var(--ink-soft); white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pv-note-at { display: flex; align-items: center; gap: 5px; margin-top: auto; font-size: 12px; color: var(--muted); }
+/* a note's icon, and its notes in a task (0.1.71, Claude's Notes) */
+.note-ic { flex: none; display: inline-flex; color: var(--ink); margin-top: 1px; }
+.pv-note-icons { flex-wrap: wrap; align-items: center; gap: 8px; }
+.pv-note-icons .pv-note-icon { width: 34px; height: 34px; display: inline-grid; place-items: center; padding: 0; margin: 2px; box-shadow: var(--px-edge); }
+.pv-note-icons .pv-note-icon .note-ic { margin: 0; }
+.pv-note-icons .pv-note-icon.on { background: var(--hover); box-shadow: var(--px-edge), 0 0 0 4px var(--accent); }
+.pv-note-icon-name { font-size: 13px; color: var(--ink-soft); }
+.pv-note-icons > .lbl { margin-right: 4px; }
+.pv-note-in { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pv-note-task { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--ink); }
+.pv-note-in .btn { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; }
+.pv-tnotes { display: grid; gap: 6px; }
+.pv-tnotes-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pv-tnotes-head .btn { display: inline-flex; align-items: center; gap: 6px; }
+.pv-tnotes-empty { margin: 0; }
+.pv-tnote-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pv-tnote { display: grid; gap: 4px; width: calc(100% - 4px); margin: 2px; padding: 8px 10px; text-align: left; background: var(--field); border: 0; box-shadow: var(--px-edge); color: var(--ink); font: inherit; cursor: pointer; }
+.pv-tnote:hover, .pv-tnote:focus-visible { background: var(--hover); outline: none; }
+.pv-tnote-h { display: flex; align-items: flex-start; gap: 7px; font-weight: 600; font-size: 14px; line-height: 1.3; overflow-wrap: anywhere; }
+.pv-tnote-t { min-width: 0; }
+.pv-tnote-b { font-size: 13px; line-height: 1.4; color: var(--ink-soft); white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .pv-note-ed { display: grid; gap: 10px; }
 .pv-note-title { font: 400 20px/1.25 var(--f-pixel); font-variant-ligatures: no-common-ligatures; }
 .pv-note-body { min-height: 360px; resize: vertical; line-height: 1.5; }

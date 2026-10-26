@@ -478,11 +478,17 @@ const ICONS = {
   trophy: ['.########.', '##++++++##', '#.#++++#.#', '#.#++++#.#', '.##++++##.', '...#++#...', '....##....', '....##....', '..######..', '..######..'],
   flame: ['....#.....', '....##....', '...#++#...', '...#++#.#.', '..#+++###.', '.#++++++#.', '.#++oo++#.', '.#+oooo+#.', '..#+oo+#..', '...####...'],
   archive: ['##########', '#++++++++#', '##########', '.#......#.', '.#.####.#.', '.#......#.', '.#......#.', '.#......#.', '.########.', '..........'],
+  /* a note's icons (0.1.71, Claude's Notes, Round 2, I1): the sticky note, the idea bulb, the book (as in rules), and
+     the blueprint (a plan; the map redrawn at his ask) */
+  sticky: ['############', '#++++++++++#', '#+########+#', '#++++++++++#', '#+######+++#', '#++++++++++#', '#+#####++++#', '#++++++++++#', '#+++++++####', '#+++++++#o#.', '#+++++++##..', '#########...'],
+  bulb: ['....####....', '..##++++##..', '.#+o++++++#.', '.#o+++++++#.', '.#++++++++#.', '.#++++++++#.', '..#++++++#..', '...#++++#...', '...######...', '....####....', '...######...', '.....##.....'],
+  book: ['............', '.##########.', '.#+#++++++#.', '.#+#+oooo+#.', '.#+#++++++#.', '.#+#++++++#.', '.#+#++++++#.', '.#+#++++++#.', '.#+#++++++#.', '.##########.', '.#oooooooo#.', '.##########.'],
+  blueprint: ['############', '#++++++++++#', '#+oooooooo+#', '#+o+++o++o+#', '#+o+++o++o+#', '#+o+++o++o+#', '#+oooo+++o+#', '#+o++++++o+#', '#+o++++++o+#', '#+oooooooo+#', '#++++++++++#', '############'],
   arrow: ['######....', '######....', '####......', '##.##.....', '##..##....', '##...##...', '......##..', '.......##.', '........##', '..........'],
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
 const ICON_NAMES = { doc: 'Doc', code: 'Code', github: 'GitHub', claude: 'Claude', chat: 'Chat', folder: 'Folder', web: 'Web' };
-const ICON_ACCENT = { claude: '#D97757', star: '#FFD23F', pin: '#E0356F', flame: '#FF8A3D' };   // Claude's spark keeps its own orange; the star gold (Star and What is next, A2); the pin coral; the streak's flame orange
+const ICON_ACCENT = { claude: '#D97757', star: '#FFD23F', pin: '#E0356F', flame: '#FF8A3D', sticky: '#FFE58A', bulb: '#FFD27A', book: '#7FD6CE', blueprint: '#4A86D6' };   // Claude's spark keeps its own orange; the star gold (Star and What is next, A2); the pin coral; the streak's flame orange
 function iconSvg(name, size = 24, accent = ICON_ACCENT[name] || 'var(--accent)') {
   const rows = ICONS[name]; if (!rows) return '';
   const w = rows[0].length, ht = rows.length;

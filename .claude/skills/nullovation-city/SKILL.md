@@ -118,16 +118,24 @@ Every copy from the city (a task, a note, a milestone, a project's status, the s
 
 **Find the city.** Read `~/.claude/nullovation-city.json` (on Windows, `%USERPROFILE%\.claude\nullovation-city.json`). It names `summary`, the city as it is now, and `inbox`, the folder to write to. If it is missing, look in `~/.claude/settings.json` for the hooks whose `args` hold `nullovation-city-status.py`: the folder is the fourth argument, the summary is `city/summary.json` in it, and the inbox is `inbox/` in it. If neither exists, or you cannot reach the user's files (as on claude.ai), write a tasks file or a plan as above instead, and say how to load it.
 
-**Read the summary first.** `summary.json` lists every project with its milestones, open tasks (with descriptions and due dates), done tasks, notes, links and folders. Use its names exactly: the city matches the project by name and a task by its title. If the work is not clearly about one project, or a task you mean is not in the summary, ask rather than guess.
+**Read the summary first.** `summary.json` lists every project with its milestones, open tasks (with descriptions, due dates and their notes), done tasks, notes, links and folders. A note you wrote says `by: "Claude"` with its `kind`. Use its names exactly: the city matches the project by name and a task by its title. If the work is not clearly about one project, or a task you mean is not in the summary, ask rather than guess.
 
 **What to send, only what you know.** The rule above holds here too.
 - `done`: a task the work finished. Only when it is really finished; the user approves it before it counts. For the task the copy named, it is what offers the user Tick it on your finish: an update without it says work is left.
-- `add-note`: a short note on what was done, decided or found, when it is worth keeping. Its title says what it is about.
+- `add-note`: a note worth keeping, only of the kinds under Notes, below, with its `kind`.
 - `add-tasks`: work that is left, only what the user asked for or agreed to, or what they said is still to do. Each task has a description written as above.
 - `edit-description`: a task's description brought up to date, such as what is done and what is left. The user approves it first.
 - `add-link`: a real address of something made, such as a document or a pull request.
 - `replace-plan`: a whole new plan, only when the user asked for one. The user approves it first.
 - `add-round`: a decision wizard round or a brainstorm for a task, when a copy from the city asks for one (below).
+
+**Notes.** Notes in the city are for the user to read, not a knowledge base. Keep each to a few lines: a numbered list first, then bullet points, never a block of text; only a plan may run longer, and even then the whole plan lives in the project's own files. Name its `kind`, and the city puts it in its place:
+- `status`: where a long piece of work stands. It goes in the task it is about: the note's `task`, else the update's. A task keeps one: send it again and the city brings it up to date.
+- `plan`: a plan, in its task, one per task, brought up to date the same way.
+- `decision`: a decision the user made with you, in its task, with their words where they gave them. A new note each time.
+- `how`: how something works, or where something is, with the user's notes. One per topic, by its title: send it again under the same title and the city brings it up to date.
+
+With no task to name, a status, a plan or a decision goes with the user's notes. Never write a note on what a session did (your summary under the finish says it), on a wizard round's answers (they live in its task), or for a correction or a fact found. The city gives a status the sticky note, a plan the blueprint, a decision the idea bulb and how something works the book; send `icon` (`sticky`, `bulb`, `book` or `blueprint`) only when another fits better. The user can change it. The city never lets you change a note the user wrote.
 
 Adding tasks, notes, links and a round applies at once, with an Undo; ticking tasks, editing descriptions and replacing the plan wait on the building for the user to apply. Send one file per update, for one project.
 
@@ -143,7 +151,7 @@ When a copy from the city started the work, set `task` to the copy's task (its `
   "summary": "One line: what this update is about",
   "changes": [
     { "do": "done", "task": "The task's title, exactly" },
-    { "do": "add-note", "title": "A short title", "text": "What was done, decided or found" },
+    { "do": "add-note", "kind": "status, plan, decision or how", "task": "Optional: the task it is about, exactly as in the summary", "title": "A short title", "text": "1. A few lines\n2. A numbered list, then bullets" },
     { "do": "add-tasks", "milestone": "Optional: a milestone's name; a new name makes a new milestone", "tasks": [{ "text": "Start with a verb", "description": "The description lines above", "due": "Optional, YYYY-MM-DD" }] },
     { "do": "edit-description", "task": "The task's title, exactly", "description": "The whole new description" },
     { "do": "add-link", "label": "Short name", "url": "https://...", "icon": "doc, code, github, claude, chat, folder, or web" },

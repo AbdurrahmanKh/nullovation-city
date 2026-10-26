@@ -265,6 +265,8 @@ const ClaudeWork = (() => {
      file, which is mostly building art. Rewritten a moment after every change, by the tab that writes the data file. */
   function citySummary(now = Date.now()) {
     const iso = ts => (ts ? new Date(ts).toISOString().slice(0, 10) : null);
+    /* a note: who wrote it, and for one of Claude's, its kind and when it was last brought up to date (0.1.71) */
+    const summaryNote = n => ({ title: n.title || '', text: n.text || '', written: iso(n.at), ...(byClaude(n) ? { by: 'Claude', ...(n.kind ? { kind: n.kind } : {}), ...(n.updatedAt ? { updated: iso(n.updatedAt) } : {}) } : {}) });
     return { app: 'nullovation-city', kind: 'city-summary', version: 1, written: new Date(now).toISOString(),
       about: 'Nullovation City, Abdurrahman\'s project tracker, rewrites this file on every change. Each project is a building. '
         + 'To change the city, write a change file into the inbox folder beside this one, as the nullovation-city skill says.',
@@ -278,10 +280,11 @@ const ClaudeWork = (() => {
           next: next ? next.text : null,
           milestones: groupsOf(p).filter(g => !(g.ms && milestoneArchived(p, g.ms))).map(g => ({ name: g.ms ? g.ms.name : 'No milestone',   // the archive stays out (A3)
             open: g.todos.filter(t => isOpenTask(t, now)).map(t => ({ task: t.text, description: t.description || '', due: t.due || null, ...(t.repeat ? { repeat: repeatText(t.repeat) } : {}), ...(t.shift ? { shift: shiftName(t.shift) } : {}),
-              ...(t.round ? { round: { title: t.round.title, kind: isBrainstorm(t.round) ? 'brainstorm' : 'round', file: ROUNDS_DIR + '/' + t.round.file, state: roundWords(roundState(t)) } } : {}) })),   // its wizard round (0.1.55)
+              ...(t.round ? { round: { title: t.round.title, kind: isBrainstorm(t.round) ? 'brainstorm' : 'round', file: ROUNDS_DIR + '/' + t.round.file, state: roundWords(roundState(t)) } } : {}),   // its wizard round (0.1.55)
+              ...(t.notes && t.notes.length ? { notes: t.notes.map(summaryNote) } : {}) })),   // its notes, Claude's status, plan and decisions among them (0.1.71)
             ...(g.todos.some(t => isWaiting(t, now)) ? { waiting: g.todos.filter(t => isWaiting(t, now)).map(t => ({ task: t.text, repeat: repeatText(t.repeat), back: t.due })) } : {}),
             done: g.todos.filter(t => t.done && !t.archived).map(t => t.text) })),
-          notes: p.notes.map(n => ({ title: n.title || '', text: n.text || '', written: iso(n.at) })),
+          notes: p.notes.map(summaryNote),
           links: p.links.map(l => ({ label: l.label || suggestLabel(l.url), url: l.url })) };
       }) };
   }

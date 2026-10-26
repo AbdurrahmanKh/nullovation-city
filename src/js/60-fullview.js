@@ -682,9 +682,10 @@ const FullView = (() => {
     const p = P(); if (!p || !sideTask) return;
     const i = p.todos.findIndex(x => x.id === sideTask);
     if (i >= 0 && taskSnap) {
-      const live = p.todos[i].round;                // a round came, went or was answered while open: Esc leaves it, as it leaves pins
+      const live = p.todos[i].round, liveNotes = p.todos[i].notes;   // a round, or a note, came, went or changed while open: Esc leaves it, as it leaves pins
       p.todos[i] = taskSnap;
       if (live) taskSnap.round = live; else delete taskSnap.round;
+      if (liveNotes) taskSnap.notes = liveNotes; else delete taskSnap.notes;
     }
     changed(p, { touch: false });
     sideTask = null; taskSnap = null; sideTicked = false;
@@ -734,6 +735,7 @@ const FullView = (() => {
         onclick: () => { set(!on); render(); const b = side && $(`[data-mark="${kind}"]`, side); if (b) b.focus(); } }, iconEl(kind, 14, on ? undefined : 'transparent'), on ? yes : no))),
       h('div', { class: 'pv-round-slot' }, Rounds.card(p, t)),                 // its wizard round (0.1.55, P1)
       h('span', { class: 'lbl' }, 'Description'), desc,
+      taskNotes(p, t),
       h('div', { class: 'pv-claude-row' },
         OpenInClaude.button({ id: 'pvTaskClaude', ...taskClaude(p, t), project: p })),
       h('div', { class: 'pv-note-foot' },
@@ -774,11 +776,31 @@ const FullView = (() => {
       t.round ? h('div', { class: 'pv-round-slot' }, Rounds.card(p, t, { readOnly: true })) : null,
       h('span', { class: 'lbl' }, 'Description'),
       desc ? h('div', { id: 'pvTaskDesc', class: 'note-text pv-arch-desc', tabindex: '-1' }, ...paragraphs(desc)) : h('p', { id: 'pvTaskDesc', class: 'fv-empty', tabindex: '-1' }, 'No description.'),
+      taskNotes(p, t, { readOnly: true }),
       h('div', { class: 'pv-claude-row' },
         OpenInClaude.button({ id: 'pvTaskClaude', text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', files: () => Rounds.files(t), project: p })),
       h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
   }
+  /* A task's notes (0.1.71, Claude's Notes): under its description, newest first, each with its icon, its title, two
+     lines of it, and when; Claude's with its spark. A click opens one in the note panel, with Back to the task; Add a
+     note writes one of yours (Y1). An archived task's are to read: a click shows one whole. */
+  function taskNotes(p, t, { readOnly = false } = {}) {
+    const ns = [...(t.notes || [])].sort((a, b) => (b.updatedAt || b.at) - (a.updatedAt || a.at));
+    if (readOnly && !ns.length) return null;
+    const open = n => (readOnly ? Panel.open(noteHead(n), h('div', { class: 'cr-body' }, h('p', { class: 'cr-text was' }, noteWhen(n)), h('p', { class: 'cr-text', dir: 'auto' }, noteBody(n) || 'Nothing written in it.')), 'cr')
+      : openNote(p, n.id, t.id));
+    return h('section', { class: 'pv-tnotes', 'aria-label': 'Notes on this task' },
+      h('div', { class: 'pv-tnotes-head' }, h('span', { class: 'lbl' }, 'Notes'),
+        readOnly ? null : h('button', { id: 'pvTaskAddNote', class: 'btn btn-quiet btn-small', type: 'button', title: 'A note of yours, kept in this task', onclick: () => openNote(p, null, t.id) }, iconEl('plus', 12), 'Add a note')),
+      ns.length ? h('ul', { class: 'pv-tnote-list' }, ns.map(n => h('li', null,
+        h('button', { class: 'pv-tnote' + (byClaude(n) ? ' by-claude' : ''), type: 'button', 'data-id': n.id, onclick: () => open(n) },
+          h('span', { class: 'pv-tnote-h', dir: 'auto' }, h('span', { class: 'note-ic', 'aria-hidden': 'true', html: iconSvg(noteIcon(n), 16) }), h('span', { class: 'pv-tnote-t' }, noteHead(n))),
+          noteBody(n) ? h('span', { class: 'pv-tnote-b', dir: 'auto' }, noteBody(n).slice(0, 400)) : null,
+          h('span', { class: 'pv-note-at' }, ...noteStamp(n, true)))))) : h('p', { class: 'fv-empty pv-tnotes-empty' }, 'No notes on this task.'));
+  }
+  /* When a note was written, and Claude's spark and By Claude on one of Claude's (M1). */
+  const noteStamp = (n, latest = false) => [byClaude(n) ? iconEl('claude', 12) : null, fmtStamp(latest && n.updatedAt ? n.updatedAt : n.at) + (byClaude(n) ? ' \u00b7 By Claude' : '')].filter(Boolean);
   /* Shift: Create, Think or Errand, one or none; a click on the pressed one takes it off. Like the rest of the panel,
      Esc undoes it; on its own it is not work, so closing the panel leaves Updated alone. */
   function shiftEditor(p, t) {
@@ -913,13 +935,12 @@ const FullView = (() => {
     if (!list.length) { box.append(h('p', { class: 'fv-empty' }, 'No notes yet.')); return box; }
     const shown = allNotes ? list : list.slice(0, 6);
     box.append(h('div', { class: 'pv-note-grid' }, shown.map(n => {
-      const head = n.title.trim() || n.text.trim().split('\n')[0];
-      const body = n.title.trim() ? n.text.trim() : n.text.trim().split('\n').slice(1).join(' ');
+      const head = noteHead(n), body = noteBody(n);
       return h('div', { class: 'pv-note-cell' },
-        h('button', { class: 'pv-note-card' + (sideMode === 'note' && sideNote === n.id ? ' on' : ''), type: 'button', 'data-id': n.id, onclick: () => openNote(p, n.id) },
-          h('span', { class: 'pv-note-h', dir: 'auto' }, head.slice(0, 120)),
-          body ? h('span', { class: 'pv-note-b', dir: 'auto' }, body.replace(/\s+/g, ' ').slice(0, 220)) : null,
-          h('time', { class: 'pv-note-at' }, fmtStamp(n.at))),
+        h('button', { class: 'pv-note-card' + (sideMode === 'note' && sideNote === n.id ? ' on' : '') + (byClaude(n) ? ' by-claude' : ''), type: 'button', 'data-id': n.id, onclick: () => openNote(p, n.id) },
+          h('span', { class: 'pv-note-h', dir: 'auto' }, h('span', { class: 'note-ic', 'aria-hidden': 'true', html: iconSvg(noteIcon(n), 16) }), h('span', { class: 'pv-note-ht' }, head)),
+          body ? h('span', { class: 'pv-note-b', dir: 'auto' }, body.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').slice(0, 220)) : null,   // its lines kept, so a list reads as one (0.1.71)
+          h('span', { class: 'pv-note-at' }, ...noteStamp(n))),
         h('button', { class: 'icon-btn pv-note-copy', type: 'button', 'data-copy': n.id, 'aria-label': 'Copy this note for Claude', title: 'Copy this note for Claude', html: iconSvg('copy', 14),
           onclick: e => { e.stopPropagation(); copyNote(p, n); } }));
     })));
@@ -1038,73 +1059,108 @@ const FullView = (() => {
   }
 
   /* ---------- a note, open in full beside the view ---------- */
-  let sideNote = null, noteSnap = null;
-  function openNote(p, id) {
+  let sideNote = null, noteSnap = null, noteIn = null;     // noteIn: the task the note is in, or null for the project's Notes (0.1.71)
+  const noteTaskOf = p => (noteIn ? p.todos.find(x => x.id === noteIn) || null : null);
+  /* The list the open note lives in: its task's notes, or the project's. */
+  function notesOf(p, make = false) {
+    if (!noteIn) return p.notes;
+    const t = noteTaskOf(p);
+    if (!t) return [];
+    if (!Array.isArray(t.notes)) { if (!make) return []; t.notes = []; }
+    return t.notes;
+  }
+  function openNote(p, id, taskId) {
     finishEdit(); adding = null;
     if (side) closeSide();                                // a task or milestone open there closes as always first
-    let n = id ? p.notes.find(x => x.id === id) : null;
-    if (!n) { n = { id: uid('n'), title: '', text: '', at: Date.now() }; p.notes.push(n); noteSnap = null; }
+    noteIn = id ? ((noteTask(p, id) || {}).id || null) : taskId || null;
+    const list = notesOf(p, true);
+    let n = id ? list.find(x => x.id === id) : null;
+    if (!n) { n = { id: uid('n'), title: '', text: '', at: Date.now(), icon: 'sticky' }; list.push(n); noteSnap = null; }
     else noteSnap = clone(n);
     sideNote = n.id;
     openSide('note');
     const t = $(id ? '#pvNoteBody' : '#pvNoteTitle', side); if (t) t.focus();
   }
+  /* A task's note, closed: back to its task, as the archive's tasks go back to the archive. */
+  function backToTask(p, taskId) {
+    if (!taskId || !p.todos.some(x => x.id === taskId)) return false;
+    openTask(p, taskId);
+    const b = side && $('#pvTaskAddNote', side); if (b) b.focus({ preventScroll: true });
+    return true;
+  }
   /* Done or closing: keep what was written; an empty note is dropped. */
   function finishNote() {
     const p = P(); if (!p || !sideNote) return;
-    const n = p.notes.find(x => x.id === sideNote);
+    const list = notesOf(p), n = list.find(x => x.id === sideNote), t = noteTaskOf(p), where = t ? ' in ' + t.text : '';
     if (n) {
-      if (!n.title.trim() && !n.text.trim()) { p.notes.splice(p.notes.indexOf(n), 1); changed(p, { touch: false }); }
-      else if (!noteSnap) logActivity(p, 'Wrote a note' + (n.title.trim() ? ': ' + n.title.trim() : ''));
-      else if (noteSnap.title !== n.title || noteSnap.text !== n.text) logActivity(p, 'Edited a note');
-      changed(p);
+      const edited = !!noteSnap && (noteSnap.title !== n.title || noteSnap.text !== n.text);
+      if (!n.title.trim() && !n.text.trim()) { list.splice(list.indexOf(n), 1); changed(p, { touch: false }); }
+      else if (!noteSnap) { logActivity(p, 'Wrote a note' + where + (n.title.trim() ? ': ' + n.title.trim() : '')); changed(p); }
+      else if (edited) { logActivity(p, 'Edited a note' + where); changed(p); }
+      else changed(p, { touch: false });                   // its icon alone is not work, as a shift is not (0.1.71)
+      if (t && !t.notes.length) delete t.notes;
     }
-    sideNote = null; noteSnap = null;
+    sideNote = null; noteSnap = null; noteIn = null;
   }
   /* Esc: a new note is dropped, an existing one goes back to how it was when it opened. */
   function cancelNote() {
     const p = P(); if (!p || !sideNote) return;
-    const i = p.notes.findIndex(x => x.id === sideNote);
-    if (i >= 0) { if (noteSnap) p.notes[i] = noteSnap; else p.notes.splice(i, 1); }
+    const list = notesOf(p), i = list.findIndex(x => x.id === sideNote), t = noteTaskOf(p);
+    if (i >= 0) { if (noteSnap) list[i] = noteSnap; else list.splice(i, 1); }
+    if (t && Array.isArray(t.notes) && !t.notes.length) delete t.notes;
     changed(p, { touch: false });
-    sideNote = null; noteSnap = null;
+    sideNote = null; noteSnap = null; noteIn = null;
     side.remove(); side = null; sideMode = null;
     if (root.style.width) root.style.width = '';
     render();
     toast('Note changes undone.');
+    if (t && backToTask(p, t.id)) return;                 // a task's note: Esc goes back to its task
     const b = $('#pvAddNoteBtn', root); if (b) b.focus();
   }
   function noteEditor(p) {
-    const n = p.notes.find(x => x.id === sideNote);
+    const list = notesOf(p), n = list.find(x => x.id === sideNote), t = noteTaskOf(p);
     if (!n) return h('p', { class: 'fv-empty' }, 'This note is gone.');
     const goes = p.milestones.find(m => m.id === defaultMilestone(p));
-    const toTask = h('button', { id: 'pvNoteToTask', class: 'btn btn-small', type: 'button', disabled: !(n.title.trim() || n.text.trim()),
+    /* its icon, picked here and changed any time, Claude's too (M1, I1); not work */
+    const icons = h('div', { class: 'inline pv-note-icons', role: 'group', 'aria-label': 'Icon' }, h('span', { class: 'lbl' }, 'Icon'),
+      ...NOTE_ICONS.map(k => h('button', { class: 'icon-btn pv-note-icon' + (noteIcon(n) === k ? ' on' : ''), type: 'button', 'data-icon': k, 'aria-pressed': String(noteIcon(n) === k),
+        'aria-label': NOTE_ICON_NAMES[k], title: NOTE_ICON_NAMES[k], onclick: () => { n.icon = k; changed(p, { touch: false }); refreshCard(n); renderSide(); const b = side && $(`.pv-note-icon[data-icon="${k}"]`, side); if (b) b.focus(); } },
+        h('span', { class: 'note-ic', 'aria-hidden': 'true', html: iconSvg(k, 20) }))),
+      h('span', { class: 'pv-note-icon-name' }, NOTE_ICON_NAMES[noteIcon(n)]));
+    const toTask = t ? null : h('button', { id: 'pvNoteToTask', class: 'btn btn-small', type: 'button', disabled: !(n.title.trim() || n.text.trim()),
       title: 'Make it a task in ' + (goes ? goes.name : 'a new To do milestone') + ': the title names it, the text describes it',
       onclick: () => turnIntoTask(p, n.id) }, iconEl('task', 14), 'Turn into a task');
-    const typed = () => { toTask.disabled = !(n.title.trim() || n.text.trim()); };   // an empty note has nothing to turn
+    const typed = () => { if (toTask) toTask.disabled = !(n.title.trim() || n.text.trim()); };   // an empty note has nothing to turn
     const title = h('input', { id: 'pvNoteTitle', class: 'field pv-note-title', type: 'text', dir: 'auto', maxlength: '200', value: n.title, placeholder: 'Title', 'aria-label': 'Note title', autocomplete: 'off',
       oninput: e => { n.title = e.target.value; changed(p, { touch: false }); refreshCard(n); typed(); },
       onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); const b = $('#pvNoteBody', side); if (b) b.focus(); } } });
     const body = h('textarea', { id: 'pvNoteBody', class: 'field pv-note-body', dir: 'auto', rows: '16', placeholder: 'Write the note', 'aria-label': 'Note text',
       oninput: e => { n.text = e.target.value.slice(0, 8000); changed(p, { touch: false }); refreshCard(n); typed(); } }, n.text);
-    return h('div', { class: 'pv-note-ed' }, title, body,
+    return h('div', { class: 'pv-note-ed' },
+      t ? h('div', { class: 'pv-note-in' }, h('span', { class: 'lbl' }, 'In'), h('bdi', { class: 'pv-note-task', dir: 'auto' }, t.text),
+        h('button', { id: 'pvNoteBackTask', class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { closeSide(); backToTask(p, t.id); } }, iconEl('back', 14), 'Back to the task')) : null,
+      title, body, icons,
       h('div', { class: 'pv-claude-row' },
         OpenInClaude.button({ id: 'pvNoteClaude', text: () => noteForClaude(p, n), copied: 'Note copied for Claude.', project: p })),
       h('div', { class: 'pv-note-foot' }, toTask,                        // as in the task panel: turn it on the left, delete on the right
         h('button', { id: 'pvNoteDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
-          p.notes.splice(p.notes.indexOf(n), 1);
-          if (noteSnap) logActivity(p, 'Deleted a note');
+          list.splice(list.indexOf(n), 1);
+          if (t && !t.notes.length) delete t.notes;
+          if (noteSnap) logActivity(p, 'Deleted a note' + (t ? ' in ' + t.text : ''));
           changed(p, { touch: false });
-          sideNote = null; noteSnap = null;
+          sideNote = null; noteSnap = null; noteIn = null;
           closeSide(); render();
           toast('Note deleted.');
+          if (t) backToTask(p, t.id);
         } }, 'Delete note')),
-      h('p', { class: 'note' }, 'Written ' + fmtStamp(n.at) + '. Saves as you type; Esc undoes.'));
+      h('p', { class: 'note' }, (byClaude(n) ? [iconEl('claude', 12), ' '] : []).concat(noteWhen(n) + ' Saves as you type; Esc undoes.')));
   }
   function refreshCard(n) {
+    if (noteIn) return;                                   // a task's note has no card in Notes
     const card = root && $(`.pv-note-card[data-id="${n.id}"]`, root);
     if (!card) { if (root && !$(`.pv-note-card[data-id="${n.id}"]`, root) && (n.title.trim() || n.text.trim())) renderMainOnly(); return; }
-    const hd = $('.pv-note-h', card); if (hd) hd.textContent = (n.title.trim() || n.text.trim().split('\n')[0]).slice(0, 120);
+    const hd = $('.pv-note-ht', card); if (hd) hd.textContent = noteHead(n);
+    const ic = $('.pv-note-h .note-ic', card); if (ic) ic.innerHTML = iconSvg(noteIcon(n), 16);
   }
   function renderMainOnly() {
     const p = P(); if (!p) return;
@@ -1133,8 +1189,9 @@ const FullView = (() => {
     const i = p.todos.findIndex(x => x.id === id); if (i < 0) return;
     const t = p.todos[i], was = clone(t), pinned = p.pin === t.id, starred = p.star === t.id;
     const text = t.text.trim(), desc = (t.description || '').trim(), long = text.length > 200;    // a note's title holds 200
-    const n = { id: uid('n'), title: long ? '' : text, text: (long ? text + (desc ? '\n\n' + desc : '') : desc).slice(0, 8000), at: Date.now() };
-    p.todos.splice(i, 1); p.notes.push(n);
+    const n = { id: uid('n'), title: long ? '' : text, text: (long ? text + (desc ? '\n\n' + desc : '') : desc).slice(0, 8000), at: Date.now(), icon: 'sticky' };
+    const kept = (t.notes || []).map(x => x.id);          // its own notes join the project's Notes (0.1.71)
+    p.todos.splice(i, 1); p.notes.push(n, ...(t.notes || []));
     if (pinned) p.pin = '';
     if (starred) p.star = '';
     const line = logged(p, 'Turned into a note: ' + text);
@@ -1144,7 +1201,7 @@ const FullView = (() => {
       if (!getProject(p.id) || p.todos.some(x => x.id === was.id)) return;
       const showing = !!side && sideMode === 'note' && sideNote === n.id && openId === p.id;
       if (showing) dropSide();
-      p.notes = p.notes.filter(x => x.id !== n.id);
+      p.notes = p.notes.filter(x => x.id !== n.id && !kept.includes(x.id));
       p.todos.splice(Math.min(i, p.todos.length), 0, was);
       if (!p.milestones.some(m => m.id === was.milestoneId)) was.milestoneId = homeMilestone(p).ms.id;   // its milestone is gone
       normalizeOrder(p);
@@ -1375,7 +1432,7 @@ const FullView = (() => {
     if (sideMode === 'note') {
       side.replaceChildren(h('div', { class: 'pv-top' }, h('h2', { class: 'pv-title small' }, 'Note'),
         h('div', { class: 'pv-actions' },
-          h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { closeSide(); render(); const b = $('#pvAddNoteBtn', root); if (b) b.focus(); } }, 'Done'),
+          h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { const ti = noteIn; closeSide(); render(); if (ti && backToTask(p, ti)) return; const b = $('#pvAddNoteBtn', root); if (b) b.focus(); } }, 'Done'),
           h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close the note', title: 'Close', html: iconSvg('close', 18), onclick: () => { closeSide(); render(); } }))),
         noteEditor(p));
       return;

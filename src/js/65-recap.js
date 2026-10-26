@@ -24,7 +24,7 @@ function weekOf(start) {
     const done = [...doneMap.entries()].map(([text, at]) => ({ text, at })).sort((x, y) => x.at - y.at);
     const added = log.map(e => ({ text: addedTodo(e.text), at: e.at })).filter(e => e.text != null);
     const worked = log.filter(e => e.text === 'I worked!').length;
-    const notes = p.notes.filter(n => inWeek(n.at)).sort((x, y) => x.at - y.at);
+    const notes = allNotes(p).filter(n => inWeek(n.at)).sort((x, y) => x.at - y.at);   // a task's notes too (0.1.71)
     const ms = p.milestones.filter(m => {
       const ts = p.todos.filter(t => t.milestoneId === m.id);
       return ts.length && ts.every(t => t.done) && inWeek(Math.max(...ts.map(t => t.doneAt || 0)));
@@ -67,7 +67,7 @@ function firstWeekStart() {
   for (const p of DB.projects) {
     min = Math.min(min, p.createdAt || min);
     for (const e of p.activity || []) min = Math.min(min, e.at);
-    for (const n of p.notes) min = Math.min(min, n.at);
+    for (const n of allNotes(p)) min = Math.min(min, n.at);
   }
   return weekStartOf(min);
 }
@@ -133,7 +133,7 @@ function projectStatus(p, now = Date.now()) {
     L.push('Repeats waiting for their next date:');
     for (const t of waiting.slice(0, 15)) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')');
   }
-  const last = [...p.notes].sort((a, b) => b.at - a.at)[0];
+  const last = [...allNotes(p)].sort((a, b) => b.at - a.at)[0];
   if (last) L.push('Latest note (' + fmtDate(last.at) + '): ' + ((last.title || '').trim() ? last.title.trim() + '. ' : '') + last.text.replace(/\s+/g, ' ').slice(0, 300));
   L.push('Updated ' + relAgo(p.updatedAt, now) + '.');
   return L.join('\n');
@@ -173,7 +173,7 @@ function builderCard(p) {
   L.push('## Project');
   L.push('Name: ' + p.name);
   L.push('Size signals: ' + [plural(p.todos.length, 'todo', 'todos') + ' (' + open.length + ' open)', plural(p.milestones.length, 'milestone', 'milestones'),
-    plural(p.notes.length, 'note', 'notes'), plural(p.links.length, 'link', 'links')].join(', '));
+    plural(allNotes(p).length, 'note', 'notes'), plural(p.links.length, 'link', 'links')].join(', '));
   L.push('');
   L.push('## Description');
   L.push(p.description.trim() || 'none');

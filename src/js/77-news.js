@@ -281,12 +281,13 @@ const News = (() => {
      is done (claude), so what it asks is read by then. */
   function report(p, { task = '', named = false, summary = '', undo = null, entry = '' } = {}) {
     if (!p) return null;
-    const add = undo && (undo.todos.length || undo.notes.length || undo.links.length) ? { todos: [...undo.todos], notes: [...undo.notes], links: [...undo.links] } : null;
+    const upd = undo && Array.isArray(undo.updated) ? undo.updated : [];
+    const add = undo && (undo.todos.length || undo.notes.length || undo.links.length || upd.length) ? { todos: [...undo.todos], notes: [...undo.notes], links: [...undo.links], updated: upd.map(w => w.id) } : null;
     const rounds = (undo && undo.rounds || []).map(r => { const t = p.todos.find(x => x.id === r.id); return { tid: r.id, title: t && t.round ? t.round.title : '' }; });
     if (!add && !rounds.length && !entry) return null;
     const rep = { id: uid('rp'), pid: p.id, task, summary, at: Date.now(), sid: '', fin: 0, reply: '', alone: false, entry, add, rounds };
-    const none = { todos: [], ms: [], notes: [], links: [], rounds: [] };
-    if (add) undos.set(rep.id, { ...none, todos: undo.todos, ms: undo.ms, notes: undo.notes, links: undo.links });
+    const none = { todos: [], ms: [], notes: [], links: [], rounds: [], updated: [] };
+    if (add) undos.set(rep.id, { ...none, todos: undo.todos, ms: undo.ms, notes: undo.notes, links: undo.links, updated: upd });
     for (const r of undo && undo.rounds || []) undos.set(rep.id + ':' + r.id, { ...none, rounds: [r] });
     const s = sessionFor(p, rep, named);
     edit(() => {
@@ -317,13 +318,15 @@ const News = (() => {
   }
   /* What is still there of what Claude added, and whether its Undo is. */
   const addedOf = (p, add) => ({ ts: add.todos.map(id => p.todos.find(t => t.id === id)).filter(Boolean),
-    ns: add.notes.map(id => p.notes.find(n => n.id === id)).filter(Boolean), ls: add.links.map(id => p.links.find(l => l.id === id)).filter(Boolean) });
-  const addLive = (p, add) => { const a = addedOf(p, add); return a.ts.length + a.ns.length + a.ls.length > 0; };
+    ns: add.notes.map(id => allNotes(p).find(n => n.id === id)).filter(Boolean), ls: add.links.map(id => p.links.find(l => l.id === id)).filter(Boolean),
+    us: (add.updated || []).map(id => allNotes(p).find(n => n.id === id)).filter(Boolean) });     // notes Claude put in a task, and brought up to date (0.1.71)
+  const addLive = (p, add) => { const a = addedOf(p, add); return a.ts.length + a.ns.length + a.ls.length + a.us.length > 0; };
   /* What Claude added, named, not just counted: one of a kind by its name, more by their count. */
   function addedWords(p, add) {
     const a = addedOf(p, add);
     const kind = (list, one, many, name) => (!list.length ? '' : list.length > 1 ? plural(list.length, one, many) : 'a ' + one + (name(list[0]) ? ', ' + cut(name(list[0]), 40) : ''));
-    const bits = [kind(a.ts, 'task', 'tasks', t => t.text), kind(a.ns, 'note', 'notes', n => n.title), kind(a.ls, 'link', 'links', l => l.label || suggestLabel(l.url))].filter(Boolean);
+    const bits = [kind(a.ts, 'task', 'tasks', t => t.text), kind(a.ns, 'note', 'notes', n => n.title), kind(a.ls, 'link', 'links', l => l.label || suggestLabel(l.url)),
+      a.us.length ? (a.us.length > 1 ? 'new versions of ' + plural(a.us.length, 'note', 'notes') : 'a new version of ' + cut(noteHead(a.us[0]), 40)) : ''].filter(Boolean);
     if (bits.length < 2) return bits[0] || '';
     return bits.slice(0, -1).join(', ') + (bits.some(b => b.includes(', ')) ? ', and ' : ' and ') + bits[bits.length - 1];
   }
@@ -671,7 +674,9 @@ const News = (() => {
     return [
       ...a.ts.map(t => crSec('A task', h('button', { class: 'linkish cr-title', type: 'button', dir: 'auto', title: 'Open it in ' + p.name, onclick: () => { Panel.close(); FullView.openTask(p.id, t.id); } }, t.text),
         t.description ? crText(t.description) : null)),
-      ...a.ns.map(n => crSec(n.title || 'A note', n.text ? crText(n.text) : crText('Nothing written in it.', 'was'))),
+      ...[...a.ns, ...a.us].map(n => { const t = noteTask(p, n.id);
+        return crSec(n.title || 'A note', ...(t || a.us.includes(n) ? [crText((a.us.includes(n) ? 'Brought up to date' : 'A note') + (t ? ', in ' + t.text : ', in Notes') + '.', 'was')] : []),
+          n.text ? crText(n.text) : crText('Nothing written in it.', 'was')); }),
       ...a.ls.map(l => { const lt = linkTarget(l); return crSec('A link', lt.href ? h('a', { class: 'cr-title', href: lt.href, target: lt.blank ? '_blank' : null, rel: 'noopener', dir: 'auto', title: lt.title }, lt.name) : h('b', { class: 'cr-title', dir: 'auto' }, lt.name),
         h('p', { class: 'cr-url', dir: 'ltr' }, l.url)); }),
     ];

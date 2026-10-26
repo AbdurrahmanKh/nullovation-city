@@ -169,6 +169,8 @@ def check_tasks(data, errors, warnings):
 
 
 CHANGES = {'done', 'add-note', 'add-tasks', 'edit-description', 'add-link', 'replace-plan', 'add-round'}
+NOTE_KINDS = ['status', 'plan', 'decision', 'how']
+NOTE_ICONS = ['sticky', 'bulb', 'book', 'blueprint']
 
 
 def check_change(data, errors, warnings):
@@ -196,6 +198,18 @@ def check_change(data, errors, warnings):
             errors.append(f'{where} (edit-description) needs the whole new "description"')
         if do == 'add-note' and not (str(c.get('title') or '').strip() or str(c.get('text') or '').strip()):
             errors.append(f'{where} (add-note) is empty')
+        if do == 'add-note':
+            if 'kind' in c and c['kind'] not in NOTE_KINDS:
+                errors.append(f'{where} (add-note): "kind" is one of {", ".join(NOTE_KINDS)}')
+            elif 'kind' not in c:
+                warnings.append(f'{where} (add-note) names no "kind": the city keeps it with the user\'s notes as a new note. Name status, plan, decision or how.')
+            if 'icon' in c and c['icon'] not in NOTE_ICONS:
+                errors.append(f'{where} (add-note): "icon", when given, is one of {", ".join(NOTE_ICONS)}')
+            if 'task' in c and (not isinstance(c['task'], str) or not c['task'].strip()):
+                errors.append(f'{where} (add-note): "task", when given, is the title of the task the note is about, exactly as in the summary')
+            text = str(c.get('text') or '')
+            if c.get('kind') != 'plan' and len([x for x in text.splitlines() if x.strip()]) > 8:
+                warnings.append(f'{where} (add-note) runs over 8 lines: a note is a few lines for the user to read; the rest belongs in the project\'s own files')
         if do == 'add-link' and (not isinstance(c.get('url'), str) or not c['url'].strip()):
             errors.append(f'{where} (add-link) has no url')
         if do == 'add-tasks':

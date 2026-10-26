@@ -116,7 +116,7 @@ function proximaReport(kind, now = Date.now()) {
       if (k) r.repeats.push({ p, t, k });
     }
     r.repeats.sort((a, b) => b.k - a.k || a.t.text.localeCompare(b.t.text));
-    r.notes = DB.projects.flatMap(p => p.notes.filter(n => n.at >= per.from && n.at < per.to).map(n => ({ p, n }))).sort((a, b) => a.n.at - b.n.at);
+    r.notes = DB.projects.flatMap(p => allNotes(p).filter(n => n.at >= per.from && n.at < per.to).map(n => ({ p, n }))).sort((a, b) => a.n.at - b.n.at);
   }
   /* her facts (L2): a milestone one task from done, next week with nothing due, a repeat kept up */
   r.facts = milestonesOneLeft().slice(0, 5).map(x => proximaFill(PROXIMA_LINES.one_left[0], { milestone: x.m.name, task: x.t.text }));
