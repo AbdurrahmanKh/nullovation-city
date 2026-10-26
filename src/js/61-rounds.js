@@ -112,7 +112,9 @@ const Rounds = (() => {
     return 'answers';
   }
   /* A file dropped on the task's panel. With the Claude folder, its round goes into wizard-rounds too, so Claude and the
-     wizard read the same file. Not work: Updated, urgency and Activity stay as they are. */
+     wizard read the same file. Not work: Updated and urgency stay as they are. Since 0.1.70 it writes in Activity, as
+     wizard rounds appear there (Leader Bubbles, Round 2, C2, and his yes in the chat): a round attached or updated, and
+     the answers it brought; Undo takes the lines back out. */
   async function dropFile(p, t, file) {
     if (!file) return false;
     if (!/\.json$/i.test(file.name)) { toast('That is not a round: drop the .json file Claude gave you, or its answers.', 'error'); return false; }
@@ -122,6 +124,11 @@ const Rounds = (() => {
     const was = t.round ? clone(t.round) : null, oldTitle = was && was.title;
     const res = take(t, w, file.name);
     if (res.startsWith('!')) { toast(res.slice(1), 'error'); return false; }
+    const lines = [], log = text => { logActivity(p, text); lines.push(p.activity[p.activity.length - 1]); };
+    const brought = !!t.round.a && JSON.stringify(t.round.a) !== JSON.stringify(res === 'new' ? null : was && was.a);
+    if (res === 'new') log('Attached a wizard round to ' + t.text + ': ' + t.round.title);
+    else if (res === 'updated' && !brought) log('Updated the wizard round of ' + t.text + ': ' + t.round.title);
+    if (brought) log(answersLine(t.round.title, roundState(t)));
     changed(p, { touch: false });
     refresh(p);
     const dir = typeof ClaudeWork !== 'undefined' ? ClaudeWork.folder() : null;
@@ -130,7 +137,10 @@ const Rounds = (() => {
     const said = res === 'new' ? 'Attached ' + t.round.title + ' to ' + t.text + '.' + (oldTitle ? ' It replaces ' + oldTitle + '.' : '')
       : res === 'updated' ? 'Updated ' + t.round.title + ' in ' + t.text + (t.round.a ? ': ' + st.answered + ' of ' + st.total + ' answered.' : '.')
       : 'Answers in for ' + t.text + ': ' + st.answered + ' of ' + st.total + '.';
-    toast(said, '', { label: 'Undo', run: () => putBack(p, t, was) });
+    toast(said, '', { label: 'Undo', run: () => {
+      for (const e of lines) { const k = p.activity.indexOf(e); if (k >= 0) p.activity.splice(k, 1); }
+      putBack(p, t, was);
+    } });
     return true;
   }
   function putBack(p, t, was) {

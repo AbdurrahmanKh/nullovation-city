@@ -217,7 +217,8 @@ with sync_playwright() as p:
     ok('dropped, the round attaches to the task, by its own file name', t1['round'] and t1['round']['title'] == TITLE and t1['round']['file'] == '2026-10-22-draw-the-beds-round1.json')
     ok(f'with a toast and Undo ({said()})', said() == 'Attached ' + TITLE + ' to ' + T1 + '.' and pg.locator('#toast.show .toast-act').count() == 1)
     after = proj()
-    ok('it is not work: Updated, urgency and Activity stay', after['updatedAt'] == before['updatedAt'] and len(after['activity']) == len(before['activity']))
+    ok('it is not work: Updated and urgency stay', after['updatedAt'] == before['updatedAt'])
+    ok(f'and it writes in Activity, as wizard rounds do (0.1.70) ({after["activity"][-1]["text"]})', len(after['activity']) == len(before['activity']) + 1 and after['activity'][-1]['text'] == 'Attached a wizard round to ' + T1 + ': ' + TITLE)
     ok('the card shows under Pin and Star, before the description (P1)', ev("""() => { const s = document.querySelector('#pvSide'), c = s.querySelector('.pv-round'), m = s.querySelector('.pv-task-marks'), d = s.querySelector('#pvTaskDesc');
        return !!c && !!(m.compareDocumentPosition(c) & 4) && !!(c.compareDocumentPosition(d) & 4); }"""))
     ok('its head: a gray hat, Wizard round, and Waiting: 0 of 8 answered', hat('#pvSide .pv-round-head .hat') == 'open' and pg.text_content('#pvSide .pv-round-state') == 'Waiting: 0 of 8 answered'
@@ -226,7 +227,7 @@ with sync_playwright() as p:
     ok('Wizard it and Remove; no Mark answered with nothing answered, and no answers to show',
        pg.text_content('#pvRoundWizard').strip() == 'Wizard it' and pg.is_visible('#pvRoundRemove') and pg.locator('#pvRoundMark').count() == 0 and pg.locator('#pvSide .pv-round-fold').count() == 0)
     pg.screenshot(path=str(SHOTS / '371-card-waiting.png'), clip=pg.query_selector('#pvSide').bounding_box())
-    ok('Undo takes it off again', undo() and not get(T1).get('round') and pg.locator('#pvSide .pv-round').count() == 0)
+    ok('Undo takes it off again, and its line', undo() and not get(T1).get('round') and pg.locator('#pvSide .pv-round').count() == 0 and len(proj()['activity']) == len(before['activity']))
     drop('2026-10-22-draw-the-beds-round1.json', ROUND); quiet()
 
     # Wizard it with no Claude folder: the wizard opens on the round, through a link the installed app takes (0.1.65)
@@ -246,6 +247,7 @@ with sync_playwright() as p:
     # the answers dropped back
     drop('Draw the beds, Round 1-answers-2026-10-22.json', answers(3))
     ok(f'its answers file dropped on the task brings the answers in ({said()})', said() == 'Answers in for ' + T1 + ': 3 of 8.' and get(T1)['round']['a']['meta']['answered'] == 3)
+    ok(f'and writes them in Activity (0.1.70) ({proj()["activity"][-1]["text"]})', proj()['activity'][-1]['text'] == 'Answers in for ' + TITLE + ': 3 of 8')
     ok('the card says 3 of 8, the hat still gray', pg.text_content('#pvSide .pv-round-state') == 'Waiting: 3 of 8 answered' and hat('#pvSide .pv-round-head .hat') == 'open')
     pg.click('#pvRoundWizard'); pg.wait_for_timeout(200)
     ok('Wizard it now carries the answers so far, so a wizard without the round gets them too', sent()[1]['answers']['meta']['answered'] == 3
@@ -403,6 +405,7 @@ with sync_playwright() as p:
     drop('round1-again.json', answers(5, with_round=True))
     ok('the same round dropped again, with answers the wizard saved, updates it in place', get(T1)['round']['a']['meta']['answered'] == 5 and get(T1)['round']['file'] == '2026-10-22-draw-the-beds-round1.json'
        and said() == 'Updated ' + TITLE + ' in ' + T1 + ': 5 of 8 answered.')
+    ok(f'the answers it brought written in Activity ({proj()["activity"][-1]["text"]})', proj()['activity'][-1]['text'] == 'Answers in for ' + TITLE + ': 5 of 8')
     quiet()
 
     # ---------- Settings, Links: the wizard's address ----------

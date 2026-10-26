@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.70 (2026-10-27)
+
+Wizard rounds dropped by hand write in Activity too, after Abdurrahman's yes in the chat: rounds belong in Activity.
+- A round dropped on a task writes "Attached a wizard round to <task>: <title>", and the same round dropped again with nothing new answered writes "Updated the wizard round of <task>: <title>".
+- Answers dropped on a task, or brought by a round file, write "Answers in for <round>: 3 of 8".
+- The drop's Undo takes its lines back out.
+- Tests: test37_task_rounds checks the lines and their Undo.
+
 ## 0.1.69 (2026-10-27)
 
 Leader Bubbles, Round 2: every trigger of a leader's bubble designed on its own, after Abdurrahman asked to decide again what bubbles and what leaves a note. 21 of the 31 triggers stay as they were; these are the 10 that change.
