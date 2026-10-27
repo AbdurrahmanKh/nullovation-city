@@ -82,7 +82,7 @@
       || Confirm.isOpen() || Panel.isOpen() || Leaders.editorOpen() || FullView.isOpen() || MapView.placing() || MapView.moving()
       || MapView.editing() || Bubble.isOpen() || AllTasks.isOpen() || Settings.isOpen() || Reports.isOpen() || Leaders.isOpen() || drawer();
     function one() {
-      if (QuickAdd.isOpen()) { QuickAdd.close(); return; }
+      if (QuickAdd.isOpen()) { QuickAdd.back(); return; }      // its list first, then the line
       if (MapView.closeDrop()) return;
       if (OpenInClaude.close()) return;
       if (Wheel.close()) return;

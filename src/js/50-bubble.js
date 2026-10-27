@@ -49,7 +49,6 @@ const Bubble = (() => {
   let shownIds = new Set();
   const ticking = new Map();
   const was = new Map();                    // a ticked repeat's date and state before the tick, for unticking it
-  let addIn = null, addHint = null;         // the add field (O2), kept across redraws so what is typed stays
 
   function init() {
     el = $('#bubble'); enter = $('#enterBtn');
@@ -59,7 +58,7 @@ const Bubble = (() => {
   function clearTicks() { for (const t of ticking.values()) clearTimeout(t); ticking.clear(); }
   function open(id) {
     const was = openId;
-    if (openId !== id) { shownIds = new Set(); clearTicks(); if (addIn) addIn.value = ''; }
+    if (openId !== id) { shownIds = new Set(); clearTicks(); }
     openId = id;
     if (was && was !== id) News.release(was);               // the news the last card held, read
     el.hidden = false; enter.hidden = false;
@@ -117,7 +116,6 @@ const Bubble = (() => {
   function render(animateNew) {
     const p = getProject(openId); if (!p) return;
     const focusId = document.activeElement && el.contains(document.activeElement) ? (document.activeElement.closest('li') || {}).dataset?.id : null;
-    const typing = !!addIn && document.activeElement === addIn, sel = typing ? [addIn.selectionStart, addIn.selectionEnd] : null;   // before the field moves into the new card
     const { list: visible, current } = bubbleTodos(p, BUBBLE_TODOS, new Set(ticking.keys()));
     const openCount = openTasks(p).length;
     const moreCount = openCount - visible.filter(t => isOpenTask(t)).length;
@@ -150,13 +148,14 @@ const Bubble = (() => {
       }
       kids.push(ul);
     } else {
-      kids.push(h('p', { class: 'b-empty' }, !p.todos.length ? 'No todos yet. Add one here, or enter the building.' : waiting.length
+      kids.push(h('p', { class: 'b-empty' }, !p.todos.length ? 'No todos yet. Add one with + Task, or enter the building.' : waiting.length
         ? 'Nothing open now. ' + (waiting.length === 1 ? waiting[0].text + ' comes back ' + backWhen(waiting[0]) + '.' : plural(waiting.length, 'repeat comes', 'repeats come') + ' back from ' + backWhen(waiting[0]) + '.')
         : 'All todos are done.'));
     }
     shownIds = new Set(visible.map(t => t.id));
     if (moreCount > 0) kids.push(h('p', { class: 'b-more' }, moreCount === 1 ? '1 more open todo inside' : moreCount + ' more open todos inside'));
-    kids.push(addField(p));
+    /* No add field (0.1.76, The City on a Phone, Round 2, A3: "you don't add tasks from here"): a task is added with
+       + Task, Enter on the map or T, on the line over the map, or inside the building. It had one from 0.1.42. */
     kids.push(progressRow(p, 'b-prog'));
     kids.push(metaRow(p));
     kids.push(h('div', { class: 'b-actions' },
@@ -171,37 +170,7 @@ const Bubble = (() => {
     kids.push(tail);
     el.replaceChildren(...kids.filter(Boolean));
     if (focusId) { const cb = $(`li[data-id="${focusId}"] .cb`, el); if (cb) cb.focus(); }
-    if (typing) { addIn.focus({ preventScroll: true }); try { addIn.setSelectionRange(sel[0], sel[1]); } catch (e) { /* none */ } }
     if (typeof ClaudeWork !== 'undefined') ClaudeWork.markSeen(p.id);
-  }
-
-  /* A new add field (O2): a task in one line, with the marks for its date, its repeat and its milestone. Enter adds it
-     to this project, by default to its current milestone, and the field stays for the next one. */
-  function addField(p) {
-    if (!addIn) {
-      addIn = h('input', { id: 'bAdd', class: 'field b-add-in', type: 'text', dir: 'auto', autocomplete: 'off', maxlength: '700', placeholder: 'Add a task', 'aria-label': 'Add a task', 'aria-describedby': 'bAddHint',
-        oninput: () => { hint(); position(); },
-        onfocus: () => { hint(); position(); },
-        onblur: () => setTimeout(() => { if (document.activeElement !== addIn && !addIn.value) { addHint.hidden = true; position(); } }, 0),
-        onkeydown: e => {
-          if (e.key === 'Escape' && addIn.value) { e.preventDefault(); e.stopPropagation(); addIn.value = ''; hint(); return; }
-          if (e.key !== 'Enter') return;
-          e.preventDefault();
-          const q = getProject(openId), r = q && readTaskLine(addIn.value, { project: q });
-          if (!r || !r.ok) { hint(); addHint.classList.add('bad'); return; }
-          addIn.value = '';
-          const t = addTaskLine(r);
-          toast('Added ' + t.text + (r.msNew ? ' in a new milestone, ' + r.msNew : '') + '.');
-        } });
-      addHint = h('p', { id: 'bAddHint', class: 'add-hint b-add-hint', 'aria-live': 'polite', hidden: true });
-    }
-    hint(p);
-    return h('div', { class: 'b-add' }, addIn, addHint);
-  }
-  function hint(p = getProject(openId)) {
-    if (!addIn || !p) return;
-    addHint.hidden = document.activeElement !== addIn && !addIn.value;
-    taskLineHint(addHint, addIn.value, { project: p });
   }
 
   function position() {

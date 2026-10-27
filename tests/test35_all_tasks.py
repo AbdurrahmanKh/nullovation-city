@@ -86,8 +86,8 @@ with sync_playwright() as p:
     # ---------- where a shift shows ----------
     ev(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(500)
     ok("the status card's row wears its tag", ev("() => { const li = [...document.querySelectorAll('#bubble .b-todos li')].find(l => l.textContent.includes('Draw the beds')); return !!li && li.querySelector('.shift-tag.shift-create').textContent === 'Create'; }"))
-    pg.fill('#bubble .b-add input', 'Buy seed packets +errand'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
-    ok("the status card's add field reads +errand", (get(gp, 'Buy seed packets') or {}).get('shift') == 'errand')
+    ev("() => QuickAdd.open()"); pg.fill('#quickAddIn', 'Buy seed packets +errand'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    ok("the line over the map reads +errand, for the selected building", (get(gp, 'Buy seed packets') or {}).get('shift') == 'errand')
     ev("() => MapView.deselect()")
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(600)
     ok("the project view's row wears its tag", ev("() => { const r = [...document.querySelectorAll('.task')].find(l => l.textContent.includes('Publish the app')); return !!r && !!r.querySelector('.shift-tag.shift-errand'); }"))

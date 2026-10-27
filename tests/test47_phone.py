@@ -2,8 +2,10 @@
 the project view's top fits, the Menu button covers neither the status card nor a speech bubble, the drawer covers the
 bubbles, a double tap steps inside, the shortcut wheel stays on the screen, fields are 16 px on a touch screen, no words
 for keys a phone has not got, a phone on its side gets the drawer, and a bubble that opens by itself waits while the
-project view covers the map. A desktop window is checked to stay as it was."""
+project view covers the map. A desktop window is checked to stay as it was. Since 0.1.75, The City on a Phone, Round 1;
+since 0.1.76, Round 2: + Task in the menu, the mark keys, Pick a date, and a status card with no add field."""
 import json
+from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 from testkit import FILE, SHOTS, TEST_CITY, SAMPLE
 
@@ -84,8 +86,8 @@ with sync_playwright() as p:
     raw = ev(f"() => {{ const a = MapView.anchors('{gp}'), r = document.querySelector('#map').getBoundingClientRect(); return r.top + a.topY - document.querySelector('#bubble').offsetHeight - 20; }}")
     ok(f'the status card of a building near the top stays under the Menu button, so its name shows ({round(card["t"])} under {round(m["b"])}, '
        f'where it would have been {round(raw)})', card['t'] >= m['b'] + 4 and raw < m['b'])
-    ok('a status card on a phone has its Add a task field at 16 px, so an iPhone does not zoom in on a tap',
-       ev("() => getComputedStyle(document.querySelector('#bAdd')).fontSize") == '16px')
+    ok('A3 a status card has no Add a task field any more (0.1.76), on a phone as on a computer',
+       ev("() => document.querySelectorAll('#bubble input:not(.cb)').length") == 0 and ev("() => document.querySelectorAll('#bubble .cb').length") > 0)
     pg.screenshot(path=str(SHOTS / '472-phone-card.png'))
     ev("() => MapView.deselect()"); pg.wait_for_timeout(200)
 
@@ -255,6 +257,7 @@ with sync_playwright() as p:
     seen = pg.inner_text('#setHelp')
     ok(f'S1 the ? shows the phone\'s own guide: hold for shortcuts, double tap to step inside, back', 'Hold a building' in seen and 'Double tap a building' in seen
        and 'Closes one layer at a time' in seen and 'Pinch' in seen)
+    ok('and since 0.1.76 adds a task with + Task, in the menu, and the keys under its line', '+ Task, in the menu; the keys under its line pick the project, milestone, date and repeat' in seen)
     ok('and none of the keys', 'WASD' not in seen and 'comma' not in seen)
     pg.screenshot(path=str(SHOTS / '480-phone-guide.png'))
     pg.tap('#setHelpBtn'); pg.wait_for_timeout(100)
@@ -267,10 +270,113 @@ with sync_playwright() as p:
     ok(f'and steps in them ({z2})', z2['label'] == str(z2['z']) + 'x' and z2['z'] > z['z'])
     b.close()
 
+    # ---------- 0.1.76: The City on a Phone, Round 2 ----------
+    b, ctx, pg = page(p, 390, 844)
+    ev = pg.evaluate
+    gp = ev(f"() => DB.projects.find(p => p.name === {json.dumps(SAMPLE)}).id")
+    guard = lambda: ev("() => !!(history.state && history.state.nc === 'back')")
+    val = lambda: pg.input_value('#quickAddIn')
+    lst = lambda: ev("() => QuickAdd._list()")
+    labels = lambda: [x.get('label') or x.get('info') for x in (lst() or {'items': []})['items']]
+    today = date.fromisoformat(ev("() => ymd()"))
+
+    # A2: + Task in the menu, after + New project
+    pg.tap('#menuToggle'); pg.wait_for_timeout(400)
+    bt = ev("""() => { const n = document.querySelector('#btnNew').getBoundingClientRect(), t = document.querySelector('#btnTask').getBoundingClientRect();
+      return { same: Math.abs(n.top - t.top) < 2, after: t.left > n.right, inside: t.right <= innerWidth }; }""")
+    ok(f'A2 on a phone + Task is in the menu, right after + New project ({bt})', bt['same'] and bt['after'] and bt['inside'])
+    pg.screenshot(path=str(SHOTS / '481-phone-menu-task.png'))
+    pg.tap('#btnTask'); pg.wait_for_timeout(500)
+    ok('a tap closes the drawer and opens the line over the map, focused', not ev("() => document.querySelector('#menu').classList.contains('open')")
+       and pg.is_visible('#quickAdd') and ev("() => document.activeElement.id") == 'quickAddIn')
+    ok('the line stands guard, so back closes it', guard())
+    ok('its placeholder asks for the task alone: the keys do the marks', pg.get_attribute('#quickAddIn', 'placeholder') == 'A task')
+
+    # A1: the mark keys
+    keys = ev("""() => [...document.querySelectorAll('.qa-key')].map(k => { const r = k.getBoundingClientRect();
+      return { text: k.textContent, color: getComputedStyle(k).color, h: Math.round(r.height), l: r.left, r: r.right }; })""")
+    ok(f'A1 four mark keys sit under the line on a phone: Project, Milestone, Date and Repeat ({[k["text"] for k in keys]})',
+       [k['text'] for k in keys] == ['Project', 'Milestone', 'Date', 'Repeat'] and pg.is_visible('.qa-keys'))
+    ok(f'each in its mark\'s color, a finger\'s size, inside the screen ({[(k["color"], k["h"]) for k in keys]})',
+       [k['color'] for k in keys] == ['rgb(255, 143, 191)', 'rgb(142, 200, 255)', 'rgb(255, 210, 122)', 'rgb(255, 174, 133)']
+       and all(k['h'] >= 30 and k['l'] >= 0 and k['r'] <= 390 for k in keys))
+    ok('the shift tags under them are a finger\'s size too', ev("() => Math.round(document.querySelector('.qa-shift').getBoundingClientRect().height)") >= 30)
+    pg.fill('#quickAddIn', ''); pg.wait_for_timeout(100)
+    pg.tap('.qa-key[data-sign="/"]'); pg.wait_for_timeout(250)
+    ok(f'a key writes its mark and opens its list: Project, every project, nothing picked yet ({val()!r}, {labels()})',
+       val() == '/' and lst()['mark'] == '/' and lst()['index'] == -1 and sorted(labels()) == sorted(ev("() => DB.projects.map(p => p.name)")))
+    ok('the focus stays in the line, so the keyboard stays up', ev("() => document.activeElement.id") == 'quickAddIn')
+    pg.screenshot(path=str(SHOTS / '482-phone-mark-key.png'))
+    pg.tap(f'#qaList .qa-opt:has-text({json.dumps(SAMPLE)})'); pg.wait_for_timeout(250)
+    ok(f'a pick writes the whole mark, in its color ({val()!r})', val() == '/Garden-planner ' and
+       ev("() => [...document.querySelectorAll('.qa-paint .qa-m-project')].map(e => e.textContent)") == ['/Garden-planner'])
+    pg.keyboard.type('Water the beds'); pg.wait_for_timeout(150)
+    pg.tap('.qa-key[data-sign="@"]'); pg.wait_for_timeout(250)
+    ok(f"Milestone lists the line's project's milestones ({labels()})", lst()['mark'] == '@' and 'Launch' in labels() and 'First release' in labels())
+    pg.tap('#qaList .qa-opt:has-text("Launch")'); pg.wait_for_timeout(250)
+
+    # A4: Pick a date
+    pg.tap('.qa-key[data-sign="!"]'); pg.wait_for_timeout(250)
+    ok(f'A4 Date lists the week, and ends with Pick a date ({labels()})', labels()[:2] == ['Today', 'Tomorrow'] and labels()[-1] == 'Pick a date' and len(labels()) == 8)
+    cal = ev("""() => { const c = document.querySelector('#qaList .pick-date .qa-date'), r = c.getBoundingClientRect(), o = c.closest('.qa-opt').getBoundingClientRect(),
+        l = document.querySelector('#qaList').getBoundingClientRect();
+      return { type: c.type, min: c.min, covers: Math.abs(r.width - o.width) < 2 && Math.abs(r.height - o.height) < 2, seen: getComputedStyle(c).opacity,
+        size: getComputedStyle(c).fontSize, inList: o.bottom <= l.bottom + 1 }; }""")
+    ok(f"the phone's own date field lies over Pick a date, unseen, so a tap opens its calendar ({cal})", cal['type'] == 'date' and cal['min'] == today.isoformat()
+       and cal['covers'] and cal['seen'] == '0' and cal['size'] == '16px')
+    ok('the whole week and Pick a date show with no scrolling', cal['inList'])
+    pg.screenshot(path=str(SHOTS / '483-phone-pick-date.png'))
+    far = today + timedelta(days=26)
+    ev(f"() => {{ const c = document.querySelector('#qaList .qa-date'); c.value = '{far.isoformat()}'; c.dispatchEvent(new Event('change', {{ bubbles: true }})); }}")
+    pg.wait_for_timeout(250)
+    mark = '!' + far.strftime('%b').lower() + ' ' + str(far.day)
+    ok(f'a day picked on the calendar is written as its date mark ({val()!r})', val() == f'/Garden-planner Water the beds @Launch {mark} ' and lst() is None)
+    ok('and read as the due date', ev("() => readTaskLine(document.querySelector('#quickAddIn').value, { cityWide: true }).due") == far.isoformat())
+    pg.tap('.qa-key[data-sign="#"]'); pg.wait_for_timeout(250)
+    ok(f'Repeat lists the repeats ({labels()})', labels() == ['Daily', 'Weekly', 'Monthly', 'Yearly', 'Every N days'])
+    pg.tap('#qaList .qa-opt:has-text("Weekly")'); pg.wait_for_timeout(250)
+    ok(f'and a pick writes one ({val()!r})', val().endswith(mark + ' #weekly '))
+
+    # a key on a mark already in the line: its whole list over it
+    pg.tap('.qa-key[data-sign="!"]'); pg.wait_for_timeout(250)
+    ok(f'with a date in the line, Date opens the whole list over it, the caret at its end ({labels()})', lst()['mark'] == '!' and len(labels()) == 8
+       and ev("() => document.querySelector('#quickAddIn').selectionStart") == val().index(mark) + len(mark))
+    pg.tap('#qaList .qa-opt:has-text("Tomorrow")'); pg.wait_for_timeout(250)
+    ok(f'a pick writes over the whole mark, both its words ({val()!r})', val() == '/Garden-planner Water the beds @Launch !tomorrow #weekly ')
+    pg.tap('.qa-key[data-sign="/"]'); pg.wait_for_timeout(250)
+    l = lst()
+    ok('Project, with a project in the line, lists every project with the one there lit', l['mark'] == '/' and len(l['items']) == 2 and l['index'] >= 0 and l['items'][l['index']]['label'] == SAMPLE)
+    pg.go_back(); pg.wait_for_timeout(400)
+    ok('back closes the list first, the line staying as it was, as Esc does', lst() is None and pg.is_visible('#quickAdd')
+       and val() == '/Garden-planner Water the beds @Launch !tomorrow #weekly ' and guard())
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(400)
+    t = ev(f"() => {{ const p = getProject('{gp}'), t = p.todos.find(x => x.text === 'Water the beds'); return t && {{ due: t.due, repeat: t.repeat, ms: p.milestones.find(m => m.id === t.milestoneId).name }}; }}")
+    ok(f'Enter adds the task with everything the keys set ({t})', t == {'due': (today + timedelta(days=1)).isoformat(), 'repeat': {'every': 'week', 'days': [(today + timedelta(days=1)).isoweekday() % 7]}, 'ms': 'Launch'}
+       and not pg.is_visible('#quickAdd'))
+
+    # a sign a key wrote goes again when its list closes with nothing picked or typed
+    ev("() => QuickAdd.open()"); pg.wait_for_timeout(200)
+    pg.fill('#quickAddIn', 'Turn the soil'); pg.wait_for_timeout(100)
+    pg.tap('.qa-key[data-sign="@"]'); pg.wait_for_timeout(250)
+    ok(f'with no project in the line, Milestone asks for one first ({val()!r}, {labels()})', val() == 'Turn the soil @' and labels() == ['Pick a project with / first'])
+    pg.tap('.qa-key[data-sign="/"]'); pg.wait_for_timeout(250)
+    ok(f'Project then: the sign Milestone wrote goes, as nothing was picked, and Project writes its own ({val()!r})', val() == 'Turn the soil /')
+    pg.go_back(); pg.wait_for_timeout(400)
+    ok(f'back, closing the list, takes the bare sign away too ({val()!r})', val() == 'Turn the soil ' and lst() is None and pg.is_visible('#quickAdd'))
+    pg.tap('.qa-key[data-sign="/"]'); pg.wait_for_timeout(200)
+    pg.keyboard.type('gar'); pg.wait_for_timeout(200)
+    ok(f'typed after, the sign is a mark being typed, its list narrowed ({labels()})', labels() == [SAMPLE] and val() == 'Turn the soil /gar')
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(400)
+    ok('and Enter adds with the pick', ev(f"() => !!getProject('{gp}').todos.find(x => x.text === 'Turn the soil')") and not pg.is_visible('#quickAdd'))
+    b.close()
+
     # ---------- a small phone, 360 by 740 ----------
     b, ctx, pg = page(p, 360, 740)
     bar = pg.evaluate(BAR)
     ok(f'on a small phone the bar fits too, inside 360 px ({bar})', all(x['l'] >= 0 and x['r'] <= 360 for x in bar))
+    pg.evaluate("() => QuickAdd.open()"); pg.wait_for_timeout(200)
+    rows = pg.evaluate("() => ['.qa-keys', '.qa-shifts'].map(s => { const e = document.querySelector(s), r = e.getBoundingClientRect(); return { r: r.right, rows: Math.round(r.height / 30) }; })")
+    ok(f'the mark keys and the shift tags fit a small phone, a row each ({rows})', all(x['r'] <= 360 and x['rows'] == 1 for x in rows))
     b.close()
 
     # ---------- a phone on its side, 844 by 390 ----------

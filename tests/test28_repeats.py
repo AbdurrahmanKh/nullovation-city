@@ -1,6 +1,7 @@
 """Recurring tasks and the one-line add (Tasks, Round 2, R1 to R4, O1, O2): a repeat ticked moves on to its next date
 and waits out of sight until then; a task typed in one line with marks for its date, its repeat and its milestone, in
-the project view, the status card, and the city-wide quick add on T."""
+the project view and the city-wide quick add on T. The status card's add field went at 0.1.76 (The City on a Phone,
+Round 2, A3)."""
 import json
 from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
@@ -148,30 +149,28 @@ with sync_playwright() as p:
     ok('with no project named or open, it asks for one', rl('Water it', "{ cityWide: true }")['problem'] == 'Name the project with /name')
     ok('marks alone ask for the task too', rl('!fri #weekly', f"{{ project: getProject('{gp}') }}")['problem'] == 'Type the task too')
 
-    # ---------- the status card's add field (O2) ----------
+    # ---------- the status card has no add field since 0.1.76 (Round 2, A3); the line over the map reads the marks ----------
     ev(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(700)
-    ok('O2 the status card has an add field', pg.is_visible('#bubble #bAdd') and pg.get_attribute('#bAdd', 'placeholder') == 'Add a task')
-    pg.click('#bAdd'); pg.wait_for_timeout(100)
-    ok('focused and empty, the line under it names the marks', pg.text_content('#bAddHint') == '!fri date · #weekly repeat · @name milestone · +create shift')
+    ok('A3 the status card has no add field any more: a task is added on the line over the map, or inside',
+       pg.is_visible('#bubble') and pg.locator('#bubble input:not(.cb)').count() == 0 and pg.locator('#bAdd').count() == 0)
+    ev("() => QuickAdd.open()"); pg.wait_for_timeout(150)
+    ok('with the building selected, the line starts on its project, empty and focused', pg.input_value('#quickAddIn') == '' and ev("() => document.activeElement.id") == 'quickAddIn')
     pg.keyboard.type('Water the beds !fri #weekly @launch'); pg.wait_for_timeout(150)
     fri = next_wd(4)
-    hint = pg.text_content('#bAddHint')
-    ok(f'as you type it says what it understood ({hint})', hint.startswith('In Launch · Due ') and hint.endswith('Repeats weekly on Fri'))
-    pg.screenshot(path=str(SHOTS / '280-card-add.png'), clip=pg.query_selector('#bubble').bounding_box())
+    hint = pg.text_content('#quickAddHint')
+    ok(f'as you type it says what it understood ({hint})', hint.startswith('Garden planner · In Launch · Due ') and hint.endswith('Repeats weekly on Fri'))
+    pg.screenshot(path=str(SHOTS / '280-line-add.png'), clip=pg.query_selector('#quickAdd').bounding_box())
     pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
     t = get(gp, 'Water the beds')
     ok(f"Enter adds it, in Launch, due Friday, weekly on Friday ({t and t['due']})", t and t['due'] == iso(fri) and t['repeat'] == {'every': 'week', 'days': [5]}
        and ev(f"() => getProject('{gp}').milestones.find(m => m.id === {json.dumps(t['milestoneId'])}).name") == 'Launch')
-    ok('the field stays, empty and focused, for the next one', ev("() => document.activeElement.id") == 'bAdd' and pg.input_value('#bAdd') == '')
-    pg.keyboard.type('Mulch the paths'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    ev("() => QuickAdd.open()"); pg.keyboard.type('Mulch the paths'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
     t = get(gp, 'Mulch the paths')
     ok('a plain line goes to the current milestone, with no date', t and t['due'] == '' and 'repeat' not in t and ev(f"() => getProject('{gp}').milestones.find(m => m.id === {json.dumps(t['milestoneId'])}).name") == 'First release')
-    pg.keyboard.type('!fri'); pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
-    ok('marks alone add nothing, and say why', pg.text_content('#bAddHint').startswith('Type the task too') and 'bad' in pg.get_attribute('#bAddHint', 'class'))
+    ev("() => QuickAdd.open()"); pg.keyboard.type('!fri'); pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
+    ok('marks alone add nothing, and say why', pg.text_content('#quickAddHint').startswith('Type the task too') and 'bad' in pg.get_attribute('#quickAddHint', 'class') and pg.is_visible('#quickAdd'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
-    ok('Esc clears the field first', pg.input_value('#bAdd') == '' and pg.is_visible('#bubble'))
-    ev("() => Bubble.refresh()")
-    ok('what is typed survives the card redrawing', ev("() => document.activeElement.id") == 'bAdd')
+    ok('Esc closes the line, adding nothing, the card still open', not pg.is_visible('#quickAdd') and pg.is_visible('#bubble'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     ok('then Esc closes the card', not pg.is_visible('#bubble'))
 
@@ -309,9 +308,10 @@ with sync_playwright() as p:
     ok('and the view shows it at once', t and t['repeat'] == {'every': 'month', 'day': 5} and pg.locator('li.task:has-text("Rake the leaves")').count() == 1)
     ev("() => FullView.close()"); pg.wait_for_timeout(200)
     ev(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(500)
-    pg.click('#bAdd'); pg.keyboard.type('t'); pg.wait_for_timeout(150)
-    ok('T in a field types a t, and opens nothing', not pg.is_visible('#quickAdd') and pg.input_value('#bAdd') == 't')
-    pg.keyboard.press('Escape'); pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    pg.click('#search'); pg.keyboard.type('t'); pg.wait_for_timeout(150)
+    ok('T in a field types a t, and opens nothing', not pg.is_visible('#quickAdd') and pg.input_value('#search') == 't')
+    pg.fill('#search', ''); ev("() => document.querySelector('#search').blur()"); pg.wait_for_timeout(150)
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     ev(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(300)
     pg.mouse.move(700, 450); ev("() => document.activeElement.blur()")
     pg.keyboard.press('t'); pg.wait_for_timeout(200)

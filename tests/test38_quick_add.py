@@ -2,7 +2,9 @@
 the chat. Enter on the map opens the line (E1) and a double-click steps inside; every mark suggests as it is typed,
 with the arrows, Tab and Enter (P1, P2, I1); the shift tags under the line (S1); only this line suggests (W1); marks in
 their own colors; the line's building lit; the last project; Shift+Enter and Ctrl+Enter; and the leader's toast with
-Open and Undo, which reopens the line with what was typed."""
+Open and Undo, which reopens the line with what was typed. Since 0.1.76 (The City on a Phone, Round 2): + Task after
++ New project opens it (A2), the status card has no add field (A3), and a computer shows no mark keys (A1a) and no
+Pick a date (A4), which are a phone's."""
 from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 from testkit import FILE, SHOTS, TEST_CITY
@@ -137,6 +139,7 @@ with sync_playwright() as p:
     fmt = lambda x: x.strftime('%a') + ' ' + str(x.day) + ' ' + x.strftime('%b')
     want = ['Today', 'Tomorrow'] + [x.strftime('%A') for x in d[2:]]
     ok(f"! lists today, tomorrow and the next five days, each with its date ({labels()})", labels() == want and [x['note'] for x in l['items']] == [fmt(x) for x in d])
+    ok('A4 on a computer the list has no Pick a date: a later date is typed', 'Pick a date' not in labels())
     pg.keyboard.type(str((today + timedelta(days=12)).day)); pg.wait_for_timeout(150)
     l = lst()
     ok(f"a number offers that date first ({l['items'][0] if l else None})", l and l['items'][0]['mark'] == '!' + str((today + timedelta(days=12)).day) and l['items'][0]['label'] == fmt(today + timedelta(days=12)))
@@ -237,15 +240,29 @@ with sync_playwright() as p:
        and not ev(f"() => getProject('{gp}').activity.some(a => a.text.includes('Hoe the rows'))") and pg.is_visible('#quickAdd'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150); ev("() => FullView.close()"); pg.wait_for_timeout(200)
 
-    # ---------- W1: only the line over the map suggests ----------
+    # ---------- W1: only the line over the map suggests; the status card has no add field since 0.1.76 (A3) ----------
     ev(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(500)
-    pg.click('#bAdd'); pg.keyboard.type('Rake it @la'); pg.wait_for_timeout(200)
-    ok('W1 the status card\'s add field shows no list and no colors', pg.locator('#qaList:visible').count() == 0 and pg.locator('.b-add .qa-paint').count() == 0)
-    pg.keyboard.press('Escape'); pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+    ok('A3 the status card has no add field', pg.is_visible('#bubble') and pg.locator('#bubble input:not(.cb)').count() == 0)
+    ev("() => MapView.deselect()"); pg.wait_for_timeout(200)
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
     pg.click('.ms >> nth=0 >> .ms-plus'); pg.keyboard.type('Rake it @la'); pg.wait_for_timeout(200)
-    ok('nor the project view\'s', pg.locator('#qaList:visible').count() == 0 and pg.locator('#pv .qa-paint').count() == 0)
+    ok('W1 the project view\'s add field shows no list and no colors', pg.locator('#qaList:visible').count() == 0 and pg.locator('#pv .qa-paint').count() == 0)
     pg.keyboard.press('Escape'); ev("() => FullView.close()"); pg.wait_for_timeout(200)
+
+    # ---------- + Task after + New project (0.1.76, A2); on a computer, no mark keys (A1a) ----------
+    bt = ev("""() => { const n = document.querySelector('#btnNew').getBoundingClientRect(), b = document.querySelector('#btnTask'), t = b.getBoundingClientRect();
+      return { same: Math.abs(n.top - t.top) < 2, after: t.left > n.right, text: b.textContent.trim(), name: b.getAttribute('aria-label'), title: b.title }; }""")
+    ok(f'A2 + Task sits right after + New project, on its row ({bt})', bt['same'] and bt['after'] and bt['text'] == 'Task' and bt['name'] == 'Add a task' and bt['title'] == 'Add a task (T)')
+    pg.screenshot(path=str(SHOTS / '393-task-button.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 200})
+    pg.click('#btnTask'); pg.wait_for_timeout(250)
+    ok('a click opens the line over the map, focused', pg.is_visible('#quickAdd') and ev("() => document.activeElement.id") == 'quickAddIn')
+    ok('A1a on a computer the line has no mark keys: a mark is one key on a keyboard', pg.locator('.qa-keys').count() == 1 and not pg.is_visible('.qa-keys'))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    ok('Esc closes it, the focus back on + Task', not pg.is_visible('#quickAdd') and ev("() => document.activeElement.id") == 'btnTask')
+    pg.click('#btnNew'); pg.wait_for_timeout(150)
+    ok('naming a new project takes the row: both buttons step aside for the name', pg.is_visible('#newName') and not pg.is_visible('#btnTask') and not pg.is_visible('#btnNew'))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    ok('and come back with Esc', pg.is_visible('#btnTask') and pg.is_visible('#btnNew') and ev("() => document.activeElement.id") == 'btnNew')
 
     # ---------- Arabic, and nothing saved for the line ----------
     pg.mouse.move(700, 450); ev("() => { MapView.deselect(); document.activeElement && document.activeElement.blur(); }")

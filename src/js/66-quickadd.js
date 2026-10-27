@@ -10,16 +10,20 @@
    - The line's building lights with the hover ring on the map (I1).
    - Shift+Enter adds and stays open on the same project; Ctrl+Enter adds and opens the task (I1).
    - The toast is the building's leader's: "Task added: <task>.", with Open and Undo, which takes the task back out
-     and reopens the line with what was typed (I1, and the chat on 23 October 2026). */
+     and reopens the line with what was typed (I1, and the chat on 23 October 2026).
+   On a phone (0.1.76, The City on a Phone, Round 2), where marks are hard to type: + Task in the menu opens it (A2), four
+   mark keys under it write a mark and open its list (A1, on a touch screen only, A1a), and the date list ends with
+   Pick a date, the phone's own calendar (A4). */
 const QuickAdd = (() => {
-  let box = null, input = null, paint = null, list = null, shifts = null, hint = null, prevFocus = null;
-  let sug = null, lit = null;
+  let box = null, input = null, paint = null, list = null, keys = null, shifts = null, hint = null, prevFocus = null;
+  let sug = null, lit = null, bare = -1;                     // bare: where a mark key wrote its sign, while nothing follows it
   const thumbs = new Map();                                  // a project's picture, drawn once each time the line opens
   const target = () => getProject((FullView.isOpen() && FullView.currentId()) || App.selectedId);
   const opts = () => ({ project: target(), cityWide: true });
   const markWord = name => String(name).trim().replace(/\s+/g, '-');
   const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const KIND = { '/': 'project', '@': 'ms', '!': 'date', '#': 'repeat', '+': 'shift' };
+  const MARK_KEYS = [['/', 'Project'], ['@', 'Milestone'], ['!', 'Date'], ['#', 'Repeat']];
 
   /* ---------- which projects come first ---------- */
   /* When a project last had a task added to it, from its Activity. */
@@ -81,6 +85,7 @@ const QuickAdd = (() => {
       const typed = low && readDateMark(q, null, now);
       if (typed && typed.used === 1 && !days.some(d => d.at === typed.at && fits(d)))
         out.unshift({ label: dateNote(typed.at), mark: '!' + q, note: '' });
+      if (touchScreen()) out.push({ label: 'Pick a date', note: 'The calendar', pickDate: true });   // A4
       return out;
     }
     if (mark === '#') {
@@ -130,9 +135,16 @@ const QuickAdd = (() => {
         lead = h('span', { class: 'qa-thumb', 'aria-hidden': 'true' }, cloneThumb(thumbs.get(it.pid)));
       } else if (sug.mark === '+') lead = h('span', { class: 'shift-tag shift-' + it.shift, 'aria-hidden': 'true' }, it.label);
       else lead = h('span', { class: 'qa-glyph qa-m-' + KIND[sug.mark], 'aria-hidden': 'true' }, it.archived ? iconEl('archive', 13) : sug.mark);
-      return h('li', { id: 'qaOpt' + i, class: 'qa-opt' + (on ? ' on' : '') + (it.archived ? ' archived' : '') + (it.fresh ? ' fresh' : ''), role: 'option', 'aria-selected': String(on),
-        'data-mark': it.mark, onmousedown: e => e.preventDefault(), onclick: () => { pick(it); } },
-        lead, sug.mark === '+' ? null : h('span', { class: 'qa-label', dir: 'auto' }, it.label), it.note ? h('span', { class: 'qa-note' }, it.note) : null);
+      /* Pick a date (A4): the phone's own date field lies over the row, unseen, so a tap opens its calendar. */
+      if (it.pickDate) {
+        const s = sug.s, e = sug.e;
+        it.cal = h('input', { type: 'date', class: 'qa-date', min: ymd(), tabindex: '-1', 'aria-label': 'Pick a date',
+          onmousedown: ev => ev.stopPropagation(), onclick: ev => ev.stopPropagation(),       // its own tap opens its calendar
+          onchange: () => { const at = parseYmd(it.cal.value); if (at != null) writeOver(s, e, dateMark(at)); } });
+      }
+      return h('li', { id: 'qaOpt' + i, class: 'qa-opt' + (on ? ' on' : '') + (it.archived ? ' archived' : '') + (it.fresh ? ' fresh' : '') + (it.pickDate ? ' pick-date' : ''), role: 'option', 'aria-selected': String(on),
+        'data-mark': it.mark || null, onmousedown: e => e.preventDefault(), onclick: () => { pick(it); } },
+        lead, sug.mark === '+' ? null : h('span', { class: 'qa-label', dir: 'auto' }, it.label), it.note ? h('span', { class: 'qa-note' }, it.note) : null, it.cal || null);
     }));
     list.hidden = false;
     input.setAttribute('aria-expanded', 'true');
@@ -149,6 +161,7 @@ const QuickAdd = (() => {
   }
   function closeList() {
     if (!list) return;
+    dropBare();
     sug = null;
     list.hidden = true; list.replaceChildren();
     if (input) { input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); }
@@ -163,12 +176,59 @@ const QuickAdd = (() => {
   /* Writes the pick over the mark being typed, with one space after it. */
   function pick(it) {
     if (!it || it.info || !sug) return;
-    const v = input.value, before = v.slice(0, sug.s), after = v.slice(sug.e).replace(/^\s/, '');
-    const ins = it.mark + ' ';
+    if (it.pickDate) { try { it.cal.showPicker(); } catch (e) { it.cal.focus(); } return; }   // Enter on Pick a date
+    writeOver(sug.s, sug.e, it.mark);
+  }
+  function writeOver(s, e, mark) {
+    const v = input.value, before = v.slice(0, s), after = v.slice(e).replace(/^\s/, '');
+    const ins = mark + ' ';
     input.value = before + ins + after;
+    bare = -1;
     const at = before.length + ins.length;
+    input.focus();
     input.setSelectionRange(at, at);
     closeList();
+    sync(false);
+  }
+  /* A day from the calendar as a date mark: !nov 20, or !2027-11-20 when the month and day would read as another year. */
+  function dateMark(at) {
+    const d = new Date(at), short = MONTHS[d.getMonth()].toLowerCase() + ' ' + d.getDate(), r = readDateMark(MONTHS[d.getMonth()], String(d.getDate()));
+    return '!' + (r && r.at === at ? short : ymd(at));
+  }
+
+  /* ---------- the mark keys, on a phone (A1) ----------
+     A key writes its sign at the end of the line and opens its list, as typing the sign does; a pick writes the whole
+     mark. With that kind of mark in the line already, it opens the list over it, every choice in it and the one there
+     lit, so a pick writes over it. A sign a key wrote goes again when its list closes with nothing picked or typed. */
+  function keyMark(sign) {
+    closeList();
+    const v = input.value, r = readTaskMarks(v, { cityWide: true });
+    const sp = (r.spans || []).filter(x => x.kind === sign).pop();
+    input.focus();
+    if (sp) {
+      input.setSelectionRange(sp.end, sp.end);
+      const word = v.slice(sp.start, sp.end), items = itemsFor(sign, '', { s: sp.start, e: sp.end });
+      if (!items.length) return;
+      const at = items.filter(x => !x.info).findIndex(x => x.mark && markKey(x.mark) === markKey(word));
+      sug = { mark: sign, s: sp.start, e: sp.end, q: word.slice(1), items, index: at };
+      drawList();
+      return;
+    }
+    const base = v.replace(/\s+$/, ''), nv = (base ? base + ' ' : '') + sign;
+    input.value = nv;
+    bare = nv.length - 1;
+    input.setSelectionRange(nv.length, nv.length);
+    sync();
+  }
+  function dropBare() {
+    if (bare < 0 || !input) return;
+    const v = input.value, at = bare;
+    bare = -1;
+    if (!KIND[v[at]] || (at > 0 && !/\s/.test(v[at - 1])) || (at + 1 < v.length && !/\s/.test(v[at + 1]))) return;
+    const caret = input.selectionStart, nv = (v.slice(0, at).replace(/\s+$/, '') + ' ' + v.slice(at + 1).replace(/^\s+/, '')).replace(/^\s+/, '');
+    input.value = nv.trim() ? nv : '';
+    const c = Math.min(caret > at ? caret - (v.length - input.value.length) : caret, input.value.length);
+    if (document.activeElement === input) input.setSelectionRange(c, c);
     sync(false);
   }
 
@@ -221,6 +281,7 @@ const QuickAdd = (() => {
 
   /* ---------- adding, and the leader's toast ---------- */
   function add({ stay = false, open = false } = {}) {
+    dropBare();
     const r = taskLineHint(hint, input.value, opts());
     if (!r.ok) { if (!input.value.trim()) close(); return; }
     const text = input.value, p = r.p, had = new Set(p.milestones.map(m => m.id)), was = p.updatedAt;
@@ -266,9 +327,9 @@ const QuickAdd = (() => {
   /* ---------- the box ---------- */
   function build() {
     input = h('input', { id: 'quickAddIn', class: 'field quick-add-in', type: 'text', dir: 'auto', autocomplete: 'off', spellcheck: 'false', maxlength: '700',
-      placeholder: 'A task, with /project !date #repeat @milestone +shift', 'aria-label': 'Add a task', 'aria-describedby': 'quickAddHint',
+      placeholder: touchScreen() ? 'A task' : 'A task, with /project !date #repeat @milestone +shift', 'aria-label': 'Add a task', 'aria-describedby': 'quickAddHint',
       role: 'combobox', 'aria-autocomplete': 'list', 'aria-controls': 'qaList', 'aria-expanded': 'false',
-      oninput: () => sync(),
+      oninput: () => { bare = -1; sync(); },
       onclick: () => refreshList(),
       onscroll: () => { paint.scrollLeft = input.scrollLeft; },
       onkeyup: e => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) refreshList(); paint.scrollLeft = input.scrollLeft; },
@@ -290,11 +351,14 @@ const QuickAdd = (() => {
     shifts = h('div', { class: 'qa-shifts', role: 'group', 'aria-label': 'Shift' }, h('span', { class: 'qa-shifts-lbl' }, 'Shift'),
       ...SHIFTS.map(([id, name]) => h('button', { type: 'button', class: 'qa-shift shift-' + id, 'data-shift': id, 'aria-pressed': 'false', title: name + ': ' + (SHIFT_HINTS[id] || ''),
         onmousedown: e => e.preventDefault(), onclick: () => toggleShift(id) }, name)));
+    keys = h('div', { class: 'qa-keys', role: 'group', 'aria-label': 'Marks' },
+      ...MARK_KEYS.map(([sign, name]) => h('button', { type: 'button', class: 'qa-key qa-m-' + KIND[sign], 'data-sign': sign, title: name + ': writes ' + sign,
+        onmousedown: e => e.preventDefault(), onclick: () => keyMark(sign) }, name)));
     hint = h('p', { id: 'quickAddHint', class: 'add-hint quick-add-hint', 'aria-live': 'polite' });
     box = h('div', { id: 'quickAdd', class: 'quick-add', role: 'dialog', 'aria-label': 'Add a task' },
       h('div', { class: 'quick-add-head' }, h('span', { class: 'quick-add-title' }, iconEl('plus', 12), 'Add a task'),
         h('span', { class: 'quick-add-keys' }, 'Enter adds · Shift+Enter adds and stays · Ctrl+Enter adds and opens')),
-      h('div', { class: 'qa-field' }, input, paint, list), shifts, hint);
+      h('div', { class: 'qa-top' }, h('div', { class: 'qa-field' }, input, paint), keys, list), shifts, hint);   // the list opens under the keys, so they stay in reach
   }
   /* Opens the line; `text` fills it in (Undo). With no project open or selected, it starts on the project last added
      to (I1, remember the last project). */
@@ -320,6 +384,11 @@ const QuickAdd = (() => {
     return true;
   }
   const isOpen = () => !!box && box.isConnected;
+  /* A phone's back (0.1.75, G2), as Esc: the list first, then the line. */
+  function back() {
+    if (sug && list && !list.hidden) { closeList(); return true; }
+    return close();
+  }
   window.addEventListener('keydown', e => {
     if (e.code !== 'KeyT' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
     const t = e.target;
@@ -328,6 +397,6 @@ const QuickAdd = (() => {
     e.preventDefault();
     open();
   });
-  return { open, close, isOpen, rankOf, lastProject, byRecent,
+  return { open, close, isOpen, back, rankOf, lastProject, byRecent,
     _list: () => (sug ? { mark: sug.mark, index: sug.index, items: sug.items.map(x => ({ ...x })) } : null) };   // for the tests
 })();

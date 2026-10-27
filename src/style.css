@@ -132,6 +132,7 @@ select.field { appearance: none; -webkit-appearance: none; padding-right: 30px; 
 
 .new-row { display: flex; flex-direction: column; gap: 6px; }
 .new-row .btn { align-self: flex-start; }
+.new-btns { display: flex; align-items: center; gap: 8px; }
 .new-name { display: flex; gap: 6px; align-items: center; }
 .new-name .field { flex: 1; min-width: 0; }
 .new-name .btn { margin: 2px; }
@@ -819,8 +820,6 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .add-hint { margin: 5px 0 0; font-size: 12.5px; line-height: 1.35; color: var(--muted); overflow-wrap: anywhere; }
 .add-hint.bad { color: var(--late); font-weight: 600; }
 .add-hint[hidden] { display: none; }
-.b-add { margin-top: 10px; }
-.b-add-in { width: 100%; box-sizing: border-box; padding: 6px 9px; font-size: 14px; }
 .pv-task-back { display: flex; align-items: center; gap: 6px; margin: 0; font: 400 13px/1.3 var(--f-pixel); color: var(--teal); font-variant-ligatures: no-common-ligatures; }
 .pv-repeat { display: grid; gap: 8px; }
 .pv-repeat-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -837,7 +836,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .quick-add-keys { font-size: 12px; color: var(--muted); }
 .quick-add-in { width: 100%; box-sizing: border-box; font-size: 16px; }
 /* the line over the map, rethought (0.1.56): marks in their own colors, the suggestion list, the shift tags */
-.qa-field { position: relative; }
+.qa-top, .qa-field { position: relative; }
 .qa-field .quick-add-in { color: transparent; caret-color: var(--ink); }
 .qa-field .quick-add-in::selection { color: transparent; background: rgba(238, 76, 147, .35); }
 .qa-paint { position: absolute; inset: 0; box-sizing: border-box; padding: 7px 10px; border: 2px solid transparent; overflow: hidden;
@@ -869,6 +868,14 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
   background: transparent; color: var(--shift); box-shadow: inset 0 0 0 1px var(--shift); }
 .qa-shift:hover { background: color-mix(in srgb, var(--shift) 18%, transparent); }
 .qa-shift[aria-pressed="true"] { background: var(--shift); color: #2B2542; }
+/* the mark keys, on a phone only (0.1.76, A1): each in its mark's color, a size for a finger; Pick a date's calendar
+   lies over its row, unseen (A4) */
+.qa-keys { display: none; }
+.qa-key { height: 30px; padding: 0 9px; border: 0; cursor: pointer; font: 400 13px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures;
+  background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
+.qa-key:active { background: color-mix(in srgb, currentColor 22%, transparent); }
+.qa-opt.pick-date { position: relative; }
+.qa-date { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; font-size: 16px; }
 .toast.has-lead { display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; }
 .toast-lead { display: flex; align-items: center; gap: 10px; flex: none; }
 .toast-who { display: grid; gap: 1px; min-width: 0; }
@@ -1662,6 +1669,10 @@ li.task .round-hat { margin-inline-start: 2px; }
   .kb-only, .quick-add-keys { display: none; }
   .help .help-keys { display: none; }
   .help .help-touch { display: grid; }
+  .qa-keys { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .qa-list { max-height: 284px; }                           /* the week's days and Pick a date, with no scrolling */
+  .qa-shifts { margin-top: 10px; }
+  .qa-shift { height: 30px; padding: 0 9px; font-size: 13px; }
 }
 /* Bigger areas for a finger, the same look (0.1.75, B2): the small buttons and the checkboxes answer taps a few pixels
    round them. A checkbox's area stops short of the task's name beside it, and a news face's dismiss reaches out, away

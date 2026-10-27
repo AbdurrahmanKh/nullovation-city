@@ -14,7 +14,16 @@ const Menu = (() => {
     const btnNew = $('#btnNew'), wrap = $('#newWrap'), inp = $('#newName');
     btnNew.addEventListener('click', () => {
       MapView.cancelMode();
-      btnNew.hidden = true; wrap.hidden = false; inp.value = ''; inp.focus();
+      $('#newBtns').hidden = true; wrap.hidden = false; inp.value = ''; inp.focus();
+    });
+    /* + Task, after + New project (The City on a Phone, Round 2, A2): the line over the map, on the PC too. On a phone it
+       is Menu, then + Task: the drawer closes for the line, and the focus comes back to the Menu button after it. */
+    $('#taskPlusIcon').innerHTML = iconSvg('plus', 14);
+    $('#taskPlusIcon').style.display = 'inline-flex';
+    $('#btnTask').addEventListener('click', () => {
+      MapView.cancelMode();
+      if ($('#menu').classList.contains('open')) { closeDrawer(); $('#menuToggle').focus({ preventScroll: true }); }
+      QuickAdd.open();
     });
     const next = () => {
       const name = inp.value.trim();
@@ -62,7 +71,7 @@ const Menu = (() => {
      open. All tasks is on the map since 0.1.64. */
   const PANELS = ['#settings', '#reports', '#leadersPanel'];
   function listsBack() { if (PANELS.every(s => !$(s) || $(s).hidden)) $('#sbLists').hidden = false; }
-  function hideNew() { $('#newWrap').hidden = true; $('#btnNew').hidden = false; }
+  function hideNew() { $('#newWrap').hidden = true; $('#newBtns').hidden = false; }
 
   /* Open tasks due in the next 7 days, overdue first, each with its Open in Claude: the Claude icon, opening the panel
      with Build it, Think and Copy (SideBar Cleanup, 0.1.64; a copy button until then). */

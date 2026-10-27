@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.76 (2026-10-27)
+
+The city on a phone, part 3: adding a task on a phone, from The City on a Phone, Round 2.
+- + Task sits right after + New project in the side bar, on the PC too, and opens the line over the map (A2). On a phone it is Menu, then + Task: the drawer closes for the line.
+- On a phone, four mark keys sit under the line: Project, Milestone, Date and Repeat, each in its mark's color (A1). A tap writes the mark and opens its list, and a pick writes the whole mark, so the keyboard is only for the task's words. With that mark in the line already, a key opens its whole list over it, to change it. A computer keeps typing its marks (A1a).
+- On a phone the date list ends with Pick a date, which opens the phone's own calendar and writes the date (A4).
+- The building card has no Add a task field any more, on the PC as on a phone (A3): a task is added with + Task, Enter on the map or T, or inside the building.
+- The list under the line opens below the keys on a phone, so they stay in reach, and shows the whole week with Pick a date; back closes the list before the line.
+- The phone's guide says + Task, in the menu.
+- Tests: test47_phone checks + Task, the keys and Pick a date on a phone; test38_quick_add checks + Task on the PC with no keys and no Pick a date; test28_repeats and test35_all_tasks add through the line in the card's place.
+
 ## 0.1.75 (2026-10-27)
 
 The city on a phone, part 2: what The City on a Phone, Round 1 decided.

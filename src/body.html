@@ -17,7 +17,10 @@
 
     <div id="sbLists" class="sb-lists">
       <div class="new-row">
-        <button id="btnNew" class="btn btn-accent" type="button"><span id="plusIcon" aria-hidden="true"></span>New project</button>
+        <div id="newBtns" class="new-btns">
+          <button id="btnNew" class="btn btn-accent" type="button"><span id="plusIcon" aria-hidden="true"></span>New project</button>
+          <button id="btnTask" class="btn" type="button" aria-label="Add a task" title="Add a task (T)"><span id="taskPlusIcon" aria-hidden="true"></span>Task</button>
+        </div>
         <div id="newWrap" hidden>
           <label class="sr-only" for="newName">New project name</label>
           <div class="new-name">
@@ -73,7 +76,7 @@
           <dt>Hop</dt><dd>Q and E: previous or next building</dd>
           <dt>Shortcuts</dt><dd>Right-click a building, or F with one selected</dd>
           <dt>Step inside</dt><dd>Double-click a building, or F then Enter</dd>
-          <dt>Add a task</dt><dd>Enter on the map, or T, anywhere; /project names the building</dd>
+          <dt>Add a task</dt><dd>+ Task, Enter on the map, or T, anywhere; /project names the building</dd>
           <dt>All tasks</dt><dd>L opens and closes the list</dd>
           <dt>Reports</dt><dd>R opens and closes them</dd>
           <dt>Settings</dt><dd>The comma key opens and closes them</dd>
@@ -85,7 +88,7 @@
           <dt>Status</dt><dd>Tap a building</dd>
           <dt>Shortcuts</dt><dd>Hold a building</dd>
           <dt>Step inside</dt><dd>Double tap a building, or Enter on its card</dd>
-          <dt>Add a task</dt><dd>Add a task, on a building's card</dd>
+          <dt>Add a task</dt><dd>+ Task, in the menu; the keys under its line pick the project, milestone, date and repeat</dd>
           <dt>Menu</dt><dd>Top left: All tasks, Leaders, Reports and Settings</dd>
           <dt>Back</dt><dd>Closes one layer at a time</dd>
         </dl>
