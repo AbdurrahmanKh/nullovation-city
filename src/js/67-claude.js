@@ -108,9 +108,13 @@ const OpenInClaude = (() => {
           'Make a brainstorming round'));
       }
       const f = st.folder, need = p ? 'Add a link to a folder on this computer to open it there' : 'Opens from a project that links a folder on this computer';
+      /* On a phone, Copy only, to paste into the Claude app: the desktop app's and the terminal's links cannot open there
+         (0.1.75, B4). */
+      const phone = touchScreen();
       /* The status brief's Copy comes first, as its own row, then the Claude tiles (SideBar Cleanup, 0.1.64). */
-      if (opts.copyFirst) kids.push(h('button', { class: 'oc-tile oc-wide', type: 'button', 'data-kind': 'copy', title: 'Copies it, to paste anywhere', onclick: () => copyNow() },
-        h('span', { class: 'ic', html: iconSvg('copy', 18) }), h('span', { class: 'oc-tile-label' }, opts.copyFirst)));
+      if (opts.copyFirst || phone) kids.push(h('button', { class: 'oc-tile oc-wide', type: 'button', 'data-kind': 'copy', title: phone ? 'Copies it, to paste into the Claude app' : 'Copies it, to paste anywhere', onclick: () => copyNow() },
+        h('span', { class: 'ic', html: iconSvg('copy', 18) }), h('span', { class: 'oc-tile-label' }, opts.copyFirst || 'Copy')));
+      if (phone) { panel.replaceChildren(...kids); return; }
       kids.push(h('div', { class: 'oc-tiles' + (opts.copyFirst ? ' four' : '') },
         tile('chat', 'Chat', 'chat', { note: 'no folder', title: 'A new Claude chat ' + what() }),
         tile('cowork', 'Cowork', 'cowork', { title: 'A new Cowork task ' + what() + (f ? ', in ' + f : '') }),

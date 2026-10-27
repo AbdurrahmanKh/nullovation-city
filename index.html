@@ -196,10 +196,12 @@ select.field { appearance: none; -webkit-appearance: none; padding-right: 30px; 
 .help dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: 12.5px; color: var(--muted); }
 .help dt { font: 500 13px/1.45 var(--f-pixel); color: var(--ink-soft); }
 .help dd { margin: 0; }
+.help .help-touch { display: none; }                  /* the phone's own guide, on a touch screen (0.1.75, S1) */
 
 /* ---------- map ---------- */
 #mapWrap { position: relative; flex: 1; min-width: 0; overflow: hidden; }
-#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab;
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* a long press opens the wheel, nothing of the phone's own (0.1.75) */
 #map.panning, #map.moving { cursor: grabbing; }
 #map.over-building { cursor: pointer; }
 #map.placing { cursor: crosshair; }
@@ -1218,6 +1220,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 @media (max-width: 760px), (max-height: 520px) and (pointer: coarse) {
   .gus-say { left: 12px; top: 58px; max-width: min(400px, calc(100% - 24px)); }
   .gus-say::before { display: none; }
+  .gus-say .gus-face { --face: 64px; }                 /* and its face 64 px, the words beside it (0.1.75, L2) */
 }
 
 /* ---------- Reports (0.1.43): the side bar turns into them, as into Settings ---------- */
@@ -1672,6 +1675,19 @@ li.task .round-hat { margin-inline-start: 2px; }
 }
 @media (hover: none) and (pointer: coarse) {
   .kb-only, .quick-add-keys { display: none; }
+  .help .help-keys { display: none; }
+  .help .help-touch { display: grid; }
+}
+/* Bigger areas for a finger, the same look (0.1.75, B2): the small buttons and the checkboxes answer taps a few pixels
+   round them. A checkbox's area stops short of the task's name beside it, and a news face's dismiss reaches out, away
+   from its face. */
+@media (pointer: coarse) {
+  :where(.icon-btn, .btn-small, .cb) { position: relative; }
+  .icon-btn::after, .btn-small::after, .cb::after { content: ''; position: absolute; }
+  .icon-btn::after { inset: -6px; }
+  .btn-small::after { inset: -6px -2px; }
+  .cb::after { inset: -9px -3px -9px -10px; }
+  .news-dismiss::after { inset: -8px 0 0 -8px; }
 }
 
 </style>
@@ -1681,7 +1697,7 @@ li.task .round-hat { margin-inline-start: 2px; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.74</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.75</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -1745,7 +1761,7 @@ li.task .round-hat { margin-inline-start: 2px; }
       </header>
       <section id="setHelp" class="help" aria-label="Controls" hidden>
         <h2>Controls</h2>
-        <dl>
+        <dl class="help-keys">
           <dt>Move</dt><dd>Arrow keys, WASD, or drag the ground</dd>
           <dt>Zoom</dt><dd>Scroll or pinch</dd>
           <dt>Status</dt><dd>Click a building</dd>
@@ -1757,6 +1773,16 @@ li.task .round-hat { margin-inline-start: 2px; }
           <dt>Reports</dt><dd>R opens and closes them</dd>
           <dt>Settings</dt><dd>The comma key opens and closes them</dd>
           <dt>Back</dt><dd>Esc closes one layer at a time</dd>
+        </dl>
+        <dl class="help-touch">
+          <dt>Move</dt><dd>Drag the map</dd>
+          <dt>Zoom</dt><dd>Pinch, or the minus and plus buttons</dd>
+          <dt>Status</dt><dd>Tap a building</dd>
+          <dt>Shortcuts</dt><dd>Hold a building</dd>
+          <dt>Step inside</dt><dd>Double tap a building, or Enter on its card</dd>
+          <dt>Add a task</dt><dd>Add a task, on a building's card</dd>
+          <dt>Menu</dt><dd>Top left: All tasks, Leaders, Reports and Settings</dd>
+          <dt>Back</dt><dd>Closes one layer at a time</dd>
         </dl>
       </section>
       <div id="setTabs" class="set-tabs" role="tablist" aria-label="Settings"></div>
@@ -2081,6 +2107,9 @@ const reducedMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-
 /* A narrow window, or a phone on its side (0.1.74): the side bar is a drawer there, as the stylesheet's small screens say. */
 const NARROW_SCREEN = '(max-width: 760px), (max-height: 520px) and (pointer: coarse)';
 const narrowScreen = () => !!(window.matchMedia && window.matchMedia(NARROW_SCREEN).matches);
+/* A touch screen with no mouse to point, a phone or a tablet (0.1.75): Copy only in Open in Claude, back closing what is
+   open, and the zoom counted in screen pixels. */
+const touchScreen = () => !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches);
 
 function debounce(fn, ms) {
   let t = null, args = [];
@@ -2172,8 +2201,11 @@ const SAY_NARROW = 360;
 function fitSay(box) {
   const parent = box && box.offsetParent;
   if (!parent) return;
-  box.classList.toggle('narrow', parent.clientWidth - box.offsetLeft - 22 < SAY_NARROW);
+  const face = $('.gus-face, .ld-face', box), small = face ? 100 - face.offsetWidth : 0;   // a smaller face leaves the words more room
+  box.classList.toggle('narrow', parent.clientWidth - box.offsetLeft - 22 < SAY_NARROW - small);
 }
+/* A speech bubble's face: 100 px, and 64 px on a small screen (0.1.75, L2), so a phone keeps the words beside it. */
+const sayFace = () => (narrowScreen() ? 64 : 100);
 function downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = name;
@@ -4917,7 +4949,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.74";
+const APP_VERSION = "0.1.75";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -6579,7 +6611,9 @@ const MapView = (() => {
 
   /* ---------- camera ---------- */
   function updateZoomLabel() {
-    const v = Math.round((cam.z / dpr) * 10) / 10;
+    /* on a touch screen, the screen pixels a building pixel takes, in whole numbers (0.1.75, S2): a phone has three
+       to a point, which counted in points read 0.7x on opening */
+    const v = touchScreen() ? cam.z : Math.round((cam.z / dpr) * 10) / 10;
     $('#zoomLevel').textContent = (Number.isInteger(v) ? v : v.toFixed(1)) + 'x';
   }
   function zoomAt(cssX, cssY, z) {
@@ -6856,7 +6890,9 @@ const MapView = (() => {
     const ghost = ghostAt(x, y), hit = mode.name === 'place' || ghost ? null : hitProject(x, y);
     armHover(null);                                          // a press ends the hover; letting go starts it again
     gesture = { type: 'maybe', id: e.pointerId, sx: x, sy: y, lx: x, ly: y, hit, ghost, hold: null };
-    if (hit && mode.name === 'idle' && !editing) gesture.hold = setTimeout(() => beginMove(hit, x, y), 380);
+    if (hit && mode.name === 'idle' && !editing) gesture.hold = e.pointerType === 'mouse'
+      ? setTimeout(() => beginMove(hit, x, y), 380)
+      : setTimeout(() => holdWheel(hit, x, y), LONG_MS);
   }
   function onMove(e) {
     const [x, y] = local(e);
@@ -6925,6 +6961,15 @@ const MapView = (() => {
   }
   let lastTap = null, clicks = 0;
   const DOUBLE_MS = 800;
+  /* A long press on a touch screen opens the building's shortcut wheel, as a right-click does (0.1.75, G1); there,
+     buildings move in Edit City only. Lifting the finger leaves the wheel open, and nothing under it is clicked. */
+  const LONG_MS = 500;
+  function holdWheel(hit, x, y) {
+    if (!gesture || gesture.type !== 'maybe') return;
+    gesture.type = 'held';
+    hideTip(); armHover(null);
+    if (Wheel.owner() !== hit.id) Wheel.open(hit, x, y);
+  }
   /* A double tap steps inside on a phone too (0.1.74): a second touch soon after the first and near it, as a phone
      counts one, is the double-click E1 asked for. */
   let lastTouch = null;
@@ -7169,6 +7214,9 @@ const MapView = (() => {
       if (editing || mode.name !== 'idle') return;
       const [x, y] = local(e), hit = hitProject(x, y);
       armHover(null);
+      /* a phone's own long press says this too: the finger lifting then clicks nothing, and an open wheel stays (G1) */
+      if (gesture && gesture.type === 'maybe') { clearTimeout(gesture.hold); gesture.type = 'held'; }
+      if (hit && Wheel.owner() === hit.id) return;
       if (hit) { hideTip(); Wheel.open(hit, x, y); } else Wheel.close();
     });
     $('#camIcon').innerHTML = iconSvg('camera', 18);
@@ -7271,7 +7319,7 @@ const MapView = (() => {
   return {
     init, invalidate, frameAll, setCam, select, deselect, glideTo, startPlace, cancelMode, anchors, blockPreview, light, _lit: () => lightId,
     resizeWorld, outerRingEmpty, canResize, addLine, canLine, lineEmpty, hop, postcard, applyWorld, blockPng,
-    moving: () => mode.name === 'move',
+    moving: () => mode.name === 'move', placing: () => mode.name === 'place', closeDrop: () => { const was = !!openDrop; closeDrop(); return was; },
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
     previewScale, profileScene, glideBeside,
     bubbleMode: () => bubbleMode, bubbleAt: id => eachBubble(b => b.p.id === id && b.kind !== 'claude'), claudeBubbleAt: id => eachBubble(b => b.p.id === id && b.kind === 'claude'),
@@ -9850,6 +9898,24 @@ const FullView = (() => {
     close();
     return true;
   }
+  /* A phone's back (0.1.75, G2): one layer at a time, as Esc, but keeping what was typed, as Done does: a section being
+     edited, a task, a note or a milestone. A task's note goes back to its task, and an archived task to the archive. */
+  function back() {
+    if (!root) return false;
+    if (pop) { closePopover(); return true; }
+    if (menu) { closeMenu(); return true; }
+    if (adding) { closeAdd(); return true; }
+    if (editing) { doneEdit(); return true; }
+    if (side && sideMode === 'task' && backToArchive()) return true;
+    if (side) {
+      const p = P(), ti = sideMode === 'note' ? noteIn : null;
+      closeSide(); render();
+      if (!(ti && p && backToTask(p, ti))) root.focus({ preventScroll: true });
+      return true;
+    }
+    close();
+    return true;
+  }
   const rightEdge = () => {
     const wrap = $('#mapWrap').getBoundingClientRect();
     const last = side || root;
@@ -11398,7 +11464,7 @@ const FullView = (() => {
   }
 
   return {
-    open, close, escape, render: () => { if (root) render(); },
+    open, close, escape, back, render: () => { if (root) render(); },
     scrollBy: dy => { const el = side && side.matches(':hover') ? side : root; if (el) el.scrollTop += dy; },
     isOpen: () => !!root, currentId: () => openId, shows: id => !!root && openId === id, rightEdge,
     openTask: (pid, tid) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid); },   // from the bubble: the view, with the task open beside it
@@ -12975,9 +13041,13 @@ const OpenInClaude = (() => {
           'Make a brainstorming round'));
       }
       const f = st.folder, need = p ? 'Add a link to a folder on this computer to open it there' : 'Opens from a project that links a folder on this computer';
+      /* On a phone, Copy only, to paste into the Claude app: the desktop app's and the terminal's links cannot open there
+         (0.1.75, B4). */
+      const phone = touchScreen();
       /* The status brief's Copy comes first, as its own row, then the Claude tiles (SideBar Cleanup, 0.1.64). */
-      if (opts.copyFirst) kids.push(h('button', { class: 'oc-tile oc-wide', type: 'button', 'data-kind': 'copy', title: 'Copies it, to paste anywhere', onclick: () => copyNow() },
-        h('span', { class: 'ic', html: iconSvg('copy', 18) }), h('span', { class: 'oc-tile-label' }, opts.copyFirst)));
+      if (opts.copyFirst || phone) kids.push(h('button', { class: 'oc-tile oc-wide', type: 'button', 'data-kind': 'copy', title: phone ? 'Copies it, to paste into the Claude app' : 'Copies it, to paste anywhere', onclick: () => copyNow() },
+        h('span', { class: 'ic', html: iconSvg('copy', 18) }), h('span', { class: 'oc-tile-label' }, opts.copyFirst || 'Copy')));
+      if (phone) { panel.replaceChildren(...kids); return; }
       kids.push(h('div', { class: 'oc-tiles' + (opts.copyFirst ? ' four' : '') },
         tile('chat', 'Chat', 'chat', { note: 'no folder', title: 'A new Claude chat ' + what() }),
         tile('cowork', 'Cowork', 'cowork', { title: 'A new Cowork task ' + what() + (f ? ', in ' + f : '') }),
@@ -15554,7 +15624,7 @@ const News = (() => {
     b.style.setProperty('--ld', sp.color);
     b.classList.toggle('px-voice', !sp.l);
     b.dataset.k = sp.k; b.dataset.moment = it.moment;
-    $('#ldSayFace').replaceChildren(faceOf(sp, 100));
+    $('#ldSayFace').replaceChildren(faceOf(sp, sayFace()));             // 100 px, 64 on a small screen (0.1.75, L2)
     $('#ldSayName').textContent = sp.name;
     $('#ldSayRole').textContent = sp.role || '';
     $('#ldSayRole').hidden = !sp.role;
@@ -16049,6 +16119,51 @@ const News = (() => {
     if (Leaders.escape()) return;                          // the list closes (0.1.61)
     Menu.closeDrawer();
   });
+  /* A phone's back (0.1.75, G2): Android's back gesture or button closes what is open, one layer at a time, as Esc does,
+     but keeping what was typed, as Done does; on the bare map it leaves the city, as before. While something is open on a
+     touch screen, one entry in the browser's history stands guard: back takes it away, the city closes one layer, and
+     stands guard again while more is open. Once everything is closed another way, the guard goes. */
+  (() => {
+    let guarded = false, skip = 0;
+    const drawer = () => $('#menu').classList.contains('open');
+    const openNow = () => QuickAdd.isOpen() || !!$('.dropup') || OpenInClaude.isOpen() || Wheel.isOpen() || Ghosts.cardOpen()
+      || Confirm.isOpen() || Panel.isOpen() || Leaders.editorOpen() || FullView.isOpen() || MapView.placing() || MapView.moving()
+      || MapView.editing() || Bubble.isOpen() || AllTasks.isOpen() || Settings.isOpen() || Reports.isOpen() || Leaders.isOpen() || drawer();
+    function one() {
+      if (QuickAdd.isOpen()) { QuickAdd.close(); return; }
+      if (MapView.closeDrop()) return;
+      if (OpenInClaude.close()) return;
+      if (Wheel.close()) return;
+      if (Ghosts.closeCard()) return;
+      if (Confirm.isOpen()) { Confirm.cancel(); return; }
+      if (Panel.isOpen()) { Panel.close(); return; }
+      if (Leaders.editorOpen()) { Leaders.escape(); return; }
+      if (FullView.isOpen()) { FullView.back(); return; }
+      if (MapView.cancelMode()) return;
+      if (MapView.setEditing(false)) return;
+      if (MapView.deselect()) return;
+      if (AllTasks.close()) return;
+      if (Settings.close()) return;
+      if (Reports.close()) return;
+      if (Leaders.escape()) return;
+      Menu.closeDrawer();
+    }
+    function guard() {
+      if (!touchScreen()) return;
+      const open = openNow();
+      if (open && !guarded) { history.pushState({ nc: 'back' }, ''); guarded = true; }
+      else if (!open && guarded) { guarded = false; skip++; history.back(); }
+    }
+    window.addEventListener('popstate', () => {
+      if (skip) { skip--; return; }
+      if (!guarded) return;
+      guarded = false;
+      one();
+      setTimeout(guard, 0);
+    });
+    if (history.state && history.state.nc === 'back') history.replaceState(null, '');   // one left by the page before a reload
+    for (const ev of ['pointerup', 'keyup', 'click']) document.addEventListener(ev, () => setTimeout(guard, 0), true);
+  })();
   /* The comma key opens and closes Settings, unless you are typing or a dialog is open. */
   window.addEventListener('keydown', e => {
     if (e.key !== ',' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;

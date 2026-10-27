@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.75 (2026-10-27)
+
+The city on a phone, part 2: what The City on a Phone, Round 1 decided.
+- A long press on a building opens its shortcut wheel on a phone, as a right-click does (G1). Lifting the finger leaves it open, and nothing under it is clicked. On a phone, buildings move in Edit City only; a mouse keeps hold then drag.
+- Android's back gesture closes what is open, one layer at a time, keeping what was typed, as Done does (G2): the wheel, a card, a task or a note, the project view, Settings, the drawer. On the bare map it leaves the city, as before.
+- On a touch screen the small buttons and the checkboxes answer a finger a few pixels round them, with the same look (B2). A checkbox's area stops short of the task's name, and a news face's dismiss reaches away from its face.
+- Open in Claude is Copy only on a phone, keeping a task's Build it and Think (B4).
+- A speech bubble's face is 64 px on a small screen, with the words beside it rather than under it (L2).
+- Settings' ? shows a phone's own guide on a touch screen: drag, pinch, tap, hold, double tap, the menu and back (S1).
+- The zoom counts screen pixels on a phone, in whole numbers, so a city that opened at 0.7x opens at 2x (S2).
+- Tests: test47_phone checks each on a phone, and that a desktop window keeps its keys, the 100 px face, the zoom's number and the browser's own back.
+
 ## 0.1.74 (2026-10-27)
 
 The city on a phone, part 1: what the phone report (docs/phone-report.md) found plainly broken.

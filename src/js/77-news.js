@@ -477,7 +477,7 @@ const News = (() => {
     b.style.setProperty('--ld', sp.color);
     b.classList.toggle('px-voice', !sp.l);
     b.dataset.k = sp.k; b.dataset.moment = it.moment;
-    $('#ldSayFace').replaceChildren(faceOf(sp, 100));
+    $('#ldSayFace').replaceChildren(faceOf(sp, sayFace()));             // 100 px, 64 on a small screen (0.1.75, L2)
     $('#ldSayName').textContent = sp.name;
     $('#ldSayRole').textContent = sp.role || '';
     $('#ldSayRole').hidden = !sp.role;

@@ -887,7 +887,9 @@ const MapView = (() => {
 
   /* ---------- camera ---------- */
   function updateZoomLabel() {
-    const v = Math.round((cam.z / dpr) * 10) / 10;
+    /* on a touch screen, the screen pixels a building pixel takes, in whole numbers (0.1.75, S2): a phone has three
+       to a point, which counted in points read 0.7x on opening */
+    const v = touchScreen() ? cam.z : Math.round((cam.z / dpr) * 10) / 10;
     $('#zoomLevel').textContent = (Number.isInteger(v) ? v : v.toFixed(1)) + 'x';
   }
   function zoomAt(cssX, cssY, z) {
@@ -1164,7 +1166,9 @@ const MapView = (() => {
     const ghost = ghostAt(x, y), hit = mode.name === 'place' || ghost ? null : hitProject(x, y);
     armHover(null);                                          // a press ends the hover; letting go starts it again
     gesture = { type: 'maybe', id: e.pointerId, sx: x, sy: y, lx: x, ly: y, hit, ghost, hold: null };
-    if (hit && mode.name === 'idle' && !editing) gesture.hold = setTimeout(() => beginMove(hit, x, y), 380);
+    if (hit && mode.name === 'idle' && !editing) gesture.hold = e.pointerType === 'mouse'
+      ? setTimeout(() => beginMove(hit, x, y), 380)
+      : setTimeout(() => holdWheel(hit, x, y), LONG_MS);
   }
   function onMove(e) {
     const [x, y] = local(e);
@@ -1233,6 +1237,15 @@ const MapView = (() => {
   }
   let lastTap = null, clicks = 0;
   const DOUBLE_MS = 800;
+  /* A long press on a touch screen opens the building's shortcut wheel, as a right-click does (0.1.75, G1); there,
+     buildings move in Edit City only. Lifting the finger leaves the wheel open, and nothing under it is clicked. */
+  const LONG_MS = 500;
+  function holdWheel(hit, x, y) {
+    if (!gesture || gesture.type !== 'maybe') return;
+    gesture.type = 'held';
+    hideTip(); armHover(null);
+    if (Wheel.owner() !== hit.id) Wheel.open(hit, x, y);
+  }
   /* A double tap steps inside on a phone too (0.1.74): a second touch soon after the first and near it, as a phone
      counts one, is the double-click E1 asked for. */
   let lastTouch = null;
@@ -1477,6 +1490,9 @@ const MapView = (() => {
       if (editing || mode.name !== 'idle') return;
       const [x, y] = local(e), hit = hitProject(x, y);
       armHover(null);
+      /* a phone's own long press says this too: the finger lifting then clicks nothing, and an open wheel stays (G1) */
+      if (gesture && gesture.type === 'maybe') { clearTimeout(gesture.hold); gesture.type = 'held'; }
+      if (hit && Wheel.owner() === hit.id) return;
       if (hit) { hideTip(); Wheel.open(hit, x, y); } else Wheel.close();
     });
     $('#camIcon').innerHTML = iconSvg('camera', 18);
@@ -1579,7 +1595,7 @@ const MapView = (() => {
   return {
     init, invalidate, frameAll, setCam, select, deselect, glideTo, startPlace, cancelMode, anchors, blockPreview, light, _lit: () => lightId,
     resizeWorld, outerRingEmpty, canResize, addLine, canLine, lineEmpty, hop, postcard, applyWorld, blockPng,
-    moving: () => mode.name === 'move',
+    moving: () => mode.name === 'move', placing: () => mode.name === 'place', closeDrop: () => { const was = !!openDrop; closeDrop(); return was; },
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
     previewScale, profileScene, glideBeside,
     bubbleMode: () => bubbleMode, bubbleAt: id => eachBubble(b => b.p.id === id && b.kind !== 'claude'), claudeBubbleAt: id => eachBubble(b => b.p.id === id && b.kind === 'claude'),

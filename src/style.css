@@ -181,10 +181,12 @@ select.field { appearance: none; -webkit-appearance: none; padding-right: 30px; 
 .help dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: 12.5px; color: var(--muted); }
 .help dt { font: 500 13px/1.45 var(--f-pixel); color: var(--ink-soft); }
 .help dd { margin: 0; }
+.help .help-touch { display: none; }                  /* the phone's own guide, on a touch screen (0.1.75, S1) */
 
 /* ---------- map ---------- */
 #mapWrap { position: relative; flex: 1; min-width: 0; overflow: hidden; }
-#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab;
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* a long press opens the wheel, nothing of the phone's own (0.1.75) */
 #map.panning, #map.moving { cursor: grabbing; }
 #map.over-building { cursor: pointer; }
 #map.placing { cursor: crosshair; }
@@ -1203,6 +1205,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 @media (max-width: 760px), (max-height: 520px) and (pointer: coarse) {
   .gus-say { left: 12px; top: 58px; max-width: min(400px, calc(100% - 24px)); }
   .gus-say::before { display: none; }
+  .gus-say .gus-face { --face: 64px; }                 /* and its face 64 px, the words beside it (0.1.75, L2) */
 }
 
 /* ---------- Reports (0.1.43): the side bar turns into them, as into Settings ---------- */
@@ -1657,4 +1660,17 @@ li.task .round-hat { margin-inline-start: 2px; }
 }
 @media (hover: none) and (pointer: coarse) {
   .kb-only, .quick-add-keys { display: none; }
+  .help .help-keys { display: none; }
+  .help .help-touch { display: grid; }
+}
+/* Bigger areas for a finger, the same look (0.1.75, B2): the small buttons and the checkboxes answer taps a few pixels
+   round them. A checkbox's area stops short of the task's name beside it, and a news face's dismiss reaches out, away
+   from its face. */
+@media (pointer: coarse) {
+  :where(.icon-btn, .btn-small, .cb) { position: relative; }
+  .icon-btn::after, .btn-small::after, .cb::after { content: ''; position: absolute; }
+  .icon-btn::after { inset: -6px; }
+  .btn-small::after { inset: -6px -2px; }
+  .cb::after { inset: -9px -3px -9px -10px; }
+  .news-dismiss::after { inset: -8px 0 0 -8px; }
 }

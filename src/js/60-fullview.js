@@ -142,6 +142,24 @@ const FullView = (() => {
     close();
     return true;
   }
+  /* A phone's back (0.1.75, G2): one layer at a time, as Esc, but keeping what was typed, as Done does: a section being
+     edited, a task, a note or a milestone. A task's note goes back to its task, and an archived task to the archive. */
+  function back() {
+    if (!root) return false;
+    if (pop) { closePopover(); return true; }
+    if (menu) { closeMenu(); return true; }
+    if (adding) { closeAdd(); return true; }
+    if (editing) { doneEdit(); return true; }
+    if (side && sideMode === 'task' && backToArchive()) return true;
+    if (side) {
+      const p = P(), ti = sideMode === 'note' ? noteIn : null;
+      closeSide(); render();
+      if (!(ti && p && backToTask(p, ti))) root.focus({ preventScroll: true });
+      return true;
+    }
+    close();
+    return true;
+  }
   const rightEdge = () => {
     const wrap = $('#mapWrap').getBoundingClientRect();
     const last = side || root;
@@ -1690,7 +1708,7 @@ const FullView = (() => {
   }
 
   return {
-    open, close, escape, render: () => { if (root) render(); },
+    open, close, escape, back, render: () => { if (root) render(); },
     scrollBy: dy => { const el = side && side.matches(':hover') ? side : root; if (el) el.scrollTop += dy; },
     isOpen: () => !!root, currentId: () => openId, shows: id => !!root && openId === id, rightEdge,
     openTask: (pid, tid) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid); },   // from the bubble: the view, with the task open beside it

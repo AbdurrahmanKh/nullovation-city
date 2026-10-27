@@ -51,6 +51,9 @@ const reducedMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-
 /* A narrow window, or a phone on its side (0.1.74): the side bar is a drawer there, as the stylesheet's small screens say. */
 const NARROW_SCREEN = '(max-width: 760px), (max-height: 520px) and (pointer: coarse)';
 const narrowScreen = () => !!(window.matchMedia && window.matchMedia(NARROW_SCREEN).matches);
+/* A touch screen with no mouse to point, a phone or a tablet (0.1.75): Copy only in Open in Claude, back closing what is
+   open, and the zoom counted in screen pixels. */
+const touchScreen = () => !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches);
 
 function debounce(fn, ms) {
   let t = null, args = [];
@@ -142,8 +145,11 @@ const SAY_NARROW = 360;
 function fitSay(box) {
   const parent = box && box.offsetParent;
   if (!parent) return;
-  box.classList.toggle('narrow', parent.clientWidth - box.offsetLeft - 22 < SAY_NARROW);
+  const face = $('.gus-face, .ld-face', box), small = face ? 100 - face.offsetWidth : 0;   // a smaller face leaves the words more room
+  box.classList.toggle('narrow', parent.clientWidth - box.offsetLeft - 22 < SAY_NARROW - small);
 }
+/* A speech bubble's face: 100 px, and 64 px on a small screen (0.1.75, L2), so a phone keeps the words beside it. */
+const sayFace = () => (narrowScreen() ? 64 : 100);
 function downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = name;

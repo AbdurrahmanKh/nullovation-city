@@ -161,6 +161,112 @@ with sync_playwright() as p:
     pg.screenshot(path=str(SHOTS / '475-phone-proxima.png'))
     b.close()
 
+    # ---------- 0.1.75: The City on a Phone, Round 1 ----------
+    b, ctx, pg = page(p, 390, 844)
+    ctx.grant_permissions(['clipboard-read', 'clipboard-write'])
+    ev = pg.evaluate
+    cdp = ctx.new_cdp_session(pg)
+    gp = ev(f"() => DB.projects.find(p => p.name === {json.dumps(SAMPLE)}).id")
+    guard = lambda: ev("() => !!(history.state && history.state.nc === 'back')")
+    plot = lambda: ev(f"() => JSON.stringify(getProject('{gp}').plot)")
+    ev("() => MapView.frameAll()"); pg.wait_for_timeout(500)
+
+    # G1: a long press opens the wheel; nothing moves
+    was, c = plot(), middle(pg, gp)
+    cdp.send('Input.synthesizeTapGesture', {'x': c['x'], 'y': c['y'], 'duration': 900, 'tapCount': 1, 'gestureSourceType': 'touch'})
+    pg.wait_for_timeout(700)
+    ok('G1 a long press on a building opens its shortcut wheel', ev("() => Wheel.owner()") == gp)
+    ok('the finger lifting leaves it open, and clicks nothing: no card opens', ev("() => Wheel.isOpen()") and not ev("() => App.selectedId"))
+    ok('nothing is lifted or moved: the building stays on its plot', not ev("() => MapView.moving()") and plot() == was)
+    pg.screenshot(path=str(SHOTS / '477-phone-hold-wheel.png'))
+
+    # G2: back closes one layer at a time, keeping what was typed
+    ok('G2 with the wheel open, one entry in the history stands guard for it', guard())
+    pg.go_back(); pg.wait_for_timeout(400)
+    ok('back closes the wheel, and the city stays', not ev("() => Wheel.isOpen()") and pg.url.startswith('file:') and not guard())
+    c = middle(pg, gp)
+    pg.touchscreen.tap(c['x'], c['y']); pg.wait_for_timeout(800)
+    ok('a status card opened by a tap stands guard too', ev("() => App.selectedId") == gp and guard())
+    pg.tap('#enterBtn'); pg.wait_for_timeout(800)
+    tid = ev(f"() => getProject('{gp}').todos.find(t => t.text === 'Add plant icons').id")
+    pg.evaluate(f"() => {{ const b = [...document.querySelectorAll('#pv li.task button.task-title')].find(x => x.textContent.includes('Add plant icons')); b.scrollIntoView({{ block: 'center' }}); }}")
+    pg.locator('#pv li.task button.task-title', has_text='Add plant icons').tap(); pg.wait_for_timeout(600)
+    pg.locator('#pvTaskDesc').tap(); pg.keyboard.type('Pixel icons for each plant.'); pg.wait_for_timeout(300)
+    pg.go_back(); pg.wait_for_timeout(500)
+    ok('back closes the task panel keeping what was typed, as Done does, not undoing it as Esc does',
+       not pg.is_visible('#pvTaskDesc') and ev(f"() => getProject('{gp}').todos.find(t => t.id === '{tid}').description") == 'Pixel icons for each plant.')
+    ok('the project view stays open, and still stands guard', ev("() => FullView.isOpen()") and guard())
+    pg.go_back(); pg.wait_for_timeout(500)
+    ok('back again closes the project view, back to its building\'s card', not ev("() => FullView.isOpen()") and ev("() => App.selectedId") == gp and guard())
+    pg.go_back(); pg.wait_for_timeout(500)
+    ok('and the card; on the bare map nothing stands guard, so the next back leaves the city, as before', not ev("() => App.selectedId") and not guard())
+    pg.tap('#btnSettings'); pg.wait_for_timeout(500)
+    ok('the gear opens Settings in the drawer, which stands guard', ev("() => Settings.isOpen()") and guard())
+    pg.go_back(); pg.wait_for_timeout(400)
+    ok('back takes Settings back to the side bar\'s lists, the drawer still open', not ev("() => Settings.isOpen()") and ev("() => document.querySelector('#menu').classList.contains('open')") and guard())
+    pg.go_back(); pg.wait_for_timeout(400)
+    ok('back again closes the drawer', not ev("() => document.querySelector('#menu').classList.contains('open')") and not guard())
+    pg.tap('#menuToggle'); pg.wait_for_timeout(400); pg.tap('#menuClose'); pg.wait_for_timeout(400)
+    ok('closed with its own button, the drawer takes its guard with it', not guard())
+
+    # B2: bigger areas, the same look
+    ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
+    hit = ev("""() => { const row = [...document.querySelectorAll('#pv li.task')].find(r => r.offsetParent && !r.classList.contains('done'));
+        row.scrollIntoView({ block: 'center' });
+        const pin = row.querySelector('.task-mark'), cb = row.querySelector('.cb');
+        const at = (x, y) => document.elementFromPoint(x, y);
+        const p = pin.getBoundingClientRect(), c = cb.getBoundingClientRect();
+        return { pin: [Math.round(p.width), Math.round(p.height)], cb: [Math.round(c.width), Math.round(c.height)],
+          pinOut: at(p.left + p.width / 2, p.top - 4) === pin, cbLeft: at(c.left - 6, c.top + c.height / 2) === cb,
+          cbBelow: at(c.left + c.width / 2, c.bottom + 6) === cb, cbRight: at(c.right + 6, c.top + c.height / 2) !== cb }; }""")
+    ok(f'B2 a pin answers a tap 4 px above it, at its own size ({hit["pin"]})', hit['pinOut'] and hit['pin'][0] <= 30)
+    ok(f'a checkbox answers taps left of it and under it, at its own size ({hit["cb"]})', hit['cbLeft'] and hit['cbBelow'] and hit['cb'] == [18, 18])
+    ok('and stops short of the task\'s name beside it', hit['cbRight'])
+    dis = ev("""() => { const w = h('div', { class: 'news-face', style: 'position: fixed; z-index: 100; left: 100px; top: 300px; width: 48px; height: 48px' }),
+        d = h('button', { class: 'icon-btn news-dismiss', type: 'button' }); w.append(d); document.body.append(w);
+        const r = d.getBoundingClientRect(), at = (x, y) => document.elementFromPoint(x, y);
+        const out = { upLeft: at(r.left - 5, r.top - 5) === d, intoFace: at(r.right + 4, r.bottom + 4) !== d }; w.remove(); return out; }""")
+    ok(f'a news face\'s dismiss reaches out up and left, away from its face, not into it ({dis})', dis['upLeft'] and dis['intoFace'])
+    ev("() => FullView.close()"); pg.wait_for_timeout(300)
+
+    # B4: Open in Claude is Copy only
+    ev(f"() => FullView.openTask('{gp}', '{tid}')"); pg.wait_for_timeout(600)
+    pg.evaluate("() => { const b = [...document.querySelectorAll('#pvSide button')].find(x => /Open in Claude/.test(x.textContent)); b.scrollIntoView({ block: 'center' }); }")
+    pg.locator('#pvSide button', has_text='Open in Claude').first.tap(); pg.wait_for_timeout(400)
+    oc = ev("() => ({ kinds: [...document.querySelectorAll('.oc-panel [data-kind]')].map(e => e.dataset.kind), tabs: document.querySelectorAll('.oc-panel .oc-tab').length, folder: !!document.querySelector('.oc-panel .oc-folder'), label: (document.querySelector('.oc-panel [data-kind=copy]') || {}).textContent })")
+    ok(f'B4 on a phone Open in Claude offers Copy alone, no Chat, Cowork, Code or Terminal, and no folder ({oc})', oc['kinds'] == ['copy'] and not oc['folder'] and oc['label'] == 'Copy')
+    ok('a task keeps Build it and Think, which say what Copy copies', oc['tabs'] == 2)
+    pg.screenshot(path=str(SHOTS / '478-phone-open-in-claude.png'))
+    pg.tap('.oc-panel [data-kind=copy]'); pg.wait_for_timeout(400)
+    ok('Copy copies the task, with its toast', 'Task copied for Claude.' in pg.text_content('#toast') and '# Task: Add plant icons' in ev("() => navigator.clipboard.readText()"))
+    ev("() => FullView.close()"); pg.wait_for_timeout(300)
+
+    # L2: the speech bubbles' face is 64 px on a phone, the words beside it
+    ev("() => Gus.say('The city is getting dirty! We should do something about it.')"); pg.wait_for_timeout(400)
+    sq = ev("""() => { const b = document.querySelector('#gusSay'), f = b.querySelector('.gus-face').getBoundingClientRect(), t = document.querySelector('#gusSayText').getBoundingClientRect();
+        return { face: Math.round(f.width), beside: t.left >= f.right, narrow: b.classList.contains('narrow') }; }""")
+    ok(f'L2 a speech bubble\'s face is 64 px on a phone, with the words beside it ({sq})', sq['face'] == 64 and sq['beside'] and not sq['narrow'])
+    ok('and a leader\'s face in its bubble is drawn at 64 px there', ev("() => sayFace()") == 64)
+    pg.screenshot(path=str(SHOTS / '479-phone-bubble-64.png'))
+    ev("() => Gus.hush()"); pg.wait_for_timeout(300)
+
+    # S1: the phone's own guide; S2: the zoom in screen pixels
+    pg.tap('#btnSettings'); pg.wait_for_timeout(400); pg.tap('#setHelpBtn'); pg.wait_for_timeout(200)
+    seen = pg.inner_text('#setHelp')
+    ok(f'S1 the ? shows the phone\'s own guide: hold for shortcuts, double tap to step inside, back', 'Hold a building' in seen and 'Double tap a building' in seen
+       and 'Closes one layer at a time' in seen and 'Pinch' in seen)
+    ok('and none of the keys', 'WASD' not in seen and 'comma' not in seen)
+    pg.screenshot(path=str(SHOTS / '480-phone-guide.png'))
+    pg.tap('#setHelpBtn'); pg.wait_for_timeout(100)
+    pg.tap('#menuClose'); pg.wait_for_timeout(300)
+    ev("() => MapView.frameAll()"); pg.wait_for_timeout(500)
+    z = ev("() => ({ label: document.querySelector('#zoomLevel').textContent, z: MapView.camState().z })")
+    ok(f'S2 the zoom counts screen pixels on a phone, in whole numbers ({z})', z['label'] == str(z['z']) + 'x')
+    pg.tap('#zoomIn'); pg.wait_for_timeout(500)
+    z2 = ev("() => ({ label: document.querySelector('#zoomLevel').textContent, z: MapView.camState().z })")
+    ok(f'and steps in them ({z2})', z2['label'] == str(z2['z']) + 'x' and z2['z'] > z['z'])
+    b.close()
+
     # ---------- a small phone, 360 by 740 ----------
     b, ctx, pg = page(p, 360, 740)
     bar = pg.evaluate(BAR)
@@ -188,6 +294,18 @@ with sync_playwright() as p:
     pg.evaluate("() => Gus.say('The city is getting dirty! We should do something about it.')"); pg.wait_for_timeout(400)
     g, w = pg.evaluate(BOX, '#gusSay'), pg.evaluate(BOX, '#mapWrap')
     ok('a speech bubble keeps its place at the map\'s top left, by the side bar', round(g['l'] - w['l']) == 22 and round(g['t'] - w['t']) == 18)
+    ok('and its 100 px face', round(pg.evaluate(BOX, '#gusSay .gus-face')['w']) == 100 and pg.evaluate("() => sayFace()") == 100)
+    pg.evaluate("() => Gus.hush()"); pg.wait_for_timeout(300)
+    pg.evaluate("() => Settings.open('city')"); pg.click('#setHelpBtn'); pg.wait_for_timeout(150)
+    seen = pg.inner_text('#setHelp')
+    ok('the ? shows the keys, and not the phone\'s guide', 'WASD' in seen and 'Hold a building' not in seen)
+    pg.click('#setHelpBtn'); pg.evaluate("() => Settings.close()"); pg.wait_for_timeout(150)
+    z = pg.evaluate("() => ({ label: document.querySelector('#zoomLevel').textContent, z: MapView.camState().z })")
+    ok(f'the zoom reads as before ({z})', z['label'] == str(z['z']) + 'x')
+    a = pg.evaluate("() => { const p = DB.projects[0], a = MapView.anchors(p.id), r = document.querySelector('#map').getBoundingClientRect(); return { x: r.left + a.topX, y: r.top + (a.topY + a.baseY) / 2, id: p.id }; }")
+    pg.mouse.click(a['x'], a['y']); pg.wait_for_timeout(500)
+    ok('a click opening a card leaves the history alone: back is the browser\'s own', pg.evaluate("() => App.selectedId") == a['id'] and pg.evaluate("() => history.state") is None)
+    pg.evaluate("() => MapView.deselect()")
     gp = pg.evaluate(f"() => DB.projects.find(p => p.name === {json.dumps(SAMPLE)}).id")
     pg.evaluate(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(400)
     ok('beside the project view there is room for a bubble, as before', pg.evaluate("() => sayRoom()"))
