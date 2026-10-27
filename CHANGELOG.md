@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.73 (2026-10-27)
+
+Sync, part 1: the PC and the phone keep the same city through one shared copy in a private GitHub repository (Quick Sync, S1; the plan is docs/quick-sync-plan.md).
+- Settings, Saving, has Sync under The app: the repository and a fine-grained token for this device, then Connect, with How to set it up. Connect checks the token, write access, and that the repository is private and not empty before writing anything.
+- The first city to connect starts the shared copy: city.json with the map, the settings, the leaders and the projects' order, one file per project, and each picture once, named by its fingerprint. Any other city asks, downloads a backup of itself, then takes the shared city.
+- A synced city checks every 15 seconds while in view and sends 3 seconds after the last change, as one commit. When another city wrote first, GitHub refuses the send, and the city merges and sends again, so nothing is lost.
+- The merge goes thing by thing, and a task, milestone, note or link field by field: a change on one side is taken, the same field changed on both goes to the newer change, Activity keeps both sides' lines, and an Undo on either side stays undone.
+- A city received takes effect in place, with no reload, and waits while you type in a field.
+- One tab syncs; every other tab of the city stands by and follows it, and every tab now reads the city again when another tab saves it.
+- Sync trouble shows under the logo with its fix: a refused token with a field for a new one, a public repository, a copy from a newer city, and waiting for the network. Pause sync and Disconnect.
+- The token stays in its browser only: never in the city, the data file, a backup, an export or the repository.
+- IndexedDB opens at version 3, with a store for the shared copy each city last synced.
+- Tests: test46_sync checks the merge alone and two cities syncing through a fake GitHub: Connect and its refusals, starting and taking the copy, changes both ways, a refused send merged and sent again, pictures once, in place and waiting while typing, offline, a second tab, the version guard, a new token, Pause, Disconnect, and where the token never goes.
+- Tests: test37_task_rounds scrolls Open in Claude into view before clicking it, since the scroll the click made closed the panel it opened.
+
 ## 0.1.72 (2026-10-27)
 
 One skill for the city in the repo, as on claude.ai, with a version of its own.

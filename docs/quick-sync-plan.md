@@ -1,6 +1,13 @@
 # Quick Sync: the plan
 
-Every city that syncs keeps the same city through one shared copy in a private GitHub repository, until production's database. Written 27 October 2026, when Abdurrahman picked the private repository (Quick Sync, Round 2, S1), "maybe that is the way until production". Nothing of it is built.
+Every city that syncs keeps the same city through one shared copy in a private GitHub repository, until production's database. Written 27 October 2026, when Abdurrahman picked the private repository (Quick Sync, Round 2, S1), "maybe that is the way until production". Part 1 is built at 0.1.73 (the knowledge file's section 2, Sync); part 2 is not.
+
+As built in part 1, where it differs from what follows:
+- `city.json` also carries `order`, the projects' order, and is written with every send, so its `at` is always the sending city's last change.
+- The version guard reads `wrote`, the version that wrote the copy, as well as `data`; it also lifts by itself once a later commit can be read.
+- Taking the shared copy asks first ("Take the shared city?"), as Import does.
+- Tasks, milestones, notes, links and leaders merge field by field, so a title changed in one city and a description in the other both stay.
+- The pass is test46_sync, since test44 went to Leader Bubbles.
 
 What was decided, and where:
 - **S1 (27 October, in the chat):** a private GitHub repository.
@@ -29,7 +36,7 @@ A private repository, `AbdurrahmanKh/nullovation-city-data` unless he names anot
 
 | File | Holds |
 |---|---|
-| `city.json` | `{ app, kind: 'shared-city', format: 1, data: 3, wrote, at, world, city, leaders }`: the map, the city's settings, the leaders with their portraits named by fingerprint; `data` is the database version, `wrote` the version of the city that wrote it |
+| `city.json` | `{ app, kind: 'shared-city', format: 1, data: 3, wrote, at, world, city, leaders, order }`: the map, the city's settings, the leaders with their portraits named by fingerprint, the projects' order; `data` is the database version, `wrote` the version of the city that wrote it, `at` the time of its last change |
 | `projects/<id>.json` | One per project, as the database holds it, its art named by fingerprint (`art.file`) |
 | `art/<fingerprint>.<png, gif, jpg or webp>` | Each picture once, as its own bytes, named by its SHA-256 |
 | `heard.json` | What travels from this browser's own keys (section 5) |
@@ -112,7 +119,7 @@ What arrives as the city opens shows as it is, with no burst, party or truck, as
 
 ## 8. Tests
 
-- **test44_sync:** a fake GitHub in the test (Python, like test42's server) answering only what the city asks: the branch's latest commit with "nothing new", commits, files, writing a commit, moving `main` and refusing a move on an old version, a refused token and a public repository.
+- **test46_sync:** a fake GitHub in the test (Python, like test42's server) answering only what the city asks: the branch's latest commit with "nothing new", commits, files, writing a commit, moving `main` and refusing a move on an old version, a refused token and a public repository.
 - **What it checks:**
   - Connect: its checks, starting the shared copy, and the backup before taking it.
   - Two browsers as two cities: a change in one showing in the other, on each side.
@@ -127,7 +134,7 @@ What arrives as the city opens shows as it is, with no burst, party or truck, as
 
 ## 9. Build order
 
-1. **Sync, part 1, the shared copy:** a second tab following, Settings' Sync with Connect and its checks, the shared copy, checking, sending, the merge, applying in place, pictures, the trouble lines, Pause and Disconnect, test44.
+1. **Sync, part 1, the shared copy (built at 0.1.73):** a second tab following, Settings' Sync with Connect and its checks, the shared copy, checking, sending, the merge, applying in place, pictures, the trouble lines, Pause and Disconnect, test46.
 2. **Sync, part 2, what travels and plays:** `heard.json` (R1), a change from another city playing (M1), and the inbox's lease.
 
 Each is built, then tested by him before the next. Part 1 on its own already keeps the PC and the phone the same.

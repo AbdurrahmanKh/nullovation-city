@@ -8,7 +8,7 @@ const Store = (() => {
   const KEY = 'nullovation-city:v1';
   const UI_KEY = 'nullovation-city:ui';
   const ART_PREFIX = 'nullovation-city:art:';
-  const memArt = new Map();
+  const memArt = new Map(), memSync = new Map();
 
   let lsOk = false;
   try {
@@ -24,9 +24,9 @@ const Store = (() => {
     dbPromise = new Promise(resolve => {
       try {
         if (!window.indexedDB) return resolve(null);
-        const req = indexedDB.open('nullovation-city', 2);
+        const req = indexedDB.open('nullovation-city', 3);
         req.onupgradeneeded = () => {
-          for (const name of ['art', 'handles']) {
+          for (const name of ['art', 'handles', 'sync']) {          // sync (0.1.73): the shared copy this city last synced
             try { if (!req.result.objectStoreNames.contains(name)) req.result.createObjectStore(name); } catch (e) { /* exists */ }
           }
         };
@@ -75,19 +75,21 @@ const Store = (() => {
       if (lsOk) { try { const v = localStorage.getItem(ART_PREFIX + id); if (v) return v; } catch (e) { /* ignore */ } }
       return memArt.get(id) || null;
     },
-    /* Resolves true when the art survives a reload, false when it is held in memory only. */
+    /* Resolves true when the art survives a reload, false when it is held in memory only. Sync hears of every picture
+       put or taken out (0.1.73): its fingerprint, and the other tabs, which load it. */
     async putArt(id, dataUrl) {
+      const told = v => { if (typeof Sync !== 'undefined') Sync.artChanged(id); return v; };
       try {
         await idb('readwrite', st => st.put(dataUrl, id));
         if (lsOk) { try { localStorage.removeItem(ART_PREFIX + id); } catch (e) { /* ignore */ } }
         memArt.delete(id);
-        return true;
+        return told(true);
       } catch (e) { /* fall through */ }
       if (lsOk) {
-        try { localStorage.setItem(ART_PREFIX + id, dataUrl); memArt.delete(id); return true; } catch (e) { /* quota */ }
+        try { localStorage.setItem(ART_PREFIX + id, dataUrl); memArt.delete(id); return told(true); } catch (e) { /* quota */ }
       }
       memArt.set(id, dataUrl);
-      return false;
+      return told(false);
     },
     /* File and folder handles (Chrome and Edge): the data file, and the daily backups' folder. Resolves false when a
        handle can only live in memory. */
@@ -98,6 +100,11 @@ const Store = (() => {
       try { await idb('readwrite', st => st.delete(id)); } catch (e) { /* ignore */ }
       if (lsOk) { try { localStorage.removeItem(ART_PREFIX + id); } catch (e) { /* ignore */ } }
       memArt.delete(id);
+      if (typeof Sync !== 'undefined') Sync.artChanged(id, true);
     },
+    /* Sync's own records (0.1.73): the shared copy this city last synced, its base. Held in memory without IndexedDB. */
+    async getSync(key) { try { return (await idb('readonly', st => st.get(key), 'sync')) || null; } catch (e) { return memSync.get(key) || null; } },
+    async putSync(key, v) { try { await idb('readwrite', st => st.put(v, key), 'sync'); } catch (e) { memSync.set(key, v); } },
+    async dropSync(key) { try { await idb('readwrite', st => st.delete(key), 'sync'); } catch (e) { /* ignore */ } memSync.delete(key); },
   };
 })();

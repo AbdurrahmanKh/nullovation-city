@@ -90,7 +90,7 @@ const Settings = (() => {
     writeUi();
     $('#btnTabReset').hidden = !TAB_RESET[id];
     $('#menu').scrollTop = ui.scroll[id] || 0;
-    if (id === 'saving') StorageUse.render();
+    if (id === 'saving') { StorageUse.render(); if (typeof Sync !== 'undefined') Sync.render(); }
     saveUi();
   }
 

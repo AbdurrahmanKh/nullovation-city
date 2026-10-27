@@ -427,6 +427,19 @@ const Leaders = (() => {
     DB.leaders = out;
     return lost;
   }
+  /* A portrait that came from another city, or another tab of this one (0.1.73): kept for its leader, in the art
+     store too unless it is there already, and a portrait gone from the other side let go of. */
+  async function keep(id, url, store = true) {
+    if (store) await Store.putArt(portraitKey(id), url);
+    await measure(url);
+    urls.set(id, url);
+    refreshSoon();
+  }
+  async function forget(id, store = true) {
+    if (store) await Store.deleteArt(portraitKey(id));
+    if (id !== QUILL.id) urls.delete(id);
+    refreshSoon();
+  }
   /* A project file carries its leader: its name, role, color and portrait. */
   async function carry(l) {
     if (!l) return null;
@@ -459,5 +472,5 @@ const Leaders = (() => {
   }
 
   return { init, loadAll, renderSection, refreshAll, create, edit, open, close, closeEditor, escape, isOpen, editing: () => editing, editorOpen: () => !!editing, pickList, card, redrawCard, statusLine, hub, face, breathe, toastLead,
-    url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt };
+    url: id => urls.get(id) || null, frame: url => frames.get(url) || null, measure, dropAll, restore, carry, adopt, keep, forget };
 })();

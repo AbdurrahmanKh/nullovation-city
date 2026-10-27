@@ -361,7 +361,7 @@ with sync_playwright() as p:
     # ---------- Open in Claude: the Think tab, a wizard round or a brainstorm (0.1.63) ----------
     TILES = "() => [...document.querySelectorAll('.oc-panel .oc-tile')].map(a => [a.dataset.kind, a.tagName, a.getAttribute('href') || ''])"
     open_task(T1)
-    pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
+    pg.locator('#pvTaskClaude').scroll_into_view_if_needed(); pg.wait_for_timeout(150); pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
     ok('an open task\'s panel opens on Build it, with Think beside it', ev("() => [...document.querySelectorAll('.oc-panel .oc-tab')].map(t => t.textContent.trim() + (t.classList.contains('on') ? '*' : '')).join()") == 'Build it*,Think')
     main_chat = unquote(ev("() => document.querySelector('.oc-panel .oc-tile[data-kind=\"chat\"]').getAttribute('href')").split('q=', 1)[1])
     ok('Build it\'s Chat sends the copy with the answers written in', main_chat.endswith('When you finish, send Nullovation City an update with the nullovation-city skill.') and '- B8, Export: Which file should a plan save as? JSON.' in main_chat)
@@ -382,7 +382,7 @@ with sync_playwright() as p:
     ok('and Copy copies that, saying so', ev("() => window.__clip").endswith(ev("() => BRAINSTORM_LINE")) and 'a brainstorm on this task' in pg.text_content('#toast') and not pg.is_visible('.oc-panel'))
     ev(f"() => {{ getProject('{gp}').links.push({{ id: 'l_g', label: '', url: 'C:\\\\Users\\\\me\\\\garden', icon: 'folder', shortcut: true }}); changed(getProject('{gp}'), {{ touch: false }}); }}")
     open_task(T1)
-    pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
+    pg.locator('#pvTaskClaude').scroll_into_view_if_needed(); pg.wait_for_timeout(150); pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
     ok('the panel opens on Build it again, the box unticked', ev("() => document.querySelector('#ocTabBuild').classList.contains('on')"))
     pg.click('#ocTabThink'); pg.wait_for_timeout(150)
     row = ev(TILES)
@@ -446,7 +446,7 @@ with sync_playwright() as p:
     ev(f"() => {{ {task(T1)}.round.folder = 'D:\\\\City\\\\Claude\\\\wizard-rounds'; }}")
     ok('a round whose folder is known is named by its full path', 'Its questions and answers are in D:\\City\\Claude\\wizard-rounds\\2026-10-22-draw-the-beds-round1.json: read them there.' in ev(f"() => taskForClaude(getProject('{gp}'), {task(T1)})"))
     open_task(T1)
-    pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
+    pg.locator('#pvTaskClaude').scroll_into_view_if_needed(); pg.wait_for_timeout(150); pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
     cw = unquote(ev("() => document.querySelector('.oc-panel .oc-tile[data-kind=\"cowork\"]').getAttribute('href')"))
     ok('and Cowork gets the round\'s file attached', 'file=D:\\City\\Claude\\wizard-rounds\\2026-10-22-draw-the-beds-round1.json' in cw)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(100)

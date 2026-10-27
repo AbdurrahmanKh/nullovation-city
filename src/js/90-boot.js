@@ -49,6 +49,7 @@
   DataFile.init();
   Backups.init();
   ClaudeWork.init();
+  Sync.init();                                             // the shared copy on GitHub, and the other tabs following (0.1.73)
 
   /* Esc backs out of one layer at a time: a leader's editor, the project view, All tasks, then the side bar's panels.
      Edit City ends before Settings closes. */

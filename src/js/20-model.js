@@ -486,6 +486,7 @@ function persistNow() {
   if (typeof Menu !== 'undefined') Menu.setSaveStatus(ok);
   if (typeof DataFile !== 'undefined') DataFile.writeSoon();
   if (typeof ClaudeWork !== 'undefined') ClaudeWork.cityChanged();     // the summary Claude reads
+  if (typeof Sync !== 'undefined') Sync.changed();                      // sent to the shared copy 3 seconds after the last change (0.1.73)
   return ok;
 }
 /* The complete backup: the map, the city's settings, the leaders with their portraits inlined (0.1.51), and every
