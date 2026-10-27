@@ -11,11 +11,13 @@
         "tasks": [
           {
             "text": "Write the Clan Cup rules page",
-            "description": "Write the one-page rules for Clan Cup: sign-up, bracket size, match windows, no-shows, and ties.\nWhy: the server team cannot size scheduling, and community cannot announce, until the rules are fixed.\nDone when: the rules page exists in the design docs space and answers what happens when a clan misses its window.\nWhere: the design docs space, under Clan Cup.\nNotes: brackets are 8 or 16 clans, single elimination, 12-hour windows; do not add a loser bracket."
+            "description": "Write the one-page rules for Clan Cup: sign-up, bracket size, match windows, no-shows, and ties.\nWhy: the server team cannot size scheduling, and community cannot announce, until the rules are fixed.\nDone when: the rules page exists in the design docs space and answers what happens when a clan misses its window.\nWhere: the design docs space, under Clan Cup.\nNotes: brackets are 8 or 16 clans, single elimination, 12-hour windows; do not add a loser bracket.",
+            "shift": "think"
           },
           {
             "text": "Sketch the sign-up and bracket screens",
-            "description": "Sketch the two screens players see: the sign-up card on the clan page and the bracket view.\nWhy: these are the only new screens, and the server team needs them to know which data to return.\nDone when: both sketches are in the design file, each state covered: open, full, closed, playing, finished.\nWhere: the Clan Cup page in the design file.\nNotes: reuse the existing clan page card style; no new components."
+            "description": "Sketch the two screens players see: the sign-up card on the clan page and the bracket view.\nWhy: these are the only new screens, and the server team needs them to know which data to return.\nDone when: both sketches are in the design file, each state covered: open, full, closed, playing, finished.\nWhere: the Clan Cup page in the design file.\nNotes: reuse the existing clan page card style; no new components.",
+            "shift": "create"
           },
           {
             "text": "Review the rules and sketches with the server team",
@@ -28,7 +30,8 @@
         "tasks": [
           {
             "text": "Hand the finished screens to development",
-            "description": "Finish the sign-up and bracket screens from the agreed sketches and hand them off.\nWhy: development starts from these.\nDone when: final screens and their states are marked ready in the design file, with text in both languages.\nWhere: the Clan Cup page in the design file.\nNotes: keep the text short enough for the Arabic version to fit the same cards."
+            "description": "Finish the sign-up and bracket screens from the agreed sketches and hand them off.\nWhy: development starts from these.\nDone when: final screens and their states are marked ready in the design file, with text in both languages.\nWhere: the Clan Cup page in the design file.\nNotes: keep the text short enough for the Arabic version to fit the same cards.",
+            "shift": "create"
           },
           {
             "text": "Run a test cup with 8 internal clans",

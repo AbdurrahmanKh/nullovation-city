@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.77 (2026-10-27)
+
+Shifts, redrawn: how Create, Think and Errand look and work, from Shifts UX, Rounds 1 and 2.
+- Each shift has a pixel icon: Create a keyboard, Think a thought cloud, Errand a running man (A1). Their colors are further apart: Create leaf green, Think lavender, Errand coral (B1).
+- The full mark, the icon and the name on the shift's color, shows in What is next and on All tasks' rows. The small mark, the icon on its color square, shows on the project view's rows, the status card, the hover's line on the map, Due this week, the starred card, a ghost's card and the milestone view (B1, A3).
+- A shift is picked in the three-part pick, [Create | Think | Errand] in one bar, the one picked filled with its color: in the task panel's Shift row and under the line over the map, in place of their buttons and tags.
+- An open task with no shift wears the hollow mark, a dashed square, on the project view's rows, in What is next and on All tasks' rows (C1). A click opens the three-part pick by it; picking gives the task its shift. In All tasks it shows all the time, in place of the three tags that showed when a row was pointed at, and the focus still goes on to the next row to sort.
+- All tasks' shift chips wear their icons.
+- Open in Claude opens a Think task on its Think tab, any other on Build it; one click switches.
+- The nullovation-city skill (0.1.1) gives a shift to the tasks Claude adds, in a tasks file, a plan or an update, when what the task needs makes it clear, and none when it cannot tell. Its checker refuses a shift it does not know.
+- Tests: test48_shifts checks the icons, the colors, each place's mark, the hollow mark and its pick, the task panel's and the line's pick, Think first in Open in Claude, the skill's checker and the pick on a phone; test35_all_tasks, test38_quick_add and test47_phone follow the new marks and the pick.
+
 ## 0.1.76 (2026-10-27)
 
 The city on a phone, part 3: adding a task on a phone, from The City on a Phone, Round 2.

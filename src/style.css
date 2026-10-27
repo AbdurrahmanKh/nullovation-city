@@ -275,7 +275,7 @@ li > .task-mark.on, .task-mark:hover, .task-mark:focus-visible { opacity: 1; }
 .gc-close { position: absolute; top: 7px; right: 6px; width: 24px; height: 24px; padding: 0; }
 .gc-project { margin: 0 28px 4px 0; font: 500 13px/1.25 var(--f-pixel); color: var(--ink-soft); overflow-wrap: anywhere; }
 .gc-task { margin: 0 0 8px; font: 600 16px/1.25 var(--f-pixel); overflow-wrap: anywhere; }
-.gc-due { margin: -2px 0 9px; }
+.gc-due { display: flex; align-items: center; gap: 6px; margin: -2px 0 9px; }
 .gc-due .due { margin: 0; }
 .gc-actions { display: flex; gap: 8px; }
 .gc-actions .btn { margin: 0; display: inline-flex; align-items: center; gap: 6px; }
@@ -857,17 +857,15 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .qa-opt.archived { opacity: .62; }
 .qa-opt.fresh .qa-label { font-style: italic; }
 .qa-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; }
-.qa-opt .shift-tag { flex: none; }
+.qa-opt .shift-mark { flex: none; }
 .qa-note { flex: 0 1 auto; margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--muted); }
 .qa-glyph { flex: none; display: inline-grid; place-items: center; width: 22px; font: 400 15px/1 var(--f-pixel); }
 .qa-thumb { flex: none; display: grid; place-items: end center; width: 34px; height: 28px; }
 .qa-thumb canvas { width: 34px; height: auto; max-height: 28px; object-fit: contain; }
 .qa-shifts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .qa-shifts-lbl { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
-.qa-shift { height: 20px; padding: 0 8px; border: 0; cursor: pointer; font: 400 12px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures;
-  background: transparent; color: var(--shift); box-shadow: inset 0 0 0 1px var(--shift); }
-.qa-shift:hover { background: color-mix(in srgb, var(--shift) 18%, transparent); }
-.qa-shift[aria-pressed="true"] { background: var(--shift); color: #2B2542; }
+.qa-shifts .shift-pick { margin: 2px; }
+.qa-shifts .sp-b { height: 22px; padding: 0 9px; }
 /* the mark keys, on a phone only (0.1.76, A1): each in its mark's color, a size for a finger; Pick a date's calendar
    lies over its row, unseen (A4) */
 .qa-keys { display: none; }
@@ -965,7 +963,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .star-top .sb-h { margin: 0; color: #FFD23F; }
 .star-text { font-size: 13.5px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .star-card:hover .star-text, .star-card:focus-visible .star-text { text-decoration: underline; }
-.star-proj { font-size: 12px; color: var(--ink-soft); }
+.star-proj { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
 .week-card { display: grid; gap: 4px; width: 100%; padding: 10px 12px; text-align: left; background: var(--field); border: 0; box-shadow: var(--px-edge); color: var(--ink); cursor: pointer; font: inherit; }
 .week-card:hover, .week-card:focus-visible { background: var(--hover); outline: none; }
 .week-top { display: flex; align-items: center; gap: 8px; }
@@ -1524,20 +1522,36 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .wheel-hub.has-leader { background: var(--ld); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
 .wheel-hub .ld-face { position: absolute; left: 4px; top: 4px; box-shadow: none; }
 
-/* ---------- shifts (All tasks, Round 3): Create, Think, Errand ---------- */
-.shift-create { --shift: #7FD6CE; }
+/* ---------- shifts (All tasks, Round 3; Shifts UX, Rounds 1 and 2): Create, Think, Errand ----------
+   Leaf, lavender and coral (B1). A mark is the shift's icon in ink on its color: the full mark adds the name (What is
+   next, All tasks), the small mark is the icon on its square (A3). The hollow mark is an open task with no shift. */
+.shift-create { --shift: #74C997; }
 .shift-think { --shift: #B7A5F0; }
-.shift-errand { --shift: #A9E2BE; }
-.shift-tag { display: inline-flex; align-items: center; flex: none; height: 16px; padding: 0 5px; font: 400 11px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures;
-  color: #2B2542; background: var(--shift, var(--line)); vertical-align: 1px; white-space: nowrap; }
-.b-task .shift-tag, .task .row-shift { margin-inline-start: 6px; }
-.pv-next-shift { margin-left: auto; }
+.shift-errand { --shift: #F29A74; }
+.shift-mark { display: inline-flex; align-items: center; justify-content: center; flex: none; height: 16px; box-sizing: border-box; color: #2B2542; background: var(--shift, var(--line)); vertical-align: -3px; }
+.shift-mark .ic { flex: none; }
+.shift-mark.small { width: 16px; }
+.shift-mark.full { gap: 4px; padding: 0 5px 0 3px; font: 400 11px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; white-space: nowrap; }
+.shift-mark.none { width: 16px; padding: 0; border: 0; background: transparent; color: #8A83A3; cursor: pointer; }
+.shift-mark.none:hover, .shift-mark.none:focus-visible, .shift-mark.none[aria-expanded="true"] { color: var(--ink); background: var(--hover); outline: none; }
+.b-task .shift-mark, .task .row-shift, .pv-ms-text .shift-mark { margin-inline-start: 6px; }
+.pv-next-msrow .pv-next-shift { margin-left: auto; }        /* the hollow mark too */
 .pv-next-shift + .pv-next-due { margin-left: 0; }
-.shift-dot { flex: none; width: 8px; height: 8px; background: var(--shift, transparent); box-shadow: 0 0 0 1px #0A0812; }
-.pv-shift-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.pv-shift-row .lbl { margin: 0 2px 0 0; }
-.pv-shift { display: inline-flex; align-items: center; gap: 6px; }
-.pv-shift.on { background: var(--hover); box-shadow: 0 0 0 2px var(--shift), 0 0 0 4px #0A0812; }
+/* the three-part pick: each shift's icon and name in its color, the one picked filled with it (Round 1, A1) */
+.shift-pick { display: inline-flex; flex: none; max-width: 100%; background: #1F1A30; box-shadow: 0 0 0 2px #5A5073; }
+.sp-b { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; margin: 0; border: 0; background: transparent; color: var(--shift);
+  font: 400 12px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; white-space: nowrap; cursor: pointer; }
+.sp-b + .sp-b { box-shadow: inset 2px 0 0 #5A5073; }
+.sp-b:hover { background: color-mix(in srgb, var(--shift) 18%, transparent); }
+.sp-b:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.sp-b.on { background: var(--shift); color: #2B2542; }
+.sp-b.on + .sp-b { box-shadow: none; }
+.pv-shift-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.pv-shift-row .lbl { margin: 0; }
+/* the pick a hollow mark opens */
+.shift-pop { position: fixed; z-index: 70; display: flex; flex-direction: column; gap: 7px; padding: 8px 9px 9px; background: var(--paper); box-shadow: var(--px-edge), 6px 8px 0 0 rgba(0, 0, 0, .45); }
+.shift-pop .lbl { font: 400 11px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--muted); }
+.shift-pop .shift-pick { margin: 2px; }
 
 /* ---------- All tasks (All tasks, Rounds 1 to 3) ---------- */
 .due-more-btn { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
@@ -1555,6 +1569,8 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .at-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 7px 0 6px; margin: 2px; background: var(--field); border: 0; box-shadow: var(--px-edge);
   color: var(--ink); font: 400 12.5px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; cursor: pointer; }
 .at-chip .n { color: var(--muted); font-size: 11.5px; }
+.at-chip .ic { color: #8A83A3; }
+.at-chip[class*="shift-"] .ic { color: var(--shift); }      /* each shift's icon in its color; No shift the hollow mark's */
 .at-chip:hover, .at-chip:focus-visible { background: var(--hover); outline: none; }
 .at-chip[aria-pressed="true"] { background: #3A2766; box-shadow: 0 0 0 2px #FFD23F, 0 0 0 4px #0A0812; }
 .at-tiles { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1588,11 +1604,6 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .at-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
 .at-meta:empty { display: none; }
 .at-meta .due { margin: 0; font-size: 11.5px; }
-.at-tagit { display: none; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); }
-.at-row:hover .at-tagit, .at-row:focus-within .at-tagit { display: flex; }
-@media (hover: none) { .at-tagit { display: flex; } }
-.at-tag { border: 0; cursor: pointer; }
-.at-tag:hover, .at-tag:focus-visible { outline: 2px solid var(--ink); outline-offset: 0; }
 .at-row .task-mark { margin-top: -2px; }
 .at-claude { flex: none; width: 24px; height: 24px; padding: 0; margin-top: -2px; opacity: 0; }
 .at-row:hover .at-claude, .at-row:focus-within .at-claude { opacity: .75; }
@@ -1672,15 +1683,15 @@ li.task .round-hat { margin-inline-start: 2px; }
   .qa-keys { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .qa-list { max-height: 284px; }                           /* the week's days and Pick a date, with no scrolling */
   .qa-shifts { margin-top: 10px; }
-  .qa-shift { height: 30px; padding: 0 9px; font-size: 13px; }
+  .sp-b, .qa-shifts .sp-b { height: 30px; padding: 0 10px; font-size: 13px; }   /* the three-part pick, a finger's size */
 }
 /* Bigger areas for a finger, the same look (0.1.75, B2): the small buttons and the checkboxes answer taps a few pixels
    round them. A checkbox's area stops short of the task's name beside it, and a news face's dismiss reaches out, away
    from its face. */
 @media (pointer: coarse) {
-  :where(.icon-btn, .btn-small, .cb) { position: relative; }
-  .icon-btn::after, .btn-small::after, .cb::after { content: ''; position: absolute; }
-  .icon-btn::after { inset: -6px; }
+  :where(.icon-btn, .btn-small, .cb, .shift-mark.none) { position: relative; }
+  .icon-btn::after, .btn-small::after, .cb::after, .shift-mark.none::after { content: ''; position: absolute; }
+  .icon-btn::after, .shift-mark.none::after { inset: -6px; }
   .btn-small::after { inset: -6px -2px; }
   .cb::after { inset: -9px -3px -9px -10px; }
   .news-dismiss::after { inset: -8px 0 0 -8px; }

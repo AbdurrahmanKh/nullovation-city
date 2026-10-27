@@ -1,6 +1,6 @@
 """The one-line add over the map, rethought (0.1.56): Rethink the One-Line Add, Round 1, and the leader's toast asked in
 the chat. Enter on the map opens the line (E1) and a double-click steps inside; every mark suggests as it is typed,
-with the arrows, Tab and Enter (P1, P2, I1); the shift tags under the line (S1); only this line suggests (W1); marks in
+with the arrows, Tab and Enter (P1, P2, I1); the shifts under the line in the three-part pick (S1); only this line suggests (W1); marks in
 their own colors; the line's building lit; the last project; Shift+Enter and Ctrl+Enter; and the leader's toast with
 Open and Undo, which reopens the line with what was typed. Since 0.1.76 (The City on a Phone, Round 2): + Task after
 + New project opens it (A2), the status card has no add field (A3), and a computer shows no mark keys (A1a) and no
@@ -56,7 +56,7 @@ with sync_playwright() as p:
        pg.is_visible('#quickAdd') and ev("() => document.activeElement.id") == 'quickAddIn' and val() == '' and not ev("() => FullView.isOpen()"))
     ok('its placeholder names the shift too', pg.get_attribute('#quickAddIn', 'placeholder') == 'A task, with /project !date #repeat @milestone +shift')
     ok('its head names the keys', pg.text_content('.quick-add-keys') == 'Enter adds · Shift+Enter adds and stays · Ctrl+Enter adds and opens')
-    ok('the three shift tags sit under the line, none pressed', ev("() => [...document.querySelectorAll('.qa-shift')].map(b => [b.textContent, b.getAttribute('aria-pressed')])") == [['Create', 'false'], ['Think', 'false'], ['Errand', 'false']])
+    ok('the three-part pick sits under the line, none picked', ev("() => [...document.querySelectorAll('.qa-shift')].map(b => [b.textContent, b.getAttribute('aria-pressed')])") == [['Create', 'false'], ['Think', 'false'], ['Errand', 'false']])
     ok('no list until a mark is typed', lst() is None and pg.is_hidden('#qaList'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
     a = ev(f"() => MapView.anchors('{gp}')"); left = ev("() => document.querySelector('#map').getBoundingClientRect().left")
@@ -154,7 +154,7 @@ with sync_playwright() as p:
     pg.keyboard.type('ev'); pg.keyboard.press('Tab'); pg.wait_for_timeout(100)
     ok(f"Every N days leaves the number to type ({val()!r})", val() == 'Fix it /garden !tomorrow #every ' and lst() is None)
     pg.keyboard.type('3 days +'); pg.wait_for_timeout(150)
-    ok(f"+ lists the three shifts in their tags ({labels()})", labels() == ['Create', 'Think', 'Errand'] and pg.locator('#qaList .shift-tag').count() == 3)
+    ok(f"+ lists the three shifts in their tags ({labels()})", labels() == ['Create', 'Think', 'Errand'] and pg.locator('#qaList .shift-mark.full').count() == 3)
     pg.keyboard.type('e'); pg.keyboard.press('Tab'); pg.wait_for_timeout(120)
     ok(f"and Tab picks one ({hint()})", val() == 'Fix it /garden !tomorrow #every 3 days +errand ' and hint().endswith('Repeats every 3 days · Shift: Errand'))
     pg.screenshot(path=str(SHOTS / '391-marks.png'))
@@ -162,7 +162,7 @@ with sync_playwright() as p:
     # ---------- the colors ----------
     pc = ev("() => [...document.querySelectorAll('.qa-paint .qa-m')].map(e => [e.textContent, e.className, getComputedStyle(e).color])")
     ok(f"each mark shows in its own color as typed ({[x[:2] for x in pc]})", [x[0] for x in pc] == ['/garden', '!tomorrow', '#every 3 days', '+errand'] and len(set(x[2] for x in pc)) == 4)
-    ok('a shift in its shift\'s own color', pc[3][2] == 'rgb(169, 226, 190)' and 'shift-errand' in pc[3][1])
+    ok('a shift in its shift\'s own color', pc[3][2] == 'rgb(242, 154, 116)' and 'shift-errand' in pc[3][1])
     ok('the words stay plain, and the colored copy matches the line', ev("() => document.querySelector('.qa-paint').textContent") == val() + ' '
        and ev("() => getComputedStyle(document.querySelector('#quickAddIn')).color") == 'rgba(0, 0, 0, 0)')
     ok('the line\'s own text sits under its copy, in the same font', ev("() => { const a = getComputedStyle(document.querySelector('#quickAddIn')), b = getComputedStyle(document.querySelector('.qa-paint')); return a.fontFamily === b.fontFamily && a.fontSize === b.fontSize && a.paddingLeft === b.paddingLeft && a.borderLeftWidth === b.borderLeftWidth; }"))
@@ -173,7 +173,7 @@ with sync_playwright() as p:
     ok(f"a line longer than the field scrolls, and its colors scroll with it ({sc})", sc[0] > 0 and abs(sc[0] - sc[1]) < 1)
     pg.fill('#quickAddIn', 'Fix it /garden !tomorrow #every 3 days +errand '); pg.wait_for_timeout(100)
 
-    # ---------- S1: the shift tags ----------
+    # ---------- S1: the shifts under the line, in the three-part pick ----------
     ok('the shift picked is pressed under the line', ev("() => [...document.querySelectorAll('.qa-shift')].map(b => b.getAttribute('aria-pressed'))") == ['false', 'false', 'true'])
     pg.click('.qa-shift[data-shift="think"]'); pg.wait_for_timeout(100)
     ok(f"a click on another changes the mark ({val()!r})", val() == 'Fix it /garden !tomorrow #every 3 days +think ' and ev("() => document.activeElement.id") == 'quickAddIn')

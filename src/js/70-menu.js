@@ -90,7 +90,7 @@ const Menu = (() => {
     list.replaceChildren(...shown.map(({ p, t, d }) => h('li', { class: 'due-item' },
       h('button', { class: 'due-task', type: 'button', title: 'Open this task', onclick: () => { closeDrawer(); FullView.openTask(p.id, t.id); } },
         h('span', { class: 'due-text', dir: 'auto' }, t.text),
-        h('span', { class: 'due-meta' }, h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text), h('span', { class: 'due-proj', dir: 'auto' }, p.name))),
+        h('span', { class: 'due-meta' }, shiftTag(t), h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text), h('span', { class: 'due-proj', dir: 'auto' }, p.name))),
       OpenInClaude.button({ icon: true, cls: 'due-claude', ...OpenInClaude.forTask(p, t) }))),
       ...(items.length > shown.length ? [h('li', { class: 'due-more' }, h('button', { class: 'due-more-btn', type: 'button', title: 'Every open task: All tasks (L)',
         onclick: () => AllTasks.open() }, 'and ' + (items.length - shown.length) + ' more'))] : []));
@@ -111,7 +111,7 @@ const Menu = (() => {
       h('span', { class: 'star-body' },
         h('span', { class: 'star-top' }, iconEl('star', 14), h('span', { class: 'sb-h' }, 'Starred')),
         h('span', { class: 'star-text', dir: 'auto', title: t.text }, t.text),
-        h('span', { class: 'star-proj', dir: 'auto' }, p.name)));
+        h('span', { class: 'star-proj', dir: 'auto' }, shiftTag(t), h('span', null, p.name))));
   }
   /* This week in numbers, each with its small icon: a tick for tasks done, a note, a milestone's flag (SideBar Cleanup,
      0.1.64). The card opens the week. */

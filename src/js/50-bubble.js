@@ -36,6 +36,58 @@ function markButtons(p, t, cls = '', { chip = false } = {}) {
       () => setPin(p, t, !pin)),
   ];
 }
+/* The hollow mark (Shifts UX, Round 1, C2, and Round 2, C1): an open task with no shift shows it where its mark would
+   be, in the project view's rows, What is next and All tasks' rows. A click opens the three-part pick by it; pick(id)
+   sets the shift, for the place to redraw and move the focus on. */
+function shiftHollow(p, t, pick, cls = '') {
+  if (!isOpenTask(t) || t.shift) return null;
+  return h('button', { class: 'shift-mark none' + (cls ? ' ' + cls : ''), type: 'button', 'data-task': t.id, 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
+    'aria-label': 'Give it a shift: ' + t.text, title: 'No shift yet. Click to give it one',
+    onclick: e => { e.stopPropagation(); ShiftPick.toggle(e.currentTarget, pick); } }, iconEl('shiftNone', 12));
+}
+/* The pick a hollow mark opens: "Give it a shift" over the three, under the mark (over it near the window's foot), its
+   right edge on the mark's. The arrow keys move along it; Esc, a phone's back, a click elsewhere, scrolling or resizing
+   close it with nothing set, the focus back on the mark. */
+const ShiftPick = (() => {
+  let pop = null, owner = null;
+  function open(btn, pick) {
+    close();
+    owner = btn; btn.setAttribute('aria-expanded', 'true');
+    pop = h('div', { class: 'shift-pop', role: 'dialog', 'aria-label': 'Give it a shift' }, h('span', { class: 'lbl' }, 'Give it a shift'),
+      shiftPick('', id => { close(); pick(id); }, { label: 'Give it a shift' }));
+    pop.addEventListener('keydown', e => {
+      const bs = $$('.sp-b', pop), i = bs.indexOf(document.activeElement);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); bs[(i + (e.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length].focus(); }
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); }
+    });
+    pop.addEventListener('focusout', e => { const to = e.relatedTarget; if (pop && to && !pop.contains(to) && to !== owner) close(); });   // a click on its mark closes it itself
+    document.body.append(pop);
+    place();
+    $('.sp-b', pop).focus({ preventScroll: true });
+    document.addEventListener('pointerdown', outside, true);
+    window.addEventListener('scroll', onScroll, true); window.addEventListener('resize', onScroll);
+  }
+  function place() {
+    const r = owner.getBoundingClientRect(), w = pop.offsetWidth, ht = pop.offsetHeight;
+    const left = clamp(r.right - w, 8, Math.max(8, innerWidth - w - 8));
+    const top = r.bottom + 6 + ht > innerHeight - 8 && r.top - ht - 6 >= 8 ? r.top - ht - 6 : r.bottom + 6;
+    pop.style.left = Math.round(left) + 'px'; pop.style.top = Math.round(top) + 'px';
+  }
+  function outside(e) { if (pop && !pop.contains(e.target) && !(owner && owner.contains(e.target))) close(); }
+  function onScroll(e) { if (e && e.type === 'scroll' && pop && pop.contains(e.target)) return; close(); }
+  function close(refocus) {
+    if (!pop) return false;
+    pop.remove(); pop = null;
+    document.removeEventListener('pointerdown', outside, true);
+    window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll);
+    if (owner) { owner.setAttribute('aria-expanded', 'false'); if (refocus && owner.isConnected) owner.focus(); }
+    owner = null;
+    return true;
+  }
+  const toggle = (btn, pick) => { if (owner === btn) close(true); else open(btn, pick); };
+  return { toggle, close, isOpen: () => !!pop };
+})();
 function metaRow(p) {
   const bits = [];
   const dl = deadlineInfo(p.deadline);
@@ -140,7 +192,7 @@ const Bubble = (() => {
           h('input', { type: 'checkbox', class: 'cb', checked: t.done || ticking.has(t.id), 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
           h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t),
             t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
-            shiftTag(t, 'b-shift')),
+            shiftTag(t, 'b-shift')),                          // its small mark; no hollow mark here (Shifts UX, Round 2, C1)
           ...[ticking.has(t.id) ? null : Rounds.hatButton(p, t, 'b-round')].filter(Boolean),   // its wizard round (0.1.55)
           ...(ticking.has(t.id) ? [] : markButtons(p, t, 'b-mark')),
           h('button', { class: 'icon-btn b-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));

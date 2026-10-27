@@ -85,15 +85,15 @@ with sync_playwright() as p:
 
     # ---------- where a shift shows ----------
     ev(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(500)
-    ok("the status card's row wears its tag", ev("() => { const li = [...document.querySelectorAll('#bubble .b-todos li')].find(l => l.textContent.includes('Draw the beds')); return !!li && li.querySelector('.shift-tag.shift-create').textContent === 'Create'; }"))
+    ok("the status card's row wears its small mark", ev("() => { const li = [...document.querySelectorAll('#bubble .b-todos li')].find(l => l.textContent.includes('Draw the beds')); const m = li && li.querySelector('.shift-mark.small.shift-create'); return !!m && m.getAttribute('aria-label') === 'Shift: Create'; }"))
     ev("() => QuickAdd.open()"); pg.fill('#quickAddIn', 'Buy seed packets +errand'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
     ok("the line over the map reads +errand, for the selected building", (get(gp, 'Buy seed packets') or {}).get('shift') == 'errand')
     ev("() => MapView.deselect()")
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(600)
-    ok("the project view's row wears its tag", ev("() => { const r = [...document.querySelectorAll('.task')].find(l => l.textContent.includes('Publish the app')); return !!r && !!r.querySelector('.shift-tag.shift-errand'); }"))
+    ok("the project view's row wears its small mark", ev("() => { const r = [...document.querySelectorAll('.task')].find(l => l.textContent.includes('Publish the app')); return !!r && !!r.querySelector('.shift-mark.small.shift-errand'); }"))
     ev(f"() => FullView.close()"); pg.wait_for_timeout(200)
     ev(f"() => FullView.open('{nc}')"); pg.wait_for_timeout(600)
-    ok('What is next wears the tag of its task', ev("() => { const b = document.querySelector('.pv-next'); return !!b && b.textContent.includes('Build the block art skill') && !!b.querySelector('.pv-next-shift.shift-create'); }"))
+    ok('What is next wears the full mark of its task', ev("() => { const b = document.querySelector('.pv-next'); const m = b && b.querySelector('.pv-next-shift.shift-mark.full.shift-create'); return !!m && b.textContent.includes('Build the block art skill') && m.textContent === 'Create'; }"))
     ev(f"() => FullView.close()"); pg.wait_for_timeout(200)
 
     # the task panel's Shift row: a click picks, a second click takes it off, Esc undoes, and alone it is not work
@@ -195,7 +195,7 @@ with sync_playwright() as p:
     ok('L1 a chip for each shift with its count, and No shift', chips() == 'create:3:false think:2:false errand:2:false none:6:false', chips())
     pg.click('#atShifts [data-shift="create"]'); pg.wait_for_timeout(200)
     ok('a click shows one shift across the city', sorted(rows()) == sorted(['Build the block art skill', 'Draw the beds on a grid', 'Save a plan as a file']), rows())
-    ok('and the rows drop their tags, every one being that shift', not ev("() => !!document.querySelector('#atList .at-meta .shift-tag')"))
+    ok('and the rows drop their marks, every one being that shift', not ev("() => !!document.querySelector('#atList .at-meta .shift-mark')"))
     ok('the count line counts what the list shows', pg.inner_text('#atSum').startswith('3 open, 1 overdue'), pg.inner_text('#atSum'))
     tiles = lambda: ev("() => [...document.querySelectorAll('#atTiles .at-tile[data-p]')].map(t => t.title.split(':')[0] + ':' + t.querySelector('b').textContent).join(' ')")
     ok('L1 the building tiles count the shift picked, and only buildings with one show', tiles() == 'Garden planner:2 Nullovation City:1', tiles())
@@ -232,12 +232,14 @@ with sync_playwright() as p:
     pg.click('#atShifts [data-shift="none"]'); pg.wait_for_timeout(200)
     ok('No shift gathers the untagged tasks', rows() == ['Make block art for each project', 'Extra one', 'Extra two', 'Add plant icons', 'Tune the watering reminders'])
     first = pg.locator('#atList .at-row').first
-    ok('a row shows no shifts to tag it until pointed at', not first.locator('.at-tagit').is_visible())
-    first.hover(); pg.wait_for_timeout(150)
-    ok('pointed at, it shows the three', first.locator('.at-tagit').is_visible() and first.locator('.at-tag').all_inner_texts() == ['Create', 'Think', 'Errand'])
+    ok('a row with no shift wears the hollow mark, without being pointed at (Shifts UX, C1)', first.locator('.shift-mark.none').is_visible()
+       and ev("() => document.querySelectorAll('#atList .at-row .shift-mark.none').length") == 5)
+    first.locator('.shift-mark.none').click(); pg.wait_for_timeout(150)
+    ok('a click opens the three-part pick by it, the focus on Create', pg.is_visible('.shift-pop')
+       and pg.locator('.shift-pop .sp-b').all_inner_texts() == ['Create', 'Think', 'Errand'] and ev("() => document.activeElement.dataset.shift") == 'create')
     pg.screenshot(path=str(SHOTS / '355-sort.png'))
     up = ev(f"() => getProject('{nc}').updatedAt")
-    first.locator('.at-tag', has_text='Errand').click(); pg.wait_for_timeout(200)
+    pg.keyboard.press('ArrowRight'); pg.keyboard.press('ArrowRight'); pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
     ok('L1 a click tags it, and it leaves the untagged', get(nc, 'Make block art for each project')['shift'] == 'errand' and 'Make block art for each project' not in rows())
     ok('the focus goes on to the next row to sort', ev("() => document.activeElement.textContent") == 'Extra one')
     ok('tagging is not work', ev(f"() => getProject('{nc}').updatedAt") == up)
@@ -295,10 +297,10 @@ with sync_playwright() as p:
     ok('Esc closes the panel first, All tasks staying', not pg.is_visible('.oc-panel') and pg.is_visible('#allTasks'))
     # tagging here shows in the project view
     pg.click('#atShifts [data-shift="none"]'); pg.wait_for_timeout(200)
-    row = pg.locator('#atList .at-row', has_text='Add plant icons'); row.hover(); row.locator('.at-tag', has_text='Create').click(); pg.wait_for_timeout(200)
+    row = pg.locator('#atList .at-row', has_text='Add plant icons'); row.locator('.shift-mark.none').click(); pg.click('.shift-pop .sp-b[data-shift="create"]'); pg.wait_for_timeout(200)
     pg.click('#atShifts [data-shift="none"]'); pg.wait_for_timeout(200)
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
-    ok('a tag given here shows in the project view', ev("() => { const r = [...document.querySelectorAll('.task')].find(l => l.textContent.includes('Add plant icons')); return !!r && !!r.querySelector('.shift-tag.shift-create'); }"))
+    ok('a tag given here shows in the project view', ev("() => { const r = [...document.querySelectorAll('.task')].find(l => l.textContent.includes('Add plant icons')); return !!r && !!r.querySelector('.shift-mark.shift-create'); }"))
     ev("() => FullView.close()"); pg.wait_for_timeout(200)
 
     # a tick with the square, a repeat, and what stays out

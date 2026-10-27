@@ -108,6 +108,7 @@ def main(path):
                     datetime.date.fromisoformat(due)
                 except Exception:
                     errors.append(f'{tw}: due must be YYYY-MM-DD, not {due!r}')
+            check_shift(t, tw, errors)
             if 'done' in t and not isinstance(t['done'], bool):
                 errors.append(f'{tw}: done must be true or false')
             if first_open is None and not t.get('done'):
@@ -124,6 +125,14 @@ def main(path):
             warnings.append(f'link {i + 1}: icon {link.get("icon")!r} is not one of {sorted(ICONS)}; the tool picks one from the address')
     summary = f'{len(ms)} milestones, {n_tasks} tasks, {len(p.get("ideas") or [])} ideas, {len(p.get("links") or [])} links. What is next: {first_open or "nothing open"}'
     return report(errors, warnings, summary)
+
+
+SHIFTS = ['create', 'think', 'errand']
+
+
+def check_shift(t, tw, errors):
+    if 'shift' in t and t['shift'] not in SHIFTS:
+        errors.append(f'{tw}: shift, when given, is one of {", ".join(SHIFTS)}, in lower case; leave it out when you cannot tell')
 
 
 def check_task(t, tw, errors, warnings, seen, where):
@@ -150,6 +159,7 @@ def check_task(t, tw, errors, warnings, seen, where):
             datetime.date.fromisoformat(due)
         except Exception:
             errors.append(f'{tw}: due must be YYYY-MM-DD, not {due!r}')
+    check_shift(t, tw, errors)
     return True
 
 

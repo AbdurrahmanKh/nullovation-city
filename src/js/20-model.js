@@ -145,8 +145,21 @@ const SHIFT_HINTS = { create: 'At the screen and the keyboard, in work hours: co
   think: 'Pen and paper will do: design, writing, a decision', errand: 'Away from the screen: daily tasks, buying, a call' };
 const shiftOf = x => (SHIFT_IDS.includes(x) ? x : '');
 const shiftName = id => (SHIFTS.find(s => s[0] === id) || [, ''])[1];
-/* Its tag, beside a task's repeat sign and in What is next. */
-const shiftTag = (t, cls = '') => t && t.shift ? h('span', { class: 'shift-tag shift-' + t.shift + (cls ? ' ' + cls : ''), title: 'Shift: ' + shiftName(t.shift) }, shiftName(t.shift)) : null;
+const SHIFT_ICON = { create: 'shiftCreate', think: 'shiftThink', errand: 'shiftErrand' };
+/* A shift's mark (Shifts UX, Rounds 1 and 2): its icon in ink on its color. The full mark adds its name, in What is
+   next and All tasks; the small mark is the icon on its color square, everywhere else a task shows it (A3). */
+const shiftMark = (id, { full = false, cls = '' } = {}) => (shiftOf(id) ? h('span', { class: 'shift-mark ' + (full ? 'full' : 'small') + ' shift-' + id + (cls ? ' ' + cls : ''),
+  title: 'Shift: ' + shiftName(id), ...(full ? {} : { role: 'img', 'aria-label': 'Shift: ' + shiftName(id) }) }, iconEl(SHIFT_ICON[id], 12), full ? shiftName(id) : null) : null);
+const shiftTag = (t, cls = '', full = false) => (t && t.shift ? shiftMark(t.shift, { full, cls }) : null);
+/* The three-part pick, [Create | Think | Errand] in one bar, each with its icon and name in its color; the one picked
+   fills with its color (Round 1, A1). It sets a shift in the task panel and the line over the map, and opens from the
+   hollow mark. bcls goes on each button. */
+function shiftPick(on, pick, { bcls = '', label = 'Shift', hint = true } = {}) {
+  return h('span', { class: 'shift-pick', role: 'group', 'aria-label': label }, ...SHIFTS.map(([id, name]) => h('button', {
+    class: 'sp-b shift-' + id + (on === id ? ' on' : '') + (bcls ? ' ' + bcls : ''), type: 'button', 'data-shift': id, 'aria-pressed': String(on === id),
+    title: on === id ? name + '. Click to take it off.' : name + (hint ? ': ' + SHIFT_HINTS[id] : ''),
+    onmousedown: e => e.preventDefault(), onclick: () => pick(id) }, iconEl(SHIFT_ICON[id], 12), name)));
+}
 /* Setting a shift sorts the work; like a pin it is not work, so Updated and urgency stay and Activity is left alone. */
 function setShift(p, t, id) {
   const s = shiftOf(id);

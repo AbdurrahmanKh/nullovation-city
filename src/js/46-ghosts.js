@@ -287,7 +287,7 @@ const Ghosts = (() => {
       h('button', { class: 'icon-btn gc-close', type: 'button', 'aria-label': 'Close', html: iconSvg('close', 14), onclick: () => closeCard() }),
       h('p', { class: 'gc-project', dir: 'auto' }, p.name),
       h('h2', { class: 'gc-task', dir: 'auto' }, t.text),
-      dueChip(t) ? h('p', { class: 'gc-due' }, dueChip(t)) : null,
+      dueChip(t) || t.shift ? h('p', { class: 'gc-due' }, shiftTag(t), dueChip(t)) : null,   // its shift's small mark (Shifts UX)
       h('div', { class: 'gc-actions' }, tick, enter),
       h('span', { class: 'gc-tail', 'aria-hidden': 'true', html: iconSvg('tail', 18) }));
     card.dataset.color = g.color;

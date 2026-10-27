@@ -300,7 +300,7 @@ with sync_playwright() as p:
     ok(f'each in its mark\'s color, a finger\'s size, inside the screen ({[(k["color"], k["h"]) for k in keys]})',
        [k['color'] for k in keys] == ['rgb(255, 143, 191)', 'rgb(142, 200, 255)', 'rgb(255, 210, 122)', 'rgb(255, 174, 133)']
        and all(k['h'] >= 30 and k['l'] >= 0 and k['r'] <= 390 for k in keys))
-    ok('the shift tags under them are a finger\'s size too', ev("() => Math.round(document.querySelector('.qa-shift').getBoundingClientRect().height)") >= 30)
+    ok('the three-part pick under them is a finger\'s size too', ev("() => Math.round(document.querySelector('.qa-shift').getBoundingClientRect().height)") >= 30)
     pg.fill('#quickAddIn', ''); pg.wait_for_timeout(100)
     pg.tap('.qa-key[data-sign="/"]'); pg.wait_for_timeout(250)
     ok(f'a key writes its mark and opens its list: Project, every project, nothing picked yet ({val()!r}, {labels()})',
@@ -376,7 +376,7 @@ with sync_playwright() as p:
     ok(f'on a small phone the bar fits too, inside 360 px ({bar})', all(x['l'] >= 0 and x['r'] <= 360 for x in bar))
     pg.evaluate("() => QuickAdd.open()"); pg.wait_for_timeout(200)
     rows = pg.evaluate("() => ['.qa-keys', '.qa-shifts'].map(s => { const e = document.querySelector(s), r = e.getBoundingClientRect(); return { r: r.right, rows: Math.round(r.height / 30) }; })")
-    ok(f'the mark keys and the shift tags fit a small phone, a row each ({rows})', all(x['r'] <= 360 and x['rows'] == 1 for x in rows))
+    ok(f'the mark keys and the three-part pick fit a small phone, a row each ({rows})', all(x['r'] <= 360 and x['rows'] == 1 for x in rows))
     b.close()
 
     # ---------- a phone on its side, 844 by 390 ----------

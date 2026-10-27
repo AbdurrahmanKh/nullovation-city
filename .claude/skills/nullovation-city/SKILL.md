@@ -2,8 +2,8 @@
 name: nullovation-city
 description: For Nullovation City, the user's pixel-city project tracker. Writes tasks or a whole plan as a JSON file the tool loads with Load plan or tasks, sends an update straight into the city's inbox from Claude Code, or designs a project's building as three concepts with image and animation prompts. Use it whenever the user says "create nullovation tasks", "nullovation tasks", "add this to nullovation", "update the city", or "nullovation-city"; when a copy from the city ends with "When you finish, send Nullovation City an update"; asks to build, plan, set up, or restructure a project for their city; pastes a project export (app "nullovation-city", kind "project") or a builder card; or asks for a building, block, or block art for a project, a redesign, or describes the building they want, even without naming the skill. Not for changes to the city tool's own code, Asana tasks (create-asana-task), or to-do lists not meant for the city.
 metadata:
-  version: "0.1.0"
-compatibility: Needs Nullovation City 0.1.36 or later for updates through the inbox, 0.1.55 for wizard rounds, 0.1.68 for an update to name its task, 0.1.71 for notes in a task, their kinds and icons
+  version: "0.1.1"
+compatibility: Needs Nullovation City 0.1.36 or later for updates through the inbox, 0.1.53 for a task's shift, 0.1.55 for wizard rounds, 0.1.68 for an update to name its task, 0.1.71 for notes in a task, their kinds and icons
 ---
 
 # Nullovation City
@@ -55,6 +55,16 @@ Notes: brackets are 8 or 16 clans, single elimination.
 
 Start each task title with a verb, and keep it under about 80 characters.
 
+## A task's shift
+
+Give each task a `shift` when what it needs makes it clear: not what the task is, but how and when it can be done.
+
+- `create`: at the screen and the keyboard, maybe with Claude working beside it, in work hours: code, art, testing.
+- `think`: pen and paper will do: design, writing, a decision. A task to decide something is a Think task, with or without a wizard round.
+- `errand`: away from the screen: daily tasks, buying things, a call.
+
+Leave `shift` out when you cannot tell; the user sorts those in the city. Only these three exist. The city summary gives a task's shift in words (`"shift": "Create"`); the files take it in lower case.
+
 ## Plans
 
 **The About.** Only facts that are unlikely to change: what the project is, and its main features. One to three sentences. Never the current work, status, progress, plans, or dates, and no incidental details. This is the bar:
@@ -88,7 +98,7 @@ A tasks file:
   "version": 1,
   "milestone": "Optional: a milestone the user named. The tool preselects it when a milestone by that name exists.",
   "tasks": [
-    { "text": "Start with a verb, under about 80 characters", "description": "The description lines above", "due": "Optional, YYYY-MM-DD" }
+    { "text": "Start with a verb, under about 80 characters", "description": "The description lines above", "due": "Optional, YYYY-MM-DD", "shift": "Optional: create, think or errand" }
   ]
 }
 ```
@@ -105,7 +115,7 @@ A plan:
     "description": "The About",
     "milestones": [
       { "name": "The outcome this group delivers", "tasks": [
-        { "text": "Start with a verb", "description": "The description lines above", "due": "Optional, YYYY-MM-DD", "done": false }
+        { "text": "Start with a verb", "description": "The description lines above", "due": "Optional, YYYY-MM-DD", "shift": "Optional: create, think or errand", "done": false }
       ] }
     ],
     "ideas": [{ "title": "A short title", "text": "What and why" }],
@@ -162,10 +172,10 @@ When a copy from the city started the work, set `task` to the copy's task (its `
   "changes": [
     { "do": "done", "task": "The task's title, exactly" },
     { "do": "add-note", "kind": "status, plan, decision or how", "task": "Optional: the task it is about, exactly as in the summary", "title": "A short title", "text": "1. A few lines\n2. A numbered list, then bullets" },
-    { "do": "add-tasks", "milestone": "Optional: a milestone's name; a new name makes a new milestone", "tasks": [{ "text": "Start with a verb", "description": "The description lines above", "due": "Optional, YYYY-MM-DD" }] },
+    { "do": "add-tasks", "milestone": "Optional: a milestone's name; a new name makes a new milestone", "tasks": [{ "text": "Start with a verb", "description": "The description lines above", "due": "Optional, YYYY-MM-DD", "shift": "Optional: create, think or errand" }] },
     { "do": "edit-description", "task": "The task's title, exactly", "description": "The whole new description" },
     { "do": "add-link", "label": "Short name", "url": "https://...", "icon": "doc, code, github, claude, chat, folder, or web" },
-    { "do": "replace-plan", "plan": { "description": "The About", "milestones": [{ "name": "...", "tasks": [{ "text": "...", "description": "..." }] }], "ideas": [], "links": [] } },
+    { "do": "replace-plan", "plan": { "description": "The About", "milestones": [{ "name": "...", "tasks": [{ "text": "...", "description": "...", "shift": "..." }] }], "ideas": [], "links": [] } },
     { "do": "add-round", "task": "The task's title, exactly", "file": "2026-10-22-draw-the-beds-round1.json" }
   ]
 }

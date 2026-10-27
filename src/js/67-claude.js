@@ -74,7 +74,8 @@ const OpenInClaude = (() => {
   function open(btn, opts) {
     close();
     const p = opts.project || null, folders = p ? places(p).folders : [];
-    const st = { tab: 'build', brainstorm: false, folder: folderOf(p, folders), listing: false };
+    /* a Think task opens on Think, any other on Build it; one click switches (Shifts UX, Round 1, C2) */
+    const st = { tab: opts.think && opts.thinkFirst && opts.thinkFirst() ? 'think' : 'build', brainstorm: false, folder: folderOf(p, folders), listing: false };
     panel = h('div', { class: 'oc-panel', role: 'dialog', 'aria-label': 'Open in Claude' });
     const textFor = kind => (st.tab === 'think' && opts.think ? opts.think(kind, { brainstorm: st.brainstorm }) : opts.text(kind));
     const files = () => (opts.files ? opts.files() : []);
@@ -182,9 +183,10 @@ const OpenInClaude = (() => {
     return btn;
   }
   /* A task's panel: Build it sends the task; Think, on an open task, asks for a round or a brainstorm about it (Open in
-     Claude Panel, A2, A3); Copy copies either; Cowork gets the round's file. The project view, Due this week and All
-     tasks share it. */
+     Claude Panel, A2, A3), and is the tab it opens on for a Think task (Shifts UX); Copy copies either; Cowork gets the
+     round's file. The project view, Due this week and All tasks share it. */
   const forTask = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', project: p, name: t.text,
-    think: isOpenTask(t) ? (kind, o = {}) => taskForClaude(p, t, Date.now(), { kind, ask: o.brainstorm ? 'brainstorm' : true }) : null, files: () => Rounds.files(t) });
+    think: isOpenTask(t) ? (kind, o = {}) => taskForClaude(p, t, Date.now(), { kind, ask: o.brainstorm ? 'brainstorm' : true }) : null, files: () => Rounds.files(t),
+    thinkFirst: () => t.shift === 'think' });
   return { button, forTask, go, places, close, isOpen: () => !!panel };
 })();

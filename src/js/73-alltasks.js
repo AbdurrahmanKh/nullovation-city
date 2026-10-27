@@ -137,7 +137,7 @@ const AllTasks = (() => {
     const n = s => list.filter(x => !ticking.has(x.t.id) && fitsShift(x.t, s)).length, none = n('none');
     const chip = (s, label, count) => h('button', { class: 'at-chip' + (s === 'none' ? '' : ' shift-' + s), type: 'button', 'data-k': 'shift-' + s, 'data-shift': s,
       'aria-pressed': String(shift === s), title: shift === s ? 'Showing ' + label.toLowerCase() + '. Click to show every shift' : s === 'none' ? 'The tasks with no shift yet, to sort' : SHIFT_HINTS[s],
-      onclick: () => { shift = shift === s ? '' : s; render(); } }, h('i', { class: 'shift-dot', 'aria-hidden': 'true' }), label, h('span', { class: 'n' }, String(count)));
+      onclick: () => { shift = shift === s ? '' : s; render(); } }, iconEl(s === 'none' ? 'shiftNone' : SHIFT_ICON[s], 12), label, h('span', { class: 'n' }, String(count)));
     $('#atShifts').replaceChildren(...SHIFTS.map(([s, name]) => chip(s, name, n(s))), ...(none || shift === 'none' ? [chip('none', 'No shift', none)] : []));
   }
   function tiles(list) {
@@ -181,15 +181,17 @@ const AllTasks = (() => {
     }
     return [dated, undated].filter(c => c.length).map(c => h('div', { class: 'at-col' }, c));
   }
-  /* A row: the square, the task (with its repeat sign), then its shift, its date and where it lives; the pin and Open in
-     Claude, the Claude icon (0.1.64; Copy task until then), while it is pointed at; and for a task with no shift, the
-     three to tag it with one click. */
+  /* A row: the square, the task (with its repeat sign), then its shift's full mark, or the hollow mark that gives it
+     one (Shifts UX), its date and where it lives; the pin and Open in Claude, the Claude icon (0.1.64; Copy task until
+     then), while it is pointed at. */
   function row({ p, t, due: on }, { chip, proj }, now) {
     const held = ticking.has(t.id), ms = msOf(p, t), d = dueInfo({ due: on }, now);
     const due = !d || !chip ? null : d.tone === 'late' ? h('span', { class: 'due late' }, '! ' + d.text)
       : h('span', { class: 'due ' + (d.tone || '') }, chip === 'full' ? dueWords(on, now) : weekdayOf(on) + ' ' + fmtDate(parseYmd(on)));
     const where = proj ? p.name + (ms ? ' · ' + ms.name : '') : ms ? ms.name : '';
-    const meta = h('span', { class: 'at-meta' }, held ? null : Rounds.hatButton(p, t, 'at-round'), shift && shift !== 'none' ? null : shiftTag(t), due, where ? h('span', { class: 'at-where', dir: 'auto' }, where) : null);
+    const hollow = held ? null : shiftHollow(p, t, s => tag(p, t, s));
+    if (hollow) hollow.dataset.k = 'hollow-' + t.id;
+    const meta = h('span', { class: 'at-meta' }, held ? null : Rounds.hatButton(p, t, 'at-round'), shift && shift !== 'none' ? null : shiftTag(t, '', true) || hollow, due, where ? h('span', { class: 'at-where', dir: 'auto' }, where) : null);
     const li = h('li', { class: 'at-row' + (held ? ' ticked' : ''), 'data-id': t.id, 'data-p': p.id,
       onpointerenter: () => MapView.light(p.id), onpointerleave: () => MapView.light(null) });
     li.addEventListener('focusin', () => MapView.light(p.id));
@@ -199,10 +201,7 @@ const AllTasks = (() => {
       h('span', { class: 'at-body' },
         h('button', { class: 'at-task', type: 'button', dir: 'auto', 'data-k': 'task-' + t.id, title: 'Open this task', onclick: () => openTask(p, t) },
           t.text, t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null),
-        meta,
-        !t.shift && !held ? h('span', { class: 'at-tagit', role: 'group', 'aria-label': 'Give it a shift' }, h('span', null, 'Shift:'),
-          ...SHIFTS.map(([s, name]) => h('button', { class: 'shift-tag shift-' + s + ' at-tag', type: 'button', 'data-k': 'tag-' + t.id + '-' + s, title: SHIFT_HINTS[s],
-            onclick: () => tag(p, t, s) }, name))) : null)];
+        meta)];
     if (!held) {
       const oc = OpenInClaude.button({ icon: true, cls: 'at-claude', ...OpenInClaude.forTask(p, t) });
       oc.dataset.k = 'oc-' + t.id;
@@ -224,10 +223,10 @@ const AllTasks = (() => {
     changed(p);
     if (FullView.isOpen()) FullView.render();
   }
-  /* Sorting: a click on a shift tags the task, and the focus goes on to the next row still to sort. */
+  /* Sorting: a shift picked from a row's hollow mark tags the task, and the focus goes on to the next row still to sort. */
   function tag(p, t, s) {
     const rows = $$('#atList .at-row'), i = rows.findIndex(r => r.dataset.id === t.id);
-    const next = rows.slice(i + 1).find(r => $('.at-tagit', r));
+    const next = rows.slice(i + 1).find(r => $('.shift-mark.none', r));
     setShift(p, t, s);                                           // redraws the list through the side bar's refresh
     if (FullView.isOpen()) FullView.render();
     const b = (next && $(`[data-k="${CSS.escape('task-' + next.dataset.id)}"]`, $('#atList'))) || $(`[data-k="${CSS.escape('task-' + t.id)}"]`, $('#atList'));

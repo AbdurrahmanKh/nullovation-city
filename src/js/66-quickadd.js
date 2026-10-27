@@ -6,7 +6,7 @@
      + shifts, in a list under the line. Up and Down move, Tab or a click picks, Enter adds with the pick, Esc closes
      the list first. Only this line suggests (W1); the other add fields stay as they were.
    - Each kind of mark shows in its own color as typed, a shift in its own (I1, chips: no, colors instead).
-   - The three shift tags sit under the line, the picked one pressed (S1).
+   - The three shifts sit under the line in the three-part pick, the picked one filled (S1; Shifts UX, A1).
    - The line's building lights with the hover ring on the map (I1).
    - Shift+Enter adds and stays open on the same project; Ctrl+Enter adds and opens the task (I1).
    - The toast is the building's leader's: "Task added: <task>.", with Open and Undo, which takes the task back out
@@ -133,7 +133,7 @@ const QuickAdd = (() => {
       if (sug.mark === '/') {
         if (!thumbs.has(it.pid)) thumbs.set(it.pid, MapView.thumb(getProject(it.pid)));
         lead = h('span', { class: 'qa-thumb', 'aria-hidden': 'true' }, cloneThumb(thumbs.get(it.pid)));
-      } else if (sug.mark === '+') lead = h('span', { class: 'shift-tag shift-' + it.shift, 'aria-hidden': 'true' }, it.label);
+      } else if (sug.mark === '+') { lead = shiftMark(it.shift, { full: true }); lead.setAttribute('aria-hidden', 'true'); }
       else lead = h('span', { class: 'qa-glyph qa-m-' + KIND[sug.mark], 'aria-hidden': 'true' }, it.archived ? iconEl('archive', 13) : sug.mark);
       /* Pick a date (A4): the phone's own date field lies over the row, unseen, so a tap opens its calendar. */
       if (it.pickDate) {
@@ -232,7 +232,7 @@ const QuickAdd = (() => {
     sync(false);
   }
 
-  /* ---------- the line: its colors, its shift tags, its building ---------- */
+  /* ---------- the line: its colors, its shift pick, its building ---------- */
   function paintMarks(r) {
     const v = input.value, out = [];
     let pos = 0;
@@ -257,11 +257,15 @@ const QuickAdd = (() => {
       hint.classList.remove('bad'); hint.textContent = r.parts.join(' · ');
     }
     paintMarks(r);
-    for (const b of shifts.querySelectorAll('.qa-shift')) b.setAttribute('aria-pressed', String(b.dataset.shift === r.shift));
+    for (const b of shifts.querySelectorAll('.qa-shift')) {
+      const on = b.dataset.shift === r.shift, name = shiftName(b.dataset.shift);
+      b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on);
+      b.title = on ? name + '. Click to take it off.' : name + ': ' + SHIFT_HINTS[b.dataset.shift];
+    }
     if (list) refreshList(); else lightUp();
     return r;
   }
-  /* A click on a shift tag: picks it, or takes it off when it is the one picked, as a +mark in the line. */
+  /* A click on a shift in the pick: picks it, or takes it off when it is the one picked, as a +mark in the line. */
   function toggleShift(id) {
     let v = input.value;
     const r = readTaskMarks(v, { cityWide: true }), marks = (r.spans || []).filter(sp => sp.kind === '+');
@@ -348,9 +352,8 @@ const QuickAdd = (() => {
       onblur: () => setTimeout(() => { if (box && !box.contains(document.activeElement)) close(false); }, 120) });
     paint = h('div', { class: 'qa-paint', dir: 'auto', 'aria-hidden': 'true' });
     list = h('ul', { id: 'qaList', class: 'qa-list', role: 'listbox', 'aria-label': 'Suggestions', hidden: '' });
-    shifts = h('div', { class: 'qa-shifts', role: 'group', 'aria-label': 'Shift' }, h('span', { class: 'qa-shifts-lbl' }, 'Shift'),
-      ...SHIFTS.map(([id, name]) => h('button', { type: 'button', class: 'qa-shift shift-' + id, 'data-shift': id, 'aria-pressed': 'false', title: name + ': ' + (SHIFT_HINTS[id] || ''),
-        onmousedown: e => e.preventDefault(), onclick: () => toggleShift(id) }, name)));
+    shifts = h('div', { class: 'qa-shifts' }, h('span', { class: 'qa-shifts-lbl', 'aria-hidden': 'true' }, 'Shift'),
+      shiftPick('', toggleShift, { bcls: 'qa-shift' }));               // the three-part pick (Shifts UX, Round 1, A1)
     keys = h('div', { class: 'qa-keys', role: 'group', 'aria-label': 'Marks' },
       ...MARK_KEYS.map(([sign, name]) => h('button', { type: 'button', class: 'qa-key qa-m-' + KIND[sign], 'data-sign': sign, title: name + ': writes ' + sign,
         onmousedown: e => e.preventDefault(), onclick: () => keyMark(sign) }, name)));

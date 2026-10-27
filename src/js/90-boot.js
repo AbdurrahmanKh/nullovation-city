@@ -55,6 +55,7 @@
      Edit City ends before Settings closes. */
   window.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if (ShiftPick.close(true)) return;                     // a hollow mark's pick (Shifts UX)
     if (OpenInClaude.close(true)) return;
     if (Wheel.close()) return;
     if (Ghosts.closeCard()) return;
@@ -78,12 +79,13 @@
   (() => {
     let guarded = false, skip = 0;
     const drawer = () => $('#menu').classList.contains('open');
-    const openNow = () => QuickAdd.isOpen() || !!$('.dropup') || OpenInClaude.isOpen() || Wheel.isOpen() || Ghosts.cardOpen()
+    const openNow = () => QuickAdd.isOpen() || !!$('.dropup') || ShiftPick.isOpen() || OpenInClaude.isOpen() || Wheel.isOpen() || Ghosts.cardOpen()
       || Confirm.isOpen() || Panel.isOpen() || Leaders.editorOpen() || FullView.isOpen() || MapView.placing() || MapView.moving()
       || MapView.editing() || Bubble.isOpen() || AllTasks.isOpen() || Settings.isOpen() || Reports.isOpen() || Leaders.isOpen() || drawer();
     function one() {
       if (QuickAdd.isOpen()) { QuickAdd.back(); return; }      // its list first, then the line
       if (MapView.closeDrop()) return;
+      if (ShiftPick.close(true)) return;
       if (OpenInClaude.close()) return;
       if (Wheel.close()) return;
       if (Ghosts.closeCard()) return;

@@ -290,7 +290,7 @@ li > .task-mark.on, .task-mark:hover, .task-mark:focus-visible { opacity: 1; }
 .gc-close { position: absolute; top: 7px; right: 6px; width: 24px; height: 24px; padding: 0; }
 .gc-project { margin: 0 28px 4px 0; font: 500 13px/1.25 var(--f-pixel); color: var(--ink-soft); overflow-wrap: anywhere; }
 .gc-task { margin: 0 0 8px; font: 600 16px/1.25 var(--f-pixel); overflow-wrap: anywhere; }
-.gc-due { margin: -2px 0 9px; }
+.gc-due { display: flex; align-items: center; gap: 6px; margin: -2px 0 9px; }
 .gc-due .due { margin: 0; }
 .gc-actions { display: flex; gap: 8px; }
 .gc-actions .btn { margin: 0; display: inline-flex; align-items: center; gap: 6px; }
@@ -872,17 +872,15 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .qa-opt.archived { opacity: .62; }
 .qa-opt.fresh .qa-label { font-style: italic; }
 .qa-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; }
-.qa-opt .shift-tag { flex: none; }
+.qa-opt .shift-mark { flex: none; }
 .qa-note { flex: 0 1 auto; margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--muted); }
 .qa-glyph { flex: none; display: inline-grid; place-items: center; width: 22px; font: 400 15px/1 var(--f-pixel); }
 .qa-thumb { flex: none; display: grid; place-items: end center; width: 34px; height: 28px; }
 .qa-thumb canvas { width: 34px; height: auto; max-height: 28px; object-fit: contain; }
 .qa-shifts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .qa-shifts-lbl { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
-.qa-shift { height: 20px; padding: 0 8px; border: 0; cursor: pointer; font: 400 12px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures;
-  background: transparent; color: var(--shift); box-shadow: inset 0 0 0 1px var(--shift); }
-.qa-shift:hover { background: color-mix(in srgb, var(--shift) 18%, transparent); }
-.qa-shift[aria-pressed="true"] { background: var(--shift); color: #2B2542; }
+.qa-shifts .shift-pick { margin: 2px; }
+.qa-shifts .sp-b { height: 22px; padding: 0 9px; }
 /* the mark keys, on a phone only (0.1.76, A1): each in its mark's color, a size for a finger; Pick a date's calendar
    lies over its row, unseen (A4) */
 .qa-keys { display: none; }
@@ -980,7 +978,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .star-top .sb-h { margin: 0; color: #FFD23F; }
 .star-text { font-size: 13.5px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .star-card:hover .star-text, .star-card:focus-visible .star-text { text-decoration: underline; }
-.star-proj { font-size: 12px; color: var(--ink-soft); }
+.star-proj { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
 .week-card { display: grid; gap: 4px; width: 100%; padding: 10px 12px; text-align: left; background: var(--field); border: 0; box-shadow: var(--px-edge); color: var(--ink); cursor: pointer; font: inherit; }
 .week-card:hover, .week-card:focus-visible { background: var(--hover); outline: none; }
 .week-top { display: flex; align-items: center; gap: 8px; }
@@ -1539,20 +1537,36 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .wheel-hub.has-leader { background: var(--ld); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
 .wheel-hub .ld-face { position: absolute; left: 4px; top: 4px; box-shadow: none; }
 
-/* ---------- shifts (All tasks, Round 3): Create, Think, Errand ---------- */
-.shift-create { --shift: #7FD6CE; }
+/* ---------- shifts (All tasks, Round 3; Shifts UX, Rounds 1 and 2): Create, Think, Errand ----------
+   Leaf, lavender and coral (B1). A mark is the shift's icon in ink on its color: the full mark adds the name (What is
+   next, All tasks), the small mark is the icon on its square (A3). The hollow mark is an open task with no shift. */
+.shift-create { --shift: #74C997; }
 .shift-think { --shift: #B7A5F0; }
-.shift-errand { --shift: #A9E2BE; }
-.shift-tag { display: inline-flex; align-items: center; flex: none; height: 16px; padding: 0 5px; font: 400 11px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures;
-  color: #2B2542; background: var(--shift, var(--line)); vertical-align: 1px; white-space: nowrap; }
-.b-task .shift-tag, .task .row-shift { margin-inline-start: 6px; }
-.pv-next-shift { margin-left: auto; }
+.shift-errand { --shift: #F29A74; }
+.shift-mark { display: inline-flex; align-items: center; justify-content: center; flex: none; height: 16px; box-sizing: border-box; color: #2B2542; background: var(--shift, var(--line)); vertical-align: -3px; }
+.shift-mark .ic { flex: none; }
+.shift-mark.small { width: 16px; }
+.shift-mark.full { gap: 4px; padding: 0 5px 0 3px; font: 400 11px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; white-space: nowrap; }
+.shift-mark.none { width: 16px; padding: 0; border: 0; background: transparent; color: #8A83A3; cursor: pointer; }
+.shift-mark.none:hover, .shift-mark.none:focus-visible, .shift-mark.none[aria-expanded="true"] { color: var(--ink); background: var(--hover); outline: none; }
+.b-task .shift-mark, .task .row-shift, .pv-ms-text .shift-mark { margin-inline-start: 6px; }
+.pv-next-msrow .pv-next-shift { margin-left: auto; }        /* the hollow mark too */
 .pv-next-shift + .pv-next-due { margin-left: 0; }
-.shift-dot { flex: none; width: 8px; height: 8px; background: var(--shift, transparent); box-shadow: 0 0 0 1px #0A0812; }
-.pv-shift-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.pv-shift-row .lbl { margin: 0 2px 0 0; }
-.pv-shift { display: inline-flex; align-items: center; gap: 6px; }
-.pv-shift.on { background: var(--hover); box-shadow: 0 0 0 2px var(--shift), 0 0 0 4px #0A0812; }
+/* the three-part pick: each shift's icon and name in its color, the one picked filled with it (Round 1, A1) */
+.shift-pick { display: inline-flex; flex: none; max-width: 100%; background: #1F1A30; box-shadow: 0 0 0 2px #5A5073; }
+.sp-b { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; margin: 0; border: 0; background: transparent; color: var(--shift);
+  font: 400 12px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; white-space: nowrap; cursor: pointer; }
+.sp-b + .sp-b { box-shadow: inset 2px 0 0 #5A5073; }
+.sp-b:hover { background: color-mix(in srgb, var(--shift) 18%, transparent); }
+.sp-b:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.sp-b.on { background: var(--shift); color: #2B2542; }
+.sp-b.on + .sp-b { box-shadow: none; }
+.pv-shift-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.pv-shift-row .lbl { margin: 0; }
+/* the pick a hollow mark opens */
+.shift-pop { position: fixed; z-index: 70; display: flex; flex-direction: column; gap: 7px; padding: 8px 9px 9px; background: var(--paper); box-shadow: var(--px-edge), 6px 8px 0 0 rgba(0, 0, 0, .45); }
+.shift-pop .lbl { font: 400 11px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--muted); }
+.shift-pop .shift-pick { margin: 2px; }
 
 /* ---------- All tasks (All tasks, Rounds 1 to 3) ---------- */
 .due-more-btn { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
@@ -1570,6 +1584,8 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .at-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 7px 0 6px; margin: 2px; background: var(--field); border: 0; box-shadow: var(--px-edge);
   color: var(--ink); font: 400 12.5px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; cursor: pointer; }
 .at-chip .n { color: var(--muted); font-size: 11.5px; }
+.at-chip .ic { color: #8A83A3; }
+.at-chip[class*="shift-"] .ic { color: var(--shift); }      /* each shift's icon in its color; No shift the hollow mark's */
 .at-chip:hover, .at-chip:focus-visible { background: var(--hover); outline: none; }
 .at-chip[aria-pressed="true"] { background: #3A2766; box-shadow: 0 0 0 2px #FFD23F, 0 0 0 4px #0A0812; }
 .at-tiles { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1603,11 +1619,6 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .at-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
 .at-meta:empty { display: none; }
 .at-meta .due { margin: 0; font-size: 11.5px; }
-.at-tagit { display: none; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); }
-.at-row:hover .at-tagit, .at-row:focus-within .at-tagit { display: flex; }
-@media (hover: none) { .at-tagit { display: flex; } }
-.at-tag { border: 0; cursor: pointer; }
-.at-tag:hover, .at-tag:focus-visible { outline: 2px solid var(--ink); outline-offset: 0; }
 .at-row .task-mark { margin-top: -2px; }
 .at-claude { flex: none; width: 24px; height: 24px; padding: 0; margin-top: -2px; opacity: 0; }
 .at-row:hover .at-claude, .at-row:focus-within .at-claude { opacity: .75; }
@@ -1687,15 +1698,15 @@ li.task .round-hat { margin-inline-start: 2px; }
   .qa-keys { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .qa-list { max-height: 284px; }                           /* the week's days and Pick a date, with no scrolling */
   .qa-shifts { margin-top: 10px; }
-  .qa-shift { height: 30px; padding: 0 9px; font-size: 13px; }
+  .sp-b, .qa-shifts .sp-b { height: 30px; padding: 0 10px; font-size: 13px; }   /* the three-part pick, a finger's size */
 }
 /* Bigger areas for a finger, the same look (0.1.75, B2): the small buttons and the checkboxes answer taps a few pixels
    round them. A checkbox's area stops short of the task's name beside it, and a news face's dismiss reaches out, away
    from its face. */
 @media (pointer: coarse) {
-  :where(.icon-btn, .btn-small, .cb) { position: relative; }
-  .icon-btn::after, .btn-small::after, .cb::after { content: ''; position: absolute; }
-  .icon-btn::after { inset: -6px; }
+  :where(.icon-btn, .btn-small, .cb, .shift-mark.none) { position: relative; }
+  .icon-btn::after, .btn-small::after, .cb::after, .shift-mark.none::after { content: ''; position: absolute; }
+  .icon-btn::after, .shift-mark.none::after { inset: -6px; }
   .btn-small::after { inset: -6px -2px; }
   .cb::after { inset: -9px -3px -9px -10px; }
   .news-dismiss::after { inset: -8px 0 0 -8px; }
@@ -1708,7 +1719,7 @@ li.task .round-hat { margin-inline-start: 2px; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.76</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.77</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -3597,8 +3608,21 @@ const SHIFT_HINTS = { create: 'At the screen and the keyboard, in work hours: co
   think: 'Pen and paper will do: design, writing, a decision', errand: 'Away from the screen: daily tasks, buying, a call' };
 const shiftOf = x => (SHIFT_IDS.includes(x) ? x : '');
 const shiftName = id => (SHIFTS.find(s => s[0] === id) || [, ''])[1];
-/* Its tag, beside a task's repeat sign and in What is next. */
-const shiftTag = (t, cls = '') => t && t.shift ? h('span', { class: 'shift-tag shift-' + t.shift + (cls ? ' ' + cls : ''), title: 'Shift: ' + shiftName(t.shift) }, shiftName(t.shift)) : null;
+const SHIFT_ICON = { create: 'shiftCreate', think: 'shiftThink', errand: 'shiftErrand' };
+/* A shift's mark (Shifts UX, Rounds 1 and 2): its icon in ink on its color. The full mark adds its name, in What is
+   next and All tasks; the small mark is the icon on its color square, everywhere else a task shows it (A3). */
+const shiftMark = (id, { full = false, cls = '' } = {}) => (shiftOf(id) ? h('span', { class: 'shift-mark ' + (full ? 'full' : 'small') + ' shift-' + id + (cls ? ' ' + cls : ''),
+  title: 'Shift: ' + shiftName(id), ...(full ? {} : { role: 'img', 'aria-label': 'Shift: ' + shiftName(id) }) }, iconEl(SHIFT_ICON[id], 12), full ? shiftName(id) : null) : null);
+const shiftTag = (t, cls = '', full = false) => (t && t.shift ? shiftMark(t.shift, { full, cls }) : null);
+/* The three-part pick, [Create | Think | Errand] in one bar, each with its icon and name in its color; the one picked
+   fills with its color (Round 1, A1). It sets a shift in the task panel and the line over the map, and opens from the
+   hollow mark. bcls goes on each button. */
+function shiftPick(on, pick, { bcls = '', label = 'Shift', hint = true } = {}) {
+  return h('span', { class: 'shift-pick', role: 'group', 'aria-label': label }, ...SHIFTS.map(([id, name]) => h('button', {
+    class: 'sp-b shift-' + id + (on === id ? ' on' : '') + (bcls ? ' ' + bcls : ''), type: 'button', 'data-shift': id, 'aria-pressed': String(on === id),
+    title: on === id ? name + '. Click to take it off.' : name + (hint ? ': ' + SHIFT_HINTS[id] : ''),
+    onmousedown: e => e.preventDefault(), onclick: () => pick(id) }, iconEl(SHIFT_ICON[id], 12), name)));
+}
 /* Setting a shift sorts the work; like a pin it is not work, so Updated and urgency stay and Activity is left alone. */
 function setShift(p, t, id) {
   const s = shiftOf(id);
@@ -4963,7 +4987,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.76";
+const APP_VERSION = "0.1.77";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -5460,6 +5484,12 @@ const ICONS = {
   bulb: ['....####....', '..##++++##..', '.#+o++++++#.', '.#o+++++++#.', '.#++++++++#.', '.#++++++++#.', '..#++++++#..', '...#++++#...', '...######...', '....####....', '...######...', '.....##.....'],
   book: ['............', '.##########.', '.#+#++++++#.', '.#+#+oooo+#.', '.#+#++++++#.', '.#+#++++++#.', '.#+#++++++#.', '.#+#++++++#.', '.#+#++++++#.', '.##########.', '.#oooooooo#.', '.##########.'],
   blueprint: ['############', '#++++++++++#', '#+oooooooo+#', '#+o+++o++o+#', '#+o+++o++o+#', '#+o+++o++o+#', '#+oooo+++o+#', '#+o++++++o+#', '#+o++++++o+#', '#+oooooooo+#', '#++++++++++#', '############'],
+  /* a task's shift (Shifts UX, Rounds 1 and 2): Create's keyboard (A1), Think's thought cloud, Errand's running man,
+     and the hollow mark of an open task with no shift yet */
+  shiftCreate: ['............', '............', '............', '############', '#.#.#.#.#.##', '############', '##.#.#.#.#.#', '############', '###......###', '############', '............', '............'],
+  shiftThink: ['......##....', '.....####...', '..##.####.#.', '.###########', '############', '############', '.##########.', '............', '.##.........', '.##.........', '............', '#...........'],
+  shiftErrand: ['........##..', '........##..', '......###...', '....##.###..', '...#..##..#.', '......##.##.', '.....###....', '....##..#...', '...##...##..', '..#......#..', '.##......##.', '............'],
+  shiftNone: ['###..##..###', '#..........#', '#..........#', '............', '............', '#..........#', '#..........#', '............', '............', '#..........#', '#..........#', '###..##..###'],
   arrow: ['######....', '######....', '####......', '##.##.....', '##..##....', '##...##...', '......##..', '.......##.', '........##', '..........'],
   brand: ['.......#........', '......###.......', '......#+#.......', '......#o#.......', '......#+#.......', '..###.#o#.####..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '..#o#.#o#.#oo#..', '..#+#.#+#.#++#..', '################'],
 };
@@ -6440,10 +6470,10 @@ const MapView = (() => {
     const text = t.text.length > HOVER_CHARS ? t.text.slice(0, HOVER_CHARS - 1).trimEnd() + '…' : t.text;
     const mark = isStarred(p, t) ? 'star' : isPinned(p, t) ? 'pin' : '';
     const hat = wearsHat(t) ? (roundState(t).done ? 'done' : 'open') : '';      // its wizard round's hat (0.1.55, X1)
-    const key = mark + '|' + hat + '|' + text;
+    const key = mark + '|' + hat + '|' + (t.shift || '') + '|' + text;
     if (el.dataset.key !== key) {
       el.dataset.key = key;
-      el.replaceChildren(...[mark ? iconEl(mark, 12) : null, hat ? hatEl(t, 12) : null, h('span', { dir: 'auto' }, text)].filter(Boolean));
+      el.replaceChildren(...[mark ? iconEl(mark, 12) : null, hat ? hatEl(t, 12) : null, shiftTag(t), h('span', { dir: 'auto' }, text)].filter(Boolean));   // its shift's small mark (Shifts UX)
       el.title = t.text;
     }
     el.dataset.id = p.id;
@@ -8482,7 +8512,7 @@ const Ghosts = (() => {
       h('button', { class: 'icon-btn gc-close', type: 'button', 'aria-label': 'Close', html: iconSvg('close', 14), onclick: () => closeCard() }),
       h('p', { class: 'gc-project', dir: 'auto' }, p.name),
       h('h2', { class: 'gc-task', dir: 'auto' }, t.text),
-      dueChip(t) ? h('p', { class: 'gc-due' }, dueChip(t)) : null,
+      dueChip(t) || t.shift ? h('p', { class: 'gc-due' }, shiftTag(t), dueChip(t)) : null,   // its shift's small mark (Shifts UX)
       h('div', { class: 'gc-actions' }, tick, enter),
       h('span', { class: 'gc-tail', 'aria-hidden': 'true', html: iconSvg('tail', 18) }));
     card.dataset.color = g.color;
@@ -9525,6 +9555,58 @@ function markButtons(p, t, cls = '', { chip = false } = {}) {
       () => setPin(p, t, !pin)),
   ];
 }
+/* The hollow mark (Shifts UX, Round 1, C2, and Round 2, C1): an open task with no shift shows it where its mark would
+   be, in the project view's rows, What is next and All tasks' rows. A click opens the three-part pick by it; pick(id)
+   sets the shift, for the place to redraw and move the focus on. */
+function shiftHollow(p, t, pick, cls = '') {
+  if (!isOpenTask(t) || t.shift) return null;
+  return h('button', { class: 'shift-mark none' + (cls ? ' ' + cls : ''), type: 'button', 'data-task': t.id, 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
+    'aria-label': 'Give it a shift: ' + t.text, title: 'No shift yet. Click to give it one',
+    onclick: e => { e.stopPropagation(); ShiftPick.toggle(e.currentTarget, pick); } }, iconEl('shiftNone', 12));
+}
+/* The pick a hollow mark opens: "Give it a shift" over the three, under the mark (over it near the window's foot), its
+   right edge on the mark's. The arrow keys move along it; Esc, a phone's back, a click elsewhere, scrolling or resizing
+   close it with nothing set, the focus back on the mark. */
+const ShiftPick = (() => {
+  let pop = null, owner = null;
+  function open(btn, pick) {
+    close();
+    owner = btn; btn.setAttribute('aria-expanded', 'true');
+    pop = h('div', { class: 'shift-pop', role: 'dialog', 'aria-label': 'Give it a shift' }, h('span', { class: 'lbl' }, 'Give it a shift'),
+      shiftPick('', id => { close(); pick(id); }, { label: 'Give it a shift' }));
+    pop.addEventListener('keydown', e => {
+      const bs = $$('.sp-b', pop), i = bs.indexOf(document.activeElement);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); bs[(i + (e.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length].focus(); }
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); }
+    });
+    pop.addEventListener('focusout', e => { const to = e.relatedTarget; if (pop && to && !pop.contains(to) && to !== owner) close(); });   // a click on its mark closes it itself
+    document.body.append(pop);
+    place();
+    $('.sp-b', pop).focus({ preventScroll: true });
+    document.addEventListener('pointerdown', outside, true);
+    window.addEventListener('scroll', onScroll, true); window.addEventListener('resize', onScroll);
+  }
+  function place() {
+    const r = owner.getBoundingClientRect(), w = pop.offsetWidth, ht = pop.offsetHeight;
+    const left = clamp(r.right - w, 8, Math.max(8, innerWidth - w - 8));
+    const top = r.bottom + 6 + ht > innerHeight - 8 && r.top - ht - 6 >= 8 ? r.top - ht - 6 : r.bottom + 6;
+    pop.style.left = Math.round(left) + 'px'; pop.style.top = Math.round(top) + 'px';
+  }
+  function outside(e) { if (pop && !pop.contains(e.target) && !(owner && owner.contains(e.target))) close(); }
+  function onScroll(e) { if (e && e.type === 'scroll' && pop && pop.contains(e.target)) return; close(); }
+  function close(refocus) {
+    if (!pop) return false;
+    pop.remove(); pop = null;
+    document.removeEventListener('pointerdown', outside, true);
+    window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll);
+    if (owner) { owner.setAttribute('aria-expanded', 'false'); if (refocus && owner.isConnected) owner.focus(); }
+    owner = null;
+    return true;
+  }
+  const toggle = (btn, pick) => { if (owner === btn) close(true); else open(btn, pick); };
+  return { toggle, close, isOpen: () => !!pop };
+})();
 function metaRow(p) {
   const bits = [];
   const dl = deadlineInfo(p.deadline);
@@ -9629,7 +9711,7 @@ const Bubble = (() => {
           h('input', { type: 'checkbox', class: 'cb', checked: t.done || ticking.has(t.id), 'aria-label': 'Done: ' + t.text, onchange: e => tick(p, t, e.target.checked, li) }),
           h('button', { class: 'txt b-task', type: 'button', dir: 'auto', title: 'Open this task', onclick: () => FullView.openTask(p.id, t.id) }, t.text, dueChip(t) ? ' ' : null, dueChip(t),
             t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
-            shiftTag(t, 'b-shift')),
+            shiftTag(t, 'b-shift')),                          // its small mark; no hollow mark here (Shifts UX, Round 2, C1)
           ...[ticking.has(t.id) ? null : Rounds.hatButton(p, t, 'b-round')].filter(Boolean),   // its wizard round (0.1.55)
           ...(ticking.has(t.id) ? [] : markButtons(p, t, 'b-mark')),
           h('button', { class: 'icon-btn b-copy', type: 'button', 'aria-label': 'Copy this task for Claude', title: 'Copy this task for Claude', html: iconSvg('copy', 14), onclick: () => copyTask(p, t) }));
@@ -10078,7 +10160,7 @@ const FullView = (() => {
     box.append(h('div', { class: 'pv-next-msrow' },
       h('button', { class: 'pv-next-ms', type: 'button', title: 'Open this milestone', onclick: () => openMilestone(p, ms.id) },
         h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), h('span', { dir: 'auto' }, ms.name), h('span', { class: 'ms-count' }, countText(g))),
-      shiftTag(t, 'pv-next-shift'),
+      shiftTag(t, 'pv-next-shift', true) || shiftHollow(p, t, id => { setShift(p, t, id); render(); Bubble.refresh(); const b = $('#pvNextTask', root); if (b) b.focus(); }, 'pv-next-shift'),
       d ? h('span', { class: 'due pv-next-due ' + (d.tone || ''), title: t.due }, d.diff > 1 ? 'Due ' + weekdayOf(t.due) + ' ' + fmtDate(parseYmd(t.due)) : d.text) : null));
     box.append(h('button', { id: 'pvNextTask', class: 'pv-next-task' + (late ? ' late' : ''), type: 'button', dir: 'auto', title: 'Open this task', onclick: () => openTask(p, t.id) },
       late ? h('span', { class: 'pv-late-mark', 'aria-label': 'Overdue' }, '!') : null, h('span', null, t.text)));
@@ -10205,12 +10287,12 @@ const FullView = (() => {
       changed(p); render();
       const again = $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     });
-    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark, .round-hat')) return; dragTask(e, p, li); });
+    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark, .round-hat, .shift-mark')) return; dragTask(e, p, li); });
     const d = t.done || wait ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
       Rounds.hatButton(p, t, 'row-round'),                                      // its wizard round (0.1.55)
       t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
-      shiftTag(t, 'row-shift'),
+      shiftTag(t, 'row-shift') || (wait ? null : shiftHollow(p, t, id => { setShift(p, t, id); render(); Bubble.refresh(); const b = $(`.task[data-id="${t.id}"] .task-title`, root); if (b) b.focus(); }, 'row-shift')),
       wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
       d ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null, ...markButtons(p, t, 'row-mark'),
       canArchive(t) ? h('button', { class: 'icon-btn task-mark mark-archive', type: 'button', 'data-task': t.id, 'aria-label': 'Archive: ' + t.text,
@@ -10565,17 +10647,12 @@ const FullView = (() => {
   }
   /* When a note was written, and Claude's spark and By Claude on one of Claude's (M1). */
   const noteStamp = (n, latest = false) => [byClaude(n) ? iconEl('claude', 12) : null, fmtStamp(latest && n.updatedAt ? n.updatedAt : n.at) + (byClaude(n) ? ' \u00b7 By Claude' : '')].filter(Boolean);
-  /* Shift: Create, Think or Errand, one or none; a click on the pressed one takes it off. Like the rest of the panel,
-     Esc undoes it; on its own it is not work, so closing the panel leaves Updated alone. */
+  /* Shift: Create, Think or Errand, one or none, in the three-part pick (Shifts UX, Round 1, A1); a click on the one
+     picked takes it off. Like the rest of the panel, Esc undoes it; on its own it is not work, so closing the panel
+     leaves Updated alone. */
   function shiftEditor(p, t) {
-    return h('div', { class: 'inline pv-shift-row', role: 'group', 'aria-label': 'Shift' }, h('span', { class: 'lbl' }, 'Shift'),
-      ...SHIFTS.map(([id, name]) => {
-        const on = t.shift === id;
-        return h('button', { class: 'btn btn-quiet btn-small pv-shift shift-' + id + (on ? ' on' : ''), type: 'button', 'data-shift': id, 'aria-pressed': String(on),
-          title: on ? name + '. Click to take it off.' : SHIFT_HINTS[id],
-          onclick: () => { setShift(p, t, on ? '' : id); render(); Bubble.refresh(); const b = side && $(`.pv-shift[data-shift="${id}"]`, side); if (b) b.focus(); } },
-          h('i', { class: 'shift-dot', 'aria-hidden': 'true' }), name);
-      }));
+    return h('div', { class: 'inline pv-shift-row' }, h('span', { class: 'lbl', 'aria-hidden': 'true' }, 'Shift'),
+      shiftPick(t.shift, id => { setShift(p, t, t.shift === id ? '' : id); render(); Bubble.refresh(); const b = side && $(`.pv-shift[data-shift="${id}"]`, side); if (b) b.focus(); }, { bcls: 'pv-shift' }));
   }
   /* Repeat (R2): every day, every N days, weekly on chosen weekdays, monthly on a date, yearly. A task with no date
      gets the schedule's first one. Each change redraws the panel, so the focus goes back to the control it came from. */
@@ -10658,7 +10735,7 @@ const FullView = (() => {
           return h('li', { class: 'pv-ms-task' + (t.done ? ' done' : '') + (t.archived ? ' archived' : ''), 'data-id': t.id },
             h('span', { class: 'pv-ms-box' + (t.done ? ' done' : ''), 'aria-hidden': 'true' }),
             h('span', { class: 'pv-ms-body' },
-              h('span', { class: 'pv-ms-text', dir: 'auto' }, t.text, h('span', { class: 'visually-hidden' }, t.archived ? ' (done, in the archive)' : t.done ? ' (done)' : '')),
+              h('span', { class: 'pv-ms-text', dir: 'auto' }, t.text, h('span', { class: 'visually-hidden' }, t.archived ? ' (done, in the archive)' : t.done ? ' (done)' : ''), t.done ? null : shiftTag(t, 'pv-ms-shift')),
               isWaiting(t, now) ? h('span', { class: 'pv-ms-due back' }, backText(t, now)) : d && !t.done ? h('span', { class: 'pv-ms-due' + (d.tone ? ' ' + d.tone : '') }, d.text) : null,
               first ? h('span', { class: 'pv-ms-desc', dir: 'auto' }, first.slice(0, 160)) : null),
             t.archived ? h('span', { class: 'pv-ms-arch', title: 'In the archive', html: iconSvg('archive', 14) }) : null);
@@ -12588,7 +12665,7 @@ async function copyBuilderCard(p) {
      + shifts, in a list under the line. Up and Down move, Tab or a click picks, Enter adds with the pick, Esc closes
      the list first. Only this line suggests (W1); the other add fields stay as they were.
    - Each kind of mark shows in its own color as typed, a shift in its own (I1, chips: no, colors instead).
-   - The three shift tags sit under the line, the picked one pressed (S1).
+   - The three shifts sit under the line in the three-part pick, the picked one filled (S1; Shifts UX, A1).
    - The line's building lights with the hover ring on the map (I1).
    - Shift+Enter adds and stays open on the same project; Ctrl+Enter adds and opens the task (I1).
    - The toast is the building's leader's: "Task added: <task>.", with Open and Undo, which takes the task back out
@@ -12715,7 +12792,7 @@ const QuickAdd = (() => {
       if (sug.mark === '/') {
         if (!thumbs.has(it.pid)) thumbs.set(it.pid, MapView.thumb(getProject(it.pid)));
         lead = h('span', { class: 'qa-thumb', 'aria-hidden': 'true' }, cloneThumb(thumbs.get(it.pid)));
-      } else if (sug.mark === '+') lead = h('span', { class: 'shift-tag shift-' + it.shift, 'aria-hidden': 'true' }, it.label);
+      } else if (sug.mark === '+') { lead = shiftMark(it.shift, { full: true }); lead.setAttribute('aria-hidden', 'true'); }
       else lead = h('span', { class: 'qa-glyph qa-m-' + KIND[sug.mark], 'aria-hidden': 'true' }, it.archived ? iconEl('archive', 13) : sug.mark);
       /* Pick a date (A4): the phone's own date field lies over the row, unseen, so a tap opens its calendar. */
       if (it.pickDate) {
@@ -12814,7 +12891,7 @@ const QuickAdd = (() => {
     sync(false);
   }
 
-  /* ---------- the line: its colors, its shift tags, its building ---------- */
+  /* ---------- the line: its colors, its shift pick, its building ---------- */
   function paintMarks(r) {
     const v = input.value, out = [];
     let pos = 0;
@@ -12839,11 +12916,15 @@ const QuickAdd = (() => {
       hint.classList.remove('bad'); hint.textContent = r.parts.join(' · ');
     }
     paintMarks(r);
-    for (const b of shifts.querySelectorAll('.qa-shift')) b.setAttribute('aria-pressed', String(b.dataset.shift === r.shift));
+    for (const b of shifts.querySelectorAll('.qa-shift')) {
+      const on = b.dataset.shift === r.shift, name = shiftName(b.dataset.shift);
+      b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on);
+      b.title = on ? name + '. Click to take it off.' : name + ': ' + SHIFT_HINTS[b.dataset.shift];
+    }
     if (list) refreshList(); else lightUp();
     return r;
   }
-  /* A click on a shift tag: picks it, or takes it off when it is the one picked, as a +mark in the line. */
+  /* A click on a shift in the pick: picks it, or takes it off when it is the one picked, as a +mark in the line. */
   function toggleShift(id) {
     let v = input.value;
     const r = readTaskMarks(v, { cityWide: true }), marks = (r.spans || []).filter(sp => sp.kind === '+');
@@ -12930,9 +13011,8 @@ const QuickAdd = (() => {
       onblur: () => setTimeout(() => { if (box && !box.contains(document.activeElement)) close(false); }, 120) });
     paint = h('div', { class: 'qa-paint', dir: 'auto', 'aria-hidden': 'true' });
     list = h('ul', { id: 'qaList', class: 'qa-list', role: 'listbox', 'aria-label': 'Suggestions', hidden: '' });
-    shifts = h('div', { class: 'qa-shifts', role: 'group', 'aria-label': 'Shift' }, h('span', { class: 'qa-shifts-lbl' }, 'Shift'),
-      ...SHIFTS.map(([id, name]) => h('button', { type: 'button', class: 'qa-shift shift-' + id, 'data-shift': id, 'aria-pressed': 'false', title: name + ': ' + (SHIFT_HINTS[id] || ''),
-        onmousedown: e => e.preventDefault(), onclick: () => toggleShift(id) }, name)));
+    shifts = h('div', { class: 'qa-shifts' }, h('span', { class: 'qa-shifts-lbl', 'aria-hidden': 'true' }, 'Shift'),
+      shiftPick('', toggleShift, { bcls: 'qa-shift' }));               // the three-part pick (Shifts UX, Round 1, A1)
     keys = h('div', { class: 'qa-keys', role: 'group', 'aria-label': 'Marks' },
       ...MARK_KEYS.map(([sign, name]) => h('button', { type: 'button', class: 'qa-key qa-m-' + KIND[sign], 'data-sign': sign, title: name + ': writes ' + sign,
         onmousedown: e => e.preventDefault(), onclick: () => keyMark(sign) }, name)));
@@ -13059,7 +13139,8 @@ const OpenInClaude = (() => {
   function open(btn, opts) {
     close();
     const p = opts.project || null, folders = p ? places(p).folders : [];
-    const st = { tab: 'build', brainstorm: false, folder: folderOf(p, folders), listing: false };
+    /* a Think task opens on Think, any other on Build it; one click switches (Shifts UX, Round 1, C2) */
+    const st = { tab: opts.think && opts.thinkFirst && opts.thinkFirst() ? 'think' : 'build', brainstorm: false, folder: folderOf(p, folders), listing: false };
     panel = h('div', { class: 'oc-panel', role: 'dialog', 'aria-label': 'Open in Claude' });
     const textFor = kind => (st.tab === 'think' && opts.think ? opts.think(kind, { brainstorm: st.brainstorm }) : opts.text(kind));
     const files = () => (opts.files ? opts.files() : []);
@@ -13167,10 +13248,11 @@ const OpenInClaude = (() => {
     return btn;
   }
   /* A task's panel: Build it sends the task; Think, on an open task, asks for a round or a brainstorm about it (Open in
-     Claude Panel, A2, A3); Copy copies either; Cowork gets the round's file. The project view, Due this week and All
-     tasks share it. */
+     Claude Panel, A2, A3), and is the tab it opens on for a Think task (Shifts UX); Copy copies either; Cowork gets the
+     round's file. The project view, Due this week and All tasks share it. */
   const forTask = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', project: p, name: t.text,
-    think: isOpenTask(t) ? (kind, o = {}) => taskForClaude(p, t, Date.now(), { kind, ask: o.brainstorm ? 'brainstorm' : true }) : null, files: () => Rounds.files(t) });
+    think: isOpenTask(t) ? (kind, o = {}) => taskForClaude(p, t, Date.now(), { kind, ask: o.brainstorm ? 'brainstorm' : true }) : null, files: () => Rounds.files(t),
+    thinkFirst: () => t.shift === 'think' });
   return { button, forTask, go, places, close, isOpen: () => !!panel };
 })();
 
@@ -13907,7 +13989,7 @@ const Menu = (() => {
     list.replaceChildren(...shown.map(({ p, t, d }) => h('li', { class: 'due-item' },
       h('button', { class: 'due-task', type: 'button', title: 'Open this task', onclick: () => { closeDrawer(); FullView.openTask(p.id, t.id); } },
         h('span', { class: 'due-text', dir: 'auto' }, t.text),
-        h('span', { class: 'due-meta' }, h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text), h('span', { class: 'due-proj', dir: 'auto' }, p.name))),
+        h('span', { class: 'due-meta' }, shiftTag(t), h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text), h('span', { class: 'due-proj', dir: 'auto' }, p.name))),
       OpenInClaude.button({ icon: true, cls: 'due-claude', ...OpenInClaude.forTask(p, t) }))),
       ...(items.length > shown.length ? [h('li', { class: 'due-more' }, h('button', { class: 'due-more-btn', type: 'button', title: 'Every open task: All tasks (L)',
         onclick: () => AllTasks.open() }, 'and ' + (items.length - shown.length) + ' more'))] : []));
@@ -13928,7 +14010,7 @@ const Menu = (() => {
       h('span', { class: 'star-body' },
         h('span', { class: 'star-top' }, iconEl('star', 14), h('span', { class: 'sb-h' }, 'Starred')),
         h('span', { class: 'star-text', dir: 'auto', title: t.text }, t.text),
-        h('span', { class: 'star-proj', dir: 'auto' }, p.name)));
+        h('span', { class: 'star-proj', dir: 'auto' }, shiftTag(t), h('span', null, p.name))));
   }
   /* This week in numbers, each with its small icon: a tick for tasks done, a note, a milestone's flag (SideBar Cleanup,
      0.1.64). The card opens the week. */
@@ -14492,7 +14574,7 @@ const AllTasks = (() => {
     const n = s => list.filter(x => !ticking.has(x.t.id) && fitsShift(x.t, s)).length, none = n('none');
     const chip = (s, label, count) => h('button', { class: 'at-chip' + (s === 'none' ? '' : ' shift-' + s), type: 'button', 'data-k': 'shift-' + s, 'data-shift': s,
       'aria-pressed': String(shift === s), title: shift === s ? 'Showing ' + label.toLowerCase() + '. Click to show every shift' : s === 'none' ? 'The tasks with no shift yet, to sort' : SHIFT_HINTS[s],
-      onclick: () => { shift = shift === s ? '' : s; render(); } }, h('i', { class: 'shift-dot', 'aria-hidden': 'true' }), label, h('span', { class: 'n' }, String(count)));
+      onclick: () => { shift = shift === s ? '' : s; render(); } }, iconEl(s === 'none' ? 'shiftNone' : SHIFT_ICON[s], 12), label, h('span', { class: 'n' }, String(count)));
     $('#atShifts').replaceChildren(...SHIFTS.map(([s, name]) => chip(s, name, n(s))), ...(none || shift === 'none' ? [chip('none', 'No shift', none)] : []));
   }
   function tiles(list) {
@@ -14536,15 +14618,17 @@ const AllTasks = (() => {
     }
     return [dated, undated].filter(c => c.length).map(c => h('div', { class: 'at-col' }, c));
   }
-  /* A row: the square, the task (with its repeat sign), then its shift, its date and where it lives; the pin and Open in
-     Claude, the Claude icon (0.1.64; Copy task until then), while it is pointed at; and for a task with no shift, the
-     three to tag it with one click. */
+  /* A row: the square, the task (with its repeat sign), then its shift's full mark, or the hollow mark that gives it
+     one (Shifts UX), its date and where it lives; the pin and Open in Claude, the Claude icon (0.1.64; Copy task until
+     then), while it is pointed at. */
   function row({ p, t, due: on }, { chip, proj }, now) {
     const held = ticking.has(t.id), ms = msOf(p, t), d = dueInfo({ due: on }, now);
     const due = !d || !chip ? null : d.tone === 'late' ? h('span', { class: 'due late' }, '! ' + d.text)
       : h('span', { class: 'due ' + (d.tone || '') }, chip === 'full' ? dueWords(on, now) : weekdayOf(on) + ' ' + fmtDate(parseYmd(on)));
     const where = proj ? p.name + (ms ? ' · ' + ms.name : '') : ms ? ms.name : '';
-    const meta = h('span', { class: 'at-meta' }, held ? null : Rounds.hatButton(p, t, 'at-round'), shift && shift !== 'none' ? null : shiftTag(t), due, where ? h('span', { class: 'at-where', dir: 'auto' }, where) : null);
+    const hollow = held ? null : shiftHollow(p, t, s => tag(p, t, s));
+    if (hollow) hollow.dataset.k = 'hollow-' + t.id;
+    const meta = h('span', { class: 'at-meta' }, held ? null : Rounds.hatButton(p, t, 'at-round'), shift && shift !== 'none' ? null : shiftTag(t, '', true) || hollow, due, where ? h('span', { class: 'at-where', dir: 'auto' }, where) : null);
     const li = h('li', { class: 'at-row' + (held ? ' ticked' : ''), 'data-id': t.id, 'data-p': p.id,
       onpointerenter: () => MapView.light(p.id), onpointerleave: () => MapView.light(null) });
     li.addEventListener('focusin', () => MapView.light(p.id));
@@ -14554,10 +14638,7 @@ const AllTasks = (() => {
       h('span', { class: 'at-body' },
         h('button', { class: 'at-task', type: 'button', dir: 'auto', 'data-k': 'task-' + t.id, title: 'Open this task', onclick: () => openTask(p, t) },
           t.text, t.repeat ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), 'aria-label': 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null),
-        meta,
-        !t.shift && !held ? h('span', { class: 'at-tagit', role: 'group', 'aria-label': 'Give it a shift' }, h('span', null, 'Shift:'),
-          ...SHIFTS.map(([s, name]) => h('button', { class: 'shift-tag shift-' + s + ' at-tag', type: 'button', 'data-k': 'tag-' + t.id + '-' + s, title: SHIFT_HINTS[s],
-            onclick: () => tag(p, t, s) }, name))) : null)];
+        meta)];
     if (!held) {
       const oc = OpenInClaude.button({ icon: true, cls: 'at-claude', ...OpenInClaude.forTask(p, t) });
       oc.dataset.k = 'oc-' + t.id;
@@ -14579,10 +14660,10 @@ const AllTasks = (() => {
     changed(p);
     if (FullView.isOpen()) FullView.render();
   }
-  /* Sorting: a click on a shift tags the task, and the focus goes on to the next row still to sort. */
+  /* Sorting: a shift picked from a row's hollow mark tags the task, and the focus goes on to the next row still to sort. */
   function tag(p, t, s) {
     const rows = $$('#atList .at-row'), i = rows.findIndex(r => r.dataset.id === t.id);
-    const next = rows.slice(i + 1).find(r => $('.at-tagit', r));
+    const next = rows.slice(i + 1).find(r => $('.shift-mark.none', r));
     setShift(p, t, s);                                           // redraws the list through the side bar's refresh
     if (FullView.isOpen()) FullView.render();
     const b = (next && $(`[data-k="${CSS.escape('task-' + next.dataset.id)}"]`, $('#atList'))) || $(`[data-k="${CSS.escape('task-' + t.id)}"]`, $('#atList'));
@@ -16164,6 +16245,7 @@ const News = (() => {
      Edit City ends before Settings closes. */
   window.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if (ShiftPick.close(true)) return;                     // a hollow mark's pick (Shifts UX)
     if (OpenInClaude.close(true)) return;
     if (Wheel.close()) return;
     if (Ghosts.closeCard()) return;
@@ -16187,12 +16269,13 @@ const News = (() => {
   (() => {
     let guarded = false, skip = 0;
     const drawer = () => $('#menu').classList.contains('open');
-    const openNow = () => QuickAdd.isOpen() || !!$('.dropup') || OpenInClaude.isOpen() || Wheel.isOpen() || Ghosts.cardOpen()
+    const openNow = () => QuickAdd.isOpen() || !!$('.dropup') || ShiftPick.isOpen() || OpenInClaude.isOpen() || Wheel.isOpen() || Ghosts.cardOpen()
       || Confirm.isOpen() || Panel.isOpen() || Leaders.editorOpen() || FullView.isOpen() || MapView.placing() || MapView.moving()
       || MapView.editing() || Bubble.isOpen() || AllTasks.isOpen() || Settings.isOpen() || Reports.isOpen() || Leaders.isOpen() || drawer();
     function one() {
       if (QuickAdd.isOpen()) { QuickAdd.back(); return; }      // its list first, then the line
       if (MapView.closeDrop()) return;
+      if (ShiftPick.close(true)) return;
       if (OpenInClaude.close()) return;
       if (Wheel.close()) return;
       if (Ghosts.closeCard()) return;
