@@ -240,7 +240,7 @@ const Proxima = (() => {
   function pump() {
     clearTimeout(waitTimer);
     if (saying || !queue.length) return;
-    if ((typeof Gus !== 'undefined' && Gus.isSaying()) || (typeof News !== 'undefined' && News.isHeld()) || Panel.isOpen() || Confirm.isOpen()) { waitTimer = setTimeout(pump, 500); return; }
+    if ((typeof Gus !== 'undefined' && Gus.isSaying()) || (typeof News !== 'undefined' && News.isHeld()) || Panel.isOpen() || Confirm.isOpen() || !sayRoom()) { waitTimer = setTimeout(pump, 500); return; }
     const kind = queue.shift();
     if (typeof kind !== 'string') { if (getProject(kind.pid)) say(kind); else pump(); return; }   // a milestone's party
     const r = proximaReport(kind);

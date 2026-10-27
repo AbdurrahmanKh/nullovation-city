@@ -24,7 +24,7 @@ The file imported above is the knowledge file: features, code, data, art, skills
 
 - Build: `python3 build.py` writes the page to `index.html` at the root, and `sw.js` beside it. The repo keeps both and GitHub Pages serves them, so rebuild with every change; test17 fails when either is older than the source.
 - Test: `python3 tests/run_tests.py` builds, then runs every pass in order and prints one line per pass. `python3 tests/run_tests.py 9 16` runs only those. Logs go to `tests/data/logs/`, screenshots to `tests/shots/`.
-- The passes are named by number and topic, from `tests/test02_map.py` to `tests/test45_claude_notes.py`. `tests/testkit.py` holds their shared paths, draws the files they upload, and sets up the test city every browser pass starts from, so the passes do not depend on what a new city starts with.
+- The passes are named by number and topic, from `tests/test02_map.py` to `tests/test47_phone.py`. `tests/testkit.py` holds their shared paths, draws the files they upload, and sets up the test city every browser pass starts from, so the passes do not depend on what a new city starts with.
 
 ## Every change to the tool
 

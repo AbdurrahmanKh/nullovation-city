@@ -24,7 +24,7 @@ const AllTasks = (() => {
   const heldMark = new Map();                                   // and its star and pin, which the tick clears
 
   const isOpen = () => !!$('#allTasks') && !$('#allTasks').hidden;
-  const narrow = () => window.matchMedia('(max-width: 760px)').matches;
+  const narrow = narrowScreen;
   /* Opening it brings it to the front: the project view and a leader's editor over it close. On a narrow window the
      drawer closes, as the panel covers the map. */
   function open() {

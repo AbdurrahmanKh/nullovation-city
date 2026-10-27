@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.74 (2026-10-27)
+
+The city on a phone, part 1: what the phone report (docs/phone-report.md) found plainly broken.
+- The map's bar fits a phone: below 760 px its buttons wear their icons only, so Traffic and Bubbles, which ran off the screen, can be reached again. The words stay for screen readers.
+- The project view's top fits a phone: the building picture, the leader card and the About no longer run off the right edge.
+- The Menu button covers nothing: the status card and the speech bubbles of Gus, Proxima and the leaders open under it on a phone, across the screen.
+- The drawer opens over the speech bubbles, so a bubble no longer covers Reports, Settings or the Leaders panel.
+- Toasts sit over the map's bar, not on it.
+- A double tap on a building steps inside on a phone, as a double-click does with a mouse. A card opened by the first tap lets the second through.
+- The shortcut wheel stays on the screen: one wider than the map stands on a smaller ring, the labels at its sides cut short.
+- A phone on its side gets the drawer too, so the map has the whole width.
+- Fields are 16 px on a touch screen, so an iPhone no longer zooms the page in when one is tapped.
+- No words for keys a phone has not got: the one-line add's line about Enter, Shift+Enter and Ctrl+Enter, and Esc in the panels' notes, hide on a touch screen.
+- A speech bubble that opens by itself waits while the project view or All tasks covers the whole map, rather than open out of sight.
+- Tests: test47_phone checks each on a phone, a small phone, a phone on its side, and a desktop window that stays as it was.
+
 ## 0.1.73 (2026-10-27)
 
 Sync, part 1: the PC and the phone keep the same city through one shared copy in a private GitHub repository (Quick Sync, S1; the plan is docs/quick-sync-plan.md).

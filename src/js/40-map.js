@@ -1152,7 +1152,7 @@ const MapView = (() => {
   /* ---------- input ---------- */
   function local(e) { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
   function onDown(e) {
-    if (e.pointerType !== 'mouse') clicks = 1;                // a tap counts once; a mouse press sets its own count
+    if (e.pointerType !== 'mouse') clicks = tapCount(e);      // a finger counts its own taps; a mouse press sets its own count
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     Menu.closeDrawer();
     const [x, y] = local(e);
@@ -1225,11 +1225,23 @@ const MapView = (() => {
       lastTap = null; hideTip(); Wheel.close(); FullView.open(tap.id);
       return;
     }
-    if (hit) { if (hit.id !== App.selectedId) select(hit.id); else glideTo(hit.id); }
+    if (hit) {
+      if (hit.id !== App.selectedId) select(hit.id); else glideTo(hit.id);
+      if (lastTouch && now - lastTouch.at < TAP_MS) Bubble.letThrough(TAP_MS);   // the card lets a second tap reach the building
+    }
     else deselect();
   }
   let lastTap = null, clicks = 0;
   const DOUBLE_MS = 800;
+  /* A double tap steps inside on a phone too (0.1.74): a second touch soon after the first and near it, as a phone
+     counts one, is the double-click E1 asked for. */
+  let lastTouch = null;
+  const TAP_MS = 350, TAP_PX = 30;
+  function tapCount(e) {
+    const now = performance.now(), [x, y] = local(e), was = lastTouch;
+    lastTouch = { at: now, x, y };
+    return was && now - was.at < TAP_MS && Math.hypot(x - was.x, y - was.y) < TAP_PX ? 2 : 1;
+  }
   function beginPinch() {
     if (gesture) clearTimeout(gesture.hold);
     if (mode.name === 'move') finishMove(false);

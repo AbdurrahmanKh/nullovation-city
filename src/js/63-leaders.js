@@ -309,7 +309,7 @@ const Leaders = (() => {
     if (!isOpen()) open();
     editing = l;
     renderSection();
-    if (window.matchMedia('(max-width: 760px)').matches) Menu.closeDrawer();
+    if (narrowScreen()) Menu.closeDrawer();
     $('#ldEditTitle').replaceChildren(...(isNew ? ['New leader'] : ['Leader: ', h('bdi', null, leaderName(l))]));
     $('#ldView').hidden = false;
     $('#ldView').scrollTop = 0;

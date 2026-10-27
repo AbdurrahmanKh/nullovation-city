@@ -79,6 +79,20 @@ const Bubble = (() => {
     render(false); position();
   }
   function height() { return el && !el.hidden ? el.offsetHeight : 0; }
+  /* Opened by a tap (0.1.74), the card lets taps through to the map for a moment, so a second tap of a double tap
+     reaches the building under it, as nothing can mean to tap a card that was not there yet. */
+  let throughT = 0;
+  function letThrough(ms) {
+    if (!el) return;
+    el.style.pointerEvents = 'none';
+    clearTimeout(throughT);
+    throughT = setTimeout(() => { el.style.pointerEvents = ''; }, ms);
+  }
+  /* The card's top: under the Menu button while it shows, on a phone (0.1.74), so the button never covers its name. */
+  function topRoom() {
+    const t = $('#menuToggle');
+    return t && t.offsetParent ? t.offsetTop + t.offsetHeight + 8 : 12;
+  }
 
   function tick(p, t, checked, li) {
     /* ticks from the bubble count in Activity and the week too; a repeat moves on to its next date (R4) */
@@ -201,14 +215,14 @@ const Bubble = (() => {
     const W = wrap.clientWidth;
     const bw = el.offsetWidth, bh = el.offsetHeight;
     const left = clamp(a.topX - bw / 2, 12, Math.max(12, W - bw - 12));
-    const top = Math.max(12, a.topY - bh - 20);
+    const top = Math.max(topRoom(), a.topY - bh - 20);
     el.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
     if (tail) tail.style.left = Math.round(clamp(a.topX - left, 24, bw - 24) - 12) + 'px';
     const ew = enter.offsetWidth;
     enter.style.transform = `translate(${Math.round(a.baseX - ew / 2)}px, ${Math.round(a.baseY + 12)}px)`;
   }
 
-  return { init, open, close, refresh, position, height, isOpen: () => !!openId, openId: () => openId };
+  return { init, open, close, refresh, position, height, letThrough, isOpen: () => !!openId, openId: () => openId };
 })();
 
 const Confirm = (() => {

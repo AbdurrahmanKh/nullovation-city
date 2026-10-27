@@ -476,12 +476,13 @@ kbd {
 .toast-act { margin-left: 6px; padding: 0; border: 0; background: none; color: #FFC2DD; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .toast.error { background: var(--late); }
 
-/* ---------- small screens ---------- */
-@media (max-width: 760px) {
+/* ---------- small screens: a narrow window, or a phone on its side (0.1.74), where the side bar is a drawer ---------- */
+@media (max-width: 760px), (max-height: 520px) and (pointer: coarse) {
   #menu {
     position: fixed; left: 0; top: 0; bottom: 0; width: min(300px, 86vw);
     transform: translateX(-102%); transition: transform .2s ease-out;
     box-shadow: 6px 0 0 0 rgba(43, 37, 66, .25);
+    z-index: 36;                                     /* over the speech bubbles and the panels on the map (0.1.74) */
   }
   #menu.open { transform: none; }
   .menu-toggle { display: inline-flex; }
@@ -496,7 +497,12 @@ kbd {
   .todo-edit li { flex-wrap: wrap; }
   .todo-edit li .field:not(.due-in) { flex: 1 1 60%; }
   .map-tools .btn { padding: 8px 9px 7px; }
-  .map-tools { right: 12px; bottom: 12px; }
+  .map-tools { right: 12px; bottom: 12px; gap: 6px; }
+  /* the bar's buttons wear their icons only, so all of them fit a phone (0.1.74); the words stay for screen readers */
+  .map-tools .mt-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .map-tools #lightIcon { margin-right: 0; }
+  .zoom output { min-width: 38px; }
+  .toast { bottom: 70px; }                          /* over the bar, not on it */
   .keyhint { display: none; }
 }
 
@@ -553,7 +559,7 @@ kbd { background: var(--paper); border-color: var(--edge); box-shadow: 0 2px 0 0
 .icon-pop button:hover, .icon-pop button[aria-pressed="true"] { background: #3A2940; }
 .linkish { color: #FF8FBF; }
 .ms-current { background: #2F6B56; color: var(--ink); }
-@media (max-width: 760px) { #menu { box-shadow: 6px 0 0 0 rgba(0, 0, 0, .4); } }
+@media (max-width: 760px), (max-height: 520px) and (pointer: coarse) { #menu { box-shadow: 6px 0 0 0 rgba(0, 0, 0, .4); } }
 .todo-edit .due-in.empty { color: #5F5880; }
 #lightIcon { display: inline-flex; margin-right: 6px; color: var(--soon); }
 
@@ -742,7 +748,7 @@ a.oc-tile:hover, a.oc-tile:focus-visible, button.oc-tile:hover, button.oc-tile:f
 .pv-note-foot > .btn-danger { margin-left: auto; }
 .pv-claude-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
 @container (max-width: 780px) {
-  .pv-hero, .pv-cols { grid-template-columns: 1fr; }
+  .pv-hero, .pv-cols { grid-template-columns: minmax(0, 1fr); }   /* not 1fr, which keeps the picture's 440 px on a phone (0.1.74) */
   .pv-hero-pic .pv-scene, .pv-under { width: 440px; max-width: 100%; }
 }
 
@@ -1146,7 +1152,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .wheel > .wheel-hub { pointer-events: none; }           /* a click there reaches the building under it */
 @keyframes wheel-in { from { opacity: 0; } }
 .wheel:focus { outline: none; }
-.wheel::before { content: ''; position: absolute; left: -112px; top: -112px; width: 224px; height: 224px; border-radius: 50%;
+.wheel::before { content: ''; position: absolute; left: calc(var(--r, 112px) * -1); top: calc(var(--r, 112px) * -1); width: calc(var(--r, 112px) * 2); height: calc(var(--r, 112px) * 2); border-radius: 50%;
   border: 2px dashed rgba(107, 99, 136, .85); pointer-events: none; }
 .wheel-hub { position: absolute; left: -38px; top: -38px; width: 76px; height: 76px; border-radius: 50%; background: var(--field); border: 2px solid var(--edge);
   box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--line); }
@@ -1193,6 +1199,11 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .gus-say.narrow .gus-say-body { order: 2; flex: 1 0 100%; }
 .gus-say.narrow .gus-say-close { margin-left: auto; }
 @media (prefers-reduced-motion: reduce) { .gus-say { transition: none; } }
+/* on a phone (0.1.74): under the Menu button rather than over it, and across the screen, with no side bar to point at */
+@media (max-width: 760px), (max-height: 520px) and (pointer: coarse) {
+  .gus-say { left: 12px; top: 58px; max-width: min(400px, calc(100% - 24px)); }
+  .gus-say::before { display: none; }
+}
 
 /* ---------- Reports (0.1.43): the side bar turns into them, as into Settings ---------- */
 .sb-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }   /* four buttons of one size, two by two (0.1.64) */
@@ -1638,3 +1649,12 @@ li.task .round-hat { margin-inline-start: 2px; }
 .pv-round-drop { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 2px dashed #2DB5A9; background: #2E2748; color: var(--ink); font-size: 13px; pointer-events: none; }
 /* Settings, Links: the wizard's address. */
 .set-field { display: grid; gap: 6px; font-size: 13.5px; color: var(--ink-soft); }
+
+/* ---------- a touch screen (0.1.74): fields at 16 px at least, as an iPhone zooms the page in on a smaller one, and no
+   words for keys a phone has not got. The names' and titles' own bigger fields keep their size. ---------- */
+@media (pointer: coarse) {
+  .field:not(.pv-name-in):not(.pv-note-title) { font-size: 16px; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .kb-only, .quick-add-keys { display: none; }
+}

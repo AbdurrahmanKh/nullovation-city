@@ -6,6 +6,7 @@
    the map closes it. */
 const Wheel = (() => {
   const R = 112;                                     // the ring the shortcuts stand on, in CSS pixels from the middle
+  const R_SMALL = 76;                                // on a map narrower than the wheel, as a phone's (0.1.74)
   const EDGE = 8;                                    // the wheel keeps this far inside the map
   let el = null, onOutside = null;
   function open(p, x, y) {
@@ -22,7 +23,7 @@ const Wheel = (() => {
       /* the edge nearest the middle touches the ring: left-aligned on the right, right-aligned on the left, centered
          only near the top and the bottom, so two buttons either side of the bottom keep apart */
       const a = h('a', { class: 'btn wheel-item', role: 'menuitem', href: t.href, target: t.blank ? '_blank' : null, rel: t.blank ? 'noopener noreferrer' : null, title: t.title,
-        'data-id': l.id, style: `--x: ${Math.round(sx * R)}px; --y: ${Math.round(-cy * R)}px; --ax: ${clamp(0.5 - sx, 0, 1).toFixed(3)}; --ay: ${((1 + cy) / 2).toFixed(3)}` },
+        'data-id': l.id, style: `--ax: ${clamp(0.5 - sx, 0, 1).toFixed(3)}; --ay: ${((1 + cy) / 2).toFixed(3)}` },
         iconEl(l.icon, 16), h('span', { class: 'wheel-label', dir: 'auto' }, t.name));
       a.addEventListener('click', () => setTimeout(close, 0));
       el.append(a);
@@ -32,21 +33,37 @@ const Wheel = (() => {
     enter.addEventListener('click', () => step(p.id));
     el.append(enter);
     $('#overlay').append(el);
-    /* the name sits over the highest piece and Enter under the lowest; then the whole wheel stays inside the map */
-    const parts = [...el.children].filter(c => c !== enter && !c.classList.contains('wheel-name'));
-    const off = c => { const r = c.getBoundingClientRect(), o = el.getBoundingClientRect(); return { left: r.left - o.left, right: r.right - o.left, top: r.top - o.top, bottom: r.bottom - o.top }; };
-    const rects = parts.map(off);
-    const hi = Math.min(...rects.map(r => r.top)), lo = Math.max(...rects.map(r => r.bottom));
+    const items = $$('.wheel-item', el);
     const name = $('.wheel-name', el);
-    name.style.top = Math.round(hi - name.offsetHeight - 8) + 'px';
-    enter.style.top = Math.round(lo + 10) + 'px';
-    const all = [...el.children].map(off);
-    const minX = Math.min(...all.map(r => r.left)), maxX = Math.max(...all.map(r => r.right));
-    const minY = Math.min(...all.map(r => r.top)), maxY = Math.max(...all.map(r => r.bottom));
+    const parts = [...el.children].filter(c => c !== enter && c !== name);
+    const off = c => { const r = c.getBoundingClientRect(), o = el.getBoundingClientRect(); return { left: r.left - o.left, right: r.right - o.left, top: r.top - o.top, bottom: r.bottom - o.top }; };
+    /* the shortcuts stand on a ring of radius r; given half, the room either side of the middle, each is cut short where
+       it would pass it, so those at the sides are cut and those at the top and the bottom keep their room. The name sits
+       over the highest piece and Enter under the lowest; what it all spans comes back. */
+    const ring = (r, half) => {
+      el.style.setProperty('--r', r + 'px');
+      items.forEach((a, k) => {
+        const ang = k * 2 * Math.PI / n, x = Math.sin(ang) * r, ax = clamp(0.5 - Math.sin(ang), 0, 1);
+        a.style.setProperty('--x', Math.round(x) + 'px');
+        a.style.setProperty('--y', Math.round(-Math.cos(ang) * r) + 'px');
+        const room = Math.min(ax < 1 ? (half - x) / (1 - ax) : Infinity, ax > 0 ? (half + x) / ax : Infinity);
+        a.style.maxWidth = half ? Math.max(64, Math.floor(Math.min(216, room))) + 'px' : '';
+      });
+      const rects = parts.map(off);
+      const hi = Math.min(...rects.map(q => q.top)), lo = Math.max(...rects.map(q => q.bottom));
+      name.style.top = Math.round(hi - name.offsetHeight - 8) + 'px';
+      enter.style.top = Math.round(lo + 10) + 'px';
+      const all = [...el.children].map(off);
+      return { minX: Math.min(...all.map(q => q.left)), maxX: Math.max(...all.map(q => q.right)),
+        minY: Math.min(...all.map(q => q.top)), maxY: Math.max(...all.map(q => q.bottom)) };
+    };
+    /* then the whole wheel stays inside the map: one wider than the map, as on a phone, stands on a smaller ring with
+       shorter labels (0.1.74) */
     const W = $('#mapWrap').clientWidth, H = $('#mapWrap').clientHeight;
+    let { minX, maxX, minY, maxY } = ring(R);
+    if (maxX - minX > W - 2 * EDGE) ({ minX, maxX, minY, maxY } = ring(R_SMALL, (W - 2 * EDGE) / 2));
     el.style.left = Math.round(clamp(x, EDGE - minX, Math.max(EDGE - minX, W - EDGE - maxX))) + 'px';
     el.style.top = Math.round(clamp(y, EDGE - minY, Math.max(EDGE - minY, H - EDGE - maxY))) + 'px';
-    const items = $$('.wheel-item', el);
     el.focus({ preventScroll: true });              // no shortcut picked yet, so Enter steps inside
     el.addEventListener('keydown', e => {
       const i = items.indexOf(document.activeElement);

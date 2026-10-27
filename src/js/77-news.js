@@ -423,7 +423,7 @@ const News = (() => {
   const box = () => $('#ldSay');
   function blocked() {
     return (typeof Gus !== 'undefined' && Gus.isSaying()) || (typeof Proxima !== 'undefined' && Proxima.busy())
-      || Panel.isOpen() || Confirm.isOpen();
+      || Panel.isOpen() || Confirm.isOpen() || !sayRoom();
   }
   /* What opens by itself: the news that opens by itself and has not shown yet, unless its building's card has it. */
   function pump() {

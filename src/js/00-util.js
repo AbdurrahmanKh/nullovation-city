@@ -25,6 +25,9 @@ function h(tag, attrs, ...kids) {
   return e;
 }
 
+/* Words about a key a phone has not got, such as Esc (0.1.74): the stylesheet hides them on a touch screen. */
+const kbOnly = text => h('span', { class: 'kb-only' }, text);
+
 const uid = (p = 'id') => p + '_' + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-5);
 
 function hashStr(s) {
@@ -45,6 +48,9 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeOut = t => 1 - Math.pow(1 - t, 3);
 const reducedMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+/* A narrow window, or a phone on its side (0.1.74): the side bar is a drawer there, as the stylesheet's small screens say. */
+const NARROW_SCREEN = '(max-width: 760px), (max-height: 520px) and (pointer: coarse)';
+const narrowScreen = () => !!(window.matchMedia && window.matchMedia(NARROW_SCREEN).matches);
 
 function debounce(fn, ms) {
   let t = null, args = [];

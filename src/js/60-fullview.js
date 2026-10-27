@@ -66,6 +66,13 @@ function panelEdge() {
   for (const el of $$('#mapWrap > .lv1')) if (!el.hidden) r = Math.max(r, el.getBoundingClientRect().right - left);
   return r;
 }
+/* Room for a speech bubble beside those panels (0.1.74): on a phone the project view or All tasks covers the whole map,
+   so a bubble that opens by itself waits until it closes, rather than open out of sight. */
+const SAY_ROOM = 200;
+function sayRoom() {
+  const wrap = $('#mapWrap');
+  return !wrap || wrap.clientWidth - panelEdge() >= SAY_ROOM;
+}
 
 /* The Project view: a panel docked on the left of the map. Each section edits on its own. */
 const FullView = (() => {
@@ -280,7 +287,7 @@ const FullView = (() => {
         h('div', null, h('span', { class: 'lbl' }, 'Description'), desc),
         h('div', null, h('span', { class: 'lbl' }, 'Deadline'), h('div', { class: 'inline' }, due, clear)),
         progressControls(p),
-        h('p', { class: 'note' }, 'Changes save as you type. Done closes the section; Esc undoes everything since it opened.')));
+        h('p', { class: 'note' }, 'Changes save as you type. Done closes the section', kbOnly('; Esc undoes everything since it opened'), '.')));
       return box;
     }
     box.append(p.description.trim() ? h('div', { class: 'fv-desc' }, paragraphs(p.description)) : h('p', { class: 'fv-empty' }, 'No description yet. The pencil adds one.'));
@@ -742,7 +749,7 @@ const FullView = (() => {
         h('button', { id: 'pvTaskToNote', class: 'btn btn-small', type: 'button', title: 'Keep it as an idea in Notes: its title and description stay; its date, repeat and shift go',
           onclick: () => turnIntoNote(p, t.id) }, iconEl('doc', 14), 'Turn into a note'),
         deleteTaskBtn(p, t)),
-      h('p', { class: 'note' }, 'Saves as you type. Done closes it; Esc undoes everything since it opened.'));
+      h('p', { class: 'note' }, 'Saves as you type. Done closes it', kbOnly('; Esc undoes everything since it opened'), '.'));
   }
   /* Delete task. An archived task deleted from its panel goes back to the archive; the last task of a milestone in
      the archive takes the milestone with it, since nothing would show it again. */
@@ -925,7 +932,7 @@ const FullView = (() => {
           closeSide(); render(); Bubble.refresh();
           toast('Milestone deleted.');
         } }, 'Delete milestone')),
-      h('p', { class: 'note' }, 'Saves as you type. Done closes it; Esc undoes the rename.'));
+      h('p', { class: 'note' }, 'Saves as you type. Done closes it', kbOnly('; Esc undoes the rename'), '.'));
   }
 
   /* Notes: cards, newest first. A card opens the full note beside the view; Add note starts a new one there. */
@@ -1006,7 +1013,7 @@ const FullView = (() => {
       const list = h('div', { class: 'link-list' }), warn = h('div');
       const rerender = () => { list.replaceChildren(...p.links.map(l => linkRow(p, l, rerender, list))); warn.replaceChildren(shortcutWarning(p)); };
       rerender();
-      box.append(list, warn, h('p', { class: 'note' }, 'Drag a link by its grip to move it, pick an icon, fix an address or a label, choose which are shortcuts, or remove a link. Done closes the section; Esc undoes everything since it opened.'));
+      box.append(list, warn, h('p', { class: 'note' }, 'Drag a link by its grip to move it, pick an icon, fix an address or a label, choose which are shortcuts, or remove a link. Done closes the section', kbOnly('; Esc undoes everything since it opened'), '.'));
       return box;
     }
     if (p.links.length) box.append(h('div', { class: 'links' }, p.links.map(linkButton)));
@@ -1153,7 +1160,7 @@ const FullView = (() => {
           toast('Note deleted.');
           if (t) backToTask(p, t.id);
         } }, 'Delete note')),
-      h('p', { class: 'note' }, (byClaude(n) ? [iconEl('claude', 12), ' '] : []).concat(noteWhen(n) + ' Saves as you type; Esc undoes.')));
+      h('p', { class: 'note' }, (byClaude(n) ? [iconEl('claude', 12), ' '] : []).concat(noteWhen(n) + ' Saves as you type', kbOnly('; Esc undoes'), '.')));
   }
   function refreshCard(n) {
     if (noteIn) return;                                   // a task's note has no card in Notes
