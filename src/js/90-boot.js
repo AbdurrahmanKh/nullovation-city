@@ -19,6 +19,7 @@
   Leaders.init();
   Bubble.init();
   MapView.init();
+  Sound.init();                                            // the Sound button, and audio from the first click (0.1.78)
   Settings.init();
   Reports.init();
   AllTasks.init();

@@ -494,6 +494,7 @@ const FullView = (() => {
   function archiveByHand(p, list, from = '') {
     const snaps = archiveTasks(list);
     if (!snaps.length) return 0;
+    Sound.task('archive', p);
     changed(p, { touch: false }); render(); Bubble.refresh();
     toast(snaps.length === 1 ? 'Archived ' + snaps[0].t.text + '.' : 'Archived ' + snaps.length + ' done tasks' + (from ? ' from ' + from : '') + '.', '', { label: 'Undo', run: () => {
       snaps.forEach(putBackArchive); changed(p, { touch: false });

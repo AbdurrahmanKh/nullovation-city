@@ -298,6 +298,7 @@ const QuickAdd = (() => {
       sync();
     } else close();
     if (FullView.shows(p.id)) FullView.render();
+    Sound.task('added', p);
     added(p, t, info);
     if (open) FullView.openTask(p.id, t.id);
   }

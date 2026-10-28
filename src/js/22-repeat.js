@@ -93,6 +93,7 @@ function tickTask(p, t, { now = Date.now(), log = true } = {}) {
   else { t.done = true; t.doneAt = now; }
   markWorked(p, now);
   if (log) logActivity(p, 'Done: ' + t.text);
+  if (typeof Sound !== 'undefined') Sound.ticked(p, t);             // its chime, or a repeat moving on (0.1.78)
   if (typeof Celebrate !== 'undefined') Celebrate.ticked(p, t);     // its particles, and a party for a finished milestone
   if (typeof Ghosts !== 'undefined') Ghosts.ticked(p, t);           // its ghost, if it haunts, rises and fades
   if (typeof News !== 'undefined') News.ticked(p, t);               // a milestone one task from done is its leader's news

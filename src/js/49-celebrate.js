@@ -120,6 +120,7 @@ const Celebrate = (() => {
     if (!Motion.still()) {
       parties.set(p.id, { pid: p.id, mid: m.id, t0: now, until: now + PARTY_MS, next: now + PARTY_EVERY });
       if (typeof Traffic !== 'undefined' && Traffic.active() && p.plot) Traffic.party(p.plot.u, p.plot.v, now + PARTY_MS, colorsOf(kindOf(p)));
+      if (typeof Sound !== 'undefined') Sound.party(p, PARTY_MS);             // its cheer and music (0.1.78)
       MapView.kick();
     }
     if (typeof Proxima !== 'undefined') Proxima.announce(p, m, n);

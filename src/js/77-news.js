@@ -462,6 +462,7 @@ const News = (() => {
     popped(list);
     const b = box();
     b.hidden = false;
+    if (auto && typeof Sound !== 'undefined') Sound.bubble();           // opening by itself: its sound, then the voice (0.1.78)
     draw();
     requestAnimationFrame(() => b.classList.add('show'));
     if (auto) sayT = setTimeout(() => hide({ read: false }), sayMs);
@@ -487,7 +488,7 @@ const News = (() => {
       h('span', { class: 'ld-say-thumb', 'aria-hidden': 'true' }, MapView.thumb(p)), h('bdi', null, p.name)));
     const v = viewOf(p, it, 'say');
     $('#ldSayText').replaceChildren(...v.nodes);
-    speak(it.id);
+    T.speak(it.id, voiceKey(sp));
     $('#ldSayMore').replaceChildren(...v.more);
     $('#ldSayActs').replaceChildren(...[...v.acts,
       h('button', { class: 'btn btn-small btn-quiet ld-go', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } }, 'Go to it'),
@@ -545,9 +546,10 @@ const News = (() => {
   /* ---------- talking (0.1.62, Leader UX E1): the line types out and the face bobs with it, then settles ---------- */
   /* Every letter is in the line from the start, see-through until its turn, so the bubble keeps its size and a screen
      reader hears the whole line once. A redraw of the same line carries on where it was; a line said already stays
-     whole; Next types the next one. Motion on Still shows it whole, with the face still. */
+     whole; Next types the next one. Motion on Still shows it whole, with the face still. Since 0.1.78 (City Sounds) Gus's
+     and Proxima's bubbles type theirs too, and each line carries its speaker's voice, a blip per letter. */
   const TYPE_MS = 26, TYPE_ALL_MS = 1800;                   // a letter every 26 ms, a long line in 1.8 seconds at most
-  let typeMs = TYPE_MS, talk = { id: null, n: 0, done: false, raf: 0 };
+  let typeMs = TYPE_MS;
   const graphemes = str => (typeof Intl !== 'undefined' && Intl.Segmenter
     ? [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(str)].map(x => x.segment) : Array.from(str));
   function letters(root) {
@@ -563,42 +565,55 @@ const News = (() => {
     walk(root);
     return out;
   }
-  /* Paced by the clock, a frame at a time, so a busy map makes no letter wait. */
-  function speak(id) {
-    const el = $('#ldSayText'), f = $('#ldSayFace');
-    cancelAnimationFrame(talk.raf);
-    if (talk.id !== id) talk = { id, n: 0, done: false, raf: 0 };
-    if (talk.done || Motion.still() || typeMs <= 0) { settle(); return; }
-    const ls = letters(el);
-    if (!ls.length) { settle(); return; }
-    const every = Math.max(8, Math.min(typeMs, TYPE_ALL_MS / ls.length));
-    talk.n = Math.min(talk.n, ls.length);
-    ls.slice(0, talk.n).forEach(x => x.classList.add('on'));
-    el.classList.add('typing');
-    if (f) f.classList.add('talking');
-    const t0 = performance.now() - talk.n * every;
-    const frame = now => {
-      if (!document.contains(ls[0])) return;                      // drawn again: that draw carries on
-      const n = Math.min(ls.length, Math.floor((now - t0) / every) + 1);
-      while (talk.n < n) ls[talk.n++].classList.add('on');
-      if (talk.n >= ls.length) settle(); else talk.raf = requestAnimationFrame(frame);
-    };
-    talk.raf = requestAnimationFrame(frame);
+  /* A bubble's line and face: speak(id, who) types the line, paced by the clock a frame at a time, so a busy map makes
+     no letter wait; who is the voice it carries (Sound.say). */
+  function typer(textSel, faceSel) {
+    let talk = { id: null, n: 0, done: false, raf: 0, voice: null };
+    const quiet = () => { if (talk.voice) talk.voice.stop(); talk.voice = null; };
+    function speak(id, who = null) {
+      const el = $(textSel), f = $(faceSel);
+      cancelAnimationFrame(talk.raf);
+      if (talk.id !== id) { quiet(); talk = { id, n: 0, done: false, raf: 0, voice: null }; }
+      if (talk.done || Motion.still() || typeMs <= 0) { settle(); return; }
+      const ls = letters(el);
+      if (!ls.length) { settle(); return; }
+      const every = Math.max(8, Math.min(typeMs, TYPE_ALL_MS / ls.length));
+      talk.n = Math.min(talk.n, ls.length);
+      ls.slice(0, talk.n).forEach(x => x.classList.add('on'));
+      el.classList.add('typing');
+      if (f) f.classList.add('talking');
+      if (!talk.voice && who && typeof Sound !== 'undefined') talk.voice = Sound.say(who, ls.slice(talk.n).map(x => x.textContent), every / 1000);
+      const t0 = performance.now() - talk.n * every;
+      const frame = now => {
+        if (!document.contains(ls[0])) return;                      // drawn again: that draw carries on
+        const n = Math.min(ls.length, Math.floor((now - t0) / every) + 1);
+        while (talk.n < n) ls[talk.n++].classList.add('on');
+        if (talk.n >= ls.length) settle(); else talk.raf = requestAnimationFrame(frame);
+      };
+      talk.raf = requestAnimationFrame(frame);
+    }
+    /* The line whole: its letters back to plain words, the face at rest. */
+    function settle() {
+      cancelAnimationFrame(talk.raf);
+      if (talk.id) talk.done = true;
+      const el = $(textSel), f = $(faceSel);
+      if (f) f.classList.remove('talking');
+      if (!el) return;
+      el.classList.remove('typing');
+      const ty = $$('.ty', el);
+      if (!ty.length) return;
+      for (const x of ty) x.replaceWith(x.firstChild || '');
+      el.normalize();
+    }
+    /* Closed: the line stops, voice and all. */
+    function hush() { settle(); quiet(); talk = { id: null, n: 0, done: false, raf: 0, voice: null }; }
+    return { speak, settle, hush, state: () => ({ id: talk.id, n: talk.n, done: talk.done }) };
   }
-  /* The line whole: its letters back to plain words, the face at rest. */
-  function settle() {
-    cancelAnimationFrame(talk.raf);
-    if (talk.id) talk.done = true;
-    const el = $('#ldSayText'), f = $('#ldSayFace');
-    if (f) f.classList.remove('talking');
-    if (!el) return;
-    el.classList.remove('typing');
-    const ty = $$('.ty', el);
-    if (!ty.length) return;
-    for (const x of ty) x.replaceWith(x.firstChild || '');
-    el.normalize();
-  }
-  function hush() { settle(); talk = { id: null, n: 0, done: false, raf: 0 }; }
+  const T = typer('#ldSayText', '#ldSayFace');
+  const hush = () => T.hush();
+  /* The voice a speaker talks in: Proxima's for a building with no leader, Quill's for him or a leader named Quill,
+     else the leader's own, from its id. */
+  const voiceKey = sp => (!sp.l ? 'proxima' : leaderName(sp.l).toLowerCase() === 'quill' ? 'quill' : 'ld:' + sp.l.id);
 
   /* ---------- the line: its task a link that opens it (0.1.60) ---------- */
   /* The task an item speaks of: the one it names by id, else by its title in the building. */
@@ -893,8 +908,8 @@ const News = (() => {
     pump();
     setInterval(check, 60000);                               // a new day, a new week, and pace slipping while the city stays open
   }
-  return { init, check, claude, ticked, add, report, renderSection, take, release, cardLines, viewLines, reportFace, yieldTo, hide, pump, redraw, plainReply,
+  return { init, check, claude, ticked, add, report, renderSection, take, release, cardLines, viewLines, reportFace, yieldTo, hide, pump, redraw, plainReply, typer,
     isShowing: () => !!bub, isHeld: () => !!bub && !bub.auto, items: () => sortItems(live()), lineOf,
-    _test: { sayMs: ms => { sayMs = ms; }, typeMs: ms => { typeMs = ms; }, talk: () => ({ id: talk.id, n: talk.n, done: talk.done }), state: () => JSON.parse(JSON.stringify(st)), bubble: () => bub && { ids: bub.list.map(x => x.id), i: bub.i, auto: bub.auto },
+    _test: { sayMs: ms => { sayMs = ms; }, typeMs: ms => { typeMs = ms; }, talk: () => T.state(), state: () => JSON.parse(JSON.stringify(st)), bubble: () => bub && { ids: bub.list.map(x => x.id), i: bub.i, auto: bub.auto },
       forget: () => { st = fresh(); save(); held.clear(); undos.clear(); }, held: pid => (held.get(pid) || []).map(x => x.id), reports: () => JSON.parse(JSON.stringify(st.reports)) } };
 })();

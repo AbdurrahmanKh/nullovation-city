@@ -5,7 +5,7 @@
 const Settings = (() => {
   const UI_KEY = 'nullovation-city:settings';
   const TABS = [
-    { id: 'city', label: 'City', icon: 'brand' }, { id: 'life', label: 'Life', icon: 'walker' }, { id: 'look', label: 'Look', icon: 'sun' },
+    { id: 'city', label: 'City', icon: 'brand' }, { id: 'life', label: 'Life', icon: 'walker' }, { id: 'look', label: 'Look', icon: 'sun' }, { id: 'sound', label: 'Sound', icon: 'sound' },
     { id: 'projects', label: 'Projects', icon: 'flag' }, { id: 'saving', label: 'Saving', icon: 'disk' }, { id: 'links', label: 'Links', icon: 'folder' },
   ];
   const LIFE = ['cars', 'buses', 'drones', 'cyclists', 'walkers', 'street', 'walk', 'crowd'];
@@ -30,6 +30,11 @@ const Settings = (() => {
     motion: { tab: 'look', get: () => Motion.mode(), def: () => Motion.dflt(), set: v => { Motion.set(v); MapView.invalidate(); MapView.kick(); } },
     caption: { tab: 'look', get: () => MapView.card().caption, def: () => MapView.CARD_DEFAULT.caption, set: v => MapView.setCard({ caption: v }) },
     cardSize: { tab: 'look', get: () => MapView.card().size, def: () => MapView.CARD_DEFAULT.size, set: v => MapView.setCard({ size: v }) },
+    /* sound (0.1.78, City Sounds): the bar's choice and a volume per group, kept on this computer */
+    sound: { tab: 'sound', get: () => Sound.mode(), def: () => 'all', set: v => Sound.setMode(v) },
+    volAlerts: { tab: 'sound', get: () => Sound.vol('alerts'), def: () => Sound.VOL_DEF, set: v => Sound.setVol('alerts', v) },
+    volVoices: { tab: 'sound', get: () => Sound.vol('voices'), def: () => Sound.VOL_DEF, set: v => Sound.setVol('voices', v) },
+    volMusic: { tab: 'sound', get: () => Sound.vol('music'), def: () => Sound.VOL_DEF, set: v => Sound.setVol('music', v) },
     rest: { tab: 'projects', ...city('rest') }, away: { tab: 'projects', ...city('away') },
     explorer: { tab: 'links', get: () => explorerLinks(), def: () => false, set: v => { try { localStorage.setItem(EXPLORER_KEY, v ? '1' : '0'); } catch (e) { /* this visit only */ } if (FullView.isOpen()) FullView.render(); } },
     /* where Wizard it opens the decision wizard (0.1.55): empty for the hosted one, or your own copy's address */
@@ -108,6 +113,8 @@ const Settings = (() => {
   const SIZES = [{ value: 'screen', label: 'As on screen' }, { value: 'double', label: 'Doubled' }];
   const WIZARD_OPENS = [{ value: 'app', label: 'Wizard app', hint: 'The installed Decision Wizard app, from any browser' }, { value: 'tab', label: 'Browser tab', hint: 'A tab in this browser' }];
   const times = v => (Math.round(v * 100) / 100) + 'x';
+  const pct = v => Math.round(v * 100) + '%';
+  const SOUND_NOTES = { all: 'Every sound the city makes.', events: "Tasks, alerts, voices and the street party; the city's own hum and street life stay quiet.", off: 'The city makes no sound.' };
   function slider(id, key) {
     const inp = $('#' + id);
     Object.assign(inp, { min: AMOUNTS.min, max: AMOUNTS.max, step: AMOUNTS.step });
@@ -158,6 +165,12 @@ const Settings = (() => {
     $('#optCaption').addEventListener('change', e => set('caption', e.target.checked));
     check('optGarbage', 'garbage');
     check('optGhosts', 'ghosts');
+    /* Sound */
+    for (const [id, key] of [['optVolAlerts', 'volAlerts'], ['optVolVoices', 'volVoices'], ['optVolMusic', 'volMusic']]) {
+      const inp = $('#' + id);
+      Object.assign(inp, { min: 0, max: 1, step: 0.05 });
+      inp.addEventListener('input', () => set(key, +inp.value));
+    }
     $('#btnPalette').addEventListener('click', () => paletteCanvas().toBlob(blob => {
       if (!blob) return;
       downloadBlob(blob, 'nullovation-city-palette.png');
@@ -201,6 +214,7 @@ const Settings = (() => {
     city: () => { for (const k of PROPS_KEYS) DEFS[k].set(DEFS[k].def()); },
     life: () => { DEFS.traffic.set(true); for (const k of LIFE) DEFS[k].set(DEFS[k].def()); },
     look: () => { for (const k of ['light', 'hours', 'bubbles', 'garbage', 'ghosts', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
+    sound: () => { for (const k of ['sound', 'volAlerts', 'volVoices', 'volMusic']) DEFS[k].set(DEFS[k].def()); },
     projects: () => { DEFS.rest.set([]); DEFS.away.set(''); },
     links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); DEFS.wizardOpen.set('app'); },
   };
@@ -233,6 +247,13 @@ const Settings = (() => {
     $('#optGarbage').checked = Garbage.isOn();
     $('#optGhosts').checked = Ghosts.isOn();
     choiceRow($('#optCardSize'), SIZES, MapView.card().size, v => set('cardSize', v));
+    choiceRow($('#optSound'), Sound.OPTIONS, Sound.mode(), v => set('sound', v));
+    $('#soundNote').textContent = SOUND_NOTES[Sound.mode()];
+    for (const [id, g] of [['optVolAlerts', 'alerts'], ['optVolVoices', 'voices'], ['optVolMusic', 'music']]) {
+      if (document.activeElement !== $('#' + id)) $('#' + id).value = Sound.vol(g);
+      $('#' + id + 'Out').textContent = pct(Sound.vol(g));
+      $('#' + id).disabled = Sound.mode() === 'off';
+    }
     const dayFocus = $('#optRest').contains(document.activeElement) ? document.activeElement.dataset.day : null;
     $('#optRest').replaceChildren(...DAYS.map(([d, name]) => h('button', { class: 'btn set-day', type: 'button', 'aria-pressed': String(c.rest.includes(d)), 'data-day': d,
       title: c.rest.includes(d) ? name + ': a rest day' : name + ': counts', onclick: () => { const r = DB.city.rest; set('rest', r.includes(d) ? r.filter(x => x !== d) : [...r, d].sort()); } }, name)));

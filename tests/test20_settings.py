@@ -1,12 +1,12 @@
 """Settings, the panel: the side bar turns into it, from its own button, the gear on the map's bar, or the comma key;
-six tabs; today's controls in their new places; changes at once with no toast; dots, resets, and reopening where it
+seven tabs (Sound since 0.1.78); today's controls in their new places; changes at once with no toast; dots, resets, and reopening where it
 was left. Saves a screenshot of every tab."""
 from playwright.sync_api import sync_playwright
 from testkit import FILE, SH, TEST_CITY, open_settings, close_settings
 
 errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
-TABS = ['city', 'life', 'look', 'projects', 'saving', 'links']
+TABS = ['city', 'life', 'look', 'sound', 'projects', 'saving', 'links']
 
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome')
@@ -45,10 +45,10 @@ with sync_playwright() as p:
     pg.keyboard.press(','); pg.wait_for_timeout(150); pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
     ok('Esc closes it, like every other layer', not pg.is_visible('#settings'))
 
-    # six tabs, each a pixel icon; each page shows only its own group
+    # seven tabs, each a pixel icon; each page shows only its own group
     open_settings(pg, 'city')
     names = js("() => [...document.querySelectorAll('#setTabs .set-tab')].map(b => b.dataset.tab + ':' + b.getAttribute('aria-label') + ':' + !!b.querySelector('svg'))")
-    ok(f'six tabs, each a pixel icon: City, Life, Look, Projects, Saving, Links ({names})', names == [f'{t}:{n}:true' for t, n in zip(TABS, ['City', 'Life', 'Look', 'Projects', 'Saving', 'Links'])])
+    ok(f'seven tabs, each a pixel icon: City, Life, Look, Sound, Projects, Saving, Links ({names})', names == [f'{t}:{n}:true' for t, n in zip(TABS, ['City', 'Life', 'Look', 'Sound', 'Projects', 'Saving', 'Links'])])
     for t in TABS:
         open_settings(pg, t)
         shown = js("() => [...document.querySelectorAll('#setBody .set-page')].filter(p => !p.hidden).map(p => p.dataset.tab)")
@@ -156,9 +156,9 @@ with sync_playwright() as p:
     for t in TABS:
         open_settings(pg, t); js("() => { document.querySelector('#menu').scrollTop = 0; }"); pg.wait_for_timeout(250)
         pg.screenshot(path=str(SH / f'200-settings-{t}.png'))
-    from PIL import Image                                   # the six side bars in one sheet, to look at together
+    from PIL import Image                                   # the side bars in one sheet, to look at together
     crops = [Image.open(SH / f'200-settings-{t}.png').crop((0, 0, 296, 900)) for t in TABS]
-    sheet = Image.new('RGB', (296 * 6 + 10 * 5, 900), (18, 15, 31))
+    sheet = Image.new('RGB', (296 * len(TABS) + 10 * (len(TABS) - 1), 900), (18, 15, 31))
     for k, im in enumerate(crops): sheet.paste(im, (k * 306, 0))
     sheet.save(SH / '203-settings-all-tabs.png')
     open_settings(pg, 'look'); pg.click('#optMotion [data-value="saver"]'); open_settings(pg, 'life'); pg.select_option('#optCrowds', 'large'); pg.wait_for_timeout(150)

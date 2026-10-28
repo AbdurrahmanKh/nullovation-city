@@ -247,11 +247,13 @@ const Proxima = (() => {
     state.spoke[kind] = r.per.key; save();
     say(r);
   }
+  let T = null, shown = 0;                                 // her line, typing out (0.1.78)
   function say(r) {
     const party = r.kind === 'milestone';
     if (typeof News !== 'undefined') News.yieldTo();            // a leader's news waits for her (Leader UX, N3)
     saying = { kind: r.kind, key: party ? r.key : r.per.key, item: party ? r : null };
     const box = $('#pxSay'), act = $('#pxSayRead');
+    if (T) T.hush();
     $('#pxSayText').textContent = r.line;
     if (!$('#pxSayFace').firstChild) $('#pxSayFace').append(faceImg());
     act.textContent = party ? 'Go to it' : 'Read';
@@ -261,12 +263,16 @@ const Proxima = (() => {
     box.style.left = edge ? Math.round(edge + 22) + 'px' : '';
     box.hidden = false;
     fitSay(box);
+    if (typeof Sound !== 'undefined') Sound.bubble();
+    if (!T) T = News.typer('#pxSayText', '#pxSayFace');
+    T.speak('px:' + ++shown, 'proxima');                   // her line types out in her voice, after a bubble's sound (0.1.78)
     requestAnimationFrame(() => box.classList.add('show'));
     clearTimeout(sayTimer);
     sayTimer = setTimeout(() => hush(), sayMs);
   }
   function hush(next = true) {
     clearTimeout(sayTimer);
+    if (T) T.hush();
     const box = $('#pxSay');
     if (box) { box.classList.remove('show'); box.hidden = true; }
     saying = null;

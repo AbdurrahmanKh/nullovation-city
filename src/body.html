@@ -182,6 +182,24 @@
           </section>
         </div>
 
+        <div class="set-page" data-tab="sound" role="tabpanel" hidden>
+          <section class="set-group">
+            <h3 class="set-h set-row" data-set="sound">What plays</h3>
+            <div id="optSound" class="set-choices" role="group" aria-label="Sound"></div>
+            <p id="soundNote" class="note"></p>
+            <p class="note">Sound starts with your first click, tap or key. While the city is out of view, only Claude Code's alerts play.</p>
+          </section>
+          <section class="set-group">
+            <h3 class="set-h">Volume</h3>
+            <div class="set-row set-slider" data-set="volAlerts"><label class="lbl" for="optVolAlerts">Alerts</label><input id="optVolAlerts" type="range"><output id="optVolAlertsOut" for="optVolAlerts"></output></div>
+            <p class="note">Claude Code finishing, waiting for you or stopped, a bubble opening by itself, Gus's alarms, and your tasks: a tick, a repeat moving on, a task added, starred or archived.</p>
+            <div class="set-row set-slider" data-set="volVoices"><label class="lbl" for="optVolVoices">Character voices</label><input id="optVolVoices" type="range"><output id="optVolVoicesOut" for="optVolVoices"></output></div>
+            <p class="note">A blip per letter as Gus, Proxima, Quill and the leaders talk.</p>
+            <div class="set-row set-slider" data-set="volMusic"><label class="lbl" for="optVolMusic">Music</label><input id="optVolMusic" type="range"><output id="optVolMusicOut" for="optVolMusic"></output></div>
+            <p class="note">A street party's music and its cheer.</p>
+          </section>
+        </div>
+
         <div class="set-page" data-tab="projects" role="tabpanel" hidden>
           <section class="set-group">
             <h3 class="set-h set-row" data-set="rest">Rest days</h3>
@@ -348,6 +366,7 @@
       <button id="btnTraffic" class="btn" type="button" title="Traffic"><span id="trafficIcon" aria-hidden="true"></span><span id="trafficLabel" class="mt-label">Traffic</span></button>
       <button id="btnBubbles" class="btn" type="button" title="Urgency bubbles"><span id="bubblesIcon" aria-hidden="true"></span><span id="bubblesLabel" class="mt-label">Bubbles</span></button>
       <button id="btnLight" class="btn" type="button" title="Day and night: Auto follows this computer's clock"><span id="lightIcon" aria-hidden="true"></span><span id="lightLabel" class="mt-label">Auto</span></button>
+      <button id="btnSound" class="btn btn-gear" type="button" title="Sound"><span id="soundIcon" aria-hidden="true"></span><span id="soundLabel" class="mt-label">All sounds</span></button>
       <button id="btnPostcard" class="btn" type="button" title="Save this view as a PNG"><span id="camIcon" aria-hidden="true"></span><span class="mt-label">Postcard</span></button>
       <div class="zoom" role="group" aria-label="Zoom">
         <button id="zoomOut" class="icon-btn" type="button" aria-label="Zoom out"></button>

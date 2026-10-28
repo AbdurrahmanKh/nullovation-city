@@ -76,7 +76,8 @@ const Gus = (() => {
   function render() {
     if (typeof News !== 'undefined') News.renderSection();
     const r = report();
-    $('#gusSayText').hidden = !line; $('#gusSayText').textContent = line;
+    const gt = $('#gusSayText');                                // the same line is left alone, so it types on (0.1.78)
+    gt.hidden = !line; if (gt.dataset.line !== line) { gt.dataset.line = line; gt.textContent = line; }
     const rl = reportLine(r);
     $('#gusReport').hidden = !rl; $('#gusReport').textContent = rl;
     const fl = fixLine(r);
@@ -90,6 +91,7 @@ const Gus = (() => {
 
   /* ---------- speaking ---------- */
   /* By himself, the bubble closes after 14 seconds; opened from his face (stay), it stays until closed. */
+  let T = null, shown = 0;                                       // his line types out in his voice (0.1.78, City Sounds)
   function show(stay) {
     saying = true;
     if (typeof Proxima !== 'undefined') Proxima.yieldToGus();   // never both at once: she says hers after him
@@ -99,11 +101,17 @@ const Gus = (() => {
     box.hidden = false;
     render();
     fitSay(box);
+    if (!T) T = News.typer('#gusSayText', '#gusSayFace');
+    T.speak('gus:' + ++shown, 'gus');
     requestAnimationFrame(() => box.classList.add('show'));
     clearTimeout(sayTimer);
     if (!stay) sayTimer = setTimeout(hush, sayMs);
   }
-  function say(text) { line = text; show(false); }
+  /* By himself: a bubble's sound as it opens, or his alarm's horn at 50 and 200 (0.1.78). */
+  function say(text, alarm = false) {
+    if (typeof Sound !== 'undefined') { if (alarm) Sound.gusAlarm(); else Sound.bubble(); }
+    line = text; show(false);
+  }
   function open() {
     show(true);
     const b = $('.gus-row', $('#gusSay')) || $('#gusSayClose');
@@ -111,6 +119,7 @@ const Gus = (() => {
   }
   function hush() {
     clearTimeout(sayTimer);
+    if (T) T.hush();
     const box = $('#gusSay'), had = box && box.contains(document.activeElement);
     if (box) { box.classList.remove('show'); box.hidden = true; }
     saying = false;
@@ -130,7 +139,7 @@ const Gus = (() => {
          passed on the way stay quiet until the total drops below them again. */
       const passed = MARKS.find(([m]) => total >= m && armed[m] && lastTotal < m);
       for (const [m] of MARKS) armed[m] = total < m ? true : armed[m] && lastTotal >= m ? armed[m] : false;
-      if (passed && days[passed[1]] !== d) { days[passed[1]] = d; saveDays(); say(pick(LINES[passed[1]])); }
+      if (passed && days[passed[1]] !== d) { days[passed[1]] = d; saveDays(); say(pick(LINES[passed[1]]), true); }
     }
     if (lastOnMap > 0 && onMap === 0 && total === 0) say(pick(LINES.clean));
     lastTotal = total; lastOnMap = onMap;

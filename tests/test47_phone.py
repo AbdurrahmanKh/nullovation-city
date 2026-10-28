@@ -44,8 +44,8 @@ with sync_playwright() as p:
 
     # the map's bar
     bar = ev(BAR)
-    ok(f'the map\'s bar fits the screen: Traffic, Bubbles, Time of day, Postcard, Zoom and Settings all inside 390 px ({bar})',
-       len(bar) == 6 and all(x['l'] >= 0 and x['r'] <= 390 for x in bar))
+    ok(f'the map\'s bar fits the screen: Traffic, Bubbles, Time of day, Sound, Postcard, Zoom and Settings all inside 390 px ({bar})',
+       len(bar) == 7 and all(x['l'] >= 0 and x['r'] <= 390 for x in bar))
     lab = ev("() => ['#trafficLabel', '#bubblesLabel', '#lightLabel', '#btnPostcard .mt-label'].map(s => { const e = document.querySelector(s), r = e.getBoundingClientRect(); return { w: r.width, text: e.textContent }; })")
     ok('its buttons wear their icons only: the words are hidden from sight', all(x['w'] <= 1 for x in lab))
     ok('and kept for screen readers, as the button\'s own words', [x['text'] for x in lab][:2] == ['Traffic', 'Bubbles'] and

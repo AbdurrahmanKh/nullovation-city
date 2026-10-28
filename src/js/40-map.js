@@ -1595,7 +1595,7 @@ const MapView = (() => {
   return {
     init, invalidate, frameAll, setCam, select, deselect, glideTo, startPlace, cancelMode, anchors, blockPreview, light, _lit: () => lightId,
     resizeWorld, outerRingEmpty, canResize, addLine, canLine, lineEmpty, hop, postcard, applyWorld, blockPng,
-    moving: () => mode.name === 'move', placing: () => mode.name === 'place', closeDrop: () => { const was = !!openDrop; closeDrop(); return was; },
+    moving: () => mode.name === 'move', placing: () => mode.name === 'place', closeDrop: () => { const was = !!openDrop; closeDrop(); return was; }, dropUp,
     genericPreview: (id, scale = 2) => livePreview({ id: '__pick_' + id, art: { has: false, includesPlot: false }, generic: id }, scale),
     previewScale, profileScene, glideBeside,
     bubbleMode: () => bubbleMode, bubbleAt: id => eachBubble(b => b.p.id === id && b.kind !== 'claude'), claudeBubbleAt: id => eachBubble(b => b.p.id === id && b.kind === 'claude'),

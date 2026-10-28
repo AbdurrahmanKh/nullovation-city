@@ -40,7 +40,7 @@ const ClaudeWork = (() => {
       if (e && e.name === 'AbortError') return;
       toast('That folder could not be used. Pick a different folder.', 'error'); return;
     }
-    dir = d; state = 'on'; files.clear(); summaryAt = 0;
+    dir = d; state = 'on'; files.clear(); summaryAt = 0; primed = false; lastState.clear();
     const stays = await Store.putHandle(d, HANDLE);
     await checkWrite();
     await poll();
@@ -73,9 +73,13 @@ const ClaudeWork = (() => {
   async function poll() {
     clearTimeout(timer);
     if (state !== 'on' || !dir || busy) { if (state === 'on') schedule(); return; }
-    if (document.hidden) { schedule(); return; }       // nobody is looking: read again when the tab shows
+    /* Nobody is looking: read again when the tab shows; with sound on, read the sessions anyway, for Claude Code's
+       alerts out of view (0.1.78, City Sounds, C4), and leave the rest for when it shows. */
+    const away = document.hidden;
+    if (away && !(typeof Sound !== 'undefined' && Sound.listening())) { schedule(); return; }
     busy = true;
-    let moved = false;
+    let moved = owed;
+    owed = false;
     try {
       const present = new Set();
       let mark = false;
@@ -101,6 +105,8 @@ const ClaudeWork = (() => {
       files.clear(); moved = true;
     }
     busy = false;
+    heard();
+    if (away) { owed = moved; if (state === 'on') schedule(); return; }
     const writer = typeof DataFile === 'undefined' || DataFile.isWriter();
     if (canWrite && !summaryAt) writeSummary();
     let placed = place();                              // the sessions as they are now, so an update finds the session it came from (0.1.68)
@@ -111,6 +117,27 @@ const ClaudeWork = (() => {
     else if (shown()) render();                        // keeps "last heard" true while Settings shows it
     if (state === 'on') schedule();
   }
+  /* Claude Code finishing, waiting for you or stopping on an error: its alert, once per time it gets there, for a
+     session a building claims (0.1.78). What the folder holds when the city first reads it is old news. */
+  let owed = false, primed = false;
+  const lastState = new Map();                                // session -> its state, as last read
+  function heard() {
+    if (state !== 'on') return;
+    const now = Date.now(), index = folderIndex(), keep = new Set();
+    for (const { s } of files.values()) {
+      if (!s) continue;
+      keep.add(s.session);
+      const was = lastState.get(s.session);
+      if (was === s.state) continue;
+      lastState.set(s.session, s.state);
+      /* a session closed after it finished is no news: it finished already */
+      if (!primed || s.ended || !['done', 'waiting', 'failed'].includes(s.state) || now - s.at > 120e3) continue;
+      const p = owner(s, index);
+      if (p && typeof Sound !== 'undefined') Sound.claude(s.state, p);
+    }
+    for (const k of [...lastState.keys()]) if (!keep.has(k)) lastState.delete(k);
+    primed = true;
+  }
   function sessionOf(d) {
     if (!d || d.app !== 'nullovation-city' || d.kind !== 'claude-session' || !d.session || typeof d.at !== 'number') return null;
     const str = v => (typeof v === 'string' ? v : '');
@@ -119,7 +146,7 @@ const ClaudeWork = (() => {
     const state = str(d.state) === 'ended' && str(d.reply) ? 'done' : str(d.state);
     /* A turn Claude Code starts on its own (a background task's notice) arrives as a prompt in a tag; it is no ask. */
     const ask = /^\s*<[a-z][\w-]*[\s>]/i.test(str(d.ask)) ? '' : str(d.ask);
-    return { session: str(d.session), state, at: d.at, since: typeof d.since === 'number' ? d.since : d.at,
+    return { session: str(d.session), state, ended: str(d.state) === 'ended', at: d.at, since: typeof d.since === 'number' ? d.since : d.at,
       cwd: str(d.cwd), project: str(d.project), task: str(d.task), ask, reply: str(d.reply) };
   }
 

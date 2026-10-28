@@ -215,6 +215,7 @@ function setStar(p, t, on) {
     for (const q of DB.projects) q.star = '';
     p.star = t.id; p.pin = t.id;                          // starring pins it too (M6)
     if (was && was.t !== t) toast('The star moved to ' + t.text + '.');
+    if ((!was || was.t !== t) && typeof Sound !== 'undefined') Sound.task('star', p);
   } else if (p.star === t.id) p.star = '';
   changed(p, { touch: false });
 }

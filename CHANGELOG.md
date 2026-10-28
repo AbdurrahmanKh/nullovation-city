@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.78 (2026-10-28)
+
+City sounds, part 1: the events, from City Sounds, Rounds 1 and 2. The city makes sound for the first time, all of it made in code with the browser's own audio, as the sound board played it.
+- Tasks in the SNES era style (S1): a tick's chime, coins for a building whose particles are coins or dollars, a repeat moving on, a task added from the line over the map, a task starred, a done task archived by hand.
+- Alerts in the SNES era style: Claude Code finishing, waiting for you or stopped on an error; a bubble opening by itself; Gus's horn when the garbage passes 50 and 200.
+- The street party in the 8-bit chip style: a cheer as it starts, then its music for its 30 seconds.
+- Characters talking in the 8-bit chip style: a blip per letter as a line types out, each in its own voice: Gus low and gruff, Proxima a radio chirp, Quill a sparkle, each leader its own pitch and tone. Gus's and Proxima's own lines now type out in their bubbles too, their faces talking, as the leaders' do.
+- Sound is on by default and starts with the first click, tap or key (C1). A Sound button on the map's bar, its speaker alone, opens All sounds, Events only and No sound, in step with a new Sound tab in Settings (C2). Events only leaves out the city's own sounds, which come in part 2.
+- The Sound tab has a volume for each group, as grouped in Round 2: Alerts (alerts and tasks), Character voices and Music (the party) (C3). The choice and the volumes are kept on each computer.
+- Out of view, only Claude Code's alerts play, so the city reads the Claude folder while hidden too, with sound on (C4).
+- From the view (C5): a tick or an alert comes from its building's side of the screen, a little louder zoomed in, and a party's music fades once its block leaves the view.
+- On a window under 1180 px wide the map's bar wears its icons only, as on a phone, so it never runs under the side bar; the Q and E hint steps aside under 1320 px. On a phone 380 px wide or less its buttons sit a little closer, so all seven fit.
+- Tests: test49_sound checks sound before and after the first click, the bar's button and its drop-up, the Sound tab, every event's sound and its place, the party, each voice, out of view, No sound, every sound rendered offline for its level, and the bar on narrower windows.
+
 ## 0.1.77 (2026-10-27)
 
 Shifts, redrawn: how Create, Think and Errand look and work, from Shifts UX, Rounds 1 and 2.

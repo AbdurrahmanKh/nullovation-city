@@ -1061,7 +1061,7 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .set-help-btn { margin-left: auto; box-shadow: var(--px-edge); width: 26px; height: 26px; }
 .set-help-btn[aria-expanded="true"] { background: var(--hover); }
 .settings .help { padding: 10px 12px; border: 0; background: var(--field); box-shadow: var(--px-edge); margin: 2px; }
-.set-tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.set-tabs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .set-tab { position: relative; display: grid; place-items: center; height: 36px; margin: 2px; padding: 0; background: var(--paper); border: 0; color: var(--ink-soft); box-shadow: var(--px-edge); cursor: pointer; }
 .set-tab:hover { background: var(--hover); color: var(--ink); }
 .set-tab[aria-selected="true"] { background: var(--accent); color: #fff; --ic-o: #fff; }
@@ -1111,6 +1111,20 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 
 /* the gear on the map's bar */
 .map-tools .btn-gear { padding: 8px 9px 7px; }
+#btnSound .mt-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }   /* its icon alone: the words are its drop-up's (0.1.78) */
+/* A window too narrow for the bar's words: its icons only, as on a phone, so it never runs under the side bar; and the
+   Q and E hint steps aside before the bar reaches it (0.1.78) */
+@media (max-width: 1180px) {
+  .map-tools .mt-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .map-tools #lightIcon { margin-right: 0; }
+}
+@media (max-width: 1320px) { .keyhint { display: none; } }
+/* a small phone: seven buttons, Sound among them, a little closer together so all of them fit 360 px (0.1.78) */
+@media (max-width: 380px) {
+  .map-tools { gap: 3px; }
+  .map-tools .btn { padding-left: 8px; padding-right: 8px; }
+  .map-tools .zoom output { min-width: 30px; }
+}
 .btn-gear > span { display: inline-flex; }
 
 /* ---------- Edit City: a bar over the map, and an arrow pair on each side of the city ---------- */
@@ -1511,9 +1525,10 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 @keyframes face-breathe { 0% { transform: translateY(1px); } 60% { transform: translateY(0); } 94% { transform: translateY(1px); } }
 .ld-say-face.talking .breathes > * { animation: face-talk 620ms steps(1, end) infinite; }
 @keyframes face-talk { 0% { transform: translateY(0); } 18% { transform: translateY(1px); } 34% { transform: translateY(0); } 58% { transform: translateY(1px); } 70% { transform: translateY(0); } 88% { transform: translateY(1px); } }
-.m-still .breathes > *, .m-still .ld-say-face.talking .breathes > * { animation: none; }
-#ldSayText.typing .ty { opacity: 0; }
-#ldSayText.typing .ty.on { opacity: 1; }
+.gus-face.talking > img { animation: face-talk 620ms steps(1, end) infinite; }   /* Gus and Proxima talk in their bubbles too (0.1.78) */
+.m-still .breathes > *, .m-still .ld-say-face.talking .breathes > *, .m-still .gus-face.talking > img { animation: none; }
+.gus-say-text.typing .ty { opacity: 0; }
+.gus-say-text.typing .ty.on { opacity: 1; }
 
 /* the leader's face beside a building's row in Reports (0.1.59) */
 .rp-row .rp-leader { flex: none; }
