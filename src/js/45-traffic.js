@@ -816,6 +816,21 @@ const Traffic = (() => {
     busyness: p => busyness(p),
     crowd: () => DB.city.crowd,
     setCrowd: v => { if (!(v in CROWD_PER)) return; DB.city.crowd = v; persistSoon(); lastBalance = 0; },
+    /* The traffic as the ear finds it, in world pixels (0.1.79, City sounds): each car and bus with whether it waits and
+       the stop it served last, each drone in the air, and the people standing to talk and walking. */
+    heard: () => {
+      if (!on || Motion.still()) return { cars: [], drones: [], talk: [], walk: [] };
+      const toW = MapView.tileToWorld, out = { cars: [], drones: [], talk: [], walk: [] };
+      for (const c of cars) { const [i, j] = carPos(c), [x, y] = toW(i, j); out.cars.push({ o: c, x, y, bus: c.type === 'bus', waits: c.wait > 0, stop: c.served || '' }); }
+      for (const d of drones.concat(cdrones)) { const [x, y] = toW(d.i, d.j); out.drones.push({ o: d, x, y: y - d.alt }); }
+      for (const q of people) {
+        const at = here(q); if (!at) continue;
+        const [x, y] = toW(at[0], at[1]);
+        if (q.mode === 'pause' && q.talk) out.talk.push({ o: q, x, y });
+        else if (q.mode === 'walk' || q.mode === 'path') out.walk.push({ o: q, x, y });
+      }
+      return out;
+    },
     _state: () => ({ cars, people, riders, drones, cdrones, busy, parties, pdrones }),
     _curbs: (u, v) => [...curbsOf(u, v)],
     /* for the tests: a look, and the sprite rows and canvases the map draws */

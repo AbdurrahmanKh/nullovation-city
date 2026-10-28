@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.79 (2026-10-28)
+
+City sounds, part 2: the city's own sounds, from City Sounds, Rounds 1 and 2, all in the SNES era style (S1) and made in code.
+- The city's hum follows Time of day: by day far traffic and voices over a low air tone, by night a lower hum with crickets, dusk and dawn the two blended. It plays at every zoom.
+- Street life follows the traffic on screen: the engines of the nearest cars and bus, followed as they drive, each from its side of the screen; a bus at its stop, its air and its doors; the drones' rotors; talk where people stand together, and footsteps when you are right among them.
+- The cleanup: the hover truck's hum as it comes and goes, the crew's brooms as they sweep, and a soft glint where each piece goes.
+- From the view (C5): the street and the cleanup come in as you zoom in and are heard only on screen, the middle loudest; zoomed out, only the hum. How near counts by how much of the city the map shows, so a phone and a computer agree.
+- No sharp sound in the city or the hum, as his note on O1 asks: no ding at the bus stop, no brakes' squeal, no cyclist's bell, and the brooms and the glint low and soft.
+- Settings, Sound: a City sounds volume, first of four as his note lists them. Events only leaves the city's own sounds out, and its volume waits then. Out of view they go quiet, with the voices and the music.
+- Tests: test49_sound checks the hum by day, at dusk and by night with its crickets, the street coming in as you zoom in and quiet with Traffic off, the engines followed on screen, the truck, brooms and glints of a cleanup, the City sounds volume, Events only, and each new sound rendered for its level, none of the street's above the hum.
+
 ## 0.1.78 (2026-10-28)
 
 City sounds, part 1: the events, from City Sounds, Rounds 1 and 2. The city makes sound for the first time, all of it made in code with the browser's own audio, as the sound board played it.

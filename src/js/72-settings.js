@@ -32,6 +32,7 @@ const Settings = (() => {
     cardSize: { tab: 'look', get: () => MapView.card().size, def: () => MapView.CARD_DEFAULT.size, set: v => MapView.setCard({ size: v }) },
     /* sound (0.1.78, City Sounds): the bar's choice and a volume per group, kept on this computer */
     sound: { tab: 'sound', get: () => Sound.mode(), def: () => 'all', set: v => Sound.setMode(v) },
+    volCity: { tab: 'sound', get: () => Sound.vol('city'), def: () => Sound.VOL_DEF, set: v => Sound.setVol('city', v) },
     volAlerts: { tab: 'sound', get: () => Sound.vol('alerts'), def: () => Sound.VOL_DEF, set: v => Sound.setVol('alerts', v) },
     volVoices: { tab: 'sound', get: () => Sound.vol('voices'), def: () => Sound.VOL_DEF, set: v => Sound.setVol('voices', v) },
     volMusic: { tab: 'sound', get: () => Sound.vol('music'), def: () => Sound.VOL_DEF, set: v => Sound.setVol('music', v) },
@@ -114,7 +115,7 @@ const Settings = (() => {
   const WIZARD_OPENS = [{ value: 'app', label: 'Wizard app', hint: 'The installed Decision Wizard app, from any browser' }, { value: 'tab', label: 'Browser tab', hint: 'A tab in this browser' }];
   const times = v => (Math.round(v * 100) / 100) + 'x';
   const pct = v => Math.round(v * 100) + '%';
-  const SOUND_NOTES = { all: 'Every sound the city makes.', events: "Tasks, alerts, voices and the street party; the city's own hum and street life stay quiet.", off: 'The city makes no sound.' };
+  const SOUND_NOTES = { all: 'Every sound the city makes.', events: "Tasks, alerts, voices and the street party; the city's own hum, street life and cleanup stay quiet.", off: 'The city makes no sound.' };
   function slider(id, key) {
     const inp = $('#' + id);
     Object.assign(inp, { min: AMOUNTS.min, max: AMOUNTS.max, step: AMOUNTS.step });
@@ -166,7 +167,7 @@ const Settings = (() => {
     check('optGarbage', 'garbage');
     check('optGhosts', 'ghosts');
     /* Sound */
-    for (const [id, key] of [['optVolAlerts', 'volAlerts'], ['optVolVoices', 'volVoices'], ['optVolMusic', 'volMusic']]) {
+    for (const [id, key] of [['optVolCity', 'volCity'], ['optVolAlerts', 'volAlerts'], ['optVolVoices', 'volVoices'], ['optVolMusic', 'volMusic']]) {
       const inp = $('#' + id);
       Object.assign(inp, { min: 0, max: 1, step: 0.05 });
       inp.addEventListener('input', () => set(key, +inp.value));
@@ -214,7 +215,7 @@ const Settings = (() => {
     city: () => { for (const k of PROPS_KEYS) DEFS[k].set(DEFS[k].def()); },
     life: () => { DEFS.traffic.set(true); for (const k of LIFE) DEFS[k].set(DEFS[k].def()); },
     look: () => { for (const k of ['light', 'hours', 'bubbles', 'garbage', 'ghosts', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
-    sound: () => { for (const k of ['sound', 'volAlerts', 'volVoices', 'volMusic']) DEFS[k].set(DEFS[k].def()); },
+    sound: () => { for (const k of ['sound', 'volCity', 'volAlerts', 'volVoices', 'volMusic']) DEFS[k].set(DEFS[k].def()); },
     projects: () => { DEFS.rest.set([]); DEFS.away.set(''); },
     links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); DEFS.wizardOpen.set('app'); },
   };
@@ -249,10 +250,10 @@ const Settings = (() => {
     choiceRow($('#optCardSize'), SIZES, MapView.card().size, v => set('cardSize', v));
     choiceRow($('#optSound'), Sound.OPTIONS, Sound.mode(), v => set('sound', v));
     $('#soundNote').textContent = SOUND_NOTES[Sound.mode()];
-    for (const [id, g] of [['optVolAlerts', 'alerts'], ['optVolVoices', 'voices'], ['optVolMusic', 'music']]) {
+    for (const [id, g] of [['optVolCity', 'city'], ['optVolAlerts', 'alerts'], ['optVolVoices', 'voices'], ['optVolMusic', 'music']]) {
       if (document.activeElement !== $('#' + id)) $('#' + id).value = Sound.vol(g);
       $('#' + id + 'Out').textContent = pct(Sound.vol(g));
-      $('#' + id).disabled = Sound.mode() === 'off';
+      $('#' + id).disabled = Sound.mode() === 'off' || (g === 'city' && Sound.mode() !== 'all');   // Events only leaves the city out
     }
     const dayFocus = $('#optRest').contains(document.activeElement) ? document.activeElement.dataset.day : null;
     $('#optRest').replaceChildren(...DAYS.map(([d, name]) => h('button', { class: 'btn set-day', type: 'button', 'aria-pressed': String(c.rest.includes(d)), 'data-day': d,
