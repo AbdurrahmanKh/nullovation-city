@@ -380,7 +380,7 @@ const Sound = (() => {
   /* ---------- the city's own sounds (0.1.80): a loop, as the third sound board played it ---------- */
   /* His picks on the third board (section 6, City Sounds): the hum, Less air by day and subtler at night, crossfading with
      the time of day and rising and falling with no pattern; the server room and the relays on top of it; now and then a
-     street sound, on two layers by day and one at night, every 3 to 5 seconds; the crowd on a layer of its own at the
+     street sound, on two layers by day and one at night, every 4 to 5 seconds; the crowd on a layer of its own at the
      closest zoom; and the computers at work and the power hum while Claude Code works. The street and the buildings at
      work get louder as you zoom in, the hum stays. It is not tied to the cars on the map (0.1.79 followed them, and he
      found it a hiss): it follows the time of day, the zoom, Traffic and who is out. */
@@ -468,8 +468,23 @@ const Sound = (() => {
     noise(A, t, dur, { type: 'bandpass', f: 2200, q: 0.8, vol: 0.09, a: 0.01, hold: dur * 0.9, dest: trem });
     return dur;
   }
-  /* The cyclist's bell, as on the first board: two rings. */
-  function bell(A, t, pan) { [0, 0.22].forEach(d => note(A, t + d, 2093, 0.6, { vol: 0.16, ratio: 1.41, index: 1.2, pan })); return 1; }
+  /* The cyclist's bell, a real bell's trill from far off (the fourth board, 0.1.81): the thumb lever strikes the dome five
+     to eight times, fast and a little uneven, partials a touch apart beating like metal, muffled. Two clean rings of the
+     FM bell (0.1.80) read as a notification. */
+  function bell(A, t, pan) {
+    const c = A.ctx, lp = biq(c, 'lowpass', 1500, 0.5), f = 1750 + A.r() * 150, n = 5 + Math.floor(A.r() * 4);
+    route(A, lp, { pan });
+    let x = t;
+    for (let i = 0; i < n; i++) {
+      const v = 0.08 * (0.75 + A.r() * 0.25);
+      for (const [fr, w] of [[f, 1], [f * 1.031, 0.8], [f * 1.53, 0.3], [f * 2.27, 0.15]]) {
+        const s = mkOsc(A, 'sine', fr, x, x + 0.4), e = envGain(A, x, { a: 0.001, peak: v * w, dur: 0.4 }); s.connect(e); e.connect(lp);
+      }
+      noise(A, x, 0.006, { type: 'bandpass', f: 3000, q: 1.5, vol: v * 0.8, a: 0.0005, dest: lp });
+      x += 0.05 + A.r() * 0.025;
+    }
+    return x - t + 0.5;
+  }
   /* The crowd round a busy building, the soft version: four voices through vowel shapes, and footsteps. */
   const VOWELS = { a: [800, 1200], e: [420, 2000], i: [300, 2400], o: [460, 820], u: [330, 700] };
   const vowelOf = ch => { const k = ch.toLowerCase(); if ('aeiou'.includes(k)) return k; if (k === 'y') return 'i'; if (k === 'w') return 'u'; return 'aeiou'[k.charCodeAt(0) % 5]; };
@@ -627,11 +642,11 @@ const Sound = (() => {
     if (dark > 0.5) crickets(cs.crk, cs, from, to); else for (const k of cs.crickets) k.next = Math.max(k.next, to);
     relays(cs.work, cs, from, to);
     if (cs.power) computers(cs.work, cs, from, to);
-    const out = streetKinds(), n = dark > 0.5 ? 1 : 2;           // two layers by day, one at night, every 3 to 5 seconds
+    const out = streetKinds(), n = dark > 0.5 ? 1 : 2;           // two layers by day, one at night, every 4 to 5 seconds
     cs.layersOn = out.kinds.length ? n : 0;
     cs.layers = cs.layers.map((at, i) => {
       if (i >= n || !out.kinds.length) return Math.max(at, to);
-      while (at < to) { nowAndThen(cs, out.kinds, Math.max(at, from)); at += 3 + cs.A.r() * 2; }
+      while (at < to) { nowAndThen(cs, out.kinds, Math.max(at, from)); at += 4 + cs.A.r(); }
       return at;
     });
     /* the crowd: its own layer at the closest zoom, every 3 to 9 seconds; zooming in brings the first at once */

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.81 (2026-10-30)
+
+City sounds: the cyclist's bell as a far trill, and the street's now and then a little less often.
+- The cyclist's bell is a real bell's trill from far off: a quick, muffled rattle of five to eight strikes, in place of two clean rings that sounded like a notification.
+- Now and then plays every 4 to 5 seconds on each layer, up from 3 to 5, so the street's sounds have more room between them. The crowd at the closest zoom keeps its 3 to 9 seconds.
+- Tests: test49_sound checks the new pace by day and by night, and the trill's level under a passing car.
+
 ## 0.1.80 (2026-10-29)
 
 City sounds, the city's own, rebuilt as a loop from the third sound board, in place of 0.1.79's street that followed the cars on the map.

@@ -271,7 +271,7 @@ with sync_playwright() as p:
     c = city()
     ok(f"by day at 2x: the street at 55% of 60%, the buildings at 60%, on two layers ({c})", c['street'] == 0.33 and c['work'] == 0.6 and c['layers'] == 2 and c['dark'] == 0)
     day = cityLog()
-    ok(f"now and then, about every 3 to 5 seconds on each of two layers: a car, a honk, the bus, a drone, the bell ({day})", 3 <= sum(k in ('car', 'honk', 'bus', 'drone', 'bell') for k in day) <= 9 and set(day) <= {'car', 'honk', 'bus', 'drone', 'bell', 'truck'})
+    ok(f"now and then, about every 4 to 5 seconds on each of two layers: a car, a honk, the bus, a drone, the bell ({day})", 2 <= sum(k in ('car', 'honk', 'bus', 'drone', 'bell') for k in day) <= 6 and set(day) <= {'car', 'honk', 'bus', 'drone', 'bell', 'truck'})
     ok('no crowd below the closest zoom', 'crowd' not in day)
     rel = city()['counts']
     runs = sum(rel.get(k, 0) - rel0.get(k, 0) for k in ('relay:clicks', 'relay:knocks'))
@@ -291,7 +291,7 @@ with sync_playwright() as p:
     cn = city()
     ok(f"by night: the subtler hum, one layer, and the crickets ({cn['layers']} layer, {cn['counts'].get('cricket', 0)} chirps so far)", cn['dark'] == 1 and cn['layers'] == 1 and cn['counts'].get('cricket', 0) >= 3)
     night = [k for k in cityLog() if k != 'truck']
-    ok(f"at night's pace, every 3 to 5 seconds on one layer ({night})", 1 <= len(night) <= 4)
+    ok(f"at night's pace, every 4 to 5 seconds on one layer ({night})", 1 <= len(night) <= 3)
     js("() => Light.setMode('day')")
     # Claude Code working anywhere: the computers at work and the power hum join, and go when it stops
     js(S('s9', 'working', GARDEN, 0, task='Water the beds')); pg.wait_for_timeout(5000)
@@ -326,6 +326,7 @@ with sync_playwright() as p:
     by = {r['id']: r for r in res}
     ok(f"the night's hum subtler than the day's, by 6 dB or more ({by['hum-day']['rmsDb']}, {by['hum-night']['rmsDb']})", by['hum-day']['rmsDb'] - by['hum-night']['rmsDb'] >= 6)
     ok(f"the street's sounds sit with the day's hum, none above it by more than 3 dB ({ {k: by[k]['rmsDb'] for k in ('hum-day', 'car', 'bus', 'drone', 'truck')} })", all(by[k]['rmsDb'] <= by['hum-day']['rmsDb'] + 3 for k in ('car', 'bus', 'drone', 'truck', 'bell', 'crowd')))
+    ok(f"the cyclist's bell, a far trill since 0.1.81, under a passing car ({by['bell']['rmsDb']} against {by['car']['rmsDb']} dB)", by['bell']['rmsDb'] < by['car']['rmsDb'] and by['bell']['seconds'] > 0.5)
     ok(f"the relays heard over the hum: their clicks peak above it ({by['relays']['peak']} against {by['hum-day']['peak']})", by['relays']['peak'] > by['hum-day']['peak'])
     ok('the party runs on (10 seconds rendered, music all the way)', [r for r in res if r['id'] == 'party'][0]['seconds'] > 9.5)
     print('NOTE levels: ' + ', '.join(f"{r['id']} {r['rmsDb']} dB pk {r['peak']}" for r in res))
