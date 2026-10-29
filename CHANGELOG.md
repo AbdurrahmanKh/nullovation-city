@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.80 (2026-10-29)
+
+City sounds, the city's own, rebuilt as a loop from the third sound board, in place of 0.1.79's street that followed the cars on the map.
+- The hum: by day a warm low note with hardly any air in it, at night a subtler one, the two crossfading with the time of day. It rises and falls slowly, with no pattern, and stays the same at every zoom.
+- Buildings at work on top of it: the server room all the time, and the relays clicking, runs of clicks and, one run in three, knocks, a few seconds apart.
+- While a Claude Code session works anywhere in the city, the computers at work bleep in bursts and the power hum joins; both fade once it stops.
+- Now and then, every 3 to 5 seconds, on two layers by day and one at night: a car passing with a honk, a honk from another street, the bus at its stop, a drone, or a cyclist's bell. The honks come three ways, picked at random, all low and soft.
+- At the closest zoom, a crowd talking round a busy building, on a layer of its own every 3 to 9 seconds.
+- At night two crickets, each playing for a few seconds, then resting, then playing again.
+- A garbage truck setting off plays its hover hum, from its building's side.
+- The street and the buildings at work get louder as you zoom in: 40%, 60%, 75%, 90%, then 100% at 6x and 8x. They follow Traffic and who is out: with Traffic off the street is quiet, and a kind kept in (cars, buses, drones, cyclists, walkers) makes no sound.
+- Gone: the engines, rotors, chatter and footsteps that followed what was on screen, the crew's brooms and the glints.
+- Tests: test49_sound checks the zoom's levels, both layers by day and one at night, the street's sounds and the crowd at the closest zoom only, who is out and Traffic off, the relays, the computers and power hum while a session works, the crickets, the truck, and each new sound rendered for its level.
+
 ## 0.1.79 (2026-10-28)
 
 City sounds, part 2: the city's own sounds, from City Sounds, Rounds 1 and 2, all in the SNES era style (S1) and made in code.

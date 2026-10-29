@@ -1621,7 +1621,7 @@ const MapView = (() => {
     dropCache: id => { bcache.delete(id); flat.delete(id); },
     plotCss: (u, v) => { const [X, Y] = plotTop(u, v); return worldToCss(X, Y + 32); },
     worldCss: (wx, wy) => worldToCss(wx, wy), cssWorld: (cx, cy) => cssToWorld(cx, cy),
-    camState: () => ({ x: cam.x, y: cam.y, z: cam.z, dpr }),
+    camState: () => ({ x: cam.x, y: cam.y, z: cam.z, dpr }), atMaxZoom: () => cam.z >= zMax() - 1e-6,
     _paints: () => paints,                                  // for the tests: how many times the map has been drawn
     editing: () => editing, setEditing, cyclePark,
     syncBar: () => syncBar(), setBubbleMode, lightOptions: () => LIGHT_OPTIONS, bubbleOptions: () => BUBBLE_OPTIONS,

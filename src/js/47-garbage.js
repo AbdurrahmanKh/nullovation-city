@@ -264,6 +264,7 @@ const Garbage = (() => {
       if (!p || !doomed.get(id)) continue;
       const r = routeFor(p);
       jobs.push({ id, r, phase: 'in', s: r.s0, t0: t, phaseT: t, crew: crewFor(r) });
+      if (typeof Sound !== 'undefined') Sound.truck(getProject(id));        // its hover hum (0.1.80)
     }
   }
   function vanish(id, n, t, withSparkle = true) {
@@ -536,21 +537,6 @@ const Garbage = (() => {
     shownOf: id => shown.get(id) || 0, waitingOf: id => (doomed.get(id) || new Set()).size, totals: () => ({ ...lastTargets }), breakdown,
     onMap: () => [...shown.values()].reduce((a, n) => a + n, 0) + [...doomed.values()].reduce((a, d) => a + d.size, 0),
     trucks: () => jobs.filter(j => j.phase !== 'gone').length, queued: () => queue.length, onChange: f => subs.push(f),
-    /* The cleanup as the ear finds it, in world pixels (0.1.79, City sounds): each truck, whether its crew is out, each of
-       the crew sweeping, and each sparkle where a piece went. */
-    heard: () => {
-      const out = { trucks: [], sweep: [], sparkles: [] };
-      if (!truckActive() || MapView.editing()) return out;
-      const toW = MapView.tileToWorld;
-      for (const j of jobs) {
-        if (j.phase === 'gone') continue;
-        const [i, jj] = j.r.at(j.s), [x, y] = toW(i, jj);
-        out.trucks.push({ o: j, x, y, parked: j.phase === 'crew' });
-        if (j.phase === 'crew') for (const c of j.crew) if (c.state === 'work') { const [cx, cy] = toW(c.at[0], c.at[1]); out.sweep.push({ o: c, x: cx, y: cy }); }
-      }
-      for (const sp of sparkles) out.sparkles.push({ o: sp, x: sp.x, y: sp.y });
-      return out;
-    },
     /* for the tests: counts set by hand, the spots, the drawn art, and what is on the map now */
     _test: { force: (id, n) => { if (n == null) forced.delete(id); else forced.set(id, n); refresh(); }, spots: id => spotsFor(getProject(id)),
       truck: h => truck(h).c, art: () => artSet(), visible: () => visible.length, jobs: () => jobs.map(j => ({ id: j.id, phase: j.phase, s: j.s, r: j.r, crew: j.crew.map(c => ({ state: c.state, at: c.at })) })),

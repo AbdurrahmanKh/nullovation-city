@@ -106,7 +106,7 @@ with sync_playwright() as p:
     vols = js("() => [...document.querySelectorAll('#setBody [data-tab=\"sound\"] .set-slider')].map(r => [r.querySelector('label').textContent, r.querySelector('output').textContent, r.querySelector('input').min, r.querySelector('input').max])")
     ok(f'four volumes, his groups: City sounds, Alerts, Character voices, Music, each 0 to 100% ({vols})', vols == [['City sounds', '80%', '0', '1'], ['Alerts', '80%', '0', '1'], ['Character voices', '80%', '0', '1'], ['Music', '80%', '0', '1']])
     notes = js("() => [...document.querySelectorAll('#setBody [data-tab=\"sound\"] .set-slider + .note')].map(n => n.textContent)")
-    ok('City sounds is the hum, street life and the cleanup, heard from the screen', "hum" in notes[0] and 'street life' in notes[0] and 'cleanup' in notes[0] and 'only the hum' in notes[0])
+    ok('City sounds is the hum, the buildings at work and the street now and then, louder zoomed in', all(w in notes[0] for w in ('hum', 'buildings at work', 'now and then', 'zoom', 'Claude Code')))
     ok('Alerts holds the tasks too, as his note grouped them', 'your tasks' in notes[1] and 'Claude Code' in notes[1] and "Gus's alarms" in notes[1])
     ok('Music is the street party', 'street party' in notes[3])
     js("() => { const i = document.querySelector('#optVolVoices'); i.value = 0.35; i.dispatchEvent(new Event('input')); }"); pg.wait_for_timeout(250)
@@ -257,52 +257,59 @@ with sync_playwright() as p:
     js("() => { window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); Sound.setMode('all'); }"); pg.wait_for_timeout(300)
     quiet()
 
-    # ---------- the city's own sounds (0.1.79): the hum, street life and cleanup, from the view ----------
+    # ---------- the city's own loop (0.1.80), as the third sound board played it ----------
     quiet(); js("() => { Light.setMode('day'); Traffic.setOn(true); MapView.syncBar(); }")
     home = js("() => MapView.camState()")
-    def look(z, pid=None):
-        if pid: js(f"() => {{ const p = getProject('{pid}'), [cx, cy] = MapView.plotCss(p.plot.u, p.plot.v), [wx, wy] = MapView.cssWorld(cx, cy); MapView.setCam({{ x: wx, y: wy, z: {z} }}); }}")
-        else: js(f"() => MapView.setCam({{ x: {home['x']}, y: {home['y']}, z: {z} }})")
+    look = lambda z: js(f"() => MapView.setCam({{ x: {home['x']}, y: {home['y']}, z: {z} }})")
     city = lambda: js("() => Sound._test.city()")
-    look(1); clear(); pg.wait_for_timeout(1800)
-    c1 = city()
-    ok(f"zoomed out at 1x: only the hum, by day ({c1})", c1 and c1['near'] == 0 and c1['day'] > 0.9 and c1['night'] < 0.1 and c1['cars'] == 0 and c1['drones'] == 0)
-    look(2); pg.wait_for_timeout(1500)
-    c2 = city()
-    look(4); pg.wait_for_timeout(1500)
-    c4 = city()
-    ok(f"zooming in, the street comes in: nearer at 2x, right in it at 4x ({c2['near']}, {c4['near']})", 0.3 < c2['near'] < 0.7 and c4['near'] == 1)
-    ok(f"the cars and the bus on screen followed, three cars and a bus at most ({c4['cars']} engines, {c4['drones']} drones)", 1 <= c4['cars'] <= 4 and c4['drones'] <= 2)
-    lg = [x for x in log() if x['group'] == 'city']
-    ok(f"each in the City sounds group, from its side of the screen ({sorted(set(x['id'] for x in lg))})", any(x['id'] == 'car' for x in lg) and all(-0.81 <= x['pan'] <= 0.81 for x in lg))
-    ok('no ding and no bell: the city plays no sharp sound (his note)', not any(x['id'] in ('bell', 'ding') for x in log()))
-    js("() => Traffic.setOn(false)"); pg.wait_for_timeout(1200)
-    ok('Traffic off: the street is quiet, the hum plays on', city()['cars'] == 0 and city()['drones'] == 0 and city()['day'] > 0.9)
-    js("() => Traffic.setOn(true)")
-    js("() => Light.setMode('dusk')"); pg.wait_for_timeout(2500)
-    cd = city()
-    ok(f"at dusk the day's hum and the night's blend, the evening winding down ({cd['day']}, {cd['night']})", 0.3 < cd['day'] < 0.7 and 0.3 < cd['night'] < 0.7)
-    js("() => Light.setMode('night')"); pg.wait_for_timeout(3000)
+    cityLog = lambda: [x['id'] for x in log() if x['group'] == 'city']
+    zl = {}
+    for z in (1, 2, 3, 4, 6, 8):
+        look(z); pg.wait_for_timeout(250); zl[z] = js("() => Sound._test.zoomLevel()")
+    ok(f"the street and the buildings at work by the zoom, as he set them: 40, 60, 75, 90, 100, 100% ({list(zl.values())})", list(zl.values()) == [0.4, 0.6, 0.75, 0.9, 1, 1])
+    look(2); pg.wait_for_timeout(300); clear(); rel0 = (city() or {}).get('counts', {}); pg.wait_for_timeout(9000)
+    c = city()
+    ok(f"by day at 2x: the street at 55% of 60%, the buildings at 60%, on two layers ({c})", c['street'] == 0.33 and c['work'] == 0.6 and c['layers'] == 2 and c['dark'] == 0)
+    day = cityLog()
+    ok(f"now and then, about every 3 to 5 seconds on each of two layers: a car, a honk, the bus, a drone, the bell ({day})", 3 <= sum(k in ('car', 'honk', 'bus', 'drone', 'bell') for k in day) <= 9 and set(day) <= {'car', 'honk', 'bus', 'drone', 'bell', 'truck'})
+    ok('no crowd below the closest zoom', 'crowd' not in day)
+    rel = city()['counts']
+    runs = sum(rel.get(k, 0) - rel0.get(k, 0) for k in ('relay:clicks', 'relay:knocks'))
+    ok(f"the relays clicking on top, runs 1.6 to 6 seconds apart ({runs} in 9 s)", 1 <= runs <= 6)
+    ok(f"two kinds, a third of them knocks over the whole run ({rel.get('relay:clicks', 0)} clicks, {rel.get('relay:knocks', 0)} knocks)", rel.get('relay:knocks', 0) >= 1 and rel.get('relay:clicks', 0) >= rel.get('relay:knocks', 0) * 0.8)
+    ok('no computers while no Claude Code session works', not city()['claude'] and not rel.get('bleep'))
+    look(8); clear(); pg.wait_for_timeout(9000)
+    at8 = cityLog()
+    ok(f"at the closest zoom, the crowd on a layer of its own, every 3 to 9 seconds ({at8.count('crowd')} in 9 s)", 1 <= at8.count('crowd') <= 4)
+    js("() => { DB.city.cars = false; DB.city.buses = false; DB.city.drones = false; }"); clear(); pg.wait_for_timeout(7000)
+    only = set(cityLog())
+    ok(f"who is out: with cars, buses and drones kept in, only the bell and the crowd ({only})", only <= {'bell', 'crowd'} and 'bell' in only)
+    js("() => { DB.city.cars = true; DB.city.buses = true; DB.city.drones = true; Traffic.setOn(false); }"); clear(); pg.wait_for_timeout(6000)
+    ok(f"Traffic off: the street is quiet and the hum plays on ({cityLog()}, {city()['layers']} layers)", cityLog() == [] and city() is not None and city()['layers'] == 0)
+    js("() => Traffic.setOn(true)"); look(2)
+    js("() => Light.setMode('night')"); clear(); pg.wait_for_timeout(9000)
     cn = city()
-    ok(f"by night the lower hum, with crickets ({cn['day']}, {cn['night']}, {cn['counts'].get('cricket', 0)} chirps)", cn['night'] > 0.9 and cn['day'] < 0.1 and cn['counts'].get('cricket', 0) >= 2)
+    ok(f"by night: the subtler hum, one layer, and the crickets ({cn['layers']} layer, {cn['counts'].get('cricket', 0)} chirps so far)", cn['dark'] == 1 and cn['layers'] == 1 and cn['counts'].get('cricket', 0) >= 3)
+    night = [k for k in cityLog() if k != 'truck']
+    ok(f"at night's pace, every 3 to 5 seconds on one layer ({night})", 1 <= len(night) <= 4)
     js("() => Light.setMode('day')")
-    # the cleanup: a truck comes for Garden planner's garbage, its crew sweeps, the pieces go
-    js(f"() => Garbage._test.force('{gp}', 24)"); pg.wait_for_timeout(600)
-    js(f"() => Garbage._test.force('{gp}', 0)"); look(4, gp)
-    got = None
-    for _ in range(40):
-        pg.wait_for_timeout(400); got = city()
-        if got['trucks'] and got['counts'].get('broom', 0): break
-    ok(f"the cleanup on screen: the truck's hover hum followed, the crew's brooms ({got['trucks']} truck, {got['counts'].get('broom', 0)} sweeps)", got['trucks'] >= 1 and got['counts'].get('broom', 0) >= 1)
-    for _ in range(25):
-        if city()['counts'].get('sparkle', 0): break
-        pg.wait_for_timeout(400)
-    ok(f"and a soft glint where each piece goes ({city()['counts'].get('sparkle', 0)})", city()['counts'].get('sparkle', 0) >= 1)
-    ok('the truck in the City sounds group', any(x['id'] == 'truck' and x['group'] == 'city' for x in log()))
-    js("() => { const i = document.querySelector('#optVolCity'); Sound.setVol('city', 0); }"); pg.wait_for_timeout(500)
-    ok('City sounds at 0: the hum and the street stop', city() is None)
+    # Claude Code working anywhere: the computers at work and the power hum join, and go when it stops
+    js(S('s9', 'working', GARDEN, 0, task='Water the beds')); pg.wait_for_timeout(5000)
+    cw = city()
+    ok(f"a Claude Code session working: the computers at work and the power hum join ({cw['claude']}, {cw['counts'].get('bleep', 0)} bleeps)", cw['claude'] and cw['counts'].get('bleep', 0) >= 1 and 'claude-works' in cityLog())
+    js(S('s9', 'done', GARDEN, 0, task='Water the beds', reply='Watered.')); pg.wait_for_timeout(4500)
+    ok('and they go when it stops working; the server room stays', not city()['claude'] and city() is not None)
+    quiet()
+    # a cleanup: the truck's hover hum as it sets off
+    clear(); js(f"() => Garbage._test.force('{gp}', 24)"); pg.wait_for_timeout(600); js(f"() => Garbage._test.force('{gp}', 0)")
+    for _ in range(20):
+        if 'truck' in cityLog(): break
+        pg.wait_for_timeout(300)
+    ok('a garbage truck setting off plays its hover hum, in the City sounds group', 'truck' in cityLog())
+    js("() => Sound.setVol('city', 0)"); pg.wait_for_timeout(500)
+    ok('City sounds at 0: the loop stops', city() is None)
     js("() => Sound.setVol('city', 0.8)"); pg.wait_for_timeout(600)
-    ok('back up: the hum again', city() is not None)
+    ok('back up: the loop again', city() is not None)
     open_settings(pg, 'sound'); js("() => Sound.setMode('events')"); js("() => Settings.refresh()")
     ok('Events only: the City sounds volume waits, the others do not', js("() => ['#optVolCity', '#optVolAlerts'].map(s => document.querySelector(s).disabled)") == [True, False])
     pg.screenshot(path=str(SH / '493-sound-settings-city.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 900})
@@ -312,13 +319,14 @@ with sync_playwright() as p:
     # ---------- every sound rendered offline: its level without ears ----------
     res = js("async () => { const out = []; for (const id of Sound._test.ids()) out.push(await Sound._test.render(id, id === 'party' ? 10 : 5)); return out; }")
     bad = [r['id'] for r in res if r['bad'] or r['peak'] <= 0.02 or r['peak'] >= 0.9]
-    ok(f"all {len(res)} sounds render: no bad sample, heard, never near clipping ({bad})", not bad and len(res) == 24)
-    CITY_IDS = {'hum', 'car', 'bus', 'busStop', 'drone', 'truck', 'chatter', 'broom'}
+    ok(f"all {len(res)} sounds render: no bad sample, heard, never near clipping ({bad})", not bad and len(res) == 32)
+    CITY_IDS = {'hum-day', 'hum-night', 'car', 'honk-double', 'honk-far', 'honk-beep', 'bus', 'drone', 'bell', 'crowd', 'truck', 'relays', 'server', 'computers', 'power', 'crickets'}
     loud = {r['id']: r['rmsDb'] for r in res if r['id'] not in CITY_IDS}
     ok(f"the events sit within 12 dB of each other ({min(loud.values())} to {max(loud.values())} dB)", max(loud.values()) - min(loud.values()) <= 12)
     by = {r['id']: r for r in res}
-    ok(f"the street and the cleanup sit with the hum, none above it by more than 3 dB ({ {k: by[k]['rmsDb'] for k in ('hum', 'car', 'bus', 'drone', 'truck')} })", all(by[k]['rmsDb'] <= by['hum']['rmsDb'] + 3 for k in ('car', 'bus', 'drone', 'truck')))
-    ok(f"no sharp sound: the bus at its stop, the talk and the brooms peak under the hum ({ {k: by[k]['peak'] for k in ('hum', 'busStop', 'chatter', 'broom')} })", all(by[k]['peak'] < by['hum']['peak'] for k in ('busStop', 'chatter', 'broom')))
+    ok(f"the night's hum subtler than the day's, by 6 dB or more ({by['hum-day']['rmsDb']}, {by['hum-night']['rmsDb']})", by['hum-day']['rmsDb'] - by['hum-night']['rmsDb'] >= 6)
+    ok(f"the street's sounds sit with the day's hum, none above it by more than 3 dB ({ {k: by[k]['rmsDb'] for k in ('hum-day', 'car', 'bus', 'drone', 'truck')} })", all(by[k]['rmsDb'] <= by['hum-day']['rmsDb'] + 3 for k in ('car', 'bus', 'drone', 'truck', 'bell', 'crowd')))
+    ok(f"the relays heard over the hum: their clicks peak above it ({by['relays']['peak']} against {by['hum-day']['peak']})", by['relays']['peak'] > by['hum-day']['peak'])
     ok('the party runs on (10 seconds rendered, music all the way)', [r for r in res if r['id'] == 'party'][0]['seconds'] > 9.5)
     print('NOTE levels: ' + ', '.join(f"{r['id']} {r['rmsDb']} dB pk {r['peak']}" for r in res))
     ctx.close()

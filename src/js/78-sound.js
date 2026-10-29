@@ -2,15 +2,14 @@
   City sounds (City Sounds, Rounds 1 and 2, section 6 of the knowledge file): made in code with the browser's own audio,
   as the sound board played them. Two builds (O1): the events at 0.1.78, tasks and alerts in the SNES era style (FM bells
   with a soft echo), the street party and the characters' voices in the 8-bit chip style (S1); and the city's own sounds
-  at 0.1.79, its hum, street life and cleanup, in the SNES era style, with no sharp sound among them (his note on O1).
+  at 0.1.79, its hum, street life and cleanup, in the SNES era style, rebuilt at 0.1.80 as a loop from the third sound board.
   - On by default, from the first click, tap or key, since a browser plays nothing before (C1).
   - The Sound button on the map's bar and in Settings, in step (C2): All sounds, Events only (no city sounds), No sound.
   - A volume for each group, as his Round 2 note groups them (C3): City sounds (the hum, street life and cleanup),
     Alerts (alerts and tasks), Character voices, and Music (the party).
   - Out of view, only Claude Code's alerts play, so the Claude folder is read while hidden too (C4).
   - From the view (C5): a sound with a place is panned by where it is on screen, a little louder zoomed in (his note on
-    A1), and the party fades once its block is out of view; the street and the cleanup are heard only on screen, coming
-    in as you zoom in, so zoomed out only the hum is left.
+    A1), and the party fades once its block is out of view; the city's loop gets louder as you zoom in, the hum aside.
   Kept in this browser (nullovation-city:sound): the choice and the volumes.
 */
 const Sound = (() => {
@@ -55,6 +54,9 @@ const Sound = (() => {
     const n = Math.floor(sr * 1.6), ir = c.createBuffer(2, n, sr);
     for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (r() * 2 - 1) * Math.pow(1 - i / n, 2.6); }
     k.ir = ir;
+    const ns = Math.floor(sr * 0.9), irs = c.createBuffer(2, ns, sr);
+    for (let ch = 0; ch < 2; ch++) { const d = irs.getChannelData(ch); for (let i = 0; i < ns; i++) d[i] = (r() * 2 - 1) * Math.pow(1 - i / ns, 3.5); }
+    k.irSoft = irs;
     kits.set(c, k); return k;
   }
   function pulseWave(c, duty) {
@@ -74,6 +76,9 @@ const Sound = (() => {
       fb.gain.value = 0.33; wet.gain.value = 0.3;
       lp.connect(dl); dl.connect(fl); fl.connect(fb); fb.connect(dl); fl.connect(wet); wet.connect(dest);
       const cv = c.createConvolver(), rw = c.createGain(); cv.buffer = kit(c).ir; rw.gain.value = 0.18; lp.connect(cv); cv.connect(rw); rw.connect(dest);
+    } else if (style === 'soft') {                     // the crowd's soft version: a little open air
+      const lp = biq(c, 'lowpass', 8000, 0.5); input.connect(lp); lp.connect(dest);
+      const cv = c.createConvolver(), rw = c.createGain(); cv.buffer = kit(c).irSoft; rw.gain.value = 0.14; lp.connect(cv); cv.connect(rw); rw.connect(dest);
     } else { const lp = biq(c, 'lowpass', 9000, 0.5); input.connect(lp); lp.connect(dest); }
     return input;
   }
@@ -372,175 +377,276 @@ const Sound = (() => {
   }
 
 
-  /* ---------- the city's own sounds (0.1.79): its hum, street life and cleanup, from the view ---------- */
-  /* Only All sounds plays them, only in view, and only what is on screen is heard (C5): the hum always, street life and
-     the cleanup coming in as you zoom in, each from where it is. None of them sharp (his note on O1: "the city and the
-     hums should not have sharp sounds", the bus stop's ding sounding like an alert): no ding, no brakes' squeal, no
-     cyclist's bell, and the brooms and the sparkle low and soft. */
+  /* ---------- the city's own sounds (0.1.80): a loop, as the third sound board played it ---------- */
+  /* His picks on the third board (section 6, City Sounds): the hum, Less air by day and subtler at night, crossfading with
+     the time of day and rising and falling with no pattern; the server room and the relays on top of it; now and then a
+     street sound, on two layers by day and one at night, every 3 to 5 seconds; the crowd on a layer of its own at the
+     closest zoom; and the computers at work and the power hum while Claude Code works. The street and the buildings at
+     work get louder as you zoom in, the hum stays. It is not tied to the cars on the map (0.1.79 followed them, and he
+     found it a hiss): it follows the time of day, the zoom, Traffic and who is out. */
   const clamp01 = x => Math.max(0, Math.min(1, x));
-  const cityOn = () => may('city') && typeof Traffic !== 'undefined';
-  /* The open part of the map and how near it is: by how much of the city it shows, so a phone and a computer agree.
-     A map's width of 1,100 world pixels or more is zoomed out (only the hum), 300 or less is right in the street. */
-  function viewOf() {
-    const wrap = $('#mapWrap'); if (!wrap || typeof MapView === 'undefined') return null;
-    const x0 = typeof panelEdge === 'function' ? panelEdge() : 0, W = wrap.clientWidth, H = wrap.clientHeight;
-    if (W - x0 < 120 || H < 80) return null;
-    const cam = MapView.camState(), zc = cam.z / (cam.dpr || 1), seen = (W - x0) / zc;
-    return { x0, W, H, near: clamp01(Math.log2(1100 / seen) / Math.log2(1100 / 300)) };
+  const under = (A, v) => { const g = A.ctx.createGain(); g.gain.value = v; g.connect(A.out); return { ...A, out: g, gain: g.gain }; };
+  const HUM = { day: { f: 65.4, lp: 220, level: 0.1, tone: 0.05 }, night: { f: 55, lp: 240, level: 0.06, tone: 0.025 } };
+  const STREET = 0.55;                                        // the street under the hum, as on the boards
+  const ZOOM_LEVEL = [[1.5, 0.4], [2.5, 0.6], [3.5, 0.75], [5, 0.9]];   // 1x 40%, 2x 60%, 3x 75%, 4x 90%, 6x and 8x 100%
+  /* The zoom's level, by the building pixel's size on screen, so a phone at its own zoom reads as a computer does. */
+  function zoomLevel() {
+    if (typeof MapView === 'undefined' || !MapView.camState) return 0.6;
+    const c = MapView.camState(), z = c.z / (c.dpr || 1);
+    for (const [below, v] of ZOOM_LEVEL) if (z < below) return v;
+    return 1;
   }
-  /* Where a thing is heard from: its pan across the open map, and how loud by how near the middle it is; nothing off it. */
-  function hear(v, wx, wy) {
-    const [x, y] = MapView.worldCss(wx, wy), hw = (v.W - v.x0) / 2, hh = v.H / 2;
-    const nx = (x - v.x0 - hw) / hw, ny = (y - hh) / hh, out = Math.max(Math.abs(nx), Math.abs(ny));
-    if (out > 1.15) return null;
-    return { pan: Math.max(-1, Math.min(1, nx)) * 0.8, g: clamp01(1.1 - 0.8 * Math.hypot(nx, ny)) * clamp01((1.15 - out) / 0.15) };   // the middle loudest, an edge 0.3
+  /* The hum: a low rumble with hardly any air in it, under one low note and its octave. */
+  function humBed(A, t, h) {
+    const c = A.ctx, nodes = [], mix = c.createGain(); mix.gain.value = 0; mix.connect(A.out);
+    const s = c.createBufferSource(); s.buffer = kit(c).brown; s.loop = true; s.start(t, A.r());
+    const lp = biq(c, 'lowpass', h.lp, 0.6), g = c.createGain(); g.gain.value = h.level;
+    s.connect(lp); lp.connect(g); g.connect(mix);
+    const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.09; lg.gain.value = h.level * 0.35; lfo.connect(lg); lg.connect(g.gain); lfo.start(t);
+    const d = mkOsc(A, 'sine', h.f, t, Infinity), d2 = mkOsc(A, 'sine', h.f * 2, t, Infinity), dg = c.createGain(), dg2 = c.createGain();
+    dg.gain.value = h.tone; dg2.gain.value = h.tone / 3; d.connect(dg); d2.connect(dg2); dg.connect(mix); dg2.connect(mix);
+    nodes.push(s, lfo, d, d2);
+    return { nodes, mix };
   }
-  const ramp = (param, v, k = 0.15) => param.setTargetAtTime(v, ctx.currentTime, k);
-  /* A sound that runs while it is heard: a gain and a pan of its own into the city's style; stop() lets it fade. */
-  function runner() {
-    const out = ctx.createGain(), pan = ctx.createStereoPanner();
-    out.gain.value = 0; out.connect(pan); pan.connect(ins.city);
-    const nodes = [];
-    return { out, pan, nodes, start(n, at = 0) { n.start(ctx.currentTime, at); nodes.push(n); return n; },
-      stop() { ramp(out.gain, 0, 0.12); const t = ctx.currentTime + 0.8; for (const n of nodes) { try { n.stop(t); } catch (e) { /* gone */ } } setTimeout(() => { try { pan.disconnect(); } catch (e) { /* gone */ } }, 1200); } };
+  /* Rise and fall: the hum drifts down and up, each stretch 4 to 12 seconds to between 45% and 100%, never twice alike. */
+  function drift(cs, to) {
+    while (cs.driftAt < to) { const len = 4 + cs.A.r() * 8; cs.hum.gain.linearRampToValueAtTime(0.45 + cs.A.r() * 0.55, cs.driftAt + len); cs.driftAt += len; }
   }
-  const osc = (type, f) => { const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; return o; };
-  const loopOf = buf => { const b = ctx.createBufferSource(); b.buffer = kit(ctx)[buf]; b.loop = true; return b; };
 
-  /* The hum, following Time of day: by day far traffic and voices over a low air tone, by night a lower hum with crickets,
-     dusk and dawn the two blended, the evening winding down. One low note at most, never a chord, since music is never. */
-  function humBed() {
-    const day = runner(), night = runner(), r = rng(hash('hum'));
-    const bed = (rn, lpF, level, f) => {
-      const b = rn.start(loopOf('brown'), r()), lp = biq(ctx, 'lowpass', lpF, 0.6), g = ctx.createGain(); g.gain.value = level;
-      b.connect(lp); lp.connect(g); g.connect(rn.out);
-      const lfo = rn.start(osc('sine', 0.09)), lg = ctx.createGain(); lg.gain.value = level * 0.35; lfo.connect(lg); lg.connect(g.gain);
-      const d = rn.start(osc('sine', f)), d2 = rn.start(osc('sine', f * 2)), dg = ctx.createGain(), dg2 = ctx.createGain();
-      dg.gain.value = 0.045; dg2.gain.value = 0.015; d.connect(dg); d2.connect(dg2); dg.connect(rn.out); dg2.connect(rn.out);
-    };
-    bed(day, 420, 0.24, 65.4); bed(night, 260, 0.12, 55);
-    /* voices far off by day: a murmur that rises and falls */
-    const m = day.start(loopOf('white'), r()), bp = biq(ctx, 'bandpass', 650, 1.4), mg = ctx.createGain(), mod = day.start(loopOf('smooth'), r() * 4), md = ctx.createGain();
-    mg.gain.value = 0; md.gain.value = 0.06; mod.connect(md); md.connect(mg.gain); m.connect(bp); bp.connect(mg); mg.connect(day.out);
-    return { day, night, far: 0, cr1: 0, cr2: 0 };
+  /* Now and then. The honks: three ways, low and muffled, one picked at random each time. */
+  function hornTone(A, t, dur, fs, lp, vol, pan, type = 'triangle') {
+    const c = A.ctx, mix = c.createGain(), fl = biq(c, 'lowpass', lp, 0.7); mix.connect(fl);
+    fs.forEach(f => mkOsc(A, type, f, t, t + dur).connect(mix));
+    const g = envGain(A, t, { a: 0.02, peak: vol, dur, hold: dur * 0.6, curve: 'lin' }); fl.connect(g); route(A, g, { pan });
   }
-  const CITY_GAIN = 0.55;                                    // street life and cleanup under the hum, as on the board
-  /* A car or a bus: its engine, a low triangle under a soft top, and its tyres on the road. */
-  function engine(bus, seed) {
-    const rn = runner(), r = rng(seed), f0 = bus ? 50 : 54 + r() * 10;
-    const e = rn.start(osc('triangle', f0)), lp = biq(ctx, 'lowpass', bus ? 300 : 340, 0.9), eg = ctx.createGain(); eg.gain.value = bus ? 0.3 : 0.22;
-    e.connect(lp); lp.connect(eg); eg.connect(rn.out);
-    const n = rn.start(loopOf('white'), r() * 1.5), bp = biq(ctx, 'bandpass', bus ? 700 : 900, 0.6), ng = ctx.createGain(); ng.gain.value = 0.12;
-    n.connect(bp); bp.connect(ng); ng.connect(rn.out);
-    return Object.assign(rn, { e, ng, f0 });
+  const HONKS = {
+    double: (A, t, pan) => { hornTone(A, t, 0.2, [311, 392], 900, 0.13, pan); hornTone(A, t + 0.3, 0.26, [311, 392], 900, 0.13, pan); },
+    far: (A, t, pan) => hornTone(A, t, 0.45, [262, 330], 650, 0.11, pan),
+    beep: (A, t, pan) => { hornTone(A, t, 0.12, [233, 294], 700, 0.1, pan, 'square'); hornTone(A, t + 0.19, 0.14, [233, 294], 700, 0.1, pan, 'square'); },
+  };
+  const HONK_KEYS = Object.keys(HONKS), anyHonk = A => HONKS[HONK_KEYS[Math.floor(A.r() * HONK_KEYS.length)]];
+  function passing(A, t, dur, panFrom, panTo) {
+    const c = A.ctx, p = c.createStereoPanner(), g = c.createGain();
+    p.pan.setValueAtTime(panFrom, t); p.pan.linearRampToValueAtTime(panTo, t + dur); p.connect(A.out);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(1, t + dur / 2); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); g.connect(p);
+    return g;
   }
-  /* A drone: its rotors, a buzz that flutters. */
-  function rotor(seed) {
-    const rn = runner(), r = rng(seed), trem = ctx.createGain(); trem.gain.value = 0.6; trem.connect(rn.out);
-    const lfo = rn.start(osc('square', 34 + r() * 4)), lg = ctx.createGain(); lg.gain.value = 0.4; lfo.connect(lg); lg.connect(trem.gain);
-    const s = rn.start(osc('triangle', 180 + r() * 12)), fl = biq(ctx, 'lowpass', 1800, 0.8), sg = ctx.createGain(); sg.gain.value = 0.3;
-    s.connect(fl); fl.connect(sg); sg.connect(trem);
-    const n = rn.start(loopOf('white'), r() * 1.5), bp = biq(ctx, 'bandpass', 1400, 0.8), ng = ctx.createGain(); ng.gain.value = 0.06;
-    n.connect(bp); bp.connect(ng); ng.connect(trem);
-    return rn;
+  /* A car: its engine going by, no rush of air, and a honk on the way. */
+  function carPass(A, t, dir) {
+    const dur = 2.6, mid = t + dur / 2, c = A.ctx, g = passing(A, t, dur, -0.9 * dir, 0.9 * dir);
+    const e = mkOsc(A, 'triangle', 58 * 1.06, t, t + dur);
+    e.frequency.setValueAtTime(58 * 1.06, mid - 0.15); e.frequency.linearRampToValueAtTime(58 * 0.92, mid + 0.15);
+    const el = biq(c, 'lowpass', 320, 0.9), eg = c.createGain();
+    el.frequency.setValueAtTime(220, t); el.frequency.linearRampToValueAtTime(420, mid); el.frequency.linearRampToValueAtTime(220, t + dur);
+    eg.gain.value = 0.34; e.connect(el); el.connect(eg); eg.connect(g);
+    anyHonk(A)(A, t + dur * 0.35 + A.r() * 0.6, -0.3 * dir);
+    return dur;
   }
-  /* The hover garbage truck: two low notes an octave apart, wobbling as it hovers, with a soft rush of air. */
-  function hover(seed) {
-    const rn = runner(), r = rng(seed), wob = ctx.createGain(); wob.gain.value = 0.85; wob.connect(rn.out);
-    const lfo = rn.start(osc('sine', 5.5)), lg = ctx.createGain(); lg.gain.value = 0.15; lfo.connect(lg); lg.connect(wob.gain);
-    const es = [72, 144.6].map((f, i) => { const s = rn.start(osc('triangle', f)), fl = biq(ctx, 'lowpass', 520, 0.8), g = ctx.createGain(); g.gain.value = i ? 0.09 : 0.18; s.connect(fl); fl.connect(g); g.connect(wob); return s; });
-    const n = rn.start(loopOf('white'), r() * 1.5), bp = biq(ctx, 'bandpass', 420, 0.7), ng = ctx.createGain(); ng.gain.value = 0.1;
-    n.connect(bp); bp.connect(ng); ng.connect(wob);
-    return Object.assign(rn, { es });
+  function thump(A, t, vol, pan) {
+    const s = mkOsc(A, 'sine', 120, t, t + 0.18); s.frequency.exponentialRampToValueAtTime(55, t + 0.12);
+    const g = envGain(A, t, { a: 0.002, peak: vol, dur: 0.18 }); s.connect(g); route(A, g, { pan });
+    noise(A, t, 0.03, { type: 'lowpass', f: 900, vol: vol * 0.5, a: 0.001, pan });
   }
-  /* One-shots on the street, through a gain and pan of their own. */
-  function shot(id, pan, gain, fn) {
-    const v = voiceFor('city', pan, gain * CITY_GAIN, hash(id) ^ Date.now());
-    drop(v, fn(v.A, ctx.currentTime + 0.03));
-    if (QUIET_LOG.has(id)) counts[id] = (counts[id] || 0) + 1; else note2log(id, 'city', pan, gain);
+  /* The bus at its stop, as on the first board, which he loves: engine, brakes, air, doors. No ding (his note on O1). */
+  function busStop(A, t, pan) {
+    const c = A.ctx, e = mkOsc(A, 'triangle', 50, t, t + 1.6);
+    e.frequency.linearRampToValueAtTime(40, t + 1.3);
+    const el = biq(c, 'lowpass', 300, 0.8), eg = envGain(A, t, { a: 0.4, peak: 0.24, dur: 1.6, hold: 0.6 });
+    e.connect(el); el.connect(eg); route(A, eg, { pan });
+    tone(A, t + 0.7, 2300, 0.35, { vol: 0.035, to: 0.94, a: 0.05, hold: 0.15, pan });
+    noise(A, t + 1.05, 0.7, { type: 'highpass', f: 2500, vol: 0.12, a: 0.005, pan });
+    thump(A, t + 1.35, 0.28, pan);
+    return 2.4;
   }
-  const QUIET_LOG = new Set(['cricket', 'step', 'broom', 'farCar', 'sparkle']), counts = {};   // too many to log each: counted
-  /* A bus at its stop: the air as it settles and its doors, both soft; no ding and no squeal (his note on O1). */
-  function busStop(A, t) {
-    noise(A, t, 0.6, { type: 'bandpass', f: 1100, q: 0.7, vol: 0.08, a: 0.04 });
-    const s = mkOsc(A, 'sine', 120, t + 0.35, t + 0.55); s.frequency.exponentialRampToValueAtTime(55, t + 0.47);
-    const g = envGain(A, t + 0.35, { a: 0.003, peak: 0.22, dur: 0.18 }); s.connect(g); route(A, g);
-    noise(A, t + 0.35, 0.04, { type: 'lowpass', f: 700, vol: 0.12, a: 0.002 });
-    return 1.2;
+  /* A drone passing, as on the first board. */
+  function dronePass(A, t, dir) {
+    const dur = 3, c = A.ctx, g = passing(A, t, dur, -0.8 * dir, 0.8 * dir), trem = c.createGain(); trem.gain.value = 0.6; trem.connect(g);
+    const lfo = mkOsc(A, 'square', 36, t, t + dur), lg = c.createGain(); lg.gain.value = 0.4; lfo.connect(lg); lg.connect(trem.gain);
+    const s = mkOsc(A, 'triangle', 185 * 1.03, t, t + dur);
+    s.frequency.setValueAtTime(185 * 1.03, t + dur * 0.45); s.frequency.linearRampToValueAtTime(185 * 0.97, t + dur * 0.55);
+    const fl = biq(c, 'lowpass', 2400, 1), sg = c.createGain(); sg.gain.value = 0.32; s.connect(fl); fl.connect(sg); sg.connect(trem);
+    noise(A, t, dur, { type: 'bandpass', f: 2200, q: 0.8, vol: 0.09, a: 0.01, hold: dur * 0.9, dest: trem });
+    return dur;
   }
-  /* Talk round a crowd: a few made-up words in soft blips, each speaker its own pitch. */
-  function chatter(A, t, base) {
-    const L = 'abdeghiklmnoprstuy'; let text = '';
-    for (let w = 0, n = 3 + Math.floor(A.r() * 3); w < n; w++) { for (let i = 0, m = 2 + Math.floor(A.r() * 4); i < m; i++) text += L[Math.floor(A.r() * L.length)]; text += ' '; }
-    let k = 0;
-    [...text].forEach((ch, i) => { if (ch === ' ' || k++ % 2) return; const semi = ((ch.charCodeAt(0) * 7) % 9) - 4; note(A, t + i * 0.055, base * Math.pow(2, semi / 12), 0.05, { vol: 0.14, ratio: 2, index: 0.8 }); });
-    return text.length * 0.055 + 0.4;
+  /* The cyclist's bell, as on the first board: two rings. */
+  function bell(A, t, pan) { [0, 0.22].forEach(d => note(A, t + d, 2093, 0.6, { vol: 0.16, ratio: 1.41, index: 1.2, pan })); return 1; }
+  /* The crowd round a busy building, the soft version: four voices through vowel shapes, and footsteps. */
+  const VOWELS = { a: [800, 1200], e: [420, 2000], i: [300, 2400], o: [460, 820], u: [330, 700] };
+  const vowelOf = ch => { const k = ch.toLowerCase(); if ('aeiou'.includes(k)) return k; if (k === 'y') return 'i'; if (k === 'w') return 'u'; return 'aeiou'[k.charCodeAt(0) % 5]; };
+  function voiceBlip(A, t, f, dur, ch, vol, pan) {
+    const c = A.ctx, s = mkOsc(A, 'sawtooth', f, t, t + dur, { from: 1.05, glide: dur }), [f1, f2] = VOWELS[vowelOf(ch)];
+    const b1 = biq(c, 'bandpass', f1, 6), b2 = biq(c, 'bandpass', f2, 9), g2 = c.createGain();
+    const g = envGain(A, t, { a: 0.01, peak: vol * 3.2, dur, hold: dur * 0.4 });
+    g2.gain.value = 0.6; s.connect(b1); s.connect(b2); b1.connect(g); b2.connect(g2); g2.connect(g);
+    route(A, g, { pan });
   }
-  const step = (A, t) => { noise(A, t, 0.05, { type: 'lowpass', f: 600, vol: 0.09, a: 0.002 }); return 0.2; };
-  const broom = (A, t) => { noise(A, t, 0.26, { type: 'bandpass', f: 1800, fTo: 2500, fDur: 0.2, q: 0.9, vol: 0.26, a: 0.07 }); return 0.4; };
-  const LOW_SPARKLE = [72, 76, 79, 84];
-  const glint = (A, t) => { note(A, t, m2f(LOW_SPARKLE[Math.floor(A.r() * LOW_SPARKLE.length)]), 0.35, { vol: 0.04, index: 0.6 }); return 0.6; };
-  const farCar = (A, t) => { noise(A, t, 2.4, { type: 'bandpass', f: 600, q: 0.9, vol: 0.045, a: 1.0, pan: A.r() * 1.6 - 0.8 }); return 2.6; };
-  function cricket(A, t, f) { for (let i = 0; i < 3; i++) note(A, t + i * 0.042, f / 2, 0.03, { vol: 0.03, ratio: 2, index: 0.4 }); return 0.4; }
+  function crowd(A, t) {
+    const L = 'abdeghiklmnoprstuy';
+    for (let p = 0; p < 4; p++) {
+      let x = t + A.r() * 1.5; const pan = A.r() * 1.4 - 0.7, base = 140 + A.r() * 160;
+      for (let w = 0; w < 2; w++) {
+        let text = ''; for (let k = 0, n = 4 + Math.floor(A.r() * 4); k < n; k++) { for (let i = 0, m = 2 + Math.floor(A.r() * 5); i < m; i++) text += L[Math.floor(A.r() * L.length)]; text += ' '; }
+        const step = Math.min(0.026, 1.8 / text.length); let n = 0;
+        [...text].forEach((ch, i) => { if (ch === ' ' || n++ % 2) return; const semi = ((ch.charCodeAt(0) * 7) % 9) - 4; voiceBlip(A, x + i * step, base * Math.pow(2, semi / 12), Math.min(0.06, step * 1.84), ch, 0.08, pan); });
+        x += text.length * step + 0.5 + A.r() * 0.6;
+      }
+    }
+    let pan = -0.3; for (let x = t; x < t + 4; x += 0.27 + A.r() * 0.05) { noise(A, x, 0.05, { type: 'lowpass', f: 600, vol: 0.1, a: 0.002, pan }); pan = -pan; }
+    return 4.6;
+  }
+  /* The hover garbage truck, as on the first board, landing quietly: no burst of air (his note on O1). */
+  function truckSound(A, t, side) {
+    const dur = 4.2, c = A.ctx, p = c.createStereoPanner(), g = c.createGain(), wob = c.createGain();
+    p.pan.setValueAtTime(side, t); p.pan.linearRampToValueAtTime(side * 0.25, t + 2.8); p.connect(A.out);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(1, t + 2.4); g.gain.setValueAtTime(1, t + 3.2); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); g.connect(p);
+    wob.gain.value = 0.85; wob.connect(g);
+    const lfo = mkOsc(A, 'sine', 5.5, t, t + dur), lg = c.createGain(); lg.gain.value = 0.15; lfo.connect(lg); lg.connect(wob.gain);
+    [72, 144.6].forEach((f, i) => {
+      const s = mkOsc(A, 'triangle', f, t, t + dur); s.frequency.setValueAtTime(f, t + 2.8); s.frequency.exponentialRampToValueAtTime(f * 0.78, t + 3.7);
+      const fl = biq(c, 'lowpass', 520, 0.8), sg = c.createGain(); sg.gain.value = 0.18 * (i ? 0.5 : 1); s.connect(fl); fl.connect(sg); sg.connect(wob);
+    });
+    noise(A, t, dur - 0.3, { type: 'bandpass', f: 420, q: 0.7, vol: 0.12, a: 1.5, hold: 1.5, dest: wob });
+    return dur;
+  }
 
-  let city = null;                                           // the hum and what is heard from the street, while it plays
+  /* The crickets at night: each plays 4 to 8 seconds, then rests about as long, then plays again. */
+  const cricketsOf = (A, t) => [{ f: 4300, pan: -0.5, gap: [0.62, 0.1] }, { f: 3900, pan: 0.6, gap: [0.9, 0.25] }]
+    .map(k => ({ ...k, on: true, until: t + 4 + A.r() * 4, next: t + 0.3 + A.r() * 0.5 }));
+  function crickets(A, cs, from, to) {
+    for (const k of cs.crickets) {
+      while (k.next < to) {
+        if (k.next >= k.until) { k.on = !k.on; k.until = k.next + 4 + A.r() * 4; if (!k.on) { k.next = k.until; continue; } }
+        const x = Math.max(k.next, from);
+        for (let i = 0; i < 3; i++) note(A, x + i * 0.042, k.f / 2, 0.03, { vol: 0.035, pan: k.pan, ratio: 2, index: 0.4 });
+        counts.cricket = (counts.cricket || 0) + 1;
+        k.next += k.gap[0] + A.r() * k.gap[1];
+      }
+    }
+  }
+  /* Buildings at work. The relays: runs of 2 to 4, 1.6 to 6 seconds apart, two in three clicks and one in three knocks. */
+  const RELAYS = {
+    clicks: (A, t, pan) => { noise(A, t, 0.01, { type: 'bandpass', f: 1800, q: 1.2, vol: 0.5, a: 0.0005, pan }); tone(A, t, 1100, 0.012, { type: 'sine', vol: 0.08, a: 0.0005, pan }); },
+    knocks: (A, t, pan) => { tone(A, t, 700, 0.03, { type: 'sine', vol: 0.32, a: 0.0005, to: 0.36, pan }); noise(A, t, 0.015, { type: 'lowpass', f: 1500, vol: 0.22, a: 0.0005, pan }); },
+  };
+  function relays(A, cs, from, to) {
+    while (cs.relayAt < to) {
+      const x = Math.max(cs.relayAt, from), n = 2 + Math.floor(A.r() * 3), pan = A.r() * 1.2 - 0.6, kind = A.r() < 1 / 3 ? 'knocks' : 'clicks';
+      for (let k = 0; k < n; k++) RELAYS[kind](A, x + k * (0.05 + A.r() * 0.04), pan);
+      counts['relay:' + kind] = (counts['relay:' + kind] || 0) + 1;
+      cs.relayAt += 1.6 + A.r() * 4.4;
+    }
+  }
+  /* The server room, all the time: a steady electric hum with a slow beat in it. */
+  function serverRoom(A, t) {
+    const c = A.ctx, nodes = [], lp = biq(c, 'lowpass', 600, 0.7), g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(1, t + 1.5); lp.connect(g); route(A, g);
+    [[100, 0.016], [100.6, 0.016], [200, 0.006], [300, 0.003]].forEach(([f, v]) => { const o = mkOsc(A, 'sine', f, t, Infinity), og = c.createGain(); og.gain.value = v; o.connect(og); og.connect(lp); nodes.push(o); });
+    const lfo = mkOsc(A, 'sine', 0.13, t, Infinity), lg = c.createGain(); lg.gain.value = 0.25; lfo.connect(lg); lg.connect(g.gain); nodes.push(lfo);
+    return nodes;
+  }
+  /* While Claude Code works: the power hum, a low electric drone that swells and settles ... */
+  function powerHum(A, t) {
+    const c = A.ctx, nodes = [], lp = biq(c, 'lowpass', 260, 0.8), g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(1, t + 1.5);
+    const sw = mkOsc(A, 'sine', 0.05, t, Infinity), swg = c.createGain(); swg.gain.value = 140; sw.connect(swg); swg.connect(lp.frequency); nodes.push(sw);
+    lp.connect(g); route(A, g);
+    const o = mkOsc(A, 'sawtooth', 60, t, Infinity), og = c.createGain(); og.gain.value = 0.05; o.connect(og); og.connect(lp); nodes.push(o);
+    const tr = mkOsc(A, 'sine', 0.25, t, Infinity), tg = c.createGain(); tg.gain.value = 0.2; tr.connect(tg); tg.connect(g.gain); nodes.push(tr);
+    return nodes;
+  }
+  /* ... and the computers at work, soft little bleeps in bursts. */
+  function computers(A, cs, from, to) {
+    const P = [60, 62, 64, 67, 69, 72];
+    while (cs.compAt < to) {
+      const x = Math.max(cs.compAt, from);
+      if (cs.burst <= 0) { cs.burst = 6 + Math.floor(A.r() * 14); cs.cpan = A.r() * 1.2 - 0.6; }
+      note(A, x, m2f(P[Math.floor(A.r() * P.length)]), 0.05, { vol: 0.09, ratio: 1, index: 0.5, pan: cs.cpan });
+      counts.bleep = (counts.bleep || 0) + 1;
+      cs.burst--; cs.compAt += cs.burst > 0 ? 0.08 + A.r() * 0.12 : 1.2 + A.r() * 3;
+    }
+  }
+
+  /* ---------- the loop, a lookahead of 0.6 seconds every 200 ms ---------- */
+  let city = null;
+  const counts = {};
+  const cityOn = () => may('city') && typeof Traffic !== 'undefined' && !document.hidden;
+  function cityStart() {
+    const t = ctx.currentTime + 0.05, A = { ctx, out: ins.city, style: 'snes', r: rng(Date.now() >>> 0) };
+    const hum = under(A, 1), street = under(A, 0), work = under(A, 0), crk = under(A, 0);
+    hum.gain.setValueAtTime(0.0001, t); hum.gain.linearRampToValueAtTime(1, t + 1.5);
+    const day = humBed(hum, t, HUM.day), night = humBed(hum, t, HUM.night);
+    city = { A, hum, street, work, crk, C: { ...street, out: chain(ctx, street.out, 'soft') }, day, night,
+      nodes: [...day.nodes, ...night.nodes, ...serverRoom(work, t)], upto: t, driftAt: t + 1.5,
+      layers: [t + 1 + A.r() * 2, t + 2.5 + A.r() * 2], crowdAt: t, relayAt: t + 0.6, compAt: t, burst: 0, crickets: cricketsOf(A, t), power: null, zl: 0, dark: 0, layersOn: 0 };
+    note2log('hum', 'city', 0, 1);
+  }
   function cityStop() {
     if (!city) return;
-    city.hum.day.stop(); city.hum.night.stop();
-    for (const m of [city.cars, city.drones, city.trucks]) for (const rn of m.values()) rn.stop();
-    city = null;
+    const cs = city, now = ctx.currentTime; city = null;
+    for (const g of [cs.hum, cs.street, cs.work, cs.crk]) g.gain.cancelScheduledValues(now), g.gain.setTargetAtTime(0, now, 0.1);
+    const nodes = cs.nodes.concat(cs.power ? cs.power.nodes : []);
+    setTimeout(() => { for (const n of nodes) { try { n.stop(); } catch (e) { /* gone */ } } for (const g of [cs.hum, cs.street, cs.work, cs.crk]) { try { g.out.disconnect(); } catch (e) { /* gone */ } } }, 700);
   }
-  /* Keeps a set of runners on the loudest things heard, at most n: new ones start, those no longer heard fade. */
-  function follow(map, list, n, make, set) {
-    const pick = list.filter(x => x.loud > 0.02).sort((a, b) => b.loud - a.loud).slice(0, n), keep = new Set(pick.map(x => x.o));
-    for (const [o, rn] of [...map]) if (!keep.has(o)) { rn.stop(); map.delete(o); }
-    for (const x of pick) {
-      let rn = map.get(x.o);
-      if (!rn) { rn = make(x); map.set(x.o, rn); note2log(x.kind, 'city', x.pan, x.loud); }
-      ramp(rn.pan.pan, x.pan, 0.2); ramp(rn.out.gain, x.loud * CITY_GAIN, 0.2);
-      if (set) set(rn, x);
+  /* What the street may play now: nothing with Traffic off or on Still; each kind only while it is out (Settings, Life). */
+  function streetKinds() {
+    if (!Traffic.active()) return { kinds: [], crowd: false };
+    const c = DB.city, kinds = [];
+    if (c.cars) kinds.push('car', 'honk');
+    if (c.buses) kinds.push('bus');
+    if (c.drones) kinds.push('drone');
+    if (c.cyclists) kinds.push('bell');
+    return { kinds, crowd: !!c.walkers && !!MapView.atMaxZoom && MapView.atMaxZoom() };
+  }
+  function nowAndThen(cs, kinds, t) {
+    const E = cs.street, k = kinds[Math.floor(E.r() * kinds.length)], dir = E.r() < 0.5 ? 1 : -1, pan = E.r() * 1.2 - 0.6;
+    if (k === 'car') carPass(E, t, dir);
+    else if (k === 'honk') anyHonk(E)(E, t, pan);
+    else if (k === 'bus') busStop(E, t, pan);
+    else if (k === 'drone') dronePass(E, t, dir);
+    else bell(E, t, pan);
+    note2log(k, 'city', pan, Math.round(STREET * cs.zl * 100) / 100);
+  }
+  /* Claude Code working anywhere in the city brings the power hum and the computers; they fade once it stops. */
+  function claudeWorks(cs, now) {
+    const on = typeof ClaudeWork !== 'undefined' && !!ClaudeWork.working && ClaudeWork.working();
+    if (on && !cs.power) { const P = under(cs.work, 1); cs.power = { P, nodes: powerHum(P, now + 0.05) }; cs.compAt = now + 0.3; note2log('claude-works', 'city', 0, 1); }
+    else if (!on && cs.power) {
+      const p = cs.power; cs.power = null; p.P.gain.setTargetAtTime(0, now, 0.3);
+      setTimeout(() => { for (const n of p.nodes) { try { n.stop(); } catch (e) { /* gone */ } } }, 2500);
     }
   }
-  const due = (key, now, gap) => { if (city[key] > now) return false; city[key] = now + gap(); return true; };
   function cityTick() {
-    if (!cityOn() || document.hidden) { cityStop(); return; }
-    const now = ctx.currentTime, v = viewOf(), dark = typeof Light !== 'undefined' ? Light.t : 0;
-    if (!city) { city = { hum: humBed(), cars: new Map(), drones: new Map(), trucks: new Map(), seen: new WeakSet(), stops: new WeakMap(), far: 0, cr1: 0, cr2: 0, talk: 0, step: 0, broom: new WeakMap(), near: 0 }; note2log('hum', 'city', 0, 1); }
-    ramp(city.hum.day.out.gain, 1 - dark, 0.6); ramp(city.hum.night.out.gain, dark, 0.6);
-    const R = rng(Date.now() >>> 0);
-    const tr = Traffic.heard(), gb = typeof Garbage !== 'undefined' && Garbage.heard ? Garbage.heard() : { trucks: [], sweep: [], sparkles: [] };
-    /* the hum's own life: a far car now and then by day, crickets by night */
-    if (tr.cars.length && dark < 0.6 && due('far', now, () => 2.5 + R() * 3.5)) shot('farCar', 0, 1 - dark, farCar);
-    if (dark > 0.5) {
-      if (due('cr1', now, () => 0.62 + R() * 0.1)) shot('cricket', -0.5, (dark - 0.5) * 2, (A, t) => cricket(A, t, 4300));
-      if (due('cr2', now, () => 0.9 + R() * 0.25)) shot('cricket', 0.6, (dark - 0.5) * 2, (A, t) => cricket(A, t, 3900));
-    }
-    city.near = v ? v.near : 0;
-    const near = city.near, at = (list, kind, w = 1) => (v && near > 0 ? list.map(x => { const h = hear(v, x.x, x.y); return h ? { ...x, kind, pan: h.pan, loud: h.g * near * w * (x.waits ? 0.5 : 1) } : null; }).filter(Boolean) : []);
-    /* street life: the cars, the bus and the drones on screen, the loudest followed as they move */
-    const pickBus = at(tr.cars.filter(c => c.bus), 'bus', 1.2).sort((a, b) => b.loud - a.loud).slice(0, 1);
-    const cars = at(tr.cars.filter(c => !c.bus), 'car').sort((a, b) => b.loud - a.loud).slice(0, 3).concat(pickBus);   // three cars and a bus at most
-    follow(city.cars, cars, 4, x => engine(x.bus, hash(String(x.x)) ^ 7), (rn, x) => {
-      ramp(rn.e.frequency, rn.f0 * (x.waits ? 0.85 : 1), 0.3); ramp(rn.ng.gain, x.waits ? 0.02 : 0.12, 0.3);
-      const was = city.stops.get(x.o);                         // the stop it served when first heard is old news
-      if (was === undefined) city.stops.set(x.o, x.stop);
-      else if (x.bus && x.waits && x.stop && was !== x.stop) { city.stops.set(x.o, x.stop); shot('busStop', x.pan, x.loud, busStop); }
+    if (!cityOn()) { cityStop(); return; }
+    if (!city) cityStart();
+    const cs = city, now = ctx.currentTime, to = now + 0.6, from = Math.max(cs.upto, now), dark = typeof Light !== 'undefined' ? Light.t : 0, zl = zoomLevel();
+    cs.day.mix.gain.setTargetAtTime(1 - dark, now, 0.6); cs.night.mix.gain.setTargetAtTime(dark, now, 0.6);
+    cs.street.gain.setTargetAtTime(STREET * zl, now, 0.15); cs.work.gain.setTargetAtTime(zl, now, 0.15);
+    cs.crk.gain.setTargetAtTime(clamp01((dark - 0.5) * 2), now, 0.6);
+    cs.zl = zl; cs.dark = dark;
+    claudeWorks(cs, now);
+    if (to <= cs.upto) return;
+    drift(cs, to);
+    if (dark > 0.5) crickets(cs.crk, cs, from, to); else for (const k of cs.crickets) k.next = Math.max(k.next, to);
+    relays(cs.work, cs, from, to);
+    if (cs.power) computers(cs.work, cs, from, to);
+    const out = streetKinds(), n = dark > 0.5 ? 1 : 2;           // two layers by day, one at night, every 3 to 5 seconds
+    cs.layersOn = out.kinds.length ? n : 0;
+    cs.layers = cs.layers.map((at, i) => {
+      if (i >= n || !out.kinds.length) return Math.max(at, to);
+      while (at < to) { nowAndThen(cs, out.kinds, Math.max(at, from)); at += 3 + cs.A.r() * 2; }
+      return at;
     });
-    follow(city.drones, at(tr.drones, 'drone', 0.8), 2, x => rotor(hash(String(x.y))));
-    /* people: talk round those standing together, and footsteps when you are right among them */
-    const talk = at(tr.talk, 'chatter'), walk = at(tr.walk, 'step');
-    const talkSum = talk.reduce((a, x) => a + x.loud, 0);
-    if (talkSum > 0.05 && due('talk', now, () => Math.max(0.7, Math.min(6, 2.5 / talkSum)) * (0.7 + R() * 0.6))) {
-      const x = talk[Math.floor(R() * talk.length)]; shot('chatter', x.pan, x.loud, (A, t) => chatter(A, t, 140 + R() * 160));
-    }
-    if (near > 0.6 && walk.length >= 2 && due('step', now, () => 0.3 + R() * 0.1)) { const x = walk[Math.floor(R() * walk.length)]; shot('step', x.pan, x.loud * 0.8, step); }
-    /* the cleanup: the trucks on screen, the crew's brooms, a soft glint where a piece went */
-    follow(city.trucks, at(gb.trucks, 'truck', 1.1), 3, x => hover(hash(String(x.x))), (rn, x) => { for (const e of rn.es) ramp(e.frequency, (e === rn.es[0] ? 72 : 144.6) * (x.parked ? 0.8 : 1), 0.6); });
-    for (const x of at(gb.sweep, 'broom')) { const nx = city.broom.get(x.o) || 0; if (nx <= now) { city.broom.set(x.o, now + 0.4 + R() * 0.12); shot('broom', x.pan, x.loud, broom); } }
-    for (const x of at(gb.sparkles, 'sparkle')) { if (city.seen.has(x.o)) continue; city.seen.add(x.o); shot('sparkle', x.pan, x.loud, glint); }
+    /* the crowd: its own layer at the closest zoom, every 3 to 9 seconds; zooming in brings the first at once */
+    if (!out.crowd) cs.crowdAt = Math.max(cs.crowdAt, to);
+    else while (cs.crowdAt < to) { crowd(cs.C, Math.max(cs.crowdAt, from)); note2log('crowd', 'city', 0, Math.round(STREET * zl * 100) / 100); cs.crowdAt += 3 + cs.A.r() * 6; }
+    cs.upto = to;
+  }
+  /* A garbage truck setting off: its hover hum, from its building's side, while the city's sounds play. */
+  function truck(p) {
+    if (!city) return;
+    const side = placeOf(p).pan >= 0 ? 1 : -1;
+    play('truck', 'city', (A, t) => truckSound(A, t, side), { gain: STREET * zoomLevel() });
   }
 
-  const CITY_IDS = new Set(['hum', 'car', 'bus', 'busStop', 'drone', 'truck', 'chatter', 'broom']);
+  const CITY_IDS = new Set(['hum-day', 'hum-night', 'car', 'honk-double', 'honk-far', 'honk-beep', 'bus', 'drone', 'bell', 'crowd', 'truck', 'relays', 'server', 'computers', 'power', 'crickets']);
   function measure(id, buf, sr) {
     let peak = 0, sum = 0, last = 0, bad = 0;
     for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < d.length; i++) { const x = d[i]; if (!isFinite(x)) { bad++; continue; } const a = Math.abs(x); if (a > peak) peak = a; sum += x * x; if (a > 0.002 && i > last) last = i; } }
@@ -585,33 +691,37 @@ const Sound = (() => {
     window.addEventListener('pointerdown', unlock, true);
     window.addEventListener('keydown', unlock, true);
     document.addEventListener('visibilitychange', () => levels());
-    setInterval(cityTick, 200);                                       // the city's own sounds, as the view and the street move
+    setInterval(cityTick, 200);                                       // the city's own loop (0.1.80)
   }
 
   return { init, OPTIONS, GROUPS, mode: () => set.mode, setMode, vol: g => set.vol[g], setVol, VOL_DEF, onChange: fn => listeners.push(fn),
-    ticked, task, claude, bubble, gusAlarm, say, party, stopParty,
+    ticked, task, claude, bubble, gusAlarm, say, party, stopParty, truck,
     /* whether Claude Code's alerts can play while the city is out of view, so the Claude folder is read then too (C4) */
     listening: () => set.mode !== 'off' && set.vol.alerts > 0 && running(),
     _test: {
       log: () => log.slice(), clear: () => { log.length = 0; }, state: () => (ctx ? ctx.state : 'none'), parties: () => [...parties.keys()],
       levels: () => Object.fromEntries(GROUPS.map(g => [g, g in level ? level[g] : null])), placeOf: pid => placeOf(getProject(pid)),
       /* every sound rendered offline, for its level without ears: peak, loudness, length, and any bad sample */
-      city: () => city && { near: Math.round(city.near * 100) / 100, day: Math.round(city.hum.day.out.gain.value * 100) / 100, night: Math.round(city.hum.night.out.gain.value * 100) / 100,
-        cars: city.cars.size, drones: city.drones.size, trucks: city.trucks.size, counts: { ...counts } },
-      viewOf: () => viewOf(),
-      ids: () => [...Object.keys(TASKS), ...Object.keys(ALERTS), 'party', 'voice:gus', 'voice:proxima', 'voice:quill', 'voice:ld:x1', 'hum', 'car', 'bus', 'busStop', 'drone', 'truck', 'chatter', 'broom'],
+      city: () => city && { dark: Math.round(city.dark * 100) / 100, street: Math.round(STREET * city.zl * 100) / 100, work: city.zl, layers: city.layersOn, claude: !!city.power, counts: { ...counts } },
+      zoomLevel: () => zoomLevel(),
+      ids: () => [...Object.keys(TASKS), ...Object.keys(ALERTS), 'party', 'voice:gus', 'voice:proxima', 'voice:quill', 'voice:ld:x1', ...CITY_IDS],
       render: async (id, secs = 6) => {
         const sr = 44100, c = new OfflineAudioContext(2, Math.ceil(sr * secs), sr), m = masterChain(c, MASTER * VOL_DEF);
-        if (CITY_IDS.has(id)) {                               // the city's own: built on the offline context for a moment
-          const keep = ctx, into = ins.city;
-          ctx = c; ins.city = chain(c, m, 'snes');
-          try {
-            if (id === 'hum') humBed().day.out.gain.value = 1;
-            else if (id === 'car' || id === 'bus') engine(id === 'bus', 1).out.gain.value = CITY_GAIN;
-            else if (id === 'drone') rotor(1).out.gain.value = CITY_GAIN * 0.8;
-            else if (id === 'truck') hover(1).out.gain.value = CITY_GAIN;
-            else { const v = voiceFor('city', 0, CITY_GAIN, hash(id), c, ins.city); ({ busStop, broom, chatter: (A, t) => chatter(A, t, 200) })[id](v.A, 0.02); }
-          } finally { ctx = keep; ins.city = into; }
+        if (CITY_IDS.has(id)) {                               // the city's own, alone, at the street's level (the hum and buildings at full)
+          const A = { ctx: c, out: chain(c, m, 'snes'), style: 'snes', r: rng(hash(id)) }, E = under(A, STREET), st = { relayAt: 0.1, compAt: 0.1, burst: 0, crickets: cricketsOf(A, 0) };
+          if (id === 'hum-day' || id === 'hum-night') humBed(A, 0, HUM[id.slice(4)]).mix.gain.value = 1;
+          else if (id === 'car') carPass(E, 0.02, 1);
+          else if (id.startsWith('honk-')) HONKS[id.slice(5)](E, 0.02, 0);
+          else if (id === 'bus') busStop(E, 0.02, 0);
+          else if (id === 'drone') dronePass(E, 0.02, 1);
+          else if (id === 'bell') bell(E, 0.02, 0);
+          else if (id === 'crowd') crowd({ ...E, out: chain(c, E.out, 'soft') }, 0.02);
+          else if (id === 'truck') truckSound(E, 0.02, -1);
+          else if (id === 'relays') relays(A, st, 0, secs);
+          else if (id === 'server') serverRoom(A, 0);
+          else if (id === 'power') powerHum(A, 0);
+          else if (id === 'computers') computers(A, st, 0, secs);
+          else if (id === 'crickets') crickets(A, st, 0, secs);
           return measure(id, await c.startRendering(), sr);
         }
         const group = TASKS[id] ? 'alerts' : ALERTS[id] ? 'alerts' : id === 'party' ? 'music' : 'voices';

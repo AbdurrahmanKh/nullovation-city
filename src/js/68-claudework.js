@@ -400,7 +400,7 @@ const ClaudeWork = (() => {
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && state === 'on') poll(); });
 
-  return { init, poll, render, redraw, statusOf, mapStatus, voice, tick, sessionsOf: p => byProject.get(p.id) || [], isSeen, markSeen, pathKey, taskOf, cityChanged, citySummary, writeSummary, waitingCount,
+  return { init, poll, render, redraw, statusOf, mapStatus, voice, tick, working: () => [...byProject.values()].some(ss => ss.some(s => s.state === 'working')), sessionsOf: p => byProject.get(p.id) || [], isSeen, markSeen, pathKey, taskOf, cityChanged, citySummary, writeSummary, waitingCount,
     canWrite: () => canWrite, folder: () => (state === 'on' && canWrite ? dir : null), state: () => state,
     sessions: () => [...files.values()].map(f => f.s).filter(Boolean), unplaced: () => unplaced, LASTS };
 })();
