@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.84 (2026-11-15)
+
+Proxima's weekly and monthly reports fold the quiet buildings into one line, in place of a row of zeros each.
+- The Buildings table lists only the buildings with something in the week or month: a task finished or added, a note, an I worked! check-in, or planted.
+- The rest are one line under the rows, "11 quiet buildings", saying they finished or added nothing and how many overdue tasks they hold. It opens on each: how long it has been quiet, its overdue tasks and its next task; its name shows it on the map, its task opens in its project. The totals under the table still count every building.
+- Next up holds only the buildings with something in the period; the quiet ones' next tasks are in their line.
+- Copy the week and Copy the month name the quiet ones in one line, "Quiet buildings:", with their overdue tasks.
+- Tests: test30_inspector checks which buildings are quiet, the folded line, opening it with the focus kept, its task and its name, Next up without them, and the copy.
+
 ## 0.1.83 (2026-11-14)
 
 Proxima's reports rethought: one weekly report in place of two, a table of every building, a daily morning brief, and her numbers as tokens.

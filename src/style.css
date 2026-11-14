@@ -1348,6 +1348,18 @@ button.px-brow:focus-visible { box-shadow: 0 0 0 2px #8FD0F7; }
 .px-dgroup h5 { margin: 0 0 3px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .px-bdetail .px-list .recap-day { min-width: 46px; }
 .px-dline { margin: 0; font-size: 13px; color: var(--ink-soft); }
+/* the quiet buildings, one folded line under the rows (0.1.84) */
+.px-qrow { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 40px; padding: 4px 8px; background: transparent; border: 0; color: var(--ink-soft); font: inherit; text-align: start; cursor: pointer; }
+.px-qrow:hover, .px-qrow:focus-visible { background: var(--hover); outline: none; }
+.px-qrow:focus-visible { box-shadow: 0 0 0 2px #8FD0F7; }
+.px-qitem.open > .px-qrow { background: var(--field); }
+.px-qrow .px-bname-body { padding-left: 36px; }
+.px-qname { font-size: 14px; }
+.px-qlist { padding: 4px 8px 10px 52px; background: var(--field); }
+.px-qlist li { align-items: center; }
+.px-qwho { flex: none; display: grid; width: 34%; min-width: 0; }
+.px-qwho .px-bname-link { width: auto; color: var(--ink-soft); font-size: 13.5px; }
+.px-qlate { color: var(--late); }
 .px-fold { display: inline-flex; align-items: center; gap: 6px; padding: 0; background: none; border: 0; color: var(--ink-soft); font: 600 12px/1.4 var(--f-body, inherit); cursor: pointer; }
 .px-fold:hover, .px-fold:focus-visible { color: var(--ink); text-decoration: underline; outline: none; }
 .px-notes { margin-top: 4px; }
@@ -1365,7 +1377,7 @@ button.px-brow:focus-visible { box-shadow: 0 0 0 2px #8FD0F7; }
   .px-bgrid.with-late { grid-template-columns: minmax(0, 1fr) 44px 44px 44px; }
   .px-bgrid > .px-mile, .px-bhead > span:last-child, .px-bfoot > span:last-child { grid-column: 1 / -1; padding-left: 52px; }
   .px-bhead > span:last-child, .px-bfoot > span:last-child { display: none; }
-  .px-bdetail { padding-left: 12px; }
+  .px-bdetail, .px-qlist { padding-left: 12px; }
   .px-bname-link { width: 30%; }
 }
 /* her bubble over the map, where Gus's shows */

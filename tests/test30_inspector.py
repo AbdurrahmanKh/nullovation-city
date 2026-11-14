@@ -1,8 +1,8 @@
 """Proxima Pace, Productivity Inspector (Productivity Inspector, Rounds 1 and 2), and her reports as Proxima Reports,
 Round 1 rethought them (0.1.83): one weekly report in place of two, which the side bar's This week card opens on the week
 so far; a monthly one laid out the same; a daily one, a morning brief on today, which she brings herself; her line with
-its numbers as tokens; the table of every building, a row opening on what it finished; and her speech bubble, after
-Gus."""
+its numbers as tokens; the table of the buildings, a row opening on what it finished, and since 0.1.84 the quiet ones
+folded into one line; and her speech bubble, after Gus."""
 import json
 from playwright.sync_api import sync_playwright
 from testkit import FILE, SHOTS, TEST_CITY, FACE_OF, PORTRAIT_SUM, portrait_sum
@@ -81,13 +81,14 @@ with sync_playwright() as p:
         ms: (r.milestones || []).map(x => x.m.name), due: (r.due || []).map(nm), overdue: (r.overdue || []).map(nm), next: (r.next || []).map(nm),
         rows: (r.rows || []).map(x => ({{ name: x.p.name, n: x.n, done: x.done.map(d => d.text), linked: x.done.filter(d => d.t).length, added: x.added.length,
           notes: x.notes.map(n => n.title), worked: x.worked, late: x.late, quiet: x.quiet, ms: x.ms.map(m => m.m.name),
-          mile: x.mile && [x.mile.m.name, x.mile.done, x.mile.total, x.mile.moved] }})),
+          mile: x.mile && [x.mile.m.name, x.mile.done, x.mile.total, x.mile.moved], idle: x.idle, next: x.next ? x.next.t.text : null }})),
         totals: r.totals, repeats: (r.repeats || []).map(x => [x.t.text, x.k]), yday: r.yday, ydayIn: (r.ydayIn || []).map(p => p.name), has: Object.keys(r) }}; }}""")
     w, m, d = R('weekly'), R('monthly'), R('daily')
     ok(f'weekly: tasks finished, the week before, and her usual: the average of the weeks before since the city started ({w["n"]}, {w["before"]}, {w["usual"]})',
        (w['n'], w['before'], w['usual']) == (7, 3, 0.8))
     ok('A1 every building shows, the most finished first', [x['name'] for x in w['rows']] == ['Garden planner', 'Nullovation City'] and [x['n'] for x in w['rows']] == [4, 3])
     gp, nc = w['rows']
+    ok('0.1.84 a building with something in the week is not quiet', not gp['idle'] and not nc['idle'])
     ok('A1 a row holds what its building finished (A2: Finished, taken in), a task still there as a link', gp['done'] == ['Water the beds', 'Water the beds', 'Water the beds', 'Weed the beds']
        and gp['linked'] == 3 and nc['done'] == ['Round 3: decide the block art loop', 'Build the block art skill', 'Level the ground'] and nc['linked'] == 3)
     ok('A2 added, notes and I worked! as counts on their row', (gp['added'], gp['notes'], gp['worked']) == (2, ['Soil'], 0) and (nc['added'], nc['notes'], nc['worked']) == (0, [], 1))
@@ -111,6 +112,12 @@ with sync_playwright() as p:
     # the monthly report: September
     ok('C2 monthly: like the weekly, over the month', (m['n'], m['before']) == (4, 1) and [x['name'] for x in m['rows']] == ['Garden planner', 'Nullovation City'])
     ok('a building with nothing finished says how long it has been quiet', m['rows'][1]['n'] == 0 and m['rows'][1]['quiet'] == 'No task finished yet')
+    ok('0.1.84 one with nothing in the month (no tick, nothing added, no note or check-in, not planted) is quiet, to fold into one line',
+       m['rows'][1]['idle'] and not m['rows'][0]['idle'])
+    ok(f'0.1.84 Next up holds the buildings with something in it; a quiet one keeps its next task on its row ({m["next"]})',
+       m['next'] == ['Garden planner:Save a plan as a file'] and m['rows'][1]['next'] == 'Try the project view for a week')
+    ok('0.1.84 Copy the month names the quiet ones in a line, not under their own heading', ev(f"""() => {{ const t = proximaText(Proxima.report('monthly', {MON}));
+      return t.includes('\\nQuiet buildings: Nullovation City (no task finished yet).') && !t.includes('## Nullovation City') && t.includes('## Garden planner'); }}"""))
     ok('C2 what only a month shows: repeats kept up', m['repeats'] == [['Water the beds', 4]] and w['repeats'] == [])
     MREST = " That's 3 more than the month before. Flight plan: 4 due this month, 1 overdue."
     ok(f'her monthly line: no usual with fewer than two months before ({m["line"]})', m['usual'] is None and any(m['line'] == o + MREST for o in ('September is logged: 4 tasks landed.', 'Monthly report on deck! 4 tasks landed in September.')))
@@ -128,7 +135,7 @@ with sync_playwright() as p:
        and old['line'].endswith(" That's 2 more than the week before, and above your usual 0.6!") and all(x['late'] == 0 for x in old['rows']))
     q = R('weekly', 'null', 'new Date(2026, 7, 17, 12).getTime()')
     ok(f'a quiet week ({q["line"]})', q['n'] == 0 and q['line'] == 'Quiet week: no tasks landed. Flight plan: clear for the rest of the week!'
-       and [x['quiet'] for x in q['rows']] == ['No task finished yet', 'No task finished yet'])
+       and [x['quiet'] for x in q['rows']] == ['No task finished yet', 'No task finished yet'] and all(x['idle'] for x in q['rows']))
     ok('a report on a period that ended before the city started is not given', ev(f"() => proximaRelevant(proximaPeriod('monthly', {MON}))")
        and not ev("() => proximaRelevant(proximaPeriod('monthly', new Date(2026, 7, 5, 12).getTime()))"))
     ok('Copy the week: the week as text, for Claude or Slack', ev(f"""() => {{ const t = proximaText(Proxima.report('weekly', {MON}));
@@ -171,7 +178,10 @@ with sync_playwright() as p:
       gp.createdAt = nc.createdAt = now - 70 * D;
       gp.todos[1].due = ymd(now - 3 * D); nc.todos[3].due = ymd(now); gp.todos[0].due = ymd(now + 2 * D);
       gp.todos.push({ id: 't_water', text: 'Water the beds', done: false, repeat: { every: 'day', n: 3 }, due: ymd(now + D), waiting: true, milestoneId: null, createdAt: now - 70 * D });
-      changed(gp); changed(nc);
+      const rb = createProject('Recipe box', freePlots()[0]);
+      rb.createdAt = now - 70 * D; rb.activity = [];
+      rb.todos.push({ id: 't_rb', text: 'Sort the recipes', done: false, due: ymd(now - 5 * D), milestoneId: null, createdAt: now - 70 * D });
+      changed(gp); changed(nc); changed(rb);
     }""")
     pg.wait_for_timeout(150)
     ok('the Reports button wears a dot while a report waits unread', ev("() => document.querySelector('#btnOpenReports').classList.contains('has-news')")
@@ -207,12 +217,28 @@ with sync_playwright() as p:
     heads = ev("() => [...document.querySelectorAll('.px-report .px-sec > h4')].map(h => h.textContent)")
     ok(f'the weekly report: streak, buildings, milestones finished, overdue, this week and next up; no busiest, no facts ({heads})',
        heads == ['Streak', 'Buildings', 'Milestones finished', 'Overdue', 'This week', 'Next up'])
-    ok('B1 the table: a head with Finished, Added, Overdue and Milestone, and every building, the most finished first',
+    ok('B1 the table: a head with Finished, Added, Overdue and Milestone, and every building with something in the week, the most finished first',
        ev("() => [...document.querySelectorAll('.px-bhead span')].map(s => s.textContent)") == ['Building', 'Finished', 'Added', 'Overdue', 'Milestone']
-       and ev("() => [...document.querySelectorAll('#pxBuildings .px-brow')].map(r => r.dataset.id)") == ev("() => Proxima.report('weekly').rows.map(x => x.p.id)")
+       and ev("() => [...document.querySelectorAll('#pxBuildings .px-brow')].map(r => r.dataset.id)") == ev("() => Proxima.report('weekly').rows.filter(x => !x.idle).map(x => x.p.id)")
        and pg.locator('#pxBuildings .px-brow').count() == 2)
-    ok('the row\'s numbers, and the totals under them', ev("""() => { const r = Proxima.report('weekly'), row = document.querySelector('#pxBuildings .px-brow');
-        return row.querySelectorAll('.px-num')[0].textContent === String(r.rows[0].n) && document.querySelector('.px-bfoot .px-num').textContent === String(r.n); }"""))
+    ok('the row\'s numbers, and the totals under them, the quiet buildings counted too', ev("""() => { const r = Proxima.report('weekly'), row = document.querySelector('#pxBuildings .px-brow'), f = document.querySelectorAll('.px-bfoot .px-num');
+        return row.querySelectorAll('.px-num')[0].textContent === String(r.rows[0].n) && f[0].textContent === String(r.n) && f[2].textContent === String(r.totals.late) && r.totals.late === r.overdue.length; }"""))
+    # 0.1.84: the quiet buildings, no row each, but one line under the rows, folded
+    rb = ev("() => DB.projects.find(p => p.name === 'Recipe box').id")
+    ok('0.1.84 a quiet building has no row of zeros: one line under the rows, folded, counts them and their overdue tasks',
+       pg.locator(f'#pxBuildings .px-brow[data-id="{rb}"]').count() == 0 and pg.text_content('.px-qrow .px-qname') == '1 quiet building'
+       and pg.text_content('.px-qrow .px-bsub') == 'Nothing finished or added this week · 1 overdue task' and pg.get_attribute('.px-qrow', 'aria-expanded') == 'false'
+       and pg.locator('#pxQuiet').count() == 0 and ev("() => document.querySelector('#pxBuildings').lastElementChild.classList.contains('px-qitem')"))
+    ok('0.1.84 its next task is not in Next up', 'Sort the recipes' not in pg.text_content('#pxNext') and pg.locator('#pxNext li').count() == 2)
+    pg.click('.px-qrow'); pg.wait_for_timeout(200)
+    qi = f'#pxQuiet li[data-id="{rb}"]'
+    ok('0.1.84 opened, with the focus kept: each quiet building, how long it has been quiet, its overdue tasks and its next task',
+       pg.get_attribute('.px-qrow', 'aria-expanded') == 'true' and ev("() => document.activeElement.dataset.k") == 'quiet' and pg.locator('#pxQuiet li').count() == 1
+       and pg.text_content(f'{qi} .px-bname-link') == 'Recipe box' and pg.text_content(f'{qi} .px-bsub') == 'No task finished yet · 1 overdue'
+       and pg.text_content(f'{qi} .px-link') == 'Sort the recipes')
+    pg.screenshot(path=str(SHOTS / '309-proxima-quiet.png'))
+    pg.click('.px-qrow'); pg.wait_for_timeout(200)
+    ok('0.1.84 and folds again', pg.get_attribute('.px-qrow', 'aria-expanded') == 'false' and pg.locator('#pxQuiet').count() == 0)
     ok('A1 every overdue task, each a link', pg.locator('#pxOverdue li').count() == ev("() => Proxima.report('weekly').overdue.length") and pg.is_visible('#pxOverdue .recap-day.late'))
     f = ev(FACE_OF, '.px-says')
     ok(f'the report opens with her portrait at 64 by 64 ({f and {k: f[k] for k in ("w", "h")}})', f and f['url'] == px and f['imgs'] == 1 and f['w'] == f['h'] == 64)
@@ -289,9 +315,20 @@ with sync_playwright() as p:
     pg.click('.px-foot .btn'); pg.wait_for_timeout(200)
     c = ev("() => navigator.clipboard.readText()").replace('\r\n', '\n')
     ok('A2 Copy the week copies it as text', c.startswith('# Nullovation City, week of ') and ', so far\n' in c and '## Garden planner' in c and '1 note' in c)
+    ok('0.1.84 the quiet ones in a line, with their overdue tasks', 'Recipe box (no task finished yet, 1 overdue)' in c and '## Recipe box' not in c)
     pg.click(f'#pxBuildings .px-brow[data-id="{gp}"]'); pg.wait_for_timeout(150)
     pg.click('.px-bdetail .px-go'); pg.wait_for_timeout(400)
     ok('a building in a report goes to it on the map', not ev("() => Panel.isOpen()") and ev("() => App.selectedId") == gp and pg.is_visible('#bubble'))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    pg.click('#btnRecap'); pg.wait_for_timeout(400)
+    pg.click('.px-qrow'); pg.wait_for_timeout(200)
+    pg.click(f'#pxQuiet li[data-id="{rb}"] .px-link'); pg.wait_for_timeout(500)
+    ok('0.1.84 a quiet building\'s next task opens in its project', not ev("() => Panel.isOpen()") and pg.is_visible('#pvSide #pvTaskTitle') and pg.input_value('#pvTaskTitle') == 'Sort the recipes')
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
+    pg.click('#btnRecap'); pg.wait_for_timeout(400)
+    pg.click('.px-qrow'); pg.wait_for_timeout(200)
+    pg.click(f'#pxQuiet li[data-id="{rb}"] .px-bname-link'); pg.wait_for_timeout(400)
+    ok('0.1.84 and its name shows it on the map', not ev("() => Panel.isOpen()") and ev("() => App.selectedId") == rb)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
 
     # a reload: what was read and said is kept

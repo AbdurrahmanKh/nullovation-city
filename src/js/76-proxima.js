@@ -6,8 +6,9 @@
    - the monthly one, laid out like the weekly, over a month, with its arrows back to any month;
    - the daily one, a morning brief on today, which she brings herself on the day's first open, as she brings the
      weekly one on the week's and the monthly one on the month's, in a speech bubble with Read.
-   A report opens with her line, its numbers drawn as tokens, then a table of every building: tasks finished, added,
-   overdue and its milestone, each row opening on what it finished (B1). Every count is of ticks, as in Reports.
+   A report opens with her line, its numbers drawn as tokens, then a table of the buildings with something in the
+   period: tasks finished, added, overdue and its milestone, each row opening on what it finished (B1); the quiet ones
+   fold into one line under them (0.1.84). Every count is of ticks, as in Reports.
    Her voice (V1), a compass for her lines: quick, bright and exact; short call-outs with a little cockpit talk (inbound,
    logged, on deck, copy that); real numbers said precisely, an exclamation when a number is good; she opens with the
    number and closes with the next thing to do. She never scolds or nags (Gus's job), mentions garbage, makes up or
@@ -220,11 +221,16 @@ function proximaReport(kind, now = Date.now(), from = null) {
       planted: inP(p.createdAt), ms: finished.filter(x => x.p === p),
       late: per.latest ? open.filter(late).length : 0, open: open.length, mile: proximaMilestone(p, per) };
     row.quiet = row.n ? null : per.latest && !row.open ? 'Nothing open' : proximaQuiet(lastTick.has(p) ? lastTick.get(p) : null, per, now);
+    /* nothing in the period: no tick, nothing added, no note or check-in, not planted; the table folds these into one
+       line (0.1.84: "I don't like that the report have bunch of 0 buildings") */
+    row.idle = !(row.n || row.added.length || row.notes.length || row.worked || row.planted || row.ms.length);
     return row;
   }).sort((a, b) => b.n - a.n || b.added.length - a.added.length || a.p.name.localeCompare(b.p.name));
   r.totals = { n: r.n, added: r.rows.reduce((s, x) => s + x.added.length, 0), notes: r.rows.reduce((s, x) => s + x.notes.length, 0),
     worked: r.rows.reduce((s, x) => s + x.worked, 0), late: r.rows.reduce((s, x) => s + x.late, 0) };
-  if (per.latest) r.next = r.rows.map(x => nextOf(x.p)).filter(Boolean);
+  /* what is next: each building's next task; Next up holds those with something in the period, and the quiet ones'
+     go with them in their folded line */
+  if (per.latest) { for (const x of r.rows) x.next = nextOf(x.p); r.next = r.rows.filter(x => !x.idle && x.next).map(x => x.next); }
   if (kind === 'monthly') {
     /* what only a month shows (C2): repeats kept up */
     r.repeats = [];
@@ -245,7 +251,7 @@ function proximaText(r) {
   const L = ['# Nullovation City, ' + what + (r.per.live ? ', so far' : ''), r.line];
   const s = r.streak;
   L.push('Streak: ' + plural(s.n, 'day', 'days') + ', the longest ' + plural(s.best.n, 'day', 'days') + '.');
-  for (const x of r.rows.filter(x => x.n || x.added.length || x.notes.length || x.worked || x.planted)) {
+  for (const x of r.rows.filter(x => !x.idle)) {
     L.push('', '## ' + x.p.name);
     const nums = [x.n + ' finished', x.added.length + ' added', x.notes.length ? plural(x.notes.length, 'note', 'notes') : null,
       x.worked ? plural(x.worked, 'I worked! check-in', 'I worked! check-ins') : null].filter(Boolean);
@@ -254,8 +260,8 @@ function proximaText(r) {
     if (x.done.length) { L.push('Finished:'); for (const d of x.done) L.push('- ' + d.text); }
     if (x.ms.length) { L.push('Milestones finished:'); for (const m of x.ms) L.push('- ' + m.m.name); }
   }
-  const quiet = r.rows.filter(x => !x.n && x.quiet && !x.added.length && !x.notes.length && !x.worked && !x.planted);
-  if (quiet.length) L.push('', 'Nothing finished: ' + quiet.map(x => x.p.name + ' (' + x.quiet.toLowerCase() + ')').join(', ') + '.');
+  const quiet = r.rows.filter(x => x.idle);
+  if (quiet.length) L.push('', 'Quiet buildings: ' + quiet.map(x => x.p.name + ' (' + x.quiet.toLowerCase() + (x.late ? ', ' + x.late + ' overdue' : '') + ')').join(', ') + '.');
   if (r.overdue && r.overdue.length) { L.push('', 'Overdue:'); for (const x of r.overdue) L.push('- ' + x.t.text + ' (' + x.p.name + ', ' + dueInfo(x.t, r.now).text.toLowerCase() + ')'); }
   if (r.due && r.due.length) { L.push('', PROXIMA_WORDS[r.kind].ahead + ':'); for (const x of r.due) L.push('- ' + x.t.text + ' (' + x.p.name + ', ' + weekdayOf(x.t.due) + ' ' + dayMonth(parseYmd(x.t.due)) + ')'); }
   if (r.repeats && r.repeats.length) { L.push('', 'Repeats kept up:'); for (const x of r.repeats) L.push('- ' + x.t.text + ': ' + plural(x.k, 'time', 'times')); }
@@ -314,11 +320,11 @@ const Proxima = (() => {
   function refresh() { renderDot(); if (typeof Reports !== 'undefined') Reports.refresh(); }
 
   /* ---------- a report, to read ---------- */
-  let shownKind = null, shownFrom = null, body = null, openRows = new Set(), openNotes = new Set();
+  let shownKind = null, shownFrom = null, body = null, openRows = new Set(), openNotes = new Set(), openQuiet = false;
   /* Opens a report: the daily one on today; a weekly or monthly one on the period starting at `from`, by default the
      last one ended, which is the one she brings and the one her card's tile marks read. */
   function openReport(kind, from = null) {
-    shownKind = kind; shownFrom = from; openRows = new Set(); openNotes = new Set();
+    shownKind = kind; shownFrom = from; openRows = new Set(); openNotes = new Set(); openQuiet = false;
     body = h('div', { class: 'px-report', 'data-kind': kind });
     Panel.open(PROXIMA_WORDS[kind].title, body, 'px-panel');
     draw();
@@ -376,7 +382,7 @@ const Proxima = (() => {
     const all = [];
     for (let s = cur; s >= first; s = proximaStep(kind, s, -1)) all.push(s);
     const name = s => (kind === 'weekly' ? weekLabel(s) : monthLabel(s, new Date(s).getFullYear() !== new Date(now).getFullYear())) + (s === cur ? (kind === 'weekly' ? ' (this week)' : ' (this month)') : '');
-    const unit = kind === 'weekly' ? 'week' : 'month', go = s => { shownFrom = s; openRows = new Set(); openNotes = new Set(); draw(); };
+    const unit = kind === 'weekly' ? 'week' : 'month', go = s => { shownFrom = s; openRows = new Set(); openNotes = new Set(); openQuiet = false; draw(); };
     return h('div', { class: 'px-nav' },
       h('button', { class: 'icon-btn', type: 'button', 'data-k': 'prev', 'aria-label': 'The ' + unit + ' before', title: 'The ' + unit + ' before', html: iconSvg('caretR', 10),
         style: 'transform: scaleX(-1)', disabled: r.per.from <= first, onclick: () => go(proximaStep(kind, r.per.from, -1)) }),
@@ -386,7 +392,8 @@ const Proxima = (() => {
       h('select', { id: 'pxPick', class: 'field px-pick', 'data-k': 'pick', 'aria-label': kind === 'weekly' ? 'Every week' : 'Every month', onchange: e => go(Number(e.target.value)) },
         all.map(s => h('option', { value: String(s), selected: s === r.per.from }, name(s)))));
   }
-  /* The table of buildings (B1): every building, the most finished first; a row opens on what it finished (A1). */
+  /* The table of buildings (B1): every building with something in the period, the most finished first, a row opening
+     on what it finished (A1); the quiet ones, with nothing in it, folded into one line under them (0.1.84). */
   function table(r, now) {
     const unit = r.kind === 'weekly' ? 'week' : 'month', lateCol = r.per.latest;
     const cls = 'px-bgrid' + (lateCol ? ' with-late' : '');
@@ -394,7 +401,8 @@ const Proxima = (() => {
       lateCol ? h('span', { class: 'px-num' }, 'Overdue') : null, h('span', null, 'Milestone'));
     const mileCell = x => x.mile ? h('span', { class: 'px-mile', dir: 'auto', title: x.mile.m.name + ': ' + x.mile.done + ' of ' + x.mile.total + ' done' + (x.mile.moved ? ', ' + x.mile.moved + ' this ' + unit : '') },
       h('span', { class: 'px-mile-name' }, x.mile.m.name), h('span', { class: 'px-mile-n' }, x.mile.done + ' of ' + x.mile.total), x.mile.moved ? h('b', { class: 'px-mile-up' }, '+' + x.mile.moved) : null) : h('span', { class: 'px-mile px-none' }, '');
-    const rows = r.rows.map(x => {
+    const active = r.rows.filter(x => !x.idle), idle = r.rows.filter(x => x.idle);
+    const rows = active.map(x => {
       const id = x.p.id, opens = !!(x.done.length || x.ms.length || x.notes.length || x.worked || x.planted), on = opens && openRows.has(id);
       const sub = [x.quiet, x.planted ? 'Planted this ' + unit : null, x.notes.length ? plural(x.notes.length, 'note', 'notes') : null, x.worked ? plural(x.worked, 'I worked! check-in', 'I worked! check-ins') : null].filter(Boolean).join(' · ');
       const cells = [
@@ -409,10 +417,26 @@ const Proxima = (() => {
         : h('div', { class: cls + ' px-brow still', 'data-id': id, 'aria-label': words, role: 'group' }, cells);
       return h('li', { class: 'px-bitem' + (on ? ' open' : '') }, rowEl, on ? detail(x, r) : null);
     });
+    if (idle.length) rows.push(quietLine(idle, unit));
     const t = r.totals;
     const foot = h('div', { class: cls + ' px-bfoot' }, h('span', null, 'All buildings'), h('b', { class: 'px-num' }, String(t.n)), h('b', { class: 'px-num' }, String(t.added)),
       lateCol ? h('b', { class: 'px-num' + (t.late ? ' late' : '') }, String(t.late)) : null, h('span', null, ''));
-    return h('section', { class: 'px-sec px-buildings' }, h('h4', null, 'Buildings'), head, h('ul', { id: 'pxBuildings', class: 'px-blist' }, rows), foot);
+    return h('section', { class: 'px-sec px-buildings' }, h('h4', null, 'Buildings'), active.length ? head : null, h('ul', { id: 'pxBuildings', class: 'px-blist' }, rows), foot);
+  }
+  /* The quiet buildings in one line, folded: opened, each with how long it has been quiet, its overdue tasks, and in a
+     report that reaches today its next task; its name shows it on the map. */
+  function quietLine(idle, unit) {
+    const late = idle.reduce((s, x) => s + x.late, 0);
+    const sub = 'Nothing finished or added this ' + unit + (late ? ' · ' + plural(late, 'overdue task', 'overdue tasks') : '');
+    return h('li', { class: 'px-bitem px-qitem' + (openQuiet ? ' open' : '') },
+      h('button', { class: 'px-qrow', type: 'button', 'data-k': 'quiet', 'aria-expanded': String(openQuiet), title: openQuiet ? 'Fold them' : 'Show them',
+        onclick: () => { openQuiet = !openQuiet; draw(); } },
+        h('span', { class: 'px-caret', 'aria-hidden': 'true', html: iconSvg('caretR', 8) }),
+        h('span', { class: 'px-bname-body' }, h('span', { class: 'px-qname' }, plural(idle.length, 'quiet building', 'quiet buildings')), h('span', { class: 'px-bsub' }, sub))),
+      openQuiet ? list(idle.map(x => h('li', { 'data-id': x.p.id }, thumb(x.p),
+        h('span', { class: 'px-qwho' }, h('button', { class: 'px-bname-link', type: 'button', dir: 'auto', title: 'Show it on the map', onclick: goP(x.p) }, x.p.name),
+          h('span', { class: 'px-bsub' }, x.quiet, x.late ? h('span', { class: 'px-qlate' }, ' · ' + x.late + ' overdue') : null)),
+        x.next ? h('button', { class: 'px-link', type: 'button', dir: 'auto', title: 'Its next task', onclick: goT(x.p, x.next.t) }, x.next.t.text) : null)), { id: 'pxQuiet', class: 'px-list px-qlist' }) : null);
   }
   /* A building's row, opened: what it finished, by day, its milestones finished, its notes (a count that opens on
      them, A2), its I worked! check-ins, and planted. */
