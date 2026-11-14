@@ -276,7 +276,7 @@ const Confirm = (() => {
   return { ask, isOpen: () => !!back, cancel: () => done(false) };
 })();
 
-/* A plain centered panel: used by the week recap, and since 0.1.68 to read what Claude sent (cls 'cr', a smaller one). */
+/* A plain centered panel: used by Proxima's reports, and since 0.1.68 to read what Claude sent (cls 'cr', a smaller one). */
 const Panel = (() => {
   let back = null, prevFocus = null;
   function open(titleText, bodyNodes, cls = '') {

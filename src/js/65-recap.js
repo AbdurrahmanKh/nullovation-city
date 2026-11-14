@@ -1,4 +1,4 @@
-/* ---------- the week: one snapshot per Saturday-to-Friday week, and every older week to go back to ---------- */
+/* ---------- the week: Saturday to Friday ---------- */
 function weekStartOf(ts) {
   const d = new Date(ts);
   const back = (d.getDay() + 1) % 7;                     // days since Saturday
@@ -11,101 +11,8 @@ function weekLabel(start, withYear = false) {
 }
 /* A task added, from its Activity line: added, or turned from a note (0.1.54). */
 const addedTodo = s => s.startsWith('Added todo: ') ? s.slice(12) : s.startsWith('Turned into a task: ') ? s.slice(20) : null;
-/* What happened in one week, per project, from the activity log and the tasks and notes themselves. */
-function weekOf(start) {
-  const end = addDays(start, 7);
-  const inWeek = at => typeof at === 'number' && at >= start && at < end;
-  const rows = [], tot = { done: 0, notes: 0, ms: 0, added: 0, worked: 0, planted: 0 };
-  for (const p of DB.projects) {
-    const log = (p.activity || []).filter(e => inWeek(e.at));
-    const doneMap = new Map();
-    for (const e of log) if (e.text.startsWith('Done: ')) doneMap.set(e.text.slice(6), e.at);
-    for (const t of p.todos) if (t.done && inWeek(t.doneAt) && !doneMap.has(t.text)) doneMap.set(t.text, t.doneAt);
-    const done = [...doneMap.entries()].map(([text, at]) => ({ text, at })).sort((x, y) => x.at - y.at);
-    const added = log.map(e => ({ text: addedTodo(e.text), at: e.at })).filter(e => e.text != null);
-    const worked = log.filter(e => e.text === 'I worked!').length;
-    const notes = allNotes(p).filter(n => inWeek(n.at)).sort((x, y) => x.at - y.at);   // a task's notes too (0.1.71)
-    const ms = p.milestones.filter(m => {
-      const ts = p.todos.filter(t => t.milestoneId === m.id);
-      return ts.length && ts.every(t => t.done) && inWeek(Math.max(...ts.map(t => t.doneAt || 0)));
-    });
-    const planted = inWeek(p.createdAt);
-    if (done.length || added.length || worked || notes.length || ms.length || planted) rows.push({ p, done, added, worked, notes, ms, planted });
-    tot.done += done.length; tot.notes += notes.length; tot.ms += ms.length; tot.added += added.length; tot.worked += worked; tot.planted += planted ? 1 : 0;
-  }
-  return { start, end, rows, tot };
-}
-/* The side bar's one line: tasks done, notes, milestones. */
-function weekNumbers(tot) {
-  return [tot.done ? plural(tot.done, 'task', 'tasks') + ' done' : null, tot.notes ? plural(tot.notes, 'note', 'notes') : null,
-    tot.ms ? plural(tot.ms, 'milestone', 'milestones') : null].filter(Boolean);
-}
-function weekSummary(tot) {
-  const parts = [tot.done ? plural(tot.done, 'task', 'tasks') + ' finished' : null, tot.notes ? plural(tot.notes, 'note', 'notes') + ' written' : null,
-    tot.ms ? plural(tot.ms, 'milestone', 'milestones') + ' finished' : null, tot.added ? plural(tot.added, 'task', 'tasks') + ' added' : null,
-    tot.worked ? plural(tot.worked, 'I worked! check-in', 'I worked! check-ins') : null, tot.planted ? plural(tot.planted, 'building', 'buildings') + ' planted' : null].filter(Boolean);
-  return parts.length ? parts.join(', ') + '.' : 'Nothing recorded this week.';
-}
-const noteLine = n => ((n.title || '').trim() ? n.title.trim() + ': ' : '') + n.text.replace(/\s+/g, ' ').trim().slice(0, 160);
-function weekText(w) {
-  const L = ['# Nullovation City, week of ' + weekLabel(w.start, true), weekSummary(w.tot)];
-  for (const r of w.rows) {
-    L.push('', '## ' + r.p.name);
-    if (r.planted) L.push('Planted this week.');
-    if (r.done.length) { L.push('Finished:'); for (const d of r.done) L.push('- ' + d.text); }
-    if (r.ms.length) { L.push('Milestones finished:'); for (const m of r.ms) L.push('- ' + m.name); }
-    if (r.added.length) { L.push('Added:'); for (const d of r.added) L.push('- ' + d.text); }
-    if (r.notes.length) { L.push('Notes:'); for (const n of r.notes) L.push('- ' + noteLine(n)); }
-    if (r.worked) L.push('I worked!: ' + plural(r.worked, 'check-in', 'check-ins') + '.');
-  }
-  if (!w.rows.length) L.push('', 'Nothing recorded this week.');
-  return L.join('\n');
-}
-/* The first week anything was recorded. */
-function firstWeekStart() {
-  let min = Date.now();
-  for (const p of DB.projects) {
-    min = Math.min(min, p.createdAt || min);
-    for (const e of p.activity || []) min = Math.min(min, e.at);
-    for (const n of allNotes(p)) min = Math.min(min, n.at);
-  }
-  return weekStartOf(min);
-}
-function openRecap(start = weekStartOf(Date.now())) {
-  const body = h('div', { class: 'recap' });
-  const day = at => new Date(at).toLocaleDateString('en-GB', { weekday: 'short' });
-  const show = s => {
-    const cur = weekStartOf(Date.now()), first = Math.min(firstWeekStart(), cur);
-    s = clamp(s, first, cur);
-    const w = weekOf(s);
-    const weeks = [];
-    for (let k = cur; k >= first; k = addDays(k, -7)) weeks.push(k);
-    const pick = h('select', { class: 'field recap-weeks', 'aria-label': 'All weeks', onchange: e => show(Number(e.target.value)) },
-      weeks.map(k => { const t = weekOf(k).tot; return h('option', { value: String(k), selected: k === s }, weekLabel(k) + (k === cur ? ' (this week)' : '') + (t.done || t.notes ? ': ' + [t.done ? t.done + ' done' : null, t.notes ? plural(t.notes, 'note', 'notes') : null].filter(Boolean).join(', ') : '')); }));
-    const nav = h('div', { class: 'recap-nav' },
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'The week before', title: 'The week before', html: iconSvg('caretR', 10), disabled: s <= first, style: 'transform: scaleX(-1)', onclick: () => show(addDays(s, -7)) }),
-      h('h3', { class: 'recap-when' }, weekLabel(s, true) + (s === cur ? ', this week' : '')),
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'The week after', title: 'The week after', html: iconSvg('caretR', 10), disabled: s >= cur, onclick: () => show(addDays(s, 7)) }),
-      pick);
-    const list = (label, items) => items.length ? h('div', { class: 'recap-group' }, h('h4', null, label), h('ul', null, items)) : null;
-    const rows = w.rows.map(r => h('section', { class: 'recap-proj' },
-      h('button', { class: 'recap-name linkish', type: 'button', dir: 'auto', onclick: () => { Panel.close(); MapView.select(r.p.id); } }, r.p.name),
-      r.planted ? h('p', { class: 'recap-tag' }, 'Planted this week') : null,
-      list('Finished', r.done.map(d => h('li', { dir: 'auto' }, h('span', { class: 'recap-day' }, day(d.at)), d.text))),
-      list('Milestones finished', r.ms.map(m => h('li', { dir: 'auto' }, m.name))),
-      list('Added', r.added.map(d => h('li', { dir: 'auto' }, h('span', { class: 'recap-day' }, day(d.at)), d.text))),
-      list('Notes', r.notes.map(n => h('li', { dir: 'auto' }, h('span', { class: 'recap-day' }, day(n.at)), noteLine(n)))),
-      r.worked ? h('p', { class: 'recap-worked' }, 'I worked!: ' + plural(r.worked, 'check-in', 'check-ins')) : null));
-    body.replaceChildren(nav,
-      h('p', { class: 'recap-sum' }, weekSummary(w.tot)),
-      ...rows,
-      h('div', { class: 'recap-foot' }, h('button', { class: 'btn', type: 'button', onclick: async () => {
-        if (await copyText(weekText(w))) toast('Week copied. Paste it into Claude or Slack.'); else toast('The browser blocked copying. Try again.', 'error');
-      } }, iconEl('copy', 14), 'Copy the week')));
-  };
-  Panel.open('Your week', body);
-  show(start);
-}
+/* The week as it was told until 0.1.82, in the side bar's This week card and the panel Your week, is Proxima's weekly
+   report since 0.1.83 (Proxima Reports, Round 1): one weekly report in place of two, in 76-proxima.js. */
 
 function projectStatus(p, now = Date.now()) {
   const L = [];

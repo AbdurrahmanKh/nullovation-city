@@ -119,15 +119,15 @@ with sync_playwright() as p:
     ok('the toast says where it went, with Undo', toast() == 'Turned A seed library into a task in First release.', toast())
     ok('Activity: "Turned into a task: <title>"', lines()[-1] == 'Turned into a task: A seed library')
     ok('it is not work either', after['urgency']['lastWorked'] == before['urgency']['lastWorked'] and after['updatedAt'] >= before['updatedAt'])
-    recap_added = f"() => (weekOf(weekStartOf(Date.now())).rows.find(r => r.p.id === '{gp}') || {{ added: [] }}).added.map(a => a.text)"
-    ok('the week\'s recap counts it as a task added', 'A seed library' in ev(recap_added))
+    recap_added = f"() => (Proxima.report('weekly', Date.now(), weekStartOf(Date.now())).rows.find(r => r.p.id === '{gp}') || {{ added: [] }}).added.map(a => a.text)"
+    ok("the week's report counts it as a task added (0.1.83; the recap until then)", 'A seed library' in ev(recap_added))
     ok('Undo is offered', undo()); pg.wait_for_timeout(450)
     back = proj()
     bn = next((n for n in back['notes'] if n['id'] == 'n_seed'), None)
     ok('Undo puts the note back, as it was and in its place', bn is not None and [n['id'] for n in back['notes']].index('n_seed') == nidx and bn['title'] == 'A seed library'
        and bn['text'] == 'Keep every seed packet in a drawer.\nSort them by month.' and bn['at'] == next(n for n in before['notes'] if n['id'] == 'n_seed')['at'])
     ok('the task is gone, and so is its line', not any(t['text'] == 'A seed library' for t in back['todos']) and 'Turned into a task: A seed library' not in lines())
-    ok('the recap no longer counts it', 'A seed library' not in ev(recap_added))
+    ok("the week's report no longer counts it", 'A seed library' not in ev(recap_added))
     ok('the note\'s panel opens again, the focus on Turn into a task', side_has('#pvNoteTitle') and active() == 'pvNoteToTask')
     done_btn(); quiet()
 

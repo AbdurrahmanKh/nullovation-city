@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.83 (2026-11-14)
+
+Proxima's reports rethought: one weekly report in place of two, a table of every building, a daily morning brief, and her numbers as tokens.
+- One weekly report: the side bar's This week card opens Proxima's weekly report on the week so far, and Reports and her bubble open it on the week just ended. Arrows and a list go back to any week. The Your week panel is gone, and the card now counts ticks, as the report does.
+- Her line at the top says what landed, against the week before and her usual (the average of the weeks before), what came in against it, and the flight plan: what is due this week and what is overdue. Its numbers are tokens, each with a small icon, in her sky blue.
+- A table of every building: tasks finished, added, overdue, and its milestone with how far it moved. A row opens on the tasks it finished by day, its milestones finished, its notes (a count that opens on them, each opening the note) and its I worked! check-ins. A building with nothing finished says how long it has been quiet.
+- Milestones finished show their building; every overdue task shows, oldest first; Next up ends the report with each building's next task. Busiest building, Nothing finished and her facts are gone.
+- The monthly report is laid out like the weekly, over a month, with repeats kept up and arrows back to any month.
+- The daily report is a morning brief on today: what is due, what is overdue, next up in each busy building, yesterday in one line, and the streak. Proxima brings it herself on the day's first open, with Read, as she brings the weekly and monthly ones.
+- Copy the week and Copy the month copy the report as text, for Claude or Slack.
+- Tests: test30_inspector checks the new reports, her line and its tokens, the table and its rows, the morning brief, the This week card opening the week so far, the arrows, notes and tasks opening from a row, and a narrow window; test04, test10 and test36 open the new weekly report in place of Your week.
+
 ## 0.1.82 (2026-10-31)
 
 Character voices: a leader picks its voice in its editor, from presets, with a pitch slider and the rest under Fine-tune.

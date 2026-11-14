@@ -128,14 +128,15 @@ with sync_playwright() as p:
     first = page.text_content('#bubble .b-todos li:first-child .txt')
     ok(f'due-tomorrow todo leads the bubble ({first[:40]})', 'Due tomorrow' in first)
 
-    # week recap: tick one, then open
+    # the week: tick one, then open the weekly report on the week so far (Proxima Reports, Round 1, 0.1.83)
     page.click('#bubble .b-todos li:nth-child(2) .cb'); page.wait_for_timeout(900)
     page.click('#btnRecap'); page.wait_for_timeout(300)
     page.screenshot(path=str(SHOTS / '47-recap.png'))
     txt = page.text_content('.modal.panel')
-    ok('the week lists the tick and the note', '1 task finished' in txt and '1 note written' in txt)
-    page.click('.recap-name >> nth=0'); page.wait_for_timeout(500)
-    ok('recap name selects the building', not page.is_visible('.modal.panel') and page.evaluate("() => !!App.selectedId"))
+    ok(f"the week opens as Proxima's weekly report, with the tick and the note ({txt[:90]})", 'This week so far: 1 task landed' in txt and '1 note' in txt)
+    page.click('.px-brow[aria-expanded] >> nth=0'); page.wait_for_timeout(200)
+    page.click('.px-go >> nth=0'); page.wait_for_timeout(500)
+    ok('a building in it goes to the map', not page.is_visible('.modal.panel') and page.evaluate("() => !!App.selectedId"))
 
     # status brief to the clipboard
     page.click('#btnBriefClaude'); page.click('.oc-panel .oc-tile[data-kind="copy"]'); page.wait_for_timeout(200)   # Copy, in Open in Claude's panel (0.1.63)

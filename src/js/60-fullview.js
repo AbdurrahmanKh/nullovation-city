@@ -1708,6 +1708,7 @@ const FullView = (() => {
     scrollBy: dy => { const el = side && side.matches(':hover') ? side : root; if (el) el.scrollTop += dy; },
     isOpen: () => !!root, currentId: () => openId, shows: id => !!root && openId === id, rightEdge,
     openTask: (pid, tid) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid); },   // from the bubble: the view, with the task open beside it
+    openNote: (pid, nid) => { open(pid); const p = getProject(pid); if (p) openNote(p, nid); },   // from a report (0.1.83): the view, with the note open beside it
     popoverOpen: () => !!pop, closePopover, refreshRounds,
     /* A task taken back out by the one-line add's Undo (0.1.56): its panel goes, with nothing written for it. */
     closeTaskOf: tid => {

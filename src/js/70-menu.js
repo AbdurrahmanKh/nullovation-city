@@ -44,7 +44,7 @@ const Menu = (() => {
     inp.addEventListener('blur', () => { if (!inp.value.trim()) hideNew(); });
     $('#bannerCancel').addEventListener('click', () => MapView.cancelMode());
 
-    $('#btnRecap').addEventListener('click', () => { closeDrawer(); openRecap(); });
+    $('#btnRecap').addEventListener('click', () => { closeDrawer(); Proxima.openReport('weekly', weekStartOf(Date.now())); });   // the one weekly report, on the week so far (0.1.83)
     /* The status brief starts a planning chat, so it sits with the week rather than in Settings: one button, Status brief,
        whose panel starts with Copy status brief, then the Claude tiles (SideBar Cleanup, 0.1.64; Open in Claude with Copy
        last until then, and Copy status brief beside it until 0.1.63). */
@@ -114,11 +114,15 @@ const Menu = (() => {
         h('span', { class: 'star-proj', dir: 'auto' }, shiftTag(t), h('span', null, p.name))));
   }
   /* This week in numbers, each with its small icon: a tick for tasks done, a note, a milestone's flag (SideBar Cleanup,
-     0.1.64). The card opens the week. */
+     0.1.64). The card opens Proxima's weekly report on the week so far, and counts as it does: ticks (0.1.83). */
   function renderWeek() {
     const btn = $('#btnRecap');
     if (!btn) return;
-    const cur = weekStartOf(Date.now()), tot = weekOf(cur).tot, parts = weekNumbers(tot);
+    const cur = weekStartOf(Date.now()), end = addDays(cur, 7), inW = at => typeof at === 'number' && at >= cur && at < end;
+    const tot = { done: taskTicks(DB.projects).filter(e => inW(e.at)).length, notes: DB.projects.reduce((s, p) => s + allNotes(p).filter(n => inW(n.at)).length, 0),
+      ms: milestonesFinished(DB.projects).filter(x => inW(x.at)).length };
+    const parts = [tot.done ? plural(tot.done, 'task', 'tasks') + ' done' : null, tot.notes ? plural(tot.notes, 'note', 'notes') : null,
+      tot.ms ? plural(tot.ms, 'milestone', 'milestones') : null].filter(Boolean);
     const icons = [tot.done ? 'tick' : null, tot.notes ? 'doc' : null, tot.ms ? 'flag' : null].filter(Boolean);
     btn.replaceChildren(
       h('span', { class: 'week-top' }, iconEl('recap', 16), h('span', { class: 'sb-h' }, 'This week'), h('span', { class: 'week-dates' }, weekLabel(cur))),
