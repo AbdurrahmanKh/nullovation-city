@@ -118,6 +118,7 @@ const Leaders = (() => {
      map like the project view, with room for all a leader will hold; its row stays marked in the list. It opens over
      the project view or All tasks, and they are back as they were once it closes. ---------- */
   let editing = null;                                        // the leader the editor shows, while it shows
+  let fineOpen = false, hushVoice = null;                    // its voice's Fine-tune, open or not this visit; its Hear it, to stop
   const isOpen = () => !!$('#leadersPanel') && !$('#leadersPanel').hidden;
   function init() {
     keepQuill();
@@ -161,6 +162,7 @@ const Leaders = (() => {
   function closeEditor() {
     if (!editing) return false;
     editing = null;
+    if (hushVoice) { hushVoice(); hushVoice = null; }       // its voice stops with it
     $('#ldView').hidden = true; $('#ldEdit').replaceChildren();
     renderSection();
     return true;
@@ -205,6 +207,7 @@ const Leaders = (() => {
   function create({ assign = null, onAdded = null } = {}) { form(blankLeader(), { isNew: true, assign, onAdded }); }
   function edit(id) { const l = getLeader(id); if (l) form(l, { isNew: false }); }
   function form(l, { isNew, assign = null, onAdded = null }) {
+    if (hushVoice) { hushVoice(); hushVoice = null; }       // another leader's Hear it stops
     let draftUrl = null;                                      // a new leader's portrait, kept until Add
     const picked = new Set(assign ? [assign.id] : []);        // a new leader's buildings, until Add
     const live = !isNew;
@@ -250,7 +253,7 @@ const Leaders = (() => {
       b.style.background = c;
       return b;
     }), other);
-    function pickColor(c) { l.color = c.toUpperCase(); other.value = l.color.toLowerCase(); drawFace(); drawSwatches(); save(); }
+    function pickColor(c) { l.color = c.toUpperCase(); other.value = l.color.toLowerCase(); drawFace(); drawSwatches(); voiceBox.style.setProperty('--ld', l.color); save(); }
 
     const blds = h('div', { class: 'ld-blds', role: 'group', 'aria-label': 'Buildings it leads' });
     const drawBuildings = () => blds.replaceChildren(...(DB.projects.length ? [...DB.projects].sort((a, b) => a.name.localeCompare(b.name)).map(p => {
@@ -298,6 +301,126 @@ const Leaders = (() => {
       toast('Deleted ' + leaderName(l) + '.');
     }
 
+    /* ---------- its voice (0.1.82, Character voices): his rule, "a preset just change the settings below it". A preset
+       sets every setting, the pitch slider moves its note, and the rest wait under Fine-tune. A pick, or a slider let
+       go, says the leader's greeting in the voice, its face talking. Its own voice, from its id, is the first pick:
+       picked back, the leader keeps nothing. ---------- */
+    const VS = Sound.voices;
+    const presetV = id => (id === 'own' ? VS.own(l) : (VS.presets.find(p => p.id === id) || {}).v) || VS.own(l);
+    const presetName = id => (id === 'own' ? 'its own' : (VS.presets.find(p => p.id === id) || { name: 'its own' }).name);
+    let cur = l.voice ? { ...l.voice } : { ...VS.own(l), from: 'own', pitch: 0 };
+    const changedFrom = () => { const pv = presetV(cur.from); return cur.pitch !== 0 || VOICE_KEYS.some(k => cur[k] !== pv[k]); };
+    let asked = 0;                                            // the latest loudness asked for, so a late answer is let go
+    async function commitVoice() {
+      const ask = ++asked;
+      if (cur.from === 'own' && !changedFrom()) { cur.gain = 1; delete l.voice; }
+      else {
+        const g = await VS.loudness({ ...cur });
+        if (ask !== asked) return;
+        cur.gain = g; l.voice = sanitizeVoice(cur);
+      }
+      if (live) persistSoon();
+    }
+    const commitSoon = debounce(commitVoice, 150);
+    const sampleLine = () => {
+      const ps = isNew ? DB.projects.filter(p => picked.has(p.id)) : leaderProjects(l);
+      const p = [...ps].sort((a, b) => a.name.localeCompare(b.name))[0];
+      return p ? leaderGreeting(p) : leaderSay('greet_empty');
+    };
+    const lineEl = h('p', { id: 'ldVoiceLine', class: 'ld-voice-line', dir: 'auto' }, sampleLine());
+    const quiet = h('p', { class: 'note ld-voice-quiet', hidden: true });
+    const drawQuiet = () => {
+      const q = Sound.voicesQuiet();
+      quiet.hidden = !q;
+      quiet.textContent = q === 'off' ? 'Sound is off, so the city says nothing. Turn it on with the speaker on the map\'s bar.' : 'Character voices are at 0% in Settings, Sound, so the city says nothing.';
+    };
+    let hearing = null;
+    function stopHear() {
+      if (hearing) { cancelAnimationFrame(hearing.raf); if (hearing.voice) hearing.voice.stop(); hearing = null; }
+      lineEl.classList.remove('typing'); faceBox.classList.remove('talking');
+      lineEl.textContent = sampleLine();
+    }
+    hushVoice = stopHear;
+    /* The greeting typed out in the voice, a letter at the city's pace and the voice's speed, as a bubble types it. */
+    function hear() {
+      stopHear(); drawQuiet();
+      const text = sampleLine(), chars = [...text], step = Math.min(26, 1800 / chars.length) / (cur.speed || 1);
+      const me = hearing = { raf: 0, voice: Sound.say({ ...cur }, chars, step / 1000) };
+      if (Motion.still()) return;
+      const spans = chars.map(ch => h('span', { class: 'ty' }, ch));
+      lineEl.replaceChildren(...spans); lineEl.classList.add('typing'); faceBox.classList.add('talking');
+      const t0 = performance.now();
+      const frame = now => {
+        if (hearing !== me) return;
+        const n = Math.min(spans.length, Math.floor((now - t0) / step) + 1);
+        for (let i = 0; i < n; i++) spans[i].classList.add('on');
+        if (n >= spans.length) { me.voice = null; stopHear(); } else me.raf = requestAnimationFrame(frame);
+      };
+      me.raf = requestAnimationFrame(frame);
+    }
+
+    const chips = h('div', { class: 'ld-vpresets' });
+    const chip = (id, name, note) => h('button', { class: 'btn btn-small set-choice ld-vchip', type: 'button', 'data-voice': id, 'aria-pressed': String(cur.from === id), title: note,
+      onclick: async () => { cur = { ...presetV(id), from: id, pitch: 0 }; drawVoice(); await commitVoice(); hear(); } }, name);
+    const drawChips = () => chips.replaceChildren(
+      h('div', { class: 'ld-vgroup' }, h('span'), h('div', { class: 'ld-vrow' }, chip('own', 'Its own', 'The voice it has had: its pitch and tone picked from it'))),
+      ...[['male', 'Male'], ['female', 'Female'], ['city', 'The city\'s']].map(([g, label]) => h('div', { class: 'ld-vgroup', role: 'group', 'aria-label': label },
+        h('span', { class: 'lbl' }, label), h('div', { class: 'ld-vrow' }, ...VS.presets.filter(p => p.group === g).map(p => chip(p.id, p.name, p.note))))));
+
+    const ord = n => ['', 'letter', '2nd letter', '3rd letter', '4th letter'][n];
+    const SL = [
+      { key: 'pitch', name: 'Pitch', min: -12, max: 12, step: 1, show: () => Math.round(cur.base) + ' Hz' + (cur.pitch ? ', ' + (cur.pitch > 0 ? '+' : '') + cur.pitch : '') },
+      { key: 'tone', name: 'Tone', fine: true, min: 0, max: 100, step: 5, scale: 100, show: x => (x < 0.15 ? 'Soft' : x < 0.4 ? 'Round' : x < 0.7 ? 'Reedy' : 'Thin') },
+      { key: 'range', name: 'Range', fine: true, min: 0, max: 8, step: 1, show: x => (x === 0 ? 'Flat' : x <= 2 ? 'Calm' : x <= 5 ? 'Lively' : 'Sing-song') },
+      { key: 'speed', name: 'Speed', fine: true, min: 60, max: 160, step: 2, scale: 100, show: x => x.toFixed(2) + 'x' },
+      { key: 'every', name: 'Chatter', fine: true, min: 1, max: 4, step: 1, show: x => 'Every ' + ord(x) },
+      { key: 'len', name: 'Length', fine: true, min: 30, max: 100, step: 1, scale: 1000, show: x => Math.round(x * 1000) + ' ms' },
+      { key: 'wobble', name: 'Wobble', fine: true, min: 0, max: 100, step: 5, scale: 100, show: x => (x === 0 ? 'None' : x < 0.35 ? 'Slight' : x < 0.7 ? 'Shaky' : 'Trembling') },
+    ];
+    const outs = {}, ins = {};
+    const sliderRow = s => {
+      const id = 'ldV-' + s.key;
+      const r = h('input', { id, type: 'range', min: String(s.min), max: String(s.max), step: String(s.step),
+        oninput: e => {
+          const x = +e.target.value / (s.scale || 1);
+          if (s.key === 'pitch') { cur.pitch = x; cur.base = Math.round(presetV(cur.from).base * Math.pow(2, x / 12) * 100) / 100; } else cur[s.key] = x;
+          drawReadouts(); commitSoon();
+        },
+        onchange: async () => { await commitVoice(); hear(); } });
+      const o = h('output', { for: id });
+      ins[s.key] = r; outs[s.key] = o;
+      return h('div', { class: 'set-slider ld-vslider' }, h('label', { class: 'lbl', for: id }, s.name), r, o);
+    };
+    const sw = (key, name, note) => h('label', { class: 'check ld-vswitch' }, h('input', { type: 'checkbox', class: 'cb', id: 'ldV-' + key,
+      onchange: async e => { cur[key] = e.target.checked; drawReadouts(); await commitVoice(); hear(); } }), h('span', null, h('b', null, name), ' ', h('span', { class: 'note' }, note)));
+    const fineBox = h('div', { class: 'ld-vfine', id: 'ldVFine', hidden: !fineOpen },
+      ...SL.filter(s => s.fine).map(sliderRow),
+      sw('robot', 'Robot', 'made of metal: two steady notes and a ring'), sw('radio', 'Radio', 'through a radio, a click at each end'));
+    const fineBtn = h('button', { class: 'btn btn-small btn-quiet ld-vfine-btn', type: 'button', 'aria-expanded': String(fineOpen), 'aria-controls': 'ldVFine',
+      onclick: () => { fineOpen = !fineOpen; fineBtn.setAttribute('aria-expanded', String(fineOpen)); fineBox.hidden = !fineOpen; drawFine(); } });
+    const drawFine = () => fineBtn.replaceChildren(iconEl(fineOpen ? 'caretD' : 'caretR', 12), 'Fine-tune');
+    const resetBtn = h('button', { class: 'btn btn-small btn-quiet ld-vreset', type: 'button',
+      onclick: async () => { cur = { ...presetV(cur.from), from: cur.from, pitch: 0 }; drawVoice(); await commitVoice(); hear(); } });
+    function drawReadouts() {
+      for (const s of SL) outs[s.key].textContent = s.key === 'pitch' ? s.show() : s.show(cur[s.key]);
+      $$('.ld-vchip', chips).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.voice === cur.from)));
+      const ch = changedFrom();
+      resetBtn.hidden = !ch; resetBtn.textContent = 'Back to ' + presetName(cur.from);
+    }
+    function drawVoice() {
+      for (const s of SL) ins[s.key].value = String(Math.round((s.key === 'pitch' ? cur.pitch : cur[s.key]) * (s.scale || 1)));
+      for (const k of ['robot', 'radio']) $('#ldV-' + k, fineBox).checked = !!cur[k];
+      drawReadouts();
+    }
+    const pitchRow = sliderRow(SL[0]);
+    drawChips(); drawFine(); drawQuiet();
+    const voiceBox = h('div', { class: 'ld-field ld-voice', role: 'group', 'aria-labelledby': 'ldVoiceH' },
+      h('div', { class: 'ld-vhead' }, h('span', { class: 'lbl', id: 'ldVoiceH' }, 'Voice'),
+        h('button', { id: 'ldHear', class: 'btn btn-small', type: 'button', onclick: hear }, iconEl('sound', 14), 'Hear it')),
+      lineEl, quiet, chips, pitchRow, h('div', { class: 'inline ld-vfoot' }, fineBtn, resetBtn), fineBox);
+    voiceBox.style.setProperty('--ld', l.color);
+    drawVoice();
+
     drawFace(); drawPortraitBtns(); drawSwatches(); drawBuildings();
     const foot = isNew
       ? h('div', { class: 'confirm-actions ld-actions' }, h('button', { id: 'ldCancel', class: 'btn', type: 'button', onclick: () => showList() }, 'Cancel'),
@@ -324,6 +447,7 @@ const Leaders = (() => {
           h('div', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Signature color'), swatches)),
         h('div', { class: 'ld-field ld-leads' }, h('span', { class: 'lbl' }, 'Leads'), blds,
           h('p', { class: 'note' }, 'One leader per building; a leader can lead several.')),
+        voiceBox,
         live ? h('p', { class: 'note ld-saves' }, 'Changes save as you make them.') : null),
       foot);
     name.focus({ preventScroll: true }); if (isNew) name.select();
@@ -440,11 +564,11 @@ const Leaders = (() => {
     if (id !== QUILL.id) urls.delete(id);
     refreshSoon();
   }
-  /* A project file carries its leader: its name, role, color and portrait. */
+  /* A project file carries its leader: its name, role, color, voice (0.1.82) and portrait. */
   async function carry(l) {
     if (!l) return null;
     const url = l.portrait ? (await Store.getArt(portraitKey(l.id))) || urls.get(l.id) || null : null;
-    return { name: leaderName(l), role: l.role, color: l.color, ...(url ? { portraitUrl: url } : {}) };
+    return { name: leaderName(l), role: l.role, color: l.color, ...(l.voice ? { voice: l.voice } : {}), ...(url ? { portraitUrl: url } : {}) };
   }
   /* A project file's leader in this city: one of its leaders by the same name, else a new one. Resolves its id. */
   async function adopt(info) {

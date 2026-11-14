@@ -1430,6 +1430,30 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-bld-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ld-bld-other { margin-left: auto; flex: none; font-size: 12px; color: var(--muted); }
 .ld-actions { justify-content: space-between; margin-top: 16px; }
+/* a leader's voice (0.1.82, Character voices): its greeting as a quote, the presets as picks, the pitch, and the
+   rest under Fine-tune; the face talks while Hear it says the line */
+.ld-view .ld-voice { grid-column: 1 / -1; }
+.ld-voice { gap: 10px; }
+.ld-vhead { display: flex; align-items: center; gap: 10px; }
+.ld-vhead .btn { margin-left: auto; gap: 6px; }
+.ld-voice-line { margin: 0; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
+.ld-voice-line.typing .ty { opacity: 0; }
+.ld-voice-line.typing .ty.on { opacity: 1; }
+.ld-vpresets { display: grid; gap: 6px; }
+.ld-vgroup { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 8px; }
+.ld-vgroup .lbl { font-size: 12.5px; }
+.ld-vrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.ld-vchip { font-size: 13px; padding: 5px 9px 4px; }
+.ld-vchip[aria-pressed="true"] { background: var(--ld, var(--hover)); color: #2B2542; }   /* the pick, in the leader's color */
+.ld-vslider { max-width: 560px; }
+.ld-vfoot { gap: 8px; }
+.ld-vfoot .btn { gap: 6px; }
+.ld-vfine { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 24px; padding: 12px 14px; background: var(--field); box-shadow: var(--px-edge); }
+.ld-vswitch { font-size: 13.5px; align-items: flex-start; }
+.ld-vswitch .note { font-size: 12px; }
+.ld-big.talking .breathes > * { animation: face-talk 620ms steps(1, end) infinite; }
+.m-still .ld-big.talking .breathes > * { animation: none; }
+@container (max-width: 560px) { .ld-vgroup { grid-template-columns: minmax(0, 1fr); gap: 4px; } }   /* a phone: each group's name over its picks */
 
 .ld-pick { display: grid; gap: 12px; }
 .ld-pick > .note { margin: 0; }

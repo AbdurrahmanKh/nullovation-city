@@ -3,7 +3,8 @@
    comes later. One leader per building, and one leader can run several. The leaders live in the side bar's Leaders
    section, are picked from a building's more menu or its project view, and show in the wheel's middle, the leader card
    in the project view and the status card (L1). Claude's copies and the city summary name them (L3). A portrait sits in
-   the art store under 'leader:' and the leader's id, and travels inline in backups and the data file. */
+   the art store under 'leader:' and the leader's id, and travels inline in backups and the data file. Since 0.1.82 a
+   leader may carry a voice, picked in its editor. */
 const LEADER_COLORS = ['#F29A74', '#F08BB4', '#D9536B', '#F2C75C', '#E8DCC4', '#7FD6B5', '#6FAE5C', '#3FA79E', '#8FD0F7', '#5A6FA8', '#B9A3E3', '#8E5A9E'];
 const LEADER_MAX = { name: 60, role: 60 };
 const leaderColor = seed => LEADER_COLORS[hashStr(String(seed)) % LEADER_COLORS.length];
@@ -22,11 +23,24 @@ function sanitizeLeaders(raw) {
     let id = typeof r.id === 'string' && r.id ? r.id.slice(0, 60) : uid('ld');
     if (seen.has(id)) id = uid('ld');
     seen.add(id);
+    const voice = sanitizeVoice(r.voice);
     out.push({ id, name: s(r.name, LEADER_MAX.name) || 'Leader', role: s(r.role, LEADER_MAX.role),
       color: /^#[0-9a-f]{6}$/i.test(r.color || '') ? r.color.toUpperCase() : leaderColor(id), portrait: !!r.portrait,
-      createdAt: typeof r.createdAt === 'number' ? r.createdAt : Date.now() });
+      createdAt: typeof r.createdAt === 'number' ? r.createdAt : Date.now(), ...(voice ? { voice } : {}) });
   }
   return out;
+}
+/* A leader's voice (0.1.82, Character voices): the settings it talks with, picked in its editor, the preset it
+   started from, and the pitch moved from it; none, and it talks in its own voice, from its id. Read with care, as every
+   number is kept in its slider's range. */
+const VOICE_KEYS = ['tone', 'range', 'speed', 'every', 'len', 'wobble', 'robot', 'radio'];   // what a preset sets, with its note
+function sanitizeVoice(v) {
+  if (!v || typeof v !== 'object') return null;
+  const n = (x, lo, hi, d) => (typeof x === 'number' && isFinite(x) ? Math.min(hi, Math.max(lo, x)) : d);
+  return { from: typeof v.from === 'string' && /^[\w-]{1,20}$/.test(v.from) ? v.from : 'own', pitch: Math.round(n(v.pitch, -12, 12, 0)),
+    base: n(v.base, 40, 1500, 196), tone: n(v.tone, 0, 1, 0.55), range: Math.round(n(v.range, 0, 8, 4)), speed: n(v.speed, 0.6, 1.6, 1),
+    every: Math.round(n(v.every, 1, 4, 2)), len: n(v.len, 0.03, 0.1, 0.055), wobble: n(v.wobble, 0, 1, 0), robot: !!v.robot, radio: !!v.radio,
+    gain: n(v.gain, 0.2, 5, 1) };
 }
 const getLeader = id => (id && Array.isArray(DB.leaders) ? DB.leaders.find(l => l.id === id) : null) || null;
 const leaderOf = p => (p ? getLeader(p.leader) : null);

@@ -209,7 +209,7 @@ with sync_playwright() as p:
     ok(f"a building with no leader: Proxima brings it, in her voice ({said()})", said() == ['bubble', 'voice:proxima'])
     js("() => News.hide({ read: true })"); clear()
     js(f"() => News.add(getProject('{gp}'), 'round', {{ task: 'Draw the beds', round: 'Beds, Round 1' }})"); pg.wait_for_timeout(400)
-    ok(f"Quill's rounds in his sparkle voice ({said()})", said() == ['bubble', 'voice:quill'])
+    ok(f"Quill's rounds in his own voice ({said()})", said() == ['bubble', 'voice:quill'])
     js("() => News.hide({ read: true })"); clear()
     js("() => Motion.set('still')")
     js(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'two notes' }})"); pg.wait_for_timeout(400)

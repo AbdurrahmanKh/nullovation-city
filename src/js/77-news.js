@@ -566,7 +566,8 @@ const News = (() => {
     return out;
   }
   /* A bubble's line and face: speak(id, who) types the line, paced by the clock a frame at a time, so a busy map makes
-     no letter wait; who is the voice it carries (Sound.say). */
+     no letter wait; who is the voice it carries (Sound.say), a speaker or a voice itself, and its speed paces the
+     letters too (0.1.82), so a quick voice types its line quicker. */
   function typer(textSel, faceSel) {
     let talk = { id: null, n: 0, done: false, raf: 0, voice: null };
     const quiet = () => { if (talk.voice) talk.voice.stop(); talk.voice = null; };
@@ -577,7 +578,8 @@ const News = (() => {
       if (talk.done || Motion.still() || typeMs <= 0) { settle(); return; }
       const ls = letters(el);
       if (!ls.length) { settle(); return; }
-      const every = Math.max(8, Math.min(typeMs, TYPE_ALL_MS / ls.length));
+      const speed = who && typeof Sound !== 'undefined' && Sound.voices ? Sound.voices.speed(who) : 1;
+      const every = Math.max(8, Math.min(typeMs, TYPE_ALL_MS / ls.length) / speed);
       talk.n = Math.min(talk.n, ls.length);
       ls.slice(0, talk.n).forEach(x => x.classList.add('on'));
       el.classList.add('typing');
@@ -611,9 +613,9 @@ const News = (() => {
   }
   const T = typer('#ldSayText', '#ldSayFace');
   const hush = () => T.hush();
-  /* The voice a speaker talks in: Proxima's for a building with no leader, Quill's for him or a leader named Quill,
-     else the leader's own, from its id. */
-  const voiceKey = sp => (!sp.l ? 'proxima' : leaderName(sp.l).toLowerCase() === 'quill' ? 'quill' : 'ld:' + sp.l.id);
+  /* The voice a speaker talks in: Proxima's for a building with no leader; the voice picked for a leader (0.1.82), a
+     leader named Quill's too; else Quill's for him, or the leader's own, from its id. */
+  const voiceKey = sp => (!sp.l ? 'proxima' : !sp.l.voice && leaderName(sp.l).toLowerCase() === 'quill' ? 'quill' : 'ld:' + sp.l.id);
 
   /* ---------- the line: its task a link that opens it (0.1.60) ---------- */
   /* The task an item speaks of: the one it names by id, else by its title in the building. */

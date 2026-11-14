@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.82 (2026-10-31)
+
+Character voices: a leader picks its voice in its editor, from presets, with a pitch slider and the rest under Fine-tune.
+- Every voice is one instrument, a blip per letter as a line types out; a voice is only its settings, and a preset only sets them.
+- The leader editor has a Voice section under Leads: Its own (the voice it has had, from its id), five male presets (Deep, Gruff, Warm, Steady, Bright), five female (Low, Soft, Warm, Steady, Bright) and the city's three (Gus, Proxima, Quill).
+- A pitch slider moves the voice 12 semitones down or up, showing its note in Hz and how far it moved; Back to the preset puts every setting back.
+- Fine-tune, folded until opened: Tone (soft to thin), Range (flat to sing-song), Speed, Chatter (a blip every 1 to 4 letters), Length (of each blip) and Wobble, then Robot and Radio switches.
+- A pick, a slider let go or Hear it says the leader's greeting in the voice, the line typing out and the face talking; with sound off, it says why it is quiet.
+- A picked voice plays as loud as a leader's, measured as it is picked; a quick or slow voice types its line in its bubble at its own pace.
+- A leader with no voice picked, Gus and Proxima sound exactly as before; Quill's sparkle after his line is gone. A leader named Quill can have a voice picked too.
+- The voice travels with the leader: saved, in backups, the data file, sync and a project file.
+- Tests: test50_voices checks the presets, the old voices unchanged, the loudness, the editor's Voice and its picks, sliders and switches, the leader talking in its voice at its speed, Quill, saving, sound off, Still, a new leader and a phone.
+- Tests: test32_ghosts takes a ghost pausing or peeking as going on, once Esc closes its card; it failed now and then when the ghost had paused in the moment it waited.
+
 ## 0.1.81 (2026-10-30)
 
 City sounds: the cyclist's bell as a far trill, and the street's now and then a little less often.

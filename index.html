@@ -1445,6 +1445,30 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-bld-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ld-bld-other { margin-left: auto; flex: none; font-size: 12px; color: var(--muted); }
 .ld-actions { justify-content: space-between; margin-top: 16px; }
+/* a leader's voice (0.1.82, Character voices): its greeting as a quote, the presets as picks, the pitch, and the
+   rest under Fine-tune; the face talks while Hear it says the line */
+.ld-view .ld-voice { grid-column: 1 / -1; }
+.ld-voice { gap: 10px; }
+.ld-vhead { display: flex; align-items: center; gap: 10px; }
+.ld-vhead .btn { margin-left: auto; gap: 6px; }
+.ld-voice-line { margin: 0; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
+.ld-voice-line.typing .ty { opacity: 0; }
+.ld-voice-line.typing .ty.on { opacity: 1; }
+.ld-vpresets { display: grid; gap: 6px; }
+.ld-vgroup { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 8px; }
+.ld-vgroup .lbl { font-size: 12.5px; }
+.ld-vrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.ld-vchip { font-size: 13px; padding: 5px 9px 4px; }
+.ld-vchip[aria-pressed="true"] { background: var(--ld, var(--hover)); color: #2B2542; }   /* the pick, in the leader's color */
+.ld-vslider { max-width: 560px; }
+.ld-vfoot { gap: 8px; }
+.ld-vfoot .btn { gap: 6px; }
+.ld-vfine { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 24px; padding: 12px 14px; background: var(--field); box-shadow: var(--px-edge); }
+.ld-vswitch { font-size: 13.5px; align-items: flex-start; }
+.ld-vswitch .note { font-size: 12px; }
+.ld-big.talking .breathes > * { animation: face-talk 620ms steps(1, end) infinite; }
+.m-still .ld-big.talking .breathes > * { animation: none; }
+@container (max-width: 560px) { .ld-vgroup { grid-template-columns: minmax(0, 1fr); gap: 4px; } }   /* a phone: each group's name over its picks */
 
 .ld-pick { display: grid; gap: 12px; }
 .ld-pick > .note { margin: 0; }
@@ -1734,7 +1758,7 @@ li.task .round-hat { margin-inline-start: 2px; }
   <aside id="menu" aria-label="Projects menu">
     <header class="brand">
       <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
-      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.81</span></div>
+      <div class="brand-text"><h1 class="brand-name">Nullovation City</h1><span class="app-version" id="appVersion" title="Nullovation City version">v0.1.82</span></div>
       <button id="menuClose" class="icon-btn menu-close" type="button" aria-label="Close menu"></button>
     </header>
 
@@ -4787,7 +4811,8 @@ function taskLineHint(el, text, opts) {
    comes later. One leader per building, and one leader can run several. The leaders live in the side bar's Leaders
    section, are picked from a building's more menu or its project view, and show in the wheel's middle, the leader card
    in the project view and the status card (L1). Claude's copies and the city summary name them (L3). A portrait sits in
-   the art store under 'leader:' and the leader's id, and travels inline in backups and the data file. */
+   the art store under 'leader:' and the leader's id, and travels inline in backups and the data file. Since 0.1.82 a
+   leader may carry a voice, picked in its editor. */
 const LEADER_COLORS = ['#F29A74', '#F08BB4', '#D9536B', '#F2C75C', '#E8DCC4', '#7FD6B5', '#6FAE5C', '#3FA79E', '#8FD0F7', '#5A6FA8', '#B9A3E3', '#8E5A9E'];
 const LEADER_MAX = { name: 60, role: 60 };
 const leaderColor = seed => LEADER_COLORS[hashStr(String(seed)) % LEADER_COLORS.length];
@@ -4806,11 +4831,24 @@ function sanitizeLeaders(raw) {
     let id = typeof r.id === 'string' && r.id ? r.id.slice(0, 60) : uid('ld');
     if (seen.has(id)) id = uid('ld');
     seen.add(id);
+    const voice = sanitizeVoice(r.voice);
     out.push({ id, name: s(r.name, LEADER_MAX.name) || 'Leader', role: s(r.role, LEADER_MAX.role),
       color: /^#[0-9a-f]{6}$/i.test(r.color || '') ? r.color.toUpperCase() : leaderColor(id), portrait: !!r.portrait,
-      createdAt: typeof r.createdAt === 'number' ? r.createdAt : Date.now() });
+      createdAt: typeof r.createdAt === 'number' ? r.createdAt : Date.now(), ...(voice ? { voice } : {}) });
   }
   return out;
+}
+/* A leader's voice (0.1.82, Character voices): the settings it talks with, picked in its editor, the preset it
+   started from, and the pitch moved from it; none, and it talks in its own voice, from its id. Read with care, as every
+   number is kept in its slider's range. */
+const VOICE_KEYS = ['tone', 'range', 'speed', 'every', 'len', 'wobble', 'robot', 'radio'];   // what a preset sets, with its note
+function sanitizeVoice(v) {
+  if (!v || typeof v !== 'object') return null;
+  const n = (x, lo, hi, d) => (typeof x === 'number' && isFinite(x) ? Math.min(hi, Math.max(lo, x)) : d);
+  return { from: typeof v.from === 'string' && /^[\w-]{1,20}$/.test(v.from) ? v.from : 'own', pitch: Math.round(n(v.pitch, -12, 12, 0)),
+    base: n(v.base, 40, 1500, 196), tone: n(v.tone, 0, 1, 0.55), range: Math.round(n(v.range, 0, 8, 4)), speed: n(v.speed, 0.6, 1.6, 1),
+    every: Math.round(n(v.every, 1, 4, 2)), len: n(v.len, 0.03, 0.1, 0.055), wobble: n(v.wobble, 0, 1, 0), robot: !!v.robot, radio: !!v.radio,
+    gain: n(v.gain, 0.2, 5, 1) };
 }
 const getLeader = id => (id && Array.isArray(DB.leaders) ? DB.leaders.find(l => l.id === id) : null) || null;
 const leaderOf = p => (p ? getLeader(p.leader) : null);
@@ -5025,7 +5063,7 @@ const PROPS = [
 ];
 
 /* Generated by build.py from src/setup and src/VERSION. */
-const APP_VERSION = "0.1.81";
+const APP_VERSION = "0.1.82";
 const FOLDER_SETUP_PS1 = "<#\nNullovation City: folder links that open in File Explorer.\n\nBrowsers do not let a web page open File Explorer, so this teaches Windows one new\nkind of link, nullovation-folder:, and a small helper that opens it. Run it once on\nthis PC: right-click this file and choose Run with PowerShell. No admin rights needed;\nit only touches your own user account.\n\nWhat the helper accepts: a folder or a file on a drive or a network share, nothing\nelse. A folder opens in File Explorer; a file opens its folder with the file selected.\nIt never runs or opens a file itself, so a link from any other website can do no more\nthan open a folder window.\n\nOr run it from a normal PowerShell window (no admin needed), in the folder where you saved it:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1\n\nTo undo it: run this file again with -Uninstall, for example:\n  powershell -ExecutionPolicy Bypass -File .\\nullovation-folder-links.ps1 -Uninstall\n\nIt waits for Enter before closing, so the result stays on screen; add -NoPause to skip that.\n#>\nparam([switch]$Uninstall, [switch]$NoPause)\n$ErrorActionPreference = 'Stop'\n\nfunction Finish([string]$message, [int]$code = 0) {\n    if ($code -eq 0) { Write-Host $message -ForegroundColor Green } else { Write-Host $message -ForegroundColor Red }\n    if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }\n    exit $code\n}\n\ntry {\n\n$scheme  = 'nullovation-folder'\n$key     = \"HKCU:\\Software\\Classes\\$scheme\"\n$dir     = Join-Path $env:LOCALAPPDATA 'Nullovation City'\n$handler = Join-Path $dir 'open-folder.ps1'\n\nif ($Uninstall) {\n    if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force }\n    if (Test-Path -LiteralPath $handler) { Remove-Item -LiteralPath $handler -Force }\n    Finish 'Removed. Folder links open in the browser again.'\n}\n\nNew-Item -ItemType Directory -Path $dir -Force | Out-Null\n@'\nparam([string]$Link)\n# Opens a Nullovation City folder link in File Explorer. Only paths on a drive (C:\\...) or a\n# network share (\\\\server\\share\\...) are accepted. A folder opens; a file opens its folder with\n# the file selected. Nothing is ever run. Each click is noted in last-link.txt beside this file.\n$log = Join-Path $PSScriptRoot 'last-link.txt'\nfunction Note([string]$t) { try { Set-Content -LiteralPath $log -Value ((Get-Date -Format s) + \"`r`n\" + $t + \"`r`nReceived: \" + $Link) -Encoding UTF8 } catch { } }\nfunction Say([string]$t) { try { (New-Object -ComObject WScript.Shell).Popup($t, 10, 'Nullovation City', 48) | Out-Null } catch { } }\n$path = $Link -replace '^nullovation-folder:(//)?', ''\nfor ($k = 0; $k -lt 3 -and $path -match '%[0-9A-Fa-f]{2}'; $k++) {           # decoded until plain, even if the browser encoded it twice\n    try { $path = [System.Uri]::UnescapeDataString($path) } catch { break }\n}\n$path = $path.Trim().Trim('\"').Replace('/', '\\')\nif ($path.Length -gt 3) { $path = $path.TrimEnd('\\') }\nif ($path -notmatch '^(?:[A-Za-z]:\\\\|\\\\\\\\[^\\\\]+\\\\[^\\\\]+)') {\n    Note ('Could not read it as a folder path: ' + $path)\n    Say ('Nullovation City could not read this folder link as a path:' + \"`n`n\" + $path)\n    exit 1\n}\n$explorer = Join-Path $env:SystemRoot 'explorer.exe'\nif (Test-Path -LiteralPath $path -PathType Container) {\n    Note ('Opened: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('\"{0}\"' -f $path)\n} elseif (Test-Path -LiteralPath $path -PathType Leaf) {\n    Note ('Opened its folder, with the file selected: ' + $path)\n    Start-Process -FilePath $explorer -ArgumentList ('/select,\"{0}\"' -f $path)\n} else {\n    Note ('Not found: ' + $path)\n    Say ('This folder was not found:' + \"`n`n\" + $path)\n    exit 1\n}\nStart-Sleep -Milliseconds 700                                                   # bring the new window to the front\ntry { (New-Object -ComObject WScript.Shell).AppActivate((Split-Path $path -Leaf)) | Out-Null } catch { }\n'@ | Set-Content -LiteralPath $handler -Encoding UTF8\n\n$ps = Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'\nNew-Item -Path \"$key\\shell\\open\\command\" -Force | Out-Null\nSet-ItemProperty -Path $key -Name '(default)' -Value 'URL:Nullovation City folder link'\nNew-ItemProperty -Path $key -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null\n$command = '\"{0}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\" \"%1\"' -f $ps, $handler\nSet-ItemProperty -Path \"$key\\shell\\open\\command\" -Name '(default)' -Value $command\n\nWrite-Host 'The first time you click a folder link, your browser asks to open Windows PowerShell: that is this helper. Allow it.'\nFinish 'Done. In Nullovation City, open Tools in the side bar and turn on Folder links open in File Explorer.'\n} catch {\n    Finish ('The setup did not finish: ' + $_.Exception.Message) 1\n}\n";
 const CLAUDE_SETUP_PY = "\"\"\"Nullovation City: Claude Code at work.\n\nLets the city show a bubble over a building while Claude Code works in one of its folders, and when it needs you or\nhas finished. Claude Code runs this script from hooks in your user settings (~/.claude/settings.json), which apply in\nthe terminal, in VS Code and JetBrains, and in the Code tab of the Claude desktop app. Each hook writes one small\nJSON file per session into a folder; the city reads that folder, once you connect it in Settings, Links.\n\n    double-click it                                               ask which folder, then add the hooks\n    python nullovation-claude-status.py --install --folder PATH   add the hooks, writing to that folder\n    python nullovation-claude-status.py --install                 the same, keeping the folder already set\n    python nullovation-claude-status.py --uninstall               take the hooks out again\n    python nullovation-claude-status.py --status                  list what the folder holds now\n\nRun with no arguments (a double-click, when .py files open with Python), it asks which folder Claude Code should\nwrite to, starting at the one already set, then installs and waits for Enter before the window closes, so the result\nstays on screen; --no-pause skips the wait. Running it again moves the hooks to the folder picked.\n\n--install copies this script to ~/.claude/hooks/nullovation-city-status.py and points the hooks there, so the file\nyou downloaded can be deleted afterwards. It keeps every other setting and hook as it is, saves the settings file as\nit was to settings.json.nullovation-backup first, and can run again safely: it replaces its own hooks, never doubles\nthem. The folder is the one picked or named, else the one already set, else ~/Nullovation City/Claude; Chrome cannot\nopen folders inside AppData. It writes the folder down in ~/.claude/nullovation-city.json, where the nullovation-city\nskill finds the city's summary (city/summary.json, which the city keeps) and its inbox (inbox/, where Claude drops\nchanges for the city). It leaves README-nullovation-city.txt in the folder, which is how the city knows the\nfolder it watches is the one the hooks write to.\n\nThe hooks never slow Claude down (they run in the background), never print anything Claude would read, and never\nblock or change anything Claude does: they only write the files. Nothing leaves this computer.\n\nEach file is <session id>.json:\n    state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),\n             idle (no longer working, such as after an interrupt) or ended (the session closed)\n    cwd      the folder Claude Code runs in; the city matches it to a project's folder links\n    project  the \"Project:\" line of a copy from the city, when the prompt was one\n    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session\n    ask      the first line of the latest prompt\n    reply    the start of Claude's last reply\n    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began\n\"\"\"\nimport json, os, pathlib, re, shutil, sys, time\n\nAPP = 'nullovation-city'\nNAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours\nSTALE_DAYS = 3                                   # session files older than this are cleared at the next session start\n\n# hook event -> [(matcher or None, state)]\nHOOKS = {\n    'SessionStart': [(None, 'start')],\n    'UserPromptSubmit': [(None, 'working')],\n    'PreToolUse': [('AskUserQuestion', 'waiting')],\n    'PostToolUse': [(None, 'working')],\n    'PermissionRequest': [(None, 'waiting')],\n    'Notification': [('permission_prompt|elicitation_dialog', 'waiting'), ('idle_prompt', 'idle')],\n    'Stop': [(None, 'done')],\n    'StopFailure': [(None, 'failed')],\n    'SessionEnd': [(None, 'ended')],\n}\nSTATES = {'start', 'working', 'waiting', 'done', 'failed', 'idle', 'ended'}\nMARK = 'README-nullovation-city.txt'             # left in the folder by the setup; the city looks for it\n\n\ndef home():\n    return pathlib.Path(os.path.expanduser('~'))\n\n\ndef default_folder():\n    return home() / 'Nullovation City' / 'Claude'\n\n\ndef settings_path():\n    return home() / '.claude' / 'settings.json'\n\n\ndef installed_path():\n    return home() / '.claude' / 'hooks' / NAME\n\n\ndef config_path():\n    \"\"\"Where the city's folder is written down for Claude: the nullovation-city skill reads it to find the city's\n    summary and inbox from any folder Claude Code works in.\"\"\"\n    return home() / '.claude' / 'nullovation-city.json'\n\n\ndef current_folder():\n    \"\"\"The folder the installed hooks write to, or None when they are not installed.\"\"\"\n    try:\n        hooks = load_settings(settings_path()).get('hooks') or {}\n        for groups in hooks.values():\n            for g in groups if isinstance(groups, list) else []:\n                for h in (g.get('hooks') or []) if isinstance(g, dict) else []:\n                    if ours(h) and len(h.get('args') or []) >= 4:\n                        return pathlib.Path(h['args'][3])\n    except Exception:\n        pass\n    return None\n\n\ndef ask_folder(start):\n    \"\"\"Asks which folder Claude Code should write to: a folder picker, or a typed path when there is no picker.\n    Returns None when the question is cancelled.\"\"\"\n    print('Which folder should Claude Code write its session notes to?')\n    print('Pick the folder Nullovation City watches (Settings, Links, Claude Code at work), or a new one.')\n    if not os.environ.get('NULLOVATION_NO_GUI'):\n        try:\n            import tkinter\n            from tkinter import filedialog\n            root = tkinter.Tk()\n            root.withdraw()\n            root.attributes('-topmost', True)\n            got = filedialog.askdirectory(parent=root, initialdir=str(start), mustexist=False,\n                                          title='Nullovation City: the folder for Claude Code\\'s session notes')\n            root.destroy()\n            return pathlib.Path(got) if got else None\n        except Exception:\n            pass                                   # no picker on this Python: ask in the window instead\n    try:\n        typed = input('Paste the folder\\'s path, or press Enter for ' + str(start) + ': ').strip().strip('\"')\n    except (EOFError, KeyboardInterrupt):\n        return None\n    return pathlib.Path(typed) if typed else pathlib.Path(start)\n\n\ndef now_ms():\n    return int(time.time() * 1000)\n\n\ndef one_line(text, n):\n    for line in str(text or '').splitlines():\n        line = ' '.join(line.split())\n        if line:\n            return line if len(line) <= n else line[:n - 3].rstrip() + '...'\n    return ''\n\n\ndef read_copy(prompt):\n    \"\"\"The project and title of a copy from the city: '# Task: <title>' then 'Project: <name>' near the top.\"\"\"\n    lines = str(prompt or '').splitlines()[:12]\n    task = project = ''\n    for line in lines:\n        s = line.strip()\n        for head in ('# Task:', '# Note:', '# Milestone:'):\n            if not task and s.startswith(head):\n                task = one_line(s[len(head):], 160)\n        if not project and s.startswith('Project:'):\n            project = one_line(s[len('Project:'):], 160)\n    return project, task\n\n\n# ---------- the hook: one event in, one file out ----------\n\ndef log_error(folder, message):\n    try:\n        path = pathlib.Path(folder) / 'hook-errors.log'\n        if path.exists() and path.stat().st_size > 64 * 1024:\n            path.unlink()\n        with open(path, 'a', encoding='utf-8') as f:\n            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + message + '\\n')\n    except Exception:\n        pass\n\n\ndef write_atomic(path, data):\n    tmp = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding='utf-8')\n    for attempt in range(8):                       # Windows refuses the swap while a reader holds the file; try again\n        try:\n            os.replace(str(tmp), str(path))\n            return\n        except PermissionError:\n            time.sleep(0.05 * (attempt + 1))\n    try:\n        tmp.unlink()\n    except Exception:\n        pass\n    raise PermissionError('could not replace ' + path.name)\n\n\ndef prune(folder):\n    cutoff = time.time() - STALE_DAYS * 86400\n    for f in pathlib.Path(folder).iterdir():\n        try:\n            if f.suffix == '.json' and f.stat().st_mtime < cutoff:\n                f.unlink()\n            elif f.name.endswith('.tmp') and f.stat().st_mtime < time.time() - 3600:\n                f.unlink()\n        except Exception:\n            pass\n\n\ndef hook(state, folder):\n    at = now_ms()\n    folder = pathlib.Path(folder)\n    try:\n        raw = sys.stdin.buffer.read().decode('utf-8', 'replace')\n        event = json.loads(raw) if raw.strip() else {}\n        session = str(event.get('session_id') or '').strip()\n        if not session or any(c in session for c in '/\\\\:*?\"<>|') or state not in STATES:\n            log_error(folder, 'skipped an event without a usable session id: ' + one_line(raw, 200))\n            return\n        folder.mkdir(parents=True, exist_ok=True)\n        if state == 'start':\n            prune(folder)\n        path = folder / (session + '.json')\n        old = {}\n        if path.exists():\n            try:\n                old = json.loads(path.read_text(encoding='utf-8'))\n            except Exception:\n                old = {}\n        if isinstance(old.get('at'), (int, float)) and old['at'] > at:\n            return                                 # a later event already landed; the hooks run in the background\n        was = old.get('state')\n        if state == 'start':\n            state = was if was in ('working', 'waiting') else 'idle'\n        elif state == 'idle' and was not in ('working', 'waiting'):\n            state = was or 'idle'                  # idle only ends a stretch of work that never reported its end\n        data = dict(old)\n        data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,\n                     'event': str(event.get('hook_event_name') or ''), 'at': at})\n        data.setdefault('started', at)\n        if state != was or 'since' not in data:\n            data['since'] = at\n        if event.get('cwd'):\n            data['cwd'] = str(event['cwd'])\n        entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')\n        if entry:\n            data['entry'] = entry\n        prompt = event.get('prompt') if event.get('hook_event_name') == 'UserPromptSubmit' else None\n        if prompt and re.match(r'\\s*<[a-zA-Z][\\w-]*[\\s>]', prompt):\n            prompt = None                          # a turn Claude Code starts by itself, such as a background task's notice\n        if prompt:\n            project, task = read_copy(prompt)\n            if project:\n                data['project'] = project\n            if task:\n                data['task'] = task\n            data['ask'] = one_line(prompt, 160)\n            data.pop('reply', None)\n        if state == 'done' and event.get('last_assistant_message'):\n            data['reply'] = one_line(event['last_assistant_message'], 240)\n        write_atomic(path, data)\n    except Exception as e:                         # never stop Claude Code over the city: note it and go on\n        log_error(folder, state + ': ' + type(e).__name__ + ': ' + str(e))\n\n\n# ---------- install and uninstall ----------\n\ndef ours(handler):\n    if not isinstance(handler, dict):\n        return False\n    parts = [str(handler.get('command') or '')] + [str(a) for a in (handler.get('args') or [])]\n    return any(p.replace('\\\\', '/').endswith('/' + NAME) or p == NAME for p in parts)\n\n\ndef strip_ours(hooks):\n    \"\"\"The hooks without ours, dropping groups and events that end up empty.\"\"\"\n    out = {}\n    for event, groups in hooks.items():\n        if not isinstance(groups, list):\n            out[event] = groups\n            continue\n        kept = []\n        for g in groups:\n            if isinstance(g, dict) and isinstance(g.get('hooks'), list):\n                hs = [h for h in g['hooks'] if not ours(h)]\n                if hs:\n                    kept.append(dict(g, hooks=hs))\n                elif not g['hooks']:\n                    kept.append(g)\n            else:\n                kept.append(g)\n        if kept:\n            out[event] = kept\n    return out\n\n\ndef load_settings(path):\n    if not path.exists():\n        return {}\n    text = path.read_text(encoding='utf-8-sig')\n    if not text.strip():\n        return {}\n    data = json.loads(text)\n    if not isinstance(data, dict):\n        raise ValueError('it does not hold a JSON object')\n    return data\n\n\ndef save_settings(path, data):\n    path.parent.mkdir(parents=True, exist_ok=True)\n    tmp = path.with_name(path.name + '.nullovation-tmp')\n    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')\n    os.replace(str(tmp), str(path))\n\n\ndef handler(state, script, folder):\n    return {'type': 'command', 'command': sys.executable, 'args': [str(script), 'hook', state, str(folder)],\n            'async': True, 'timeout': 10}\n\n\ndef install(folder):\n    folder = pathlib.Path(folder).expanduser().resolve()\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed:')\n        print('  ' + str(path))\n        print('  ' + type(e).__name__ + ': ' + str(e))\n        print('Fix the file (it must be valid JSON), then run this again.')\n        return 1\n    if path.exists():\n        shutil.copy2(str(path), str(path.with_name(path.name + '.nullovation-backup')))\n    script = installed_path()\n    script.parent.mkdir(parents=True, exist_ok=True)\n    if pathlib.Path(__file__).resolve() != script.resolve():\n        shutil.copyfile(__file__, str(script))\n    folder.mkdir(parents=True, exist_ok=True)\n    try:\n        (folder / MARK).write_text(\n            'Claude Code writes here for Nullovation City: one small file per session, from the hooks the setup\\n'\n            'added to ' + str(path) + '.\\n\\n'\n            'In Nullovation City, Settings, Links, Claude Code at work watches this folder.\\n'\n            'To write somewhere else, double-click the setup again and pick another folder.\\n'\n            'To take the hooks out: python \"' + str(script) + '\" --uninstall\\n', encoding='utf-8')\n    except Exception:\n        pass\n    try:\n        save_settings(config_path(), {'app': APP, 'kind': 'claude-folder', 'folder': str(folder),\n                                      'summary': str(folder / 'city' / 'summary.json'), 'inbox': str(folder / 'inbox')})\n    except Exception:\n        pass\n    hooks = settings.get('hooks') if isinstance(settings.get('hooks'), dict) else {}\n    hooks = strip_ours(hooks)\n    for event, pairs in HOOKS.items():\n        groups = hooks.setdefault(event, [])\n        for matcher, state in pairs:\n            g = {'hooks': [handler(state, script, folder)]}\n            if matcher:\n                g = {'matcher': matcher, **g}\n            groups.append(g)\n    settings['hooks'] = hooks\n    save_settings(path, settings)\n    print('Claude Code at work is set up.')\n    print('  Hooks added to ' + str(path) + ' (the old file is beside it as settings.json.nullovation-backup).')\n    print('  The hooks run ' + str(script))\n    print('  Sessions are written to this folder:')\n    print('    ' + str(folder))\n    print('In Nullovation City, Settings, Links, Claude Code at work must watch that same folder.')\n    if os.name == 'nt':\n        try:\n            import subprocess\n            subprocess.run(['clip'], input=str(folder).encode('utf-16-le'), check=True)\n            print('The folder\\'s path is on your clipboard: paste it into the picker\\'s address bar.')\n        except Exception:\n            pass\n    print('Claude Code picks the hooks up by itself; sessions already open may need a restart.')\n    return 0\n\n\ndef uninstall():\n    path = settings_path()\n    try:\n        settings = load_settings(path)\n    except Exception as e:\n        print('Your Claude Code settings file could not be read, so nothing changed: ' + type(e).__name__ + ': ' + str(e))\n        return 1\n    hooks = settings.get('hooks')\n    if isinstance(hooks, dict):\n        hooks = strip_ours(hooks)\n        if hooks:\n            settings['hooks'] = hooks\n        else:\n            settings.pop('hooks', None)\n        save_settings(path, settings)\n    script = installed_path()\n    if script.exists() and pathlib.Path(__file__).resolve() != script.resolve():\n        script.unlink()\n    if config_path().exists():\n        config_path().unlink()\n    print('Took the Nullovation City hooks out of ' + str(path) + '. Every other setting is as it was.')\n    print('The folder of session files stays; delete it if you like.')\n    return 0\n\n\ndef status(folder):\n    folder = pathlib.Path(folder).expanduser()\n    files = sorted(folder.glob('*.json')) if folder.is_dir() else []\n    if not files:\n        print('No sessions in ' + str(folder) + ' yet.')\n        return 0\n    for f in files:\n        try:\n            d = json.loads(f.read_text(encoding='utf-8'))\n        except Exception:\n            continue\n        ago = max(0, (now_ms() - int(d.get('at') or 0)) // 60000)\n        print('%-8s %4d min ago  %s  %s' % (d.get('state'), ago, d.get('cwd', ''), d.get('task') or d.get('ask') or ''))\n    return 0\n\n\ndef main(argv):\n    if argv[:1] == ['hook']:                       # from Claude Code: hook <state> <folder>\n        if len(argv) >= 3:\n            hook(argv[1], argv[2])\n        return 0                                   # a hook always succeeds, whatever happened\n    folder = current_folder() or default_folder()   # running again keeps the folder already set\n    if '--folder' in argv:\n        i = argv.index('--folder')\n        if i + 1 >= len(argv):\n            print('--folder needs a path.')\n            return 2\n        folder = pathlib.Path(argv[i + 1])\n    if '--help' in argv or '-h' in argv:\n        print('\\n\\n'.join(part for part in __doc__.strip().split('\\n\\n') if 'nullovation-claude-status.py' in part))\n        return 0\n    if '--uninstall' in argv:\n        code = uninstall()\n    elif '--status' in argv:\n        code = status(folder)\n    else:                                          # --install, or nothing at all, as from a double-click\n        asking = '--ask' in argv or (not argv and sys.stdin is not None and sys.stdin.isatty())\n        picked = ask_folder(folder) if asking else folder\n        if picked is None:\n            print('Nothing changed.')\n            code = 0\n        else:\n            code = install(picked)\n    if '--no-pause' not in argv and sys.stdin is not None and sys.stdin.isatty():\n        try:\n            input('\\nPress Enter to close.')\n        except (EOFError, KeyboardInterrupt):\n            pass\n    return code\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n";
 
@@ -12058,6 +12096,7 @@ const Leaders = (() => {
      map like the project view, with room for all a leader will hold; its row stays marked in the list. It opens over
      the project view or All tasks, and they are back as they were once it closes. ---------- */
   let editing = null;                                        // the leader the editor shows, while it shows
+  let fineOpen = false, hushVoice = null;                    // its voice's Fine-tune, open or not this visit; its Hear it, to stop
   const isOpen = () => !!$('#leadersPanel') && !$('#leadersPanel').hidden;
   function init() {
     keepQuill();
@@ -12101,6 +12140,7 @@ const Leaders = (() => {
   function closeEditor() {
     if (!editing) return false;
     editing = null;
+    if (hushVoice) { hushVoice(); hushVoice = null; }       // its voice stops with it
     $('#ldView').hidden = true; $('#ldEdit').replaceChildren();
     renderSection();
     return true;
@@ -12145,6 +12185,7 @@ const Leaders = (() => {
   function create({ assign = null, onAdded = null } = {}) { form(blankLeader(), { isNew: true, assign, onAdded }); }
   function edit(id) { const l = getLeader(id); if (l) form(l, { isNew: false }); }
   function form(l, { isNew, assign = null, onAdded = null }) {
+    if (hushVoice) { hushVoice(); hushVoice = null; }       // another leader's Hear it stops
     let draftUrl = null;                                      // a new leader's portrait, kept until Add
     const picked = new Set(assign ? [assign.id] : []);        // a new leader's buildings, until Add
     const live = !isNew;
@@ -12190,7 +12231,7 @@ const Leaders = (() => {
       b.style.background = c;
       return b;
     }), other);
-    function pickColor(c) { l.color = c.toUpperCase(); other.value = l.color.toLowerCase(); drawFace(); drawSwatches(); save(); }
+    function pickColor(c) { l.color = c.toUpperCase(); other.value = l.color.toLowerCase(); drawFace(); drawSwatches(); voiceBox.style.setProperty('--ld', l.color); save(); }
 
     const blds = h('div', { class: 'ld-blds', role: 'group', 'aria-label': 'Buildings it leads' });
     const drawBuildings = () => blds.replaceChildren(...(DB.projects.length ? [...DB.projects].sort((a, b) => a.name.localeCompare(b.name)).map(p => {
@@ -12238,6 +12279,126 @@ const Leaders = (() => {
       toast('Deleted ' + leaderName(l) + '.');
     }
 
+    /* ---------- its voice (0.1.82, Character voices): his rule, "a preset just change the settings below it". A preset
+       sets every setting, the pitch slider moves its note, and the rest wait under Fine-tune. A pick, or a slider let
+       go, says the leader's greeting in the voice, its face talking. Its own voice, from its id, is the first pick:
+       picked back, the leader keeps nothing. ---------- */
+    const VS = Sound.voices;
+    const presetV = id => (id === 'own' ? VS.own(l) : (VS.presets.find(p => p.id === id) || {}).v) || VS.own(l);
+    const presetName = id => (id === 'own' ? 'its own' : (VS.presets.find(p => p.id === id) || { name: 'its own' }).name);
+    let cur = l.voice ? { ...l.voice } : { ...VS.own(l), from: 'own', pitch: 0 };
+    const changedFrom = () => { const pv = presetV(cur.from); return cur.pitch !== 0 || VOICE_KEYS.some(k => cur[k] !== pv[k]); };
+    let asked = 0;                                            // the latest loudness asked for, so a late answer is let go
+    async function commitVoice() {
+      const ask = ++asked;
+      if (cur.from === 'own' && !changedFrom()) { cur.gain = 1; delete l.voice; }
+      else {
+        const g = await VS.loudness({ ...cur });
+        if (ask !== asked) return;
+        cur.gain = g; l.voice = sanitizeVoice(cur);
+      }
+      if (live) persistSoon();
+    }
+    const commitSoon = debounce(commitVoice, 150);
+    const sampleLine = () => {
+      const ps = isNew ? DB.projects.filter(p => picked.has(p.id)) : leaderProjects(l);
+      const p = [...ps].sort((a, b) => a.name.localeCompare(b.name))[0];
+      return p ? leaderGreeting(p) : leaderSay('greet_empty');
+    };
+    const lineEl = h('p', { id: 'ldVoiceLine', class: 'ld-voice-line', dir: 'auto' }, sampleLine());
+    const quiet = h('p', { class: 'note ld-voice-quiet', hidden: true });
+    const drawQuiet = () => {
+      const q = Sound.voicesQuiet();
+      quiet.hidden = !q;
+      quiet.textContent = q === 'off' ? 'Sound is off, so the city says nothing. Turn it on with the speaker on the map\'s bar.' : 'Character voices are at 0% in Settings, Sound, so the city says nothing.';
+    };
+    let hearing = null;
+    function stopHear() {
+      if (hearing) { cancelAnimationFrame(hearing.raf); if (hearing.voice) hearing.voice.stop(); hearing = null; }
+      lineEl.classList.remove('typing'); faceBox.classList.remove('talking');
+      lineEl.textContent = sampleLine();
+    }
+    hushVoice = stopHear;
+    /* The greeting typed out in the voice, a letter at the city's pace and the voice's speed, as a bubble types it. */
+    function hear() {
+      stopHear(); drawQuiet();
+      const text = sampleLine(), chars = [...text], step = Math.min(26, 1800 / chars.length) / (cur.speed || 1);
+      const me = hearing = { raf: 0, voice: Sound.say({ ...cur }, chars, step / 1000) };
+      if (Motion.still()) return;
+      const spans = chars.map(ch => h('span', { class: 'ty' }, ch));
+      lineEl.replaceChildren(...spans); lineEl.classList.add('typing'); faceBox.classList.add('talking');
+      const t0 = performance.now();
+      const frame = now => {
+        if (hearing !== me) return;
+        const n = Math.min(spans.length, Math.floor((now - t0) / step) + 1);
+        for (let i = 0; i < n; i++) spans[i].classList.add('on');
+        if (n >= spans.length) { me.voice = null; stopHear(); } else me.raf = requestAnimationFrame(frame);
+      };
+      me.raf = requestAnimationFrame(frame);
+    }
+
+    const chips = h('div', { class: 'ld-vpresets' });
+    const chip = (id, name, note) => h('button', { class: 'btn btn-small set-choice ld-vchip', type: 'button', 'data-voice': id, 'aria-pressed': String(cur.from === id), title: note,
+      onclick: async () => { cur = { ...presetV(id), from: id, pitch: 0 }; drawVoice(); await commitVoice(); hear(); } }, name);
+    const drawChips = () => chips.replaceChildren(
+      h('div', { class: 'ld-vgroup' }, h('span'), h('div', { class: 'ld-vrow' }, chip('own', 'Its own', 'The voice it has had: its pitch and tone picked from it'))),
+      ...[['male', 'Male'], ['female', 'Female'], ['city', 'The city\'s']].map(([g, label]) => h('div', { class: 'ld-vgroup', role: 'group', 'aria-label': label },
+        h('span', { class: 'lbl' }, label), h('div', { class: 'ld-vrow' }, ...VS.presets.filter(p => p.group === g).map(p => chip(p.id, p.name, p.note))))));
+
+    const ord = n => ['', 'letter', '2nd letter', '3rd letter', '4th letter'][n];
+    const SL = [
+      { key: 'pitch', name: 'Pitch', min: -12, max: 12, step: 1, show: () => Math.round(cur.base) + ' Hz' + (cur.pitch ? ', ' + (cur.pitch > 0 ? '+' : '') + cur.pitch : '') },
+      { key: 'tone', name: 'Tone', fine: true, min: 0, max: 100, step: 5, scale: 100, show: x => (x < 0.15 ? 'Soft' : x < 0.4 ? 'Round' : x < 0.7 ? 'Reedy' : 'Thin') },
+      { key: 'range', name: 'Range', fine: true, min: 0, max: 8, step: 1, show: x => (x === 0 ? 'Flat' : x <= 2 ? 'Calm' : x <= 5 ? 'Lively' : 'Sing-song') },
+      { key: 'speed', name: 'Speed', fine: true, min: 60, max: 160, step: 2, scale: 100, show: x => x.toFixed(2) + 'x' },
+      { key: 'every', name: 'Chatter', fine: true, min: 1, max: 4, step: 1, show: x => 'Every ' + ord(x) },
+      { key: 'len', name: 'Length', fine: true, min: 30, max: 100, step: 1, scale: 1000, show: x => Math.round(x * 1000) + ' ms' },
+      { key: 'wobble', name: 'Wobble', fine: true, min: 0, max: 100, step: 5, scale: 100, show: x => (x === 0 ? 'None' : x < 0.35 ? 'Slight' : x < 0.7 ? 'Shaky' : 'Trembling') },
+    ];
+    const outs = {}, ins = {};
+    const sliderRow = s => {
+      const id = 'ldV-' + s.key;
+      const r = h('input', { id, type: 'range', min: String(s.min), max: String(s.max), step: String(s.step),
+        oninput: e => {
+          const x = +e.target.value / (s.scale || 1);
+          if (s.key === 'pitch') { cur.pitch = x; cur.base = Math.round(presetV(cur.from).base * Math.pow(2, x / 12) * 100) / 100; } else cur[s.key] = x;
+          drawReadouts(); commitSoon();
+        },
+        onchange: async () => { await commitVoice(); hear(); } });
+      const o = h('output', { for: id });
+      ins[s.key] = r; outs[s.key] = o;
+      return h('div', { class: 'set-slider ld-vslider' }, h('label', { class: 'lbl', for: id }, s.name), r, o);
+    };
+    const sw = (key, name, note) => h('label', { class: 'check ld-vswitch' }, h('input', { type: 'checkbox', class: 'cb', id: 'ldV-' + key,
+      onchange: async e => { cur[key] = e.target.checked; drawReadouts(); await commitVoice(); hear(); } }), h('span', null, h('b', null, name), ' ', h('span', { class: 'note' }, note)));
+    const fineBox = h('div', { class: 'ld-vfine', id: 'ldVFine', hidden: !fineOpen },
+      ...SL.filter(s => s.fine).map(sliderRow),
+      sw('robot', 'Robot', 'made of metal: two steady notes and a ring'), sw('radio', 'Radio', 'through a radio, a click at each end'));
+    const fineBtn = h('button', { class: 'btn btn-small btn-quiet ld-vfine-btn', type: 'button', 'aria-expanded': String(fineOpen), 'aria-controls': 'ldVFine',
+      onclick: () => { fineOpen = !fineOpen; fineBtn.setAttribute('aria-expanded', String(fineOpen)); fineBox.hidden = !fineOpen; drawFine(); } });
+    const drawFine = () => fineBtn.replaceChildren(iconEl(fineOpen ? 'caretD' : 'caretR', 12), 'Fine-tune');
+    const resetBtn = h('button', { class: 'btn btn-small btn-quiet ld-vreset', type: 'button',
+      onclick: async () => { cur = { ...presetV(cur.from), from: cur.from, pitch: 0 }; drawVoice(); await commitVoice(); hear(); } });
+    function drawReadouts() {
+      for (const s of SL) outs[s.key].textContent = s.key === 'pitch' ? s.show() : s.show(cur[s.key]);
+      $$('.ld-vchip', chips).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.voice === cur.from)));
+      const ch = changedFrom();
+      resetBtn.hidden = !ch; resetBtn.textContent = 'Back to ' + presetName(cur.from);
+    }
+    function drawVoice() {
+      for (const s of SL) ins[s.key].value = String(Math.round((s.key === 'pitch' ? cur.pitch : cur[s.key]) * (s.scale || 1)));
+      for (const k of ['robot', 'radio']) $('#ldV-' + k, fineBox).checked = !!cur[k];
+      drawReadouts();
+    }
+    const pitchRow = sliderRow(SL[0]);
+    drawChips(); drawFine(); drawQuiet();
+    const voiceBox = h('div', { class: 'ld-field ld-voice', role: 'group', 'aria-labelledby': 'ldVoiceH' },
+      h('div', { class: 'ld-vhead' }, h('span', { class: 'lbl', id: 'ldVoiceH' }, 'Voice'),
+        h('button', { id: 'ldHear', class: 'btn btn-small', type: 'button', onclick: hear }, iconEl('sound', 14), 'Hear it')),
+      lineEl, quiet, chips, pitchRow, h('div', { class: 'inline ld-vfoot' }, fineBtn, resetBtn), fineBox);
+    voiceBox.style.setProperty('--ld', l.color);
+    drawVoice();
+
     drawFace(); drawPortraitBtns(); drawSwatches(); drawBuildings();
     const foot = isNew
       ? h('div', { class: 'confirm-actions ld-actions' }, h('button', { id: 'ldCancel', class: 'btn', type: 'button', onclick: () => showList() }, 'Cancel'),
@@ -12264,6 +12425,7 @@ const Leaders = (() => {
           h('div', { class: 'ld-field' }, h('span', { class: 'lbl' }, 'Signature color'), swatches)),
         h('div', { class: 'ld-field ld-leads' }, h('span', { class: 'lbl' }, 'Leads'), blds,
           h('p', { class: 'note' }, 'One leader per building; a leader can lead several.')),
+        voiceBox,
         live ? h('p', { class: 'note ld-saves' }, 'Changes save as you make them.') : null),
       foot);
     name.focus({ preventScroll: true }); if (isNew) name.select();
@@ -12380,11 +12542,11 @@ const Leaders = (() => {
     if (id !== QUILL.id) urls.delete(id);
     refreshSoon();
   }
-  /* A project file carries its leader: its name, role, color and portrait. */
+  /* A project file carries its leader: its name, role, color, voice (0.1.82) and portrait. */
   async function carry(l) {
     if (!l) return null;
     const url = l.portrait ? (await Store.getArt(portraitKey(l.id))) || urls.get(l.id) || null : null;
-    return { name: leaderName(l), role: l.role, color: l.color, ...(url ? { portraitUrl: url } : {}) };
+    return { name: leaderName(l), role: l.role, color: l.color, ...(l.voice ? { voice: l.voice } : {}), ...(url ? { portraitUrl: url } : {}) };
   }
   /* A project file's leader in this city: one of its leaders by the same name, else a new one. Resolves its id. */
   async function adopt(info) {
@@ -15965,7 +16127,8 @@ const News = (() => {
     return out;
   }
   /* A bubble's line and face: speak(id, who) types the line, paced by the clock a frame at a time, so a busy map makes
-     no letter wait; who is the voice it carries (Sound.say). */
+     no letter wait; who is the voice it carries (Sound.say), a speaker or a voice itself, and its speed paces the
+     letters too (0.1.82), so a quick voice types its line quicker. */
   function typer(textSel, faceSel) {
     let talk = { id: null, n: 0, done: false, raf: 0, voice: null };
     const quiet = () => { if (talk.voice) talk.voice.stop(); talk.voice = null; };
@@ -15976,7 +16139,8 @@ const News = (() => {
       if (talk.done || Motion.still() || typeMs <= 0) { settle(); return; }
       const ls = letters(el);
       if (!ls.length) { settle(); return; }
-      const every = Math.max(8, Math.min(typeMs, TYPE_ALL_MS / ls.length));
+      const speed = who && typeof Sound !== 'undefined' && Sound.voices ? Sound.voices.speed(who) : 1;
+      const every = Math.max(8, Math.min(typeMs, TYPE_ALL_MS / ls.length) / speed);
       talk.n = Math.min(talk.n, ls.length);
       ls.slice(0, talk.n).forEach(x => x.classList.add('on'));
       el.classList.add('typing');
@@ -16010,9 +16174,9 @@ const News = (() => {
   }
   const T = typer('#ldSayText', '#ldSayFace');
   const hush = () => T.hush();
-  /* The voice a speaker talks in: Proxima's for a building with no leader, Quill's for him or a leader named Quill,
-     else the leader's own, from its id. */
-  const voiceKey = sp => (!sp.l ? 'proxima' : leaderName(sp.l).toLowerCase() === 'quill' ? 'quill' : 'ld:' + sp.l.id);
+  /* The voice a speaker talks in: Proxima's for a building with no leader; the voice picked for a leader (0.1.82), a
+     leader named Quill's too; else Quill's for him, or the leader's own, from its id. */
+  const voiceKey = sp => (!sp.l ? 'proxima' : !sp.l.voice && leaderName(sp.l).toLowerCase() === 'quill' ? 'quill' : 'ld:' + sp.l.id);
 
   /* ---------- the line: its task a link that opens it (0.1.60) ---------- */
   /* The task an item speaks of: the one it names by id, else by its title in the building. */
@@ -16527,33 +16691,113 @@ const Sound = (() => {
     if (!rest && MEL[bar][s] != null) note(A, tt, m2f(MEL[bar][s]), STEP * 2.5, { vol: 0.14 });
   }
 
-  /* ---------- the characters' voices, in the 8-bit chip style: a blip per letter as the line types out ---------- */
-  const VOICES = {
-    gus: { base: 98, range: 3, len: 0.075, every: 3, duty: 0.5 },             // low and gruff
-    proxima: { base: 330, range: 5, len: 0.045, every: 2, radio: true },      // a bright radio chirp
-    quill: { base: 523, range: 4, len: 0.05, every: 2, sparkle: true },       // a sparkle at the end
-  };
-  const LEADER_BASES = [131, 147, 165, 175, 196, 220, 247], DUTIES = [0.125, 0.25, 0.5];
-  /* Each leader its own pitch and tone, from its id. */
-  const voiceOf = who => VOICES[who] || (() => { const k = hash(who); return { base: LEADER_BASES[k % LEADER_BASES.length], range: 4, len: 0.055, every: 2, duty: DUTIES[(k >>> 8) % 3] }; })();
+  /* ---------- the characters' voices, in the 8-bit chip style: a blip per letter as the line types out ----------
+     Character voices (30 and 31 October 2026): every voice is this one instrument, and a voice is only its settings;
+     a preset just sets them (his rule: "a preset just change the settings below it"), and a leader picks one in its
+     editor, with a pitch slider and the rest under Fine-tune. base: its note in Hz; tone: 0 soft (a triangle) to 1 thin
+     (a narrow pulse), 0.25 a square, 0.55 a quarter pulse, 0.85 an eighth; range: how many semitones its notes wander;
+     speed: how fast its line types out; every: a blip every so many letters; len: the longest a blip lasts; wobble: a
+     shake in its notes; robot: made of metal; radio: through a radio's narrow band, a click at each end; gain: how much
+     it is turned up or down, so a picked voice plays as loud as a leader's. Quill's sparkle went (he hated it). */
+  const V = o => ({ tone: 0.55, range: 4, speed: 1, every: 2, len: 0.055, wobble: 0, robot: false, radio: false, gain: 1, ...o });
+  const PRESETS = [
+    { id: 'm-deep', group: 'male', name: 'Deep', note: 'Low and unhurried, a hollow square wave', v: V({ base: 104, tone: 0.25, range: 3, speed: 0.9, len: 0.07 }) },
+    { id: 'm-gruff', group: 'male', name: 'Gruff', note: 'Terse, a blip every third letter, a little rough', v: V({ base: 92, tone: 0.3, range: 2, speed: 0.85, every: 3, wobble: 0.25, len: 0.075 }) },
+    { id: 'm-warm', group: 'male', name: 'Warm', note: 'Soft and round, nearly a triangle wave', v: V({ base: 123, tone: 0.1, len: 0.06 }) },
+    { id: 'm-steady', group: 'male', name: 'Steady', note: 'The leaders\' sound, at a man\'s pitch', v: V({ base: 147 }) },
+    { id: 'm-bright', group: 'male', name: 'Bright', note: 'A thin pulse, quick and lively', v: V({ base: 175, tone: 0.85, range: 5, speed: 1.1, len: 0.05 }) },
+    { id: 'f-low', group: 'female', name: 'Low', note: 'An alto: round and calm, a slight shake', v: V({ base: 185, tone: 0.3, range: 3, speed: 0.95, wobble: 0.1, len: 0.06 }) },
+    { id: 'f-soft', group: 'female', name: 'Soft', note: 'Gentle, a triangle wave', v: V({ base: 262, tone: 0.05, speed: 0.95, len: 0.06 }) },
+    { id: 'f-warm', group: 'female', name: 'Warm', note: 'Round, with a little more melody', v: V({ base: 220, tone: 0.2, range: 5, len: 0.058 }) },
+    { id: 'f-steady', group: 'female', name: 'Steady', note: 'The leaders\' sound, at a woman\'s pitch', v: V({ base: 247 }) },
+    { id: 'f-bright', group: 'female', name: 'Bright', note: 'Quick and chirpy, a thin pulse that sings', v: V({ base: 330, tone: 0.85, range: 6, speed: 1.12, len: 0.045 }) },
+    { id: 'gus', group: 'city', name: 'Gus', note: 'Low and gruff: a square wave, a blip every third letter', v: V({ base: 98, tone: 0.25, range: 3, every: 3, len: 0.075 }) },
+    { id: 'proxima', group: 'city', name: 'Proxima', note: 'A bright chirp through a radio, a click at each end', v: V({ base: 330, range: 5, len: 0.045, radio: true }) },
+    { id: 'quill', group: 'city', name: 'Quill', note: 'High and quick', v: V({ base: 523, len: 0.05 }) },
+  ];
+  const VOICES = Object.fromEntries(PRESETS.filter(p => p.group === 'city').map(p => [p.id, p.v]));
+  const LEADER_BASES = [131, 147, 165, 175, 196, 220, 247], DUTIES = [0.125, 0.25, 0.5], TONE_OF = { 0.5: 0.25, 0.25: 0.55, 0.125: 0.85 };
+  /* A leader's own voice, until one is picked: its pitch and tone from its id, as since 0.1.78; a leader named Quill
+     has his, as he is him. */
+  function ownVoice(l) {
+    if (l && leaderName(l).toLowerCase() === 'quill') return VOICES.quill;
+    const k = hash('ld:' + (l ? l.id : ''));
+    return V({ base: LEADER_BASES[k % LEADER_BASES.length], tone: TONE_OF[DUTIES[(k >>> 8) % 3]] });
+  }
+  /* who: gus, proxima, quill or ld: and a leader's id; or a voice itself, as the leader editor plays it. */
+  function voiceOf(who) {
+    if (who && typeof who === 'object') return who;
+    if (VOICES[who]) return VOICES[who];
+    const id = String(who).replace(/^ld:/, ''), l = getLeader(id) || (id === QUILL.id ? QUILL : { id, name: '' });
+    return l.voice || ownVoice(l);
+  }
   const lettered = ch => /[\p{L}\p{N}]/u.test(ch);
   function radio(A, t) { noise(A, t, 0.05, { type: 'bandpass', f: 2600, q: 1.2, vol: 0.12, a: 0.001 }); tone(A, t, 1800, 0.035, { vol: 0.05, a: 0.001 }); }
-  /* chars: the line's letters from the one typing next; step: seconds a letter. */
-  function talk(A, t, who, chars, step) {
-    const v = voiceOf(who), vol = 0.2;
-    let dest = null;
-    if (v.radio) { const hp = biq(A.ctx, 'highpass', 450, 0.7), lp = biq(A.ctx, 'lowpass', 3200, 0.7); hp.connect(lp); route(A, lp); dest = hp; }
-    const t0 = t; if (v.radio) t += 0.06;
+  /* The tone: a triangle, blending into a square below 0.25, then narrower pulses. */
+  const dutyOf = tn => Math.round(0.5 * Math.pow(0.5, (tn - 0.25) / 0.3) * 1e4) / 1e4;
+  const waves = tn => (tn < 0.25 ? [['triangle', 1 - tn / 0.25], ['pulse0.5', tn / 0.25]] : [['pulse' + dutyOf(tn), 1]]);
+  /* A robot speaks in two steady notes, further apart the wider its range. */
+  const robotStep = r => (r <= 0 ? 0 : r <= 2 ? 3 : r <= 5 ? 7 : 12);
+  function blip(A, t, f, dur, v, dest, lfo, jitter) {
+    const c = A.ctx, g = c.createGain(), p = g.gain, peak = 0.15;
+    if (v.robot) { p.setValueAtTime(0, t); p.linearRampToValueAtTime(peak, t + 0.001); p.setValueAtTime(peak, t + Math.max(0.002, dur - 0.006)); p.linearRampToValueAtTime(0, t + Math.max(0.004, dur)); }
+    else { const a = 0.002, hold = dur * 0.6; p.setValueAtTime(0.0001, t); p.linearRampToValueAtTime(peak, t + a); p.setValueAtTime(peak, t + a + hold); p.linearRampToValueAtTime(0, t + Math.max(dur, a + hold + 0.01)); }
+    for (const [type, w] of waves(v.tone)) {
+      if (w < 0.001) continue;
+      const s = mkOsc(A, type, f, t, t + dur), pg = c.createGain();
+      s.detune.value = jitter; if (lfo) lfo.connect(s.detune);
+      pg.gain.value = w * (loud(type) ? 0.55 : 1); s.connect(pg); pg.connect(g);
+    }
+    g.connect(dest);
+  }
+  /* chars: the line's letters from the one typing next; step: seconds a letter, the voice's speed in it already. */
+  function talk(A, t, v, chars, step) {
+    const c = A.ctx, bus = c.createGain(), t0 = t;
+    bus.gain.value = v.gain;
+    let out = A.out;
+    if (v.radio) { const hp = biq(c, 'highpass', 450, 0.7), lp = biq(c, 'lowpass', 3200, 0.7); hp.connect(lp); lp.connect(A.out); out = hp; t += 0.06; }
+    const end = t + chars.length * step;
+    if (v.robot) {                       // a metallic ring under it, and a short tin can echo
+      const sum = c.createGain(), dry = c.createGain(), ring = c.createGain(), wet = c.createGain(), car = c.createOscillator();
+      dry.gain.value = 0.6; ring.gain.value = 0; wet.gain.value = 0.55;
+      car.frequency.value = v.base * 2.76; car.connect(ring.gain); car.start(t); car.stop(end + 0.5);
+      bus.connect(dry); dry.connect(sum); bus.connect(ring); ring.connect(wet); wet.connect(sum);
+      const dl = c.createDelay(0.05), fb = c.createGain(), cw = c.createGain(); dl.delayTime.value = 0.004; fb.gain.value = 0.5; cw.gain.value = 0.45;
+      sum.connect(out); sum.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(cw); cw.connect(out);
+    } else bus.connect(out);
+    let lfo = null;
+    if (v.wobble > 0) { const o = c.createOscillator(); lfo = c.createGain(); o.frequency.value = 6.2; lfo.gain.value = v.wobble * 45; o.connect(lfo); o.start(t); o.stop(end + 0.5); }
+    const R = Math.round(v.range);
     let n = 0;
     chars.forEach((ch, i) => {
       if (!lettered(ch) || n++ % v.every) return;
-      const semi = ((ch.toLowerCase().codePointAt(0) * 7) % (2 * v.range + 1)) - v.range, dur = Math.min(v.len, step * v.every * 0.92);
-      tone(A, t + i * step, v.base * Math.pow(2, semi / 12), dur, { vol: vol * 0.75, type: 'pulse' + (v.duty || 0.25), hold: dur * 0.6, curve: 'lin', a: 0.002, dest });
+      const cp = ch.toLowerCase().codePointAt(0);
+      const semi = v.robot ? (cp % 2 ? 0 : robotStep(R)) : R ? ((cp * 7) % (2 * R + 1)) - R : 0;
+      const dur = Math.min(v.len, step * v.every * (v.robot ? 0.8 : 0.92));
+      blip(A, t + i * step, v.base * Math.pow(2, semi / 12), dur, v, bus, lfo, v.wobble ? (A.r() * 2 - 1) * v.wobble * 25 : 0);
     });
-    const end = t + chars.length * step;
     if (v.radio) { radio(A, t0); radio(A, end + 0.04); }
-    if (v.sparkle) [88, 91, 93, 96].forEach((m, j) => note(A, end + 0.05 + j * 0.06, m2f(m), 0.25, { vol: 0.06 }));
     return end - t0 + 0.5;
+  }
+  /* How loud a voice is to the ear, saying the greeting: rendered offline and weighed roughly as ears weigh a quiet
+     sound (low notes count less), over the moments it sounds, as the voice board measured. */
+  const REF_LINE = [...'Welcome back. Next up: Sound Plan for the city.'];
+  async function heard(v) {
+    const step = Math.min(0.026, 1.8 / REF_LINE.length) / v.speed, sr = 44100, c = new OfflineAudioContext(1, Math.ceil(sr * (REF_LINE.length * step + 1)), sr);
+    const hp = biq(c, 'highpass', 250, 0.5), sh = biq(c, 'highshelf', 2500); sh.gain.value = 1.5; hp.connect(sh); sh.connect(c.destination);
+    talk({ ctx: c, out: chain(c, hp, 'chip'), style: 'chip', r: rng(11) }, 0.02, { ...v, gain: 1 }, REF_LINE, step);
+    const d = (await c.startRendering()).getChannelData(0), W = 441, wins = [];
+    for (let i = 0; i < d.length; i += W) { let s = 0; for (let j = i; j < Math.min(i + W, d.length); j++) s += d[j] * d[j]; wins.push(s / W); }
+    const top = wins.reduce((a, b) => Math.max(a, b), 0), on = wins.filter(w => w > top * 0.01);
+    return on.length ? on.reduce((a, b) => a + b, 0) / on.length : 0;
+  }
+  /* A picked voice's gain: as loud as a leader's voice (the leaders' sound at 196 Hz), between a fifth and five times. */
+  let refHeard = null;
+  async function loudness(v) {
+    if (typeof OfflineAudioContext === 'undefined') return 1;
+    if (refHeard == null) refHeard = await heard(V({ base: 196 }));
+    const m = await heard(v);
+    return m > 0 && refHeard > 0 ? Math.round(Math.min(5, Math.max(0.2, Math.sqrt(refHeard / m))) * 1000) / 1000 : 1;
   }
 
   /* ---------- playing ---------- */
@@ -16649,12 +16893,13 @@ const Sound = (() => {
   function bubble() { if (Date.now() - lastClaude > 2500) play('bubble', 'alerts', ALERTS.bubble); }
   function gusAlarm() { play('gusAlarm', 'alerts', ALERTS.gusAlarm); }
 
-  /* A line typing out, a blip per letter; stop() when the bubble closes before it ends. */
+  /* A line typing out, a blip per letter; stop() when the bubble closes before it ends. who is a speaker, or a voice
+     itself (the leader editor's Hear it). */
   function say(who, chars, step) {
     if (!who || !chars || !chars.length || !may('voices')) return null;
-    const v = voiceFor('voices', 0, 1, hash(who));
-    drop(v, talk(v.A, ctx.currentTime + 0.02, who, chars, step));
-    note2log('voice:' + who, 'voices', 0, 1);
+    const key = typeof who === 'string' ? who : 'preview', v = voiceFor('voices', 0, 1, hash(key));
+    drop(v, talk(v.A, ctx.currentTime + 0.02, voiceOf(who), chars, step));
+    note2log('voice:' + key, 'voices', 0, 1);
     return { stop: () => { try { v.g.gain.setTargetAtTime(0, ctx.currentTime, 0.02); } catch (e) { /* gone */ } } };
   }
 
@@ -17026,6 +17271,10 @@ const Sound = (() => {
 
   return { init, OPTIONS, GROUPS, mode: () => set.mode, setMode, vol: g => set.vol[g], setVol, VOL_DEF, onChange: fn => listeners.push(fn),
     ticked, task, claude, bubble, gusAlarm, say, party, stopParty, truck,
+    /* the voices (31 October): the presets, a leader's own, a speaker's, its speed, and a picked voice's gain */
+    voices: { presets: PRESETS, make: V, own: ownVoice, of: voiceOf, speed: who => voiceOf(who).speed || 1, loudness },
+    /* whether a voice can be heard now, and why not: off, or Character voices at 0% */
+    voicesQuiet: () => (set.mode === 'off' ? 'off' : !(set.vol.voices > 0) ? 'zero' : null),
     /* whether Claude Code's alerts can play while the city is out of view, so the Claude folder is read then too (C4) */
     listening: () => set.mode !== 'off' && set.vol.alerts > 0 && running(),
     _test: {
@@ -17059,7 +17308,7 @@ const Sound = (() => {
         if (TASKS[id]) TASKS[id](v.A, 0.02);
         else if (ALERTS[id]) ALERTS[id](v.A, 0.02);
         else if (id === 'party') { cheer(v.A, 0.02, 0.35); const g = c.createGain(); g.gain.value = 0.4; g.connect(v.g); const M = { ...v.A, out: g }; for (let k = 0; 0.27 + k * STEP < secs - 0.3; k++) partyStep(M, 0.27 + k * STEP, k); }
-        else talk(v.A, 0.02, id.slice(6), [...'Took you long enough. 3 tasks waiting. Sound Plan for the city first.'], 0.026);
+        else talk(v.A, 0.02, voiceOf(id.slice(6)), [...'Took you long enough. 3 tasks waiting. Sound Plan for the city first.'], 0.026);
         return measure(id, await c.startRendering(), sr);
       },
     },

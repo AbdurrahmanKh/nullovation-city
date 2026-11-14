@@ -212,33 +212,113 @@ const Sound = (() => {
     if (!rest && MEL[bar][s] != null) note(A, tt, m2f(MEL[bar][s]), STEP * 2.5, { vol: 0.14 });
   }
 
-  /* ---------- the characters' voices, in the 8-bit chip style: a blip per letter as the line types out ---------- */
-  const VOICES = {
-    gus: { base: 98, range: 3, len: 0.075, every: 3, duty: 0.5 },             // low and gruff
-    proxima: { base: 330, range: 5, len: 0.045, every: 2, radio: true },      // a bright radio chirp
-    quill: { base: 523, range: 4, len: 0.05, every: 2, sparkle: true },       // a sparkle at the end
-  };
-  const LEADER_BASES = [131, 147, 165, 175, 196, 220, 247], DUTIES = [0.125, 0.25, 0.5];
-  /* Each leader its own pitch and tone, from its id. */
-  const voiceOf = who => VOICES[who] || (() => { const k = hash(who); return { base: LEADER_BASES[k % LEADER_BASES.length], range: 4, len: 0.055, every: 2, duty: DUTIES[(k >>> 8) % 3] }; })();
+  /* ---------- the characters' voices, in the 8-bit chip style: a blip per letter as the line types out ----------
+     Character voices (30 and 31 October 2026): every voice is this one instrument, and a voice is only its settings;
+     a preset just sets them (his rule: "a preset just change the settings below it"), and a leader picks one in its
+     editor, with a pitch slider and the rest under Fine-tune. base: its note in Hz; tone: 0 soft (a triangle) to 1 thin
+     (a narrow pulse), 0.25 a square, 0.55 a quarter pulse, 0.85 an eighth; range: how many semitones its notes wander;
+     speed: how fast its line types out; every: a blip every so many letters; len: the longest a blip lasts; wobble: a
+     shake in its notes; robot: made of metal; radio: through a radio's narrow band, a click at each end; gain: how much
+     it is turned up or down, so a picked voice plays as loud as a leader's. Quill's sparkle went (he hated it). */
+  const V = o => ({ tone: 0.55, range: 4, speed: 1, every: 2, len: 0.055, wobble: 0, robot: false, radio: false, gain: 1, ...o });
+  const PRESETS = [
+    { id: 'm-deep', group: 'male', name: 'Deep', note: 'Low and unhurried, a hollow square wave', v: V({ base: 104, tone: 0.25, range: 3, speed: 0.9, len: 0.07 }) },
+    { id: 'm-gruff', group: 'male', name: 'Gruff', note: 'Terse, a blip every third letter, a little rough', v: V({ base: 92, tone: 0.3, range: 2, speed: 0.85, every: 3, wobble: 0.25, len: 0.075 }) },
+    { id: 'm-warm', group: 'male', name: 'Warm', note: 'Soft and round, nearly a triangle wave', v: V({ base: 123, tone: 0.1, len: 0.06 }) },
+    { id: 'm-steady', group: 'male', name: 'Steady', note: 'The leaders\' sound, at a man\'s pitch', v: V({ base: 147 }) },
+    { id: 'm-bright', group: 'male', name: 'Bright', note: 'A thin pulse, quick and lively', v: V({ base: 175, tone: 0.85, range: 5, speed: 1.1, len: 0.05 }) },
+    { id: 'f-low', group: 'female', name: 'Low', note: 'An alto: round and calm, a slight shake', v: V({ base: 185, tone: 0.3, range: 3, speed: 0.95, wobble: 0.1, len: 0.06 }) },
+    { id: 'f-soft', group: 'female', name: 'Soft', note: 'Gentle, a triangle wave', v: V({ base: 262, tone: 0.05, speed: 0.95, len: 0.06 }) },
+    { id: 'f-warm', group: 'female', name: 'Warm', note: 'Round, with a little more melody', v: V({ base: 220, tone: 0.2, range: 5, len: 0.058 }) },
+    { id: 'f-steady', group: 'female', name: 'Steady', note: 'The leaders\' sound, at a woman\'s pitch', v: V({ base: 247 }) },
+    { id: 'f-bright', group: 'female', name: 'Bright', note: 'Quick and chirpy, a thin pulse that sings', v: V({ base: 330, tone: 0.85, range: 6, speed: 1.12, len: 0.045 }) },
+    { id: 'gus', group: 'city', name: 'Gus', note: 'Low and gruff: a square wave, a blip every third letter', v: V({ base: 98, tone: 0.25, range: 3, every: 3, len: 0.075 }) },
+    { id: 'proxima', group: 'city', name: 'Proxima', note: 'A bright chirp through a radio, a click at each end', v: V({ base: 330, range: 5, len: 0.045, radio: true }) },
+    { id: 'quill', group: 'city', name: 'Quill', note: 'High and quick', v: V({ base: 523, len: 0.05 }) },
+  ];
+  const VOICES = Object.fromEntries(PRESETS.filter(p => p.group === 'city').map(p => [p.id, p.v]));
+  const LEADER_BASES = [131, 147, 165, 175, 196, 220, 247], DUTIES = [0.125, 0.25, 0.5], TONE_OF = { 0.5: 0.25, 0.25: 0.55, 0.125: 0.85 };
+  /* A leader's own voice, until one is picked: its pitch and tone from its id, as since 0.1.78; a leader named Quill
+     has his, as he is him. */
+  function ownVoice(l) {
+    if (l && leaderName(l).toLowerCase() === 'quill') return VOICES.quill;
+    const k = hash('ld:' + (l ? l.id : ''));
+    return V({ base: LEADER_BASES[k % LEADER_BASES.length], tone: TONE_OF[DUTIES[(k >>> 8) % 3]] });
+  }
+  /* who: gus, proxima, quill or ld: and a leader's id; or a voice itself, as the leader editor plays it. */
+  function voiceOf(who) {
+    if (who && typeof who === 'object') return who;
+    if (VOICES[who]) return VOICES[who];
+    const id = String(who).replace(/^ld:/, ''), l = getLeader(id) || (id === QUILL.id ? QUILL : { id, name: '' });
+    return l.voice || ownVoice(l);
+  }
   const lettered = ch => /[\p{L}\p{N}]/u.test(ch);
   function radio(A, t) { noise(A, t, 0.05, { type: 'bandpass', f: 2600, q: 1.2, vol: 0.12, a: 0.001 }); tone(A, t, 1800, 0.035, { vol: 0.05, a: 0.001 }); }
-  /* chars: the line's letters from the one typing next; step: seconds a letter. */
-  function talk(A, t, who, chars, step) {
-    const v = voiceOf(who), vol = 0.2;
-    let dest = null;
-    if (v.radio) { const hp = biq(A.ctx, 'highpass', 450, 0.7), lp = biq(A.ctx, 'lowpass', 3200, 0.7); hp.connect(lp); route(A, lp); dest = hp; }
-    const t0 = t; if (v.radio) t += 0.06;
+  /* The tone: a triangle, blending into a square below 0.25, then narrower pulses. */
+  const dutyOf = tn => Math.round(0.5 * Math.pow(0.5, (tn - 0.25) / 0.3) * 1e4) / 1e4;
+  const waves = tn => (tn < 0.25 ? [['triangle', 1 - tn / 0.25], ['pulse0.5', tn / 0.25]] : [['pulse' + dutyOf(tn), 1]]);
+  /* A robot speaks in two steady notes, further apart the wider its range. */
+  const robotStep = r => (r <= 0 ? 0 : r <= 2 ? 3 : r <= 5 ? 7 : 12);
+  function blip(A, t, f, dur, v, dest, lfo, jitter) {
+    const c = A.ctx, g = c.createGain(), p = g.gain, peak = 0.15;
+    if (v.robot) { p.setValueAtTime(0, t); p.linearRampToValueAtTime(peak, t + 0.001); p.setValueAtTime(peak, t + Math.max(0.002, dur - 0.006)); p.linearRampToValueAtTime(0, t + Math.max(0.004, dur)); }
+    else { const a = 0.002, hold = dur * 0.6; p.setValueAtTime(0.0001, t); p.linearRampToValueAtTime(peak, t + a); p.setValueAtTime(peak, t + a + hold); p.linearRampToValueAtTime(0, t + Math.max(dur, a + hold + 0.01)); }
+    for (const [type, w] of waves(v.tone)) {
+      if (w < 0.001) continue;
+      const s = mkOsc(A, type, f, t, t + dur), pg = c.createGain();
+      s.detune.value = jitter; if (lfo) lfo.connect(s.detune);
+      pg.gain.value = w * (loud(type) ? 0.55 : 1); s.connect(pg); pg.connect(g);
+    }
+    g.connect(dest);
+  }
+  /* chars: the line's letters from the one typing next; step: seconds a letter, the voice's speed in it already. */
+  function talk(A, t, v, chars, step) {
+    const c = A.ctx, bus = c.createGain(), t0 = t;
+    bus.gain.value = v.gain;
+    let out = A.out;
+    if (v.radio) { const hp = biq(c, 'highpass', 450, 0.7), lp = biq(c, 'lowpass', 3200, 0.7); hp.connect(lp); lp.connect(A.out); out = hp; t += 0.06; }
+    const end = t + chars.length * step;
+    if (v.robot) {                       // a metallic ring under it, and a short tin can echo
+      const sum = c.createGain(), dry = c.createGain(), ring = c.createGain(), wet = c.createGain(), car = c.createOscillator();
+      dry.gain.value = 0.6; ring.gain.value = 0; wet.gain.value = 0.55;
+      car.frequency.value = v.base * 2.76; car.connect(ring.gain); car.start(t); car.stop(end + 0.5);
+      bus.connect(dry); dry.connect(sum); bus.connect(ring); ring.connect(wet); wet.connect(sum);
+      const dl = c.createDelay(0.05), fb = c.createGain(), cw = c.createGain(); dl.delayTime.value = 0.004; fb.gain.value = 0.5; cw.gain.value = 0.45;
+      sum.connect(out); sum.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(cw); cw.connect(out);
+    } else bus.connect(out);
+    let lfo = null;
+    if (v.wobble > 0) { const o = c.createOscillator(); lfo = c.createGain(); o.frequency.value = 6.2; lfo.gain.value = v.wobble * 45; o.connect(lfo); o.start(t); o.stop(end + 0.5); }
+    const R = Math.round(v.range);
     let n = 0;
     chars.forEach((ch, i) => {
       if (!lettered(ch) || n++ % v.every) return;
-      const semi = ((ch.toLowerCase().codePointAt(0) * 7) % (2 * v.range + 1)) - v.range, dur = Math.min(v.len, step * v.every * 0.92);
-      tone(A, t + i * step, v.base * Math.pow(2, semi / 12), dur, { vol: vol * 0.75, type: 'pulse' + (v.duty || 0.25), hold: dur * 0.6, curve: 'lin', a: 0.002, dest });
+      const cp = ch.toLowerCase().codePointAt(0);
+      const semi = v.robot ? (cp % 2 ? 0 : robotStep(R)) : R ? ((cp * 7) % (2 * R + 1)) - R : 0;
+      const dur = Math.min(v.len, step * v.every * (v.robot ? 0.8 : 0.92));
+      blip(A, t + i * step, v.base * Math.pow(2, semi / 12), dur, v, bus, lfo, v.wobble ? (A.r() * 2 - 1) * v.wobble * 25 : 0);
     });
-    const end = t + chars.length * step;
     if (v.radio) { radio(A, t0); radio(A, end + 0.04); }
-    if (v.sparkle) [88, 91, 93, 96].forEach((m, j) => note(A, end + 0.05 + j * 0.06, m2f(m), 0.25, { vol: 0.06 }));
     return end - t0 + 0.5;
+  }
+  /* How loud a voice is to the ear, saying the greeting: rendered offline and weighed roughly as ears weigh a quiet
+     sound (low notes count less), over the moments it sounds, as the voice board measured. */
+  const REF_LINE = [...'Welcome back. Next up: Sound Plan for the city.'];
+  async function heard(v) {
+    const step = Math.min(0.026, 1.8 / REF_LINE.length) / v.speed, sr = 44100, c = new OfflineAudioContext(1, Math.ceil(sr * (REF_LINE.length * step + 1)), sr);
+    const hp = biq(c, 'highpass', 250, 0.5), sh = biq(c, 'highshelf', 2500); sh.gain.value = 1.5; hp.connect(sh); sh.connect(c.destination);
+    talk({ ctx: c, out: chain(c, hp, 'chip'), style: 'chip', r: rng(11) }, 0.02, { ...v, gain: 1 }, REF_LINE, step);
+    const d = (await c.startRendering()).getChannelData(0), W = 441, wins = [];
+    for (let i = 0; i < d.length; i += W) { let s = 0; for (let j = i; j < Math.min(i + W, d.length); j++) s += d[j] * d[j]; wins.push(s / W); }
+    const top = wins.reduce((a, b) => Math.max(a, b), 0), on = wins.filter(w => w > top * 0.01);
+    return on.length ? on.reduce((a, b) => a + b, 0) / on.length : 0;
+  }
+  /* A picked voice's gain: as loud as a leader's voice (the leaders' sound at 196 Hz), between a fifth and five times. */
+  let refHeard = null;
+  async function loudness(v) {
+    if (typeof OfflineAudioContext === 'undefined') return 1;
+    if (refHeard == null) refHeard = await heard(V({ base: 196 }));
+    const m = await heard(v);
+    return m > 0 && refHeard > 0 ? Math.round(Math.min(5, Math.max(0.2, Math.sqrt(refHeard / m))) * 1000) / 1000 : 1;
   }
 
   /* ---------- playing ---------- */
@@ -334,12 +414,13 @@ const Sound = (() => {
   function bubble() { if (Date.now() - lastClaude > 2500) play('bubble', 'alerts', ALERTS.bubble); }
   function gusAlarm() { play('gusAlarm', 'alerts', ALERTS.gusAlarm); }
 
-  /* A line typing out, a blip per letter; stop() when the bubble closes before it ends. */
+  /* A line typing out, a blip per letter; stop() when the bubble closes before it ends. who is a speaker, or a voice
+     itself (the leader editor's Hear it). */
   function say(who, chars, step) {
     if (!who || !chars || !chars.length || !may('voices')) return null;
-    const v = voiceFor('voices', 0, 1, hash(who));
-    drop(v, talk(v.A, ctx.currentTime + 0.02, who, chars, step));
-    note2log('voice:' + who, 'voices', 0, 1);
+    const key = typeof who === 'string' ? who : 'preview', v = voiceFor('voices', 0, 1, hash(key));
+    drop(v, talk(v.A, ctx.currentTime + 0.02, voiceOf(who), chars, step));
+    note2log('voice:' + key, 'voices', 0, 1);
     return { stop: () => { try { v.g.gain.setTargetAtTime(0, ctx.currentTime, 0.02); } catch (e) { /* gone */ } } };
   }
 
@@ -711,6 +792,10 @@ const Sound = (() => {
 
   return { init, OPTIONS, GROUPS, mode: () => set.mode, setMode, vol: g => set.vol[g], setVol, VOL_DEF, onChange: fn => listeners.push(fn),
     ticked, task, claude, bubble, gusAlarm, say, party, stopParty, truck,
+    /* the voices (31 October): the presets, a leader's own, a speaker's, its speed, and a picked voice's gain */
+    voices: { presets: PRESETS, make: V, own: ownVoice, of: voiceOf, speed: who => voiceOf(who).speed || 1, loudness },
+    /* whether a voice can be heard now, and why not: off, or Character voices at 0% */
+    voicesQuiet: () => (set.mode === 'off' ? 'off' : !(set.vol.voices > 0) ? 'zero' : null),
     /* whether Claude Code's alerts can play while the city is out of view, so the Claude folder is read then too (C4) */
     listening: () => set.mode !== 'off' && set.vol.alerts > 0 && running(),
     _test: {
@@ -744,7 +829,7 @@ const Sound = (() => {
         if (TASKS[id]) TASKS[id](v.A, 0.02);
         else if (ALERTS[id]) ALERTS[id](v.A, 0.02);
         else if (id === 'party') { cheer(v.A, 0.02, 0.35); const g = c.createGain(); g.gain.value = 0.4; g.connect(v.g); const M = { ...v.A, out: g }; for (let k = 0; 0.27 + k * STEP < secs - 0.3; k++) partyStep(M, 0.27 + k * STEP, k); }
-        else talk(v.A, 0.02, id.slice(6), [...'Took you long enough. 3 tasks waiting. Sound Plan for the city first.'], 0.026);
+        else talk(v.A, 0.02, voiceOf(id.slice(6)), [...'Took you long enough. 3 tasks waiting. Sound Plan for the city first.'], 0.026);
         return measure(id, await c.startRendering(), sr);
       },
     },

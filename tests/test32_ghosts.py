@@ -211,7 +211,7 @@ with sync_playwright() as p:
     ok('the card sits over its ghost', cb['y'] + cb['height'] <= r['y'] + gy and cb['x'] < r['x'] + gx < cb['x'] + cb['width'])
     pg.screenshot(path=str(SHOTS / '322-ghost-card.png'), clip={'x': cb['x'] - 40, 'y': cb['y'] - 20, 'width': cb['width'] + 80, 'height': cb['height'] + 140})
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
-    ok('Esc closes it, and the ghost goes on', not pg.is_visible('#ghostCard') and find(t1)['mode'] == 'walk')
+    ok('Esc closes it, and the ghost goes on (walking, or pausing or peeking as it walks)', not pg.is_visible('#ghostCard') and find(t1)['mode'] in ('walk', 'pause', 'peek', 'linger'))
     hold(t1, p=(W['S'] + 0.3) * 1.5); pg.wait_for_timeout(200)
     cx, cy = gcss(); pg.mouse.click(r['x'] + cx, r['y'] + cy); pg.wait_for_timeout(300)
     pg.mouse.click(r['x'] + 30, r['y'] + r['h'] - 30); pg.wait_for_timeout(300)
