@@ -193,6 +193,9 @@ const Garbage = (() => {
 
   /* ---------- what is drawn: per building, the live pieces and those waiting for the crew ---------- */
   const shown = new Map(), doomed = new Map(), lastTargets = { map: new Map(), total: 0, shown: 0 };
+  const layers = new Map(), gen = new Map();                 // project id -> its pictures of its pieces lying still; how often they changed
+  const bump = id => gen.set(id, (gen.get(id) || 0) + 1);
+  let builds = 0, caching = true, live = 0;                  // for the tests: pictures drawn, the old way of one piece at a time, pieces drawn live
   let primed = false;
   function refresh() {
     const t = targets();
@@ -200,13 +203,14 @@ const Garbage = (() => {
     for (const p of DB.projects) {
       const want = Math.min(t.map.get(p.id) || 0, spotsFor(p).length);
       const was = shown.has(p.id) ? shown.get(p.id) : (primed ? 0 : want);
-      const set = doomed.get(p.id) || new Set();
+      const set = doomed.get(p.id) || new Set(), size = set.size;
       if (want >= was) { for (const k of [...set]) if (k < want) set.delete(k); }
       else { for (let k = want; k < was; k++) set.add(k); queueClean(p.id); }
       if (set.size) doomed.set(p.id, set); else doomed.delete(p.id);
+      if (shown.get(p.id) !== want || set.size !== size) bump(p.id);
       shown.set(p.id, want);
     }
-    for (const id of [...shown.keys()]) if (!getProject(id)) { shown.delete(id); doomed.delete(id); }
+    for (const id of [...shown.keys()]) if (!getProject(id)) { shown.delete(id); doomed.delete(id); layers.delete(id); }
     primed = true;
     for (const f of subs) f();
     MapView.invalidate();
@@ -214,16 +218,17 @@ const Garbage = (() => {
 
   /* ---------- wind: now and then a loose paper hops a few pixels along ---------- */
   const drift = new Map();                                    // "id:n" -> [dx, dy] in world pixels, for this visit
-  let hops = [], nextGust = 0, visible = [];
+  let hops = [], nextGust = 0;
   function gust(t) {
-    const light = visible.filter(s => s.spot.kind === 'paper' || s.spot.kind === 'note');
+    const light = visibleNow().filter(s => s.spot.kind === 'paper' || s.spot.kind === 'note');
     if (!light.length) return;
     const s = light[Math.floor(Math.random() * light.length)], key = s.id + ':' + s.spot.n;
     if (hops.some(h => h.key === key)) return;
     const from = drift.get(key) || [0, 0], dir = Math.random() < 0.5 ? [2, 1] : [-2, 1], len = (1 + Math.random() * 2) * (Math.random() < 0.5 ? 1 : -1);
     let to = [from[0] + dir[0] * len, from[1] + dir[1] * len];
     if (Math.hypot(to[0], to[1]) > 7) to = [from[0] * 0.3, from[1] * 0.3];   // never wanders far from its spot
-    hops.push({ key, from, to, t0: t, dur: 700 + Math.random() * 500 });
+    hops.push({ key, id: s.id, n: s.spot.n, from, to, t0: t, dur: 700 + Math.random() * 500 });
+    bump(s.id);                                               // it leaves its building's picture while it is in the air
   }
   function offsetOf(key, t) {
     const h = hops.find(q => q.key === key);
@@ -270,7 +275,7 @@ const Garbage = (() => {
   function vanish(id, n, t, withSparkle = true) {
     const p = getProject(id), set = doomed.get(id);
     if (!p || !set || !set.has(n)) return;
-    set.delete(n);
+    set.delete(n); bump(id);
     if (!set.size) { doomed.delete(id); for (const f of subs) f(); }   // a building's last waiting piece went
     const s = spotsFor(p)[n], off = drift.get(id + ':' + n) || [0, 0];
     if (withSparkle && s) sparkles.push({ x: s.x + off[0], y: s.y - s.lift + off[1], i: s.i, j: s.j, t0: t + Math.random() * 120 });
@@ -352,7 +357,7 @@ const Garbage = (() => {
     }
   }
   function step(t) {
-    if (!on || MapView.editing()) { if (jobs.length || doomed.size) { jobs.length = 0; clearAll(t, false); } hops = []; return false; }
+    if (!on || MapView.editing()) { if (jobs.length || doomed.size) { jobs.length = 0; clearAll(t, false); } for (const h of hops) bump(h.id); hops = []; return false; }
     const dt = lastStep ? Math.min(0.1, (t - lastStep) / 1000) : 0;
     lastStep = t;
     if (Motion.still()) { if (doomed.size || jobs.length) { jobs.length = 0; clearAll(t, false); return true; } return false; }
@@ -360,7 +365,7 @@ const Garbage = (() => {
     else { startJobs(t); for (const j of jobs) stepJob(j, t, dt); }
     for (let x = jobs.length - 1; x >= 0; x--) if (jobs[x].phase === 'gone') jobs.splice(x, 1);
     if (t >= nextGust) { if (nextGust) gust(t); nextGust = t + 1800 + Math.random() * 3800; }
-    for (let x = hops.length - 1; x >= 0; x--) { const h = hops[x]; if (t - h.t0 >= h.dur) { drift.set(h.key, h.to); hops.splice(x, 1); } }
+    for (let x = hops.length - 1; x >= 0; x--) { const h = hops[x]; if (t - h.t0 >= h.dur) { drift.set(h.key, h.to); hops.splice(x, 1); bump(h.id); } }
     for (let x = sparkles.length - 1; x >= 0; x--) if (t - sparkles[x].t0 > 560) sparkles.splice(x, 1);
     const moving = jobs.length || hops.length || sparkles.length;
     if (moving && t - lastDraw >= 40) { lastDraw = t; return true; }
@@ -429,35 +434,101 @@ const Garbage = (() => {
     const di = i - (MARGIN + u * PITCH), dj = j - (MARGIN + v * PITCH);
     return di >= 0 && di <= S && dj >= 0 && dj <= S ? u + ',' + v : null;
   };
+  /* A piece where it lies now, the wind's drift and any hop included, in world pixels, with the sprite it wears. */
+  const NO_OFF = [0, 0];
+  function placed(p, s, A, off) {
+    const x = s.x + off[0], y = s.y - s.lift + off[1];
+    const list = A[s.kind], spr = list[s.variant % list.length], w = spr.w / 2, hh = spr.h / 2;
+    const left = Math.round((x - w / 2) * 2) / 2, top = Math.round((spr.stand ? y - hh + 0.5 : y - hh / 2) * 2) / 2;
+    return { x, y, w, hh, left, top, spr, img: s.flip ? spr.flipped : spr.plain };
+  }
+  /* The pieces a building has on the map now, by their number in its spots: those shown, then those waiting for the crew. */
+  function eachPiece(p, fn) {
+    const n = shown.get(p.id) || 0, dset = doomed.get(p.id);
+    if (!n && !dset) return;
+    const spots = spotsFor(p);
+    for (let k = 0; k < n && k < spots.length; k++) fn(spots[k]);
+    if (dset) for (const k of dset) if (k >= n && spots[k]) fn(spots[k]);
+  }
+  /* ---------- the pieces lying still, drawn once (0.1.85) ----------
+     A building's pieces change only when its garbage does, the light turns, the map changes or the wind lifts one, so
+     they are drawn once into pictures of their own, at the pieces' double detail: one for its sidewalks and streets and
+     one for each plot it litters (its own front strip, the park), each drawn where its pieces were. The map draws those
+     few pictures each frame in place of up to 1,000 pieces; a piece in the air and the sparkles are drawn live. */
+  const SHADOW = 'rgba(43, 37, 66, 0.25)';
+  function build(p, A, key) {
+    builds++;
+    const groups = new Map();                                  // 'g' for the ground, else its plot 'u,v': its pieces in order
+    eachPiece(p, s => {
+      if (hops.length && hops.some(h => h.id === p.id && h.n === s.n)) return;   // in the air: drawn live
+      const q = placed(p, s, A, drift.get(p.id + ':' + s.n) || NO_OFF), k = plotOf(s.i, s.j) || 'g';
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(q);
+    });
+    const parts = [];
+    for (const [k, list] of groups) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const q of list) {
+        x0 = Math.min(x0, q.left, Math.round(q.x - q.w / 2)); y0 = Math.min(y0, q.top);
+        x1 = Math.max(x1, q.left + q.w, Math.round(q.x - q.w / 2) + Math.ceil(q.w)); y1 = Math.max(y1, q.top + q.hh, Math.round(q.y) + 1);
+      }
+      x0 = Math.floor(x0); y0 = Math.floor(y0); x1 = Math.ceil(x1); y1 = Math.ceil(y1);
+      const [c, g] = mkCanvas((x1 - x0) * 2, (y1 - y0) * 2);
+      for (const q of list) {
+        if (q.spr.stand) { g.fillStyle = SHADOW; g.fillRect((Math.round(q.x - q.w / 2) - x0) * 2, (Math.round(q.y) - y0) * 2, Math.ceil(q.w) * 2, 2); }
+        g.drawImage(q.img, (q.left - x0) * 2, (q.top - y0) * 2);
+      }
+      parts.push({ k, c, x0, y0, x1, y1 });
+    }
+    return { key, parts };
+  }
+  let lastView;                                               // the view the map last drew; undefined while nothing is drawn
   function prepare(view) {
-    visible = []; ground.length = 0; onPlots.clear();
+    ground.length = 0; onPlots.clear(); lastView = undefined; live = 0;
     if (!on || MapView.editing()) return;
+    lastView = view;
     const A = artSet(), t = performance.now();
+    const W = WORLD, sig = artKey + '|' + [W.NU, W.NV, W.OU, W.OV].join() + '|' + DB.projects.map(p => p.plot.u + '.' + p.plot.v).join();
     const inView = (x, y, pad = 8) => !view || (x > view.x0 - pad && x < view.x1 + pad && y > view.y0 - pad && y < view.y1 + pad);
-    const put = (i, j, f) => { const k = plotOf(i, j); if (!k) { ground.push(f); return; } if (!onPlots.has(k)) onPlots.set(k, []); onPlots.get(k).push(f); };
+    const put = (k, f) => { if (!k || k === 'g') { ground.push(f); return; } if (!onPlots.has(k)) onPlots.set(k, []); onPlots.get(k).push(f); };
+    const drawLive = (p, s, off) => {                         // one piece drawn on its own: in the air, or the old way
+      const q = placed(p, s, A, off);
+      if (!inView(q.x, q.y)) return;
+      put(plotOf(s.i, s.j), g => {
+        if (q.spr.stand) { g.fillStyle = SHADOW; g.fillRect(Math.round(q.x - q.w / 2), Math.round(q.y), Math.ceil(q.w), 1); }
+        MapView.drawHalf(q.img, q.left, q.top);
+      });
+    };
     for (const p of DB.projects) {
-      const n = shown.get(p.id) || 0, dset = doomed.get(p.id);
-      if (!n && !dset) continue;
-      const spots = spotsFor(p);
-      const draw = s => {
-        if (!s) return;
-        const off = offsetOf(p.id + ':' + s.n, t), x = s.x + off[0], y = s.y - s.lift + off[1];
-        if (!inView(x, y)) return;
-        const list = A[s.kind], spr = list[s.variant % list.length], w = spr.w / 2, hh = spr.h / 2;
-        const left = Math.round((x - w / 2) * 2) / 2, top = Math.round((spr.stand ? y - hh + 0.5 : y - hh / 2) * 2) / 2;
-        visible.push({ id: p.id, spot: s });
-        put(s.i, s.j, g => {
-          if (spr.stand) { g.fillStyle = 'rgba(43, 37, 66, 0.25)'; g.fillRect(Math.round(x - w / 2), Math.round(y), Math.ceil(w), 1); }
-          MapView.drawHalf(s.flip ? spr.flipped : spr.plain, left, top);
-        });
-      };
-      for (let k = 0; k < n && k < spots.length; k++) draw(spots[k]);
-      if (dset) for (const k of dset) if (k >= n) draw(spots[k]);
+      if (!shown.get(p.id) && !doomed.get(p.id)) { layers.delete(p.id); continue; }
+      const key = (gen.get(p.id) || 0) + '|' + sig;
+      if (!caching) { layers.delete(p.id); eachPiece(p, s => drawLive(p, s, offsetOf(p.id + ':' + s.n, t))); continue; }
+      let L = layers.get(p.id);
+      if (!L || L.key !== key) { L = build(p, A, key); layers.set(p.id, L); }
+      for (const l of L.parts) {
+        if (view && (l.x1 < view.x0 || l.x0 > view.x1 || l.y1 < view.y0 || l.y0 > view.y1)) continue;
+        put(l.k, () => MapView.drawHalf(l.c, l.x0, l.y0));
+      }
+    }
+    for (const h of caching ? hops : []) {                    // the pieces the wind is lifting, where they are this frame
+      const p = getProject(h.id), s = p && spotsFor(p)[h.n];
+      if (!s || !((shown.get(p.id) || 0) > h.n || (doomed.get(p.id) && doomed.get(p.id).has(h.n)))) continue;
+      drawLive(p, s, offsetOf(h.key, t)); live++;
     }
     for (const sp of sparkles) {
       const age = t - sp.t0;
-      if (age >= 0 && inView(sp.x, sp.y)) put(sp.i, sp.j, g => sparkle(g, sp.x, sp.y - 2, age));
+      if (age >= 0 && inView(sp.x, sp.y)) put(plotOf(sp.i, sp.j), g => sparkle(g, sp.x, sp.y - 2, age));
     }
+  }
+  /* The pieces in the view the map last drew: the wind lifts one of these, and the tests count them. */
+  function visibleNow() {
+    if (lastView === undefined) return [];
+    const v = lastView, out = [], t = performance.now();
+    for (const p of DB.projects) eachPiece(p, s => {
+      const off = offsetOf(p.id + ':' + s.n, t), x = s.x + off[0], y = s.y - s.lift + off[1];
+      if (!v || (x > v.x0 - 8 && x < v.x1 + 8 && y > v.y0 - 8 && y < v.y1 + 8)) out.push({ id: p.id, spot: s });
+    });
+    return out;
   }
   const drawGround = g => { for (const f of ground) f(g); };
   const drawOnPlot = (g, u, v) => { const l = onPlots.get(u + ',' + v); if (l) for (const f of l) f(g); };
@@ -521,7 +592,7 @@ const Garbage = (() => {
   function setOn(v) {
     on = !!v;
     try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { /* this visit only */ }
-    if (!on) { jobs.length = 0; clearAll(performance.now(), false); }
+    if (!on) { jobs.length = 0; clearAll(performance.now(), false); layers.clear(); }
     for (const f of subs) f();
     MapView.invalidate(); MapView.kick();
   }
@@ -539,7 +610,10 @@ const Garbage = (() => {
     trucks: () => jobs.filter(j => j.phase !== 'gone').length, queued: () => queue.length, onChange: f => subs.push(f),
     /* for the tests: counts set by hand, the spots, the drawn art, and what is on the map now */
     _test: { force: (id, n) => { if (n == null) forced.delete(id); else forced.set(id, n); refresh(); }, spots: id => spotsFor(getProject(id)),
-      truck: h => truck(h).c, art: () => artSet(), visible: () => visible.length, jobs: () => jobs.map(j => ({ id: j.id, phase: j.phase, s: j.s, r: j.r, crew: j.crew.map(c => ({ state: c.state, at: c.at })) })),
+      truck: h => truck(h).c, art: () => artSet(), visible: () => visibleNow().length,
+      builds: () => builds, layers: id => (layers.get(id) || { parts: [] }).parts.length, cache: on => { caching = !!on; MapView.invalidate(); },
+      gust: () => { const t = performance.now(); gust(t); nextGust = t + 60000; MapView.kick(); }, hops: () => hops.map(h => h.key), live: () => live,
+      drift: key => drift.get(key) || null, jobs: () => jobs.map(j => ({ id: j.id, phase: j.phase, s: j.s, r: j.r, crew: j.crew.map(c => ({ state: c.state, at: c.at })) })),
       sparkles: () => sparkles.length },
   };
 })();

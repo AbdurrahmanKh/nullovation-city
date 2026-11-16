@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.85 (2026-11-16)
+
+The map keeps its frame rate with the garbage at its ceiling, at 3x and while the zoom glides.
+- A zoom between the even ones (3x, 5x on a screen at 1.5, and every zoom on its way while it glides, the wheel turns or two fingers pinch) is drawn whole at the next even zoom, then shrunk onto the screen in one go. Until now every building, park, prop and piece of garbage was copied and shrunk on its own, about 700 copies a frame with the garbage at 1,000 pieces. It looks the same, the ground crisp on the screen's own pixels. The project view's picture and the postcard are drawn the same way.
+- The garbage lying still is drawn once into pictures of its own, one for a building's sidewalks and streets and one for each plot it litters, and drawn again only when its garbage changes, the light turns or the wind lifts a paper. A frame draws those few pictures in place of up to 1,000 pieces; a paper in the air and the sparkles are drawn live.
+- The system's reduced motion is read from one query, made once, rather than asked anew each time a building is drawn.
+- On Abdurrahman's city, 1,000 pieces of garbage, in Chrome: dragging at 3x went from 26 frames a second to the screen's own rate (7 to 60 with no graphics card), and a zoom gliding from 2x to 3x from 15 to the screen's rate; the map's own work at 1x went from 2.5 to 1 ms a frame.
+- Tests: test51_frame_rate checks what a frame draws: a few pictures for the garbage, the same pixels as the pieces drawn one by one, when the pictures are drawn again (a building's garbage changing, the light, a gust), the frame at 3x reaching the map as one picture, matching the old way and keeping the ground crisp, clicks and the hover's line following the real camera, a gliding zoom, a screen at 1.5 and the project view's picture there, and the reduced motion query.
+
 ## 0.1.84 (2026-11-15)
 
 Proxima's weekly and monthly reports fold the quiet buildings into one line, in place of a row of zeros each.

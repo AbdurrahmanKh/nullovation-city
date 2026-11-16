@@ -490,16 +490,16 @@ const MapView = (() => {
     const [cv, gc] = mkCanvas(worldW * sc, worldH * sc);
     cv.style.width = worldW * 2 + 'px'; cv.style.height = worldH * 2 + 'px';
     const cx = g0.X, cy = (minY + maxY) / 2;
-    const paint = () => {
+    const shot = () => {
       const saved = { ctx, vw, vh, x: cam.x, y: cam.y, z: cam.z, clean, noBubbles };
       ctx = gc; vw = cv.width; vh = cv.height; cam.x = cx; cam.y = cy; cam.z = sc; clean = true; noBubbles = true;
-      try { draw(); } finally {
+      try { paint(); } finally {
         ctx = saved.ctx; vw = saved.vw; vh = saved.vh; cam.x = saved.x; cam.y = saved.y; cam.z = saved.z; clean = saved.clean; noBubbles = saved.noBubbles;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
       }
     };
-    paint();
-    const timer = setInterval(() => { if (!cv.isConnected) { clearInterval(timer); return; } paint(); }, 110);
+    shot();
+    const timer = setInterval(() => { if (!cv.isConnected) { clearInterval(timer); return; } shot(); }, 110);
     return cv;
   }
   function blockPng(p) {
@@ -528,8 +528,37 @@ const MapView = (() => {
     return m;
   }
 
+  /* A zoom between the even ones (3x, or any zoom while it glides, the wheel turns or two fingers pinch) is drawn whole
+     at the next even zoom, where every building pixel lands on whole pixels, then shrunk smoothly onto the screen in
+     one go: the look drawArt gives each piece of art at such a zoom, for one picture a frame rather than one for every
+     building, park, prop and piece of garbage, which took a city with its garbage at the ceiling to 26 frames a second
+     at 3x (0.1.85). At a whole zoom the shrunk frame is laid on the screen's own pixels, so the ground stays crisp. */
+  let stage = null, stageCtx = null, pin = null, staging = true, staged = false, stagedAt = 0;   // staging: off only for the tests, to draw the old way
+  const dropStage = debounce(() => { if (performance.now() - stagedAt > 2500) { stage = null; stageCtx = null; } }, 3000);   // a glide's big stage is let go once unused
+  function paint() {
+    const z = cam.z, half = z / 2;
+    staged = false;
+    if (!staging || half <= 1 || Math.abs(half - Math.round(half)) <= 0.02) { if (stage) dropStage(); draw(); return; }
+    staged = true; stagedAt = performance.now();
+    const Z = 2 * Math.ceil(half), s = z / Z, { tx, ty } = xf();
+    const whole = Math.abs(z - Math.round(z)) < 1e-6;
+    /* where the frame starts on the stage, and where the stage lands on the screen, never past the screen's left or top */
+    const at = d => { if (whole) { const m = Math.ceil(d / z); return [Z * m, d - z * m]; } const f = Math.ceil(d / s); return [f, d - s * f]; };
+    const [ftx, ox] = at(tx), [fty, oy] = at(ty);
+    const W = Math.ceil((vw + 2 * z) / s) + 2, H = Math.ceil((vh + 2 * z) / s) + 2;
+    if (!stage) { stage = document.createElement('canvas'); stageCtx = stage.getContext('2d', { alpha: false }); }
+    if (stage.width < W || stage.height < H || stage.width * stage.height > 2 * W * H) { stage.width = W; stage.height = H; }   // shrinks once a glide's start has passed
+    const saved = { ctx, vw, vh, z };
+    ctx = stageCtx; vw = W; vh = H; cam.z = Z; pin = { z: Z, tx: ftx, ty: fty };
+    try { draw(); } finally { ctx = saved.ctx; vw = saved.vw; vh = saved.vh; cam.z = saved.z; pin = null; }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'medium';
+    ctx.drawImage(stage, 0, 0, W, H, ox, oy, W * s, H * s);
+    ctx.imageSmoothingEnabled = false;
+    if (!noBubbles) placeHoverLabel();                       // by the real camera, now it is back
+  }
   function draw() {
-    const { z, tx, ty } = xf();
+    const { z, tx, ty } = pin || xf();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = worldColor('haze');
     ctx.fillRect(0, 0, vw, vh);
@@ -563,7 +592,7 @@ const MapView = (() => {
       for (const [k, q] of lay) if (q.id === id) { const [u, v] = k.split(',').map(Number); return blockGeom(q, u, v); }
       return null;
     });
-    if (!noBubbles) { drawUrgency(); placeHoverLabel(); }
+    if (!noBubbles) { drawUrgency(); if (!pin) placeHoverLabel(); }
   }
 
   /* One plot: its park or its building, with its ring. */
@@ -880,7 +909,7 @@ const MapView = (() => {
     }
     if (animating) more = true;
     if (dirty && Motion.saver() && t - lastPaint < 32) more = true;   // Saver: the next frame draws it
-    else if (dirty) { draw(); dirty = false; lastPaint = t; paints++; Bubble.position(); if (editing) placeArrows(); }
+    else if (dirty) { paint(); dirty = false; lastPaint = t; paints++; Bubble.position(); if (editing) placeArrows(); }
     if (more) kick(); else lastT = 0;
   }
   let lastPaint = 0, paints = 0;
@@ -1440,7 +1469,7 @@ const MapView = (() => {
     const g = out.getContext('2d');
     const saved = { ctx, vw, vh, z: cam.z };
     ctx = g; vw = out.width; vh = out.height; cam.z = saved.z * k; clean = true;
-    try { draw(); } finally {
+    try { paint(); } finally {
       ctx = saved.ctx; vw = saved.vw; vh = saved.vh; cam.z = saved.z; clean = false;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
@@ -1623,6 +1652,7 @@ const MapView = (() => {
     worldCss: (wx, wy) => worldToCss(wx, wy), cssWorld: (cx, cy) => cssToWorld(cx, cy),
     camState: () => ({ x: cam.x, y: cam.y, z: cam.z, dpr }), atMaxZoom: () => cam.z >= zMax() - 1e-6,
     _paints: () => paints,                                  // for the tests: how many times the map has been drawn
+    _staged: () => staged, _stage: on => { staging = !!on; invalidate(); },   // for the tests: whether the last paint was drawn whole at the next even zoom; and the old way
     editing: () => editing, setEditing, cyclePark,
     syncBar: () => syncBar(), setBubbleMode, lightOptions: () => LIGHT_OPTIONS, bubbleOptions: () => BUBBLE_OPTIONS,
     card: () => ({ ...card }), setCard, CARD_DEFAULT,

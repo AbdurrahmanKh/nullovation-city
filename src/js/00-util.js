@@ -47,7 +47,9 @@ function mulberry32(a) {
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeOut = t => 1 - Math.pow(1 - t, 3);
-const reducedMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+/* The system's reduced motion, read live from one query: the map asks every time it draws a building, so the query is
+   made once (0.1.85), where making it each time cost a tenth of a millisecond a frame. */
+const reducedMotion = (() => { const q = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null; return () => !!(q && q.matches); })();
 /* A narrow window, or a phone on its side (0.1.74): the side bar is a drawer there, as the stylesheet's small screens say. */
 const NARROW_SCREEN = '(max-width: 760px), (max-height: 520px) and (pointer: coarse)';
 const narrowScreen = () => !!(window.matchMedia && window.matchMedia(NARROW_SCREEN).matches);
