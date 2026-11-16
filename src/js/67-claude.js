@@ -6,7 +6,10 @@
    to pick another when the building links several. Cowork takes that one folder, and no more folders or file links.
    For a task it has two tabs (A2): Build it, the work itself, and Think, which asks Claude for a decision wizard round
    about the task, or with Make a brainstorming round, a brainstorm (A3); either attaches to the task. A copy's text may
-   differ by where it goes: a chat gets a round's answers written in, since it cannot read the round's file (C1). */
+   differ by where it goes: a chat gets a round's answers written in, since it cannot read the round's file (C1).
+   Since 0.1.87 a T3 tile comes first (T3 Connection, Round 1): it starts a T3 Code thread in the folder with the text
+   already sent (T3, in 67-t3.js), on the agent and model picked under the folder line, kept per building (A2). Settings,
+   Links says which tiles show: T3 and Claude, T3 only (with Copy) or Claude only (A3). */
 const OpenInClaude = (() => {
   const MAX_Q = 13500;                      // the app fills in about 14,000 characters; anything longer goes by clipboard
   const MAX_TERM = 5000;                    // Claude Code's terminal links fill in at most 5,000
@@ -75,7 +78,7 @@ const OpenInClaude = (() => {
     close();
     const p = opts.project || null, folders = p ? places(p).folders : [];
     /* a Think task opens on Think, any other on Build it; one click switches (Shifts UX, Round 1, C2) */
-    const st = { tab: opts.think && opts.thinkFirst && opts.thinkFirst() ? 'think' : 'build', brainstorm: false, folder: folderOf(p, folders), listing: false };
+    const st = { tab: opts.think && opts.thinkFirst && opts.thinkFirst() ? 'think' : 'build', brainstorm: false, folder: folderOf(p, folders), listing: false, agents: false };
     panel = h('div', { class: 'oc-panel', role: 'dialog', 'aria-label': 'Open in Claude' });
     const textFor = kind => (st.tab === 'think' && opts.think ? opts.think(kind, { brainstorm: st.brainstorm }) : opts.text(kind));
     const files = () => (opts.files ? opts.files() : []);
@@ -84,6 +87,7 @@ const OpenInClaude = (() => {
       const kids = [h('span', { class: 'ic', html: iconSvg(icon, 18) }), h('span', { class: 'oc-tile-label' }, label), note ? h('span', { class: 'oc-tile-note' }, note) : null];
       if (!ok) return h('span', { class: 'oc-tile off', 'aria-disabled': 'true', 'data-kind': kind, title: off }, kids);
       if (kind === 'copy') return h('button', { class: 'oc-tile', type: 'button', 'data-kind': kind, title, onclick: () => copyNow() }, kids);
+      if (kind === 't3') return h('button', { class: 'oc-tile', type: 'button', 'data-kind': kind, title, onclick: () => sendNow() }, kids);
       const text = textFor(kind);
       return h('a', { class: 'oc-tile', href: href(kind, text, st.folder, kind === 'cowork' ? files() : []), 'data-kind': kind, title,
         onclick: () => { hand(text, kind); setTimeout(close, 0); } }, kids);
@@ -93,6 +97,14 @@ const OpenInClaude = (() => {
       const said = st.tab === 'think' ? (st.brainstorm ? 'Copied: asking Claude for a brainstorm on this task.' : 'Copied: asking Claude for a wizard round on this task.') : (opts.copied || 'Copied for Claude.');
       toast(ok ? said : 'The browser blocked copying. Try again.', ok ? '' : 'error');
       if (ok) close(true);
+    }
+    /* The T3 tile: a thread in the folder with the text sent, titled by the task, or Think: and Brainstorm: for those */
+    function sendNow() {
+      const text = textFor('t3'), name = (text.split('\n')[0] || '').replace(/^#+\s*/, '').replace(/^Task:\s*/, '').trim();
+      const title = (st.tab === 'think' ? (st.brainstorm ? 'Brainstorm: ' : 'Think: ') : '') + name;
+      const folder = st.folder;
+      close(true);
+      T3.send({ project: p, folder, text, title });
     }
     const what = () => (st.tab === 'think' ? (st.brainstorm ? 'asking Claude for a brainstorm on this task' : 'asking Claude for a wizard round on this task') : 'with this filled in');
     function render() {
@@ -116,19 +128,27 @@ const OpenInClaude = (() => {
       if (opts.copyFirst || phone) kids.push(h('button', { class: 'oc-tile oc-wide', type: 'button', 'data-kind': 'copy', title: phone ? 'Copies it, to paste into the Claude app' : 'Copies it, to paste anywhere', onclick: () => copyNow() },
         h('span', { class: 'ic', html: iconSvg('copy', 18) }), h('span', { class: 'oc-tile-label' }, opts.copyFirst || 'Copy')));
       if (phone) { panel.replaceChildren(...kids); return; }
-      kids.push(h('div', { class: 'oc-tiles' + (opts.copyFirst ? ' four' : '') },
-        tile('chat', 'Chat', 'chat', { note: 'no folder', title: 'A new Claude chat ' + what() }),
-        tile('cowork', 'Cowork', 'cowork', { title: 'A new Cowork task ' + what() + (f ? ', in ' + f : '') }),
-        tile('code', 'Code', 'code', { ok: !!f, off: need, title: 'A new Claude Code session in ' + f + ', ' + what() }),
-        tile('terminal', 'Terminal', 'terminal', { ok: termOk(f), off: f ? 'A terminal opens only in a folder on this computer' : need,
-          title: 'Claude Code in a new terminal in ' + f + ', ' + what() + '. Works once Claude Code has had a prompt in a terminal on this computer.' }),
-        opts.copyFirst ? null : tile('copy', 'Copy', 'copy', { title: 'Copies it, to paste anywhere' })));
+      /* Which tiles show is Settings, Links' T3 and Claude, T3 only or Claude only (0.1.87, T3 Connection, A3). */
+      const mode = T3.tiles(), withT3 = mode !== 'claude', withClaude = mode !== 't3';
+      const agent = T3.agentOf(p), t3why = !f ? (p ? "T3 starts a thread in the building's folder: add a link to a folder on this computer" : 'T3 starts a thread in a project\'s folder') : T3.why();
+      const row = [
+        withT3 ? tile('t3', 'T3', 't3', { note: agent.short, ok: !t3why, off: t3why, title: 'A new T3 thread in ' + f + ', on ' + agent.label + ', ' + (st.tab !== 'think' ? 'with this sent at once' : (st.brainstorm ? 'asking for a brainstorm' : 'asking for a wizard round') + ' on this task, sent at once') }) : null,
+        withClaude ? tile('chat', 'Chat', 'chat', { note: 'no folder', title: 'A new Claude chat ' + what() }) : null,
+        withClaude ? tile('cowork', 'Cowork', 'cowork', { title: 'A new Cowork task ' + what() + (f ? ', in ' + f : '') }) : null,
+        withClaude ? tile('code', 'Code', 'code', { ok: !!f, off: need, title: 'A new Claude Code session in ' + f + ', ' + what() }) : null,
+        withClaude ? tile('terminal', 'Terminal', 'terminal', { ok: termOk(f), off: f ? 'A terminal opens only in a folder on this computer' : need,
+          title: 'Claude Code in a new terminal in ' + f + ', ' + what() + '. Works once Claude Code has had a prompt in a terminal on this computer.' }) : null,
+        opts.copyFirst ? null : tile('copy', 'Copy', 'copy', { title: 'Copies it, to paste anywhere' })].filter(Boolean);
+      panel.classList.toggle('oc-six', row.length > 5);
+      kids.push(h('div', { class: 'oc-tiles' + (opts.copyFirst && row.length === 4 ? ' four' : ''), style: 'grid-template-columns: repeat(' + row.length + ', 1fr)' }, row));
       const line = h('div', { class: 'oc-folder' });
-      if (!f) line.append(h('span', { class: 'oc-folder-none' }, p ? 'No folder link: Code and Terminal need one.' : 'No project folder: Chat, Cowork or Copy.'));
+      const needs = [withT3 ? 'T3' : '', withClaude ? 'Code' : '', withClaude ? 'Terminal' : ''].filter(Boolean);
+      if (!f) line.append(h('span', { class: 'oc-folder-none' }, p ? 'No folder link: ' + needs.join(', ').replace(/, ([^,]*)$/, ' and $1') + (needs.length > 1 ? ' need one.' : ' needs one.')
+        : 'No project folder: ' + (withClaude ? 'Chat, Cowork or Copy.' : 'Copy.')));
       else if (folders.length < 2) line.append(h('b', null, 'Folder:'), ' ', h('span', { class: 'oc-folder-path', dir: 'ltr', title: f }, f));
       else {
         line.append(h('button', { id: 'ocFolderPick', class: 'oc-folder-pick', type: 'button', 'aria-expanded': String(st.listing), title: 'Pick the folder to open in',
-          onclick: () => { st.listing = !st.listing; render(); const b = $('#ocFolderPick', panel); if (b) b.focus(); } },
+          onclick: () => { st.listing = !st.listing; st.agents = false; render(); const b = $('#ocFolderPick', panel); if (b) b.focus(); } },
           h('b', null, 'Folder:'), ' ', h('span', { class: 'oc-folder-path', dir: 'ltr', title: f }, f), h('span', { class: 'oc-folder-more', 'aria-hidden': 'true' }, st.listing ? '∨' : '>')));
       }
       kids.push(line);
@@ -136,6 +156,16 @@ const OpenInClaude = (() => {
         h('button', { class: 'oc-folder-opt' + (x === f ? ' on' : ''), type: 'button', role: 'option', 'aria-selected': String(x === f), dir: 'ltr', title: x,
           onclick: () => { st.folder = x; st.listing = false; keepFolder(p, x); render(); const b = $('#ocFolderPick', panel); if (b) b.focus(); } },
           h('span', { class: 'oc-folder-name' }, base(x)), h('span', { class: 'oc-folder-full' }, x)))));
+      /* The agent and model a T3 send runs on, kept per building as its folder is (A2) */
+      if (withT3 && !t3why) {
+        kids.push(h('div', { class: 'oc-folder oc-agent' }, h('button', { id: 'ocAgentPick', class: 'oc-folder-pick', type: 'button', 'aria-expanded': String(st.agents), title: 'Pick the agent and model T3 runs it on',
+          onclick: () => { st.agents = !st.agents; st.listing = false; render(); const b = $('#ocAgentPick', panel); if (b) b.focus(); } },
+          h('b', null, 'T3 agent:'), ' ', h('span', { class: 'oc-folder-path' }, agent.label), h('span', { class: 'oc-folder-more', 'aria-hidden': 'true' }, st.agents ? '∨' : '>'))));
+        if (st.agents) kids.push(h('div', { class: 'oc-folders oc-agents', role: 'listbox', 'aria-label': 'T3 agents' }, T3.AGENTS.map(x =>
+          h('button', { class: 'oc-folder-opt' + (x.id === agent.id ? ' on' : ''), type: 'button', role: 'option', 'aria-selected': String(x.id === agent.id), 'data-agent': x.id, title: x.hint,
+            onclick: () => { T3.keepAgent(p, x.id); st.agents = false; render(); const b = $('#ocAgentPick', panel); if (b) b.focus(); } },
+            h('span', { class: 'oc-folder-name' }, x.label), h('span', { class: 'oc-folder-full' }, x.hint)))));
+      }
       panel.replaceChildren(...kids);
     }
     render();

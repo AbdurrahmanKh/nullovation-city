@@ -322,6 +322,26 @@ const ClaudeWork = (() => {
     const w = await (await d.getFileHandle(parts[parts.length - 1], { create: true })).createWritable();
     await w.write(text); await w.close();
   }
+  /* A file's text in the folder, or null when it is not there; and taking one out (0.1.87, T3's sends and answers). */
+  async function readFile(path) {
+    if (!dir) return null;
+    let d = dir;
+    const parts = path.split('/');
+    try {
+      for (const part of parts.slice(0, -1)) d = await d.getDirectoryHandle(part);
+      return await (await (await d.getFileHandle(parts[parts.length - 1])).getFile()).text();
+    } catch (e) { return null; }
+  }
+  async function removeFile(path) {
+    let d = dir;
+    const parts = path.split('/');
+    for (const part of parts.slice(0, -1)) d = await d.getDirectoryHandle(part);
+    await d.removeEntry(parts[parts.length - 1]);
+  }
+  async function writeIn(path, text) {
+    if (state !== 'on' || !dir || !canWrite) { const e = new Error('The Claude folder is not connected'); e.name = 'NotAllowedError'; throw e; }
+    await writeFile(path, text);
+  }
   let writing = false;
   async function writeSummary() {
     if (state !== 'on' || !dir || !canWrite || writing) return false;
@@ -402,5 +422,6 @@ const ClaudeWork = (() => {
 
   return { init, poll, render, redraw, statusOf, mapStatus, voice, tick, working: () => [...byProject.values()].some(ss => ss.some(s => s.state === 'working')), sessionsOf: p => byProject.get(p.id) || [], isSeen, markSeen, pathKey, taskOf, cityChanged, citySummary, writeSummary, waitingCount,
     canWrite: () => canWrite, folder: () => (state === 'on' && canWrite ? dir : null), state: () => state,
+    read: readFile, write: writeIn, remove: removeFile,
     sessions: () => [...files.values()].map(f => f.s).filter(Boolean), unplaced: () => unplaced, LASTS };
 })();

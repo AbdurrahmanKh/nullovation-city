@@ -267,6 +267,15 @@
             <div id="claudeBox" class="file-box"></div>
             <p class="note">A one-time setup on this PC adds the hooks to Claude Code: <button id="btnClaudeSetup" class="linkish" type="button">Get the setup</button>, then double-click the file it saved and pick the folder for Claude Code to write to. Python must be installed.</p>
           </section>
+          <section class="set-group">
+            <h3 class="set-h">T3 Code</h3>
+            <p class="note">Open in Claude's T3 tile starts a T3 Code thread in the building's folder with the task already sent, on the agent picked in its panel. Its sends go through the Claude folder above, and T3 Code has to be open.</p>
+            <div id="optTiles" class="set-choices set-row" data-set="tiles" role="group" aria-label="Open in Claude shows"></div>
+            <p id="tilesNote" class="note"></p>
+            <p class="note">A one-time setup on this PC adds the link type T3's sends use: <button id="btnT3Setup" class="linkish" type="button">Get the setup</button>, then double-click the file it saved. Python must be installed, and the Claude Code at work setup must have run first.</p>
+            <div class="set-line"><button id="btnT3Test" class="btn btn-small" type="button">Test T3 link</button></div>
+            <p class="note">The helper answers, saying whether T3 Code is running. If no answer comes, the setup has not run on this PC.</p>
+          </section>
         </div>
 
         <div class="set-foot">

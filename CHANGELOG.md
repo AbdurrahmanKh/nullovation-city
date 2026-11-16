@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.87 (2026-11-17)
+
+T3 Code: Open in Claude's T3 tile sends a task to T3 Code for real, from T3 Connection, Round 1.
+- A T3 tile comes first in Open in Claude's panel. It starts a T3 Code thread in the building's folder with the task already sent, so the agent is at work at once: Build it sends the task, Think asks for a wizard round or a brainstorm, and the thread is titled by the task (Think: and Brainstorm: for those).
+- A one-time setup on the PC, `nullovation-t3-links.py` (Settings, Links, T3 Code, Get the setup), adds the link type `nullovation-t3:` for this Windows user and the helper it runs. The city writes the send into the Claude folder's `t3` folder and follows a link that names only that file; the helper runs T3's own `t3 thread start` and writes the answer back. A link never carries a prompt, so no other web page can make the PC run one. A building's folder no T3 project holds is added to T3 as a project first.
+- Once T3 has the thread, the building's leader says it was sent, with Open, which shows the thread in T3's window. T3 not running, a setup that has not run, or a send with no word back each say so.
+- The agent and model: a pick under the folder line, T3's default or Claude Opus, Sonnet or Haiku 5.5, kept per building in this browser, and named on the tile.
+- Settings, Links, T3 Code: which tiles the panel shows, T3 and Claude, T3 only (with Copy) or Claude only, and Test T3 link, which has the helper answer whether T3 Code is running.
+- A building with no folder link shows the T3 tile greyed out, saying why. The phone keeps Copy alone.
+- Fixed: the space after Folder: in the panel's folder line.
+- Tests: test53_t3 runs the helper as Windows would against a fake t3 command (what it runs, the title passed exactly, the copy on its input, a folder added to T3, what it refuses, the test link), then the city with a Claude folder held in memory: the tile and its states, the agent pick kept per building, a send written and answered, the leader's toast and Open, Think and brainstorm sends, errors and timeouts, a building with no folder, the status brief, and the setting's three choices.
+
 ## 0.1.86 (2026-11-17)
 
 General UX: the project view and the task panel, made quieter and clearer, from General UX, Round 1 and its mocks.

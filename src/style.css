@@ -633,6 +633,7 @@ kbd { background: var(--paper); border-color: var(--edge); box-shadow: 0 2px 0 0
    Build it and Think for a task, five tiles, and the folder they open in. */
 .oc-panel { position: fixed; z-index: 70; width: 344px; max-width: calc(100vw - 16px); padding: 10px; display: grid; gap: 9px;
   background: var(--paper); box-shadow: var(--px-edge), 6px 8px 0 0 rgba(0, 0, 0, .45); font-size: 13.5px; }
+.oc-panel.oc-six { width: 404px; }   /* the T3 tile and the five beside it (0.1.87) */
 .oc-tabs { display: grid; grid-template-columns: 1fr 1fr; box-shadow: inset 0 0 0 1px #3A3354; }
 .oc-tab { display: flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 10px; font: inherit; color: var(--ink-soft); background: none; border: 0; cursor: pointer; }
 .oc-tab .ic { display: inline-flex; }
@@ -653,6 +654,7 @@ a.oc-tile:hover, a.oc-tile:focus-visible, button.oc-tile:hover, button.oc-tile:f
 .oc-tile.off { color: var(--muted); opacity: .55; cursor: default; }
 .oc-folder { display: flex; min-width: 0; font-size: 12.5px; color: var(--ink-soft); }
 .oc-folder b { color: var(--ink); font-weight: 500; flex: none; }
+.oc-folder > b { margin-right: .3em; }   /* a flex row drops the space after Folder: (0.1.87) */
 .oc-folder-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; direction: ltr; }
 .oc-folder-none { color: var(--muted); }
 .oc-folder-pick { display: flex; align-items: center; gap: 4px; min-width: 0; width: 100%; padding: 4px 6px; margin: -4px -6px; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; text-align: left; }

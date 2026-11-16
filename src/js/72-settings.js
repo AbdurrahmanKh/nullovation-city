@@ -42,6 +42,8 @@ const Settings = (() => {
     wizard: { tab: 'links', get: () => wizardSetting(), def: () => '', set: v => { try { if (v) localStorage.setItem(WIZARD_KEY, v); else localStorage.removeItem(WIZARD_KEY); } catch (e) { /* this visit only */ } } },
     /* and whether it opens a round in the installed wizard app or in a tab (0.1.66) */
     wizardOpen: { tab: 'links', get: () => wizardOpens(), def: () => 'app', set: v => { try { if (v === 'tab') localStorage.setItem(WIZARD_OPEN_KEY, 'tab'); else localStorage.removeItem(WIZARD_OPEN_KEY); } catch (e) { /* this visit only */ } } },
+    /* which tiles Open in Claude shows: T3 and Claude, T3 only or Claude only (0.1.87, T3 Connection, A3) */
+    tiles: { tab: 'links', get: () => T3.tiles(), def: () => 'both', set: v => T3.setTiles(v) },
   };
   const changedFromDefault = k => !same(DEFS[k].get(), DEFS[k].def());
   function setCity(k, v) {
@@ -197,6 +199,11 @@ const Settings = (() => {
       document.body.append(a); a.click(); a.remove();
       toast('Opening C:\\Windows through a folder link. If nothing opens, the setup has not run on this PC.');
     });
+    $('#btnT3Setup').addEventListener('click', () => {
+      downloadBlob(new Blob([T3_SETUP_PY], { type: 'text/x-python' }), 'nullovation-t3-links.py');
+      toast('Saved nullovation-t3-links.py. Double-click it, then press Test T3 link here.');
+    });
+    $('#btnT3Test').addEventListener('click', () => T3.test());
     $('#btnClaudeSetup').addEventListener('click', () => {
       downloadBlob(new Blob([CLAUDE_SETUP_PY], { type: 'text/x-python' }), 'nullovation-claude-status.py');
       toast('Saved nullovation-claude-status.py. Double-click it and pick a folder, then connect that same folder here.');
@@ -217,7 +224,7 @@ const Settings = (() => {
     look: () => { for (const k of ['light', 'hours', 'bubbles', 'garbage', 'ghosts', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
     sound: () => { for (const k of ['sound', 'volCity', 'volAlerts', 'volVoices', 'volMusic']) DEFS[k].set(DEFS[k].def()); },
     projects: () => { DEFS.rest.set([]); DEFS.away.set(''); },
-    links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); DEFS.wizardOpen.set('app'); },
+    links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); DEFS.wizardOpen.set('app'); DEFS.tiles.set('both'); },
   };
   function resetTab(id) { if (TAB_RESET[id]) { TAB_RESET[id](); refresh(); } }
 
@@ -264,6 +271,8 @@ const Settings = (() => {
     $('#optExplorer').checked = explorerLinks();
     if (document.activeElement !== $('#optWizard')) $('#optWizard').value = wizardSetting();
     choiceRow($('#optWizardOpen'), WIZARD_OPENS, wizardOpens(), v => set('wizardOpen', v));
+    choiceRow($('#optTiles'), T3.TILES, T3.tiles(), v => set('tiles', v));
+    $('#tilesNote').textContent = T3.TILE_NOTES[T3.tiles()];
     /* the dots */
     const tabs = new Set();
     for (const row of $$('#setBody [data-set]')) {

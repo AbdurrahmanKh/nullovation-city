@@ -359,7 +359,8 @@ with sync_playwright() as p:
     ev(f"() => {{ const p = getProject('{gp}'), t = {task(T2)}; untickTask(p, t); delete t.round; changed(p); }}")
 
     # ---------- Open in Claude: the Think tab, a wizard round or a brainstorm (0.1.63) ----------
-    TILES = "() => [...document.querySelectorAll('.oc-panel .oc-tile')].map(a => [a.dataset.kind, a.tagName, a.getAttribute('href') || ''])"
+    # the Claude app's tiles; T3's comes first since 0.1.87, and test53_t3 checks it
+    TILES = "() => [...document.querySelectorAll('.oc-panel .oc-tile:not([data-kind=\"t3\"])')].map(a => [a.dataset.kind, a.tagName, a.getAttribute('href') || ''])"
     open_task(T1)
     pg.locator('#pvTaskClaude').scroll_into_view_if_needed(); pg.wait_for_timeout(150); pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
     ok('an open task\'s panel opens on Build it, with Think beside it', ev("() => [...document.querySelectorAll('.oc-panel .oc-tab')].map(t => t.textContent.trim() + (t.classList.contains('on') ? '*' : '')).join()") == 'Build it*,Think')
@@ -367,7 +368,8 @@ with sync_playwright() as p:
     ok('Build it\'s Chat sends the copy with the answers written in', main_chat.endswith('When you finish, send Nullovation City an update with the nullovation-city skill.') and '- B8, Export: Which file should a plan save as? JSON.' in main_chat)
     pg.click('#ocTabThink'); pg.wait_for_timeout(150)
     row = ev(TILES)
-    ok(f'Think has the same tiles: Chat, Cowork, Code, Terminal and Copy ({[r[:2] for r in row]})', [r[0] for r in row] == ['chat', 'cowork', 'code', 'terminal', 'copy'])
+    ok(f'Think has the same tiles: T3, Chat, Cowork, Code, Terminal and Copy ({[r[:2] for r in row]})', [r[0] for r in row] == ['chat', 'cowork', 'code', 'terminal', 'copy']
+       and ev("() => document.querySelector('.oc-panel .oc-tile').dataset.kind") == 't3')
     ok('Code and Terminal wait for a folder link there too', row[2][1] == 'SPAN' and row[3][1] == 'SPAN' and row[0][1] == 'A' and row[1][1] == 'A')
     ok('Think has the brainstorm box, unticked', pg.is_visible('#ocBrainstorm') and not pg.is_checked('#ocBrainstorm'))
     chat_q = unquote(row[0][2].split('q=', 1)[1].split('&')[0])

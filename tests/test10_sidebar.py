@@ -54,7 +54,7 @@ with sync_playwright() as p:
        and js("() => document.querySelector('#dueList .due-claude').getAttribute('aria-label')") == 'Open in Claude: Save a plan as a file')
     pg.click('#dueList .due-item >> nth=0 >> .due-claude'); pg.wait_for_timeout(200)
     ok('it opens the Open in Claude panel, with Build it and Think, as a task\'s does', pg.is_visible('.oc-panel') and pg.is_visible('#ocTabBuild') and pg.is_visible('#ocTabThink')
-       and js("() => [...document.querySelectorAll('.oc-panel .oc-tiles .oc-tile')].map(t => t.dataset.kind).join(',')") == 'chat,cowork,code,terminal,copy')
+       and js("() => [...document.querySelectorAll('.oc-panel .oc-tiles .oc-tile')].map(t => t.dataset.kind).join(',')") == 't3,chat,cowork,code,terminal,copy')   # T3's tile first since 0.1.87
     pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(150)
     ok('E1 its Copy copies the task for Claude, by the new standard', clip().startswith('# Task: Save a plan as a file') and 'Task copied for Claude' in (pg.text_content('#toast') or '')
        and not pg.is_visible('.oc-panel'))
@@ -110,7 +110,7 @@ with sync_playwright() as p:
        and pg.text_content('#btnBriefClaude').strip() == 'Status brief' and not pg.is_visible('#btnPalette'))
     pg.click('#btnBriefClaude'); pg.wait_for_timeout(200)
     order = js("() => [...document.querySelectorAll('.oc-panel .oc-tile')].map(t => (t.dataset.kind) + (t.classList.contains('oc-wide') ? ':wide' : ''))")
-    ok(f'SideBar Cleanup: its panel shows Copy status brief first, then the Claude tiles, and no second Copy ({order})', order == ['copy:wide', 'chat', 'cowork', 'code', 'terminal']
+    ok(f'SideBar Cleanup: its panel shows Copy status brief first, then T3 (0.1.87) and the Claude tiles, and no second Copy ({order})', order == ['copy:wide', 't3', 'chat', 'cowork', 'code', 'terminal']
        and pg.text_content('.oc-panel .oc-wide').strip() == 'Copy status brief')
     ok('the focus starts on Copy status brief', js("() => document.activeElement.classList.contains('oc-wide')"))
     pg.screenshot(path=str(SH / '101-status-brief.png'), clip={'x': 0, 'y': 260, 'width': 400, 'height': 260})

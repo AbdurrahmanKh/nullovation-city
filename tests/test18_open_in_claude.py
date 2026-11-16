@@ -38,6 +38,13 @@ with sync_playwright() as p:
     js = lambda code, *a: pg.evaluate(code, *a)
     clip = lambda: js("() => navigator.clipboard.readText()").replace('\r\n', '\n')     # Windows reads line ends back as \r\n
     js(CATCH)
+    # This pass is about the Claude app's tiles. T3's tile comes first in the row since 0.1.87 (test53_t3 checks it), so
+    # after checking that, the pass sets Settings, Links to Claude only, which shows the panel as it was before T3.
+    js("() => OpenInClaude.button({ text: () => 'x', project: DB.projects[0] }).click()")
+    pg.wait_for_timeout(150)
+    ok('by default the T3 tile comes first, then Chat, Cowork, Code, Terminal and Copy (0.1.87)',
+       js("() => [...document.querySelectorAll('.oc-panel .oc-tile')].map(t => t.dataset.kind).join()") == 't3,chat,cowork,code,terminal,copy')
+    js("() => { OpenInClaude.close(); T3.setTiles('claude'); }")
     gid = js("() => DB.projects.find(p => p.name === 'Garden planner').id")
     nid = js("() => DB.projects.find(p => p.name === 'Nullovation City').id")
     links = [{'label': 'Repo', 'url': 'D:\\Work\\Garden Planner\\', 'icon': 'folder'},
