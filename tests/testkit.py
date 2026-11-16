@@ -147,6 +147,40 @@ def close_settings(pg):
         pg.click('#setBack'); pg.wait_for_timeout(150)
 
 
+# The task panel since 0.1.86 (General UX, Round 1): no pink Done, its x closes it keeping what was typed; the title and
+# the description read as text until clicked; the due date a button with a list, its Pick a date the browser's calendar.
+SIDE_CLOSE = '#pvSide .pv-top button[aria-label^="Close"]'
+TASK_TITLE = """() => { const e = document.querySelector('#pvSide #pvTaskName, #pvSide textarea#pvTaskTitle, #pvSide h3#pvTaskTitle');
+  return e ? (e.tagName === 'TEXTAREA' ? e.value : e.textContent) : null; }"""
+TASK_SHOWS = "() => !!document.querySelector('#pvSide #pvTaskDescView, #pvSide textarea#pvTaskDesc, #pvSide #pvTaskName')"
+
+
+def set_due(pg, value):
+    """Sets the open task's due date as a day picked in its list's calendar would; '' takes it off with its small x."""
+    if not value:
+        if pg.locator('#pvTaskDueClear').count():
+            pg.click('#pvTaskDueClear'); pg.wait_for_timeout(150)
+        return
+    if not pg.locator('#pvDueList').count():
+        pg.click('#pvTaskDue')
+    pg.evaluate("v => { const i = document.querySelector('#pvTaskDuePick'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); }", value)
+    pg.wait_for_timeout(150)
+
+
+def write_desc(pg, text):
+    """Writes the open task's description: a click on its text, then the words in its place."""
+    if not pg.locator('#pvSide textarea#pvTaskDesc').count():
+        pg.click('#pvTaskDescView')
+    pg.fill('#pvTaskDesc', text)
+
+
+def write_title(pg, text):
+    """Writes the open task's title: a click on it, then the words in its place."""
+    if not pg.locator('#pvSide textarea#pvTaskTitle').count():
+        pg.click('#pvTaskName')
+    pg.fill('#pvTaskTitle', text)
+
+
 def fixture(name):
     """The path of a test file, drawn the first time it is asked for."""
     path = DATA / name

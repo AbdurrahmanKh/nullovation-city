@@ -464,7 +464,7 @@ with sync_playwright() as p:
     ok(f'and it is not work: urgency, Updated and Activity stay as they were ({f1})', f1 == before)
     ok(f'the tab\'s title counts sessions waiting for you and finishes you have not seen ({pg.title()})', pg.title() == '(2) Nullovation City')
     js(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
-    pg.locator('.pv button:has-text("Activity")').first.click()
+    pg.click('#pvActivityBtn')
     pg.wait_for_timeout(400)
     ok('the Activity panel has no finish line', 'Claude Code finished' not in (pg.text_content('.pv-activity') or ''))
     js("() => FullView.close()"); pg.wait_for_timeout(300)

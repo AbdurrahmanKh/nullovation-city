@@ -131,6 +131,7 @@ const FullView = (() => {
   /* Esc peels one layer at a time: a popover, the more menu, an open section (undone), the side panel, the view. */
   function escape() {
     if (!root) return false;
+    if (closeDue(true)) return true;
     if (pop) { closePopover(); return true; }
     if (menu) { closeMenu(); return true; }
     if (adding) { closeAdd(); return true; }
@@ -146,6 +147,7 @@ const FullView = (() => {
      edited, a task, a note or a milestone. A task's note goes back to its task, and an archived task to the archive. */
   function back() {
     if (!root) return false;
+    if (closeDue(true)) return true;
     if (pop) { closePopover(); return true; }
     if (menu) { closeMenu(); return true; }
     if (adding) { closeAdd(); return true; }
@@ -261,7 +263,12 @@ const FullView = (() => {
     more.addEventListener('click', e => { e.stopPropagation(); menu ? closeMenu() : openMenu(more); });
     return h('div', { class: 'pv-top', 'data-sec': 'name' },
       h('div', { class: 'pv-name' }, title, edName ? doneBtn() : pencil('name', 'the name')),
-      h('div', { class: 'pv-actions' }, more,
+      h('div', { class: 'pv-actions' },
+        /* the project's own two, beside the more button (General UX, Round 1, P1): Activity and its status for Claude */
+        h('button', { id: 'pvActivityBtn', class: 'icon-btn', type: 'button', 'aria-label': 'Activity', title: 'Activity: what happened in this building', html: iconSvg('clock', 18), onclick: () => openSide('activity') }),
+        OpenInClaude.button({ id: 'pvStatusClaude', icon: true, iconSize: 18, name: "the project's status", title: 'Status to Claude: the project as it stands, opened in Claude or copied',
+          text: () => projectStatusForClaude(p), copied: 'Status copied. Paste it into Claude.', project: p }),
+        more,
         h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close project view', title: 'Close', html: iconSvg('close', 18), onclick: close })));
   }
 
@@ -270,12 +277,11 @@ const FullView = (() => {
   function heroPicture(p) {
     const gen = p.generic ? GENERICS.find(g => g.id === p.generic) : null;
     const which = p.art.has ? 'your own art' : gen ? 'the ' + gen.name.toLowerCase() : 'a placeholder';
-    const done = p.todos.filter(t => t.done).length;
     return h('div', { class: 'pv-hero-pic' },
       h('button', { class: 'pv-scene', type: 'button', 'aria-label': 'Building: ' + which + '. Change it', title: 'Change the building', onclick: () => openSide('building') },
         MapView.profileScene(p, 440, 280), h('span', { class: 'pv-scene-hint' }, 'Change building')),
       h('div', { class: 'pv-under' },
-        h('p', { class: 'pv-stats' }, 'Founded ' + fmtDate(p.createdAt) + ' \u00b7 ' + plural(done, 'todo', 'todos') + ' done \u00b7 Updated ' + relAgo(p.updatedAt)),
+        h('p', { class: 'pv-stats' }, 'Founded ' + fmtDate(p.createdAt) + ' \u00b7 Updated ' + relAgo(p.updatedAt)),
         h('div', { class: 'pv-scene-tools' },
           h('button', { class: 'icon-btn', type: 'button', 'aria-pressed': String(!!p.flip), 'aria-label': 'Mirror the building', title: p.flip ? 'Mirrored. Click to flip it back' : 'Mirror the building',
             html: iconSvg('flip', 16), onclick: () => { p.flip = !p.flip; MapView.dropCache(p.id); logActivity(p, p.flip ? 'Mirrored the building' : 'Unmirrored the building'); changed(p); render(); } }),
@@ -313,9 +319,6 @@ const FullView = (() => {
     const dl = deadlineInfo(p.deadline);
     if (dl) box.append(h('p', { class: 'pv-deadline ' + (dl.cls || '') }, dl.text));
     if (leader) box.append(h('p', { class: 'pv-leader', dir: 'auto' }, (leader.title ? leader.title + ': ' : '') + leader.text.replace(/\s+/g, ' ').trim()));
-    box.append(h('div', { class: 'pv-about-btns' },
-      h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => openSide('activity') }, iconEl('clock', 14), 'Activity'),
-      OpenInClaude.button({ id: 'pvStatusClaude', text: () => projectStatusForClaude(p), copied: 'Status copied. Paste it into Claude.', project: p, quiet: true })));
     return box;
   }
   /* The next task, pinned or the first open one in the current milestone (Star and What is next, A3, layout B): the
@@ -329,7 +332,7 @@ const FullView = (() => {
     if (!t) {
       const w = waitingTasks(p)[0];
       box.append(h('p', { class: 'fv-empty' }, w ? 'Nothing open now. ' + w.text + ' comes back ' + backWhen(w) + '.'
-        : p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Todos to plan what is next.'));
+        : p.milestones.length ? 'Every task is done. Add a task to a milestone to plan what comes next.' : 'No milestones yet. Add one under Tasks to plan what is next.'));
       return box;
     }
     marks.append(...[Rounds.chip(p, t)].filter(Boolean), ...markButtons(p, t, 'next-mark', { chip: true }),
@@ -361,10 +364,10 @@ const FullView = (() => {
      The square ticks a task; clicking a task, or a milestone's name, opens it beside the view. */
   let justDragged = false;
   function todos(p) {
-    const box = h('section', { class: 'pv-sec', 'data-sec': 'todos' }, secHead('Todos', null, addBtn('Add milestone', 'pvAddMsBtn', () => openAdd('milestone'))));
+    const box = h('section', { class: 'pv-sec', 'data-sec': 'todos' }, secHead('Tasks', null, addBtn('Add milestone', 'pvAddMsBtn', () => openAdd('milestone'))));
     const pr = progressOf(p);
     const prog = progressRow(p, 'fv-prog');
-    prog.append(h('span', { class: 'detail' }, pr.manual ? 'Set manually' : pr.total ? pr.done + ' of ' + pr.total + ' todos done' : 'No todos yet'));
+    prog.append(h('span', { class: 'detail' }, pr.manual ? 'Set manually' : pr.total ? pr.done + ' of ' + pr.total + ' tasks done' : 'No tasks yet'));
     box.append(prog);
     const cur = currentGroup(p);
     const list = h('div', { class: 'ms-list' });
@@ -677,18 +680,21 @@ const FullView = (() => {
       num.disabled = false; num.focus(); changed(p);
     } });
     return h('div', { class: 'pv-prog-ed' }, h('span', { class: 'lbl' }, 'Progress'),
-      h('div', { class: 'inline' }, h('label', { class: 'radio' }, rAuto, 'Automatic: ' + pr0.auto + '% from todos'), h('label', { class: 'radio' }, rMan, 'Set manually'), num, h('span', null, '%')));
+      h('div', { class: 'inline' }, h('label', { class: 'radio' }, rAuto, 'Automatic: ' + pr0.auto + '% from tasks'), h('label', { class: 'radio' }, rMan, 'Set manually'), num, h('span', null, '%')));
   }
 
   /* ---------- a task or a milestone, open in full beside the view ---------- */
   let sideTask = null, taskSnap = null, sideMs = null, msSnap = null, sideTicked = false;
-  function openTask(p, id) {
+  function openTask(p, id, { write = false } = {}) {
     finishEdit(); adding = null;
     if (side) closeSide();
     const t = p.todos.find(x => x.id === id); if (!t) return;
     sideTask = id; taskSnap = clone(t); sideTicked = false;
-    openSide('task');
-    const f = $('#pvTaskDesc', side); if (f) f.focus();
+    writeAsk = write && !t.archived ? 'pvTaskDesc' : null;      // the line over the map's Ctrl+Enter: ready for a description
+    openSide('task');                                           // it may draw twice, as the view makes room beside it
+    const f = write && $('#pvTaskDesc', side);
+    if (f) { f.focus({ preventScroll: true }); f.setSelectionRange(f.value.length, f.value.length); }
+    writeAsk = null;
   }
   function finishTask() {
     const p = P(); if (!p || !sideTask) return;
@@ -720,60 +726,177 @@ const FullView = (() => {
     render(); Bubble.refresh();
     toast('Task changes undone.');
   }
+  /* The task panel (General UX, Round 1, and his edits on its mocks). The milestone; the title row: the Done check, the
+     title read as text until clicked (T3, his note: "the field should look clickable but not as in input ... Only when
+     you click you start the editing"), and Pin and Star as icons by it (X3); the fields in one label column (T3): Due,
+     a button in the city's date words opening Tomorrow, Next week and Pick a date, with a small x once there is a date
+     (T2, X3), Repeat and Shift; the round's card; the description in its own box, read as text until clicked and written
+     in place, at least as tall as before and growing with its text (C1, his edit: "Its section is clearly the most
+     important"); the task's notes; then Claude, filled, and Turn into a note and Delete task under it, plain (X3). The
+     panel has no Done of its own: its x closes it, keeping what was typed, as Done did (T1). */
+  let dueOpen = false, writeAsk = null;            // the due date's list is open; a field to open for writing as it draws
+  const DESC_HINT = 'What this task is, in full: what done looks like, where things are, anything Claude should know';
+  const dueWords = s => weekdayOf(s) + ' ' + fmtDate(parseYmd(s));
+  const dayAhead = n => { const d = new Date(startOfDay(Date.now())); d.setDate(d.getDate() + n); return ymd(d.getTime()); };
+  /* a field written in place grows with its text, as the text it replaces did */
+  const grow = f => { f.style.height = 'auto'; f.style.height = (f.scrollHeight + f.offsetHeight - f.clientHeight) + 'px'; };
+  /* where a click on text read as text lands in it, so writing starts there */
+  function caretAt(e, el) {
+    const r = e && e.detail && document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+    if (!r || !el.contains(r.startContainer)) return null;
+    let n = 0;
+    for (const node of el.childNodes) { if (node === r.startContainer || node.contains(r.startContainer)) return n + r.startOffset; n += node.textContent.length; }
+    return null;
+  }
+  function startWrite(read, field, at) {
+    read.replaceWith(field); grow(field);
+    field.focus({ preventScroll: true });
+    const n = at == null ? field.value.length : Math.min(at, field.value.length);
+    field.setSelectionRange(n, n);
+  }
+  function closeDue(focus) {
+    if (!dueOpen) return false;
+    dueOpen = false;
+    document.removeEventListener('pointerdown', dueOutside, true);
+    const l = side && $('#pvDueList', side); if (l) l.remove();
+    const b = side && $('#pvTaskDue', side);
+    if (b) { b.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); if (focus) b.focus(); }
+    return true;
+  }
+  function dueOutside(e) { if (!(e.target.closest && e.target.closest('#pvDueList, #pvTaskDue'))) closeDue(false); }
   function taskEditor(p) {
     const t = p.todos.find(x => x.id === sideTask);
     if (!t) return h('p', { class: 'fv-empty' }, 'This task is gone.');
     if (t.archived) return archivedTask(p, t);
     const ms = p.milestones.find(m => m.id === t.milestoneId);
-    const title = h('input', { id: 'pvTaskTitle', class: 'field pv-note-title', type: 'text', dir: 'auto', maxlength: '500', value: t.text, 'aria-label': 'Task title', autocomplete: 'off',
-      oninput: e => { t.text = e.target.value; changed(p, { touch: false }); const b = $(`.task[data-id="${t.id}"] .task-title`, root); if (b) b.textContent = t.text; } });
+    const act = document.activeElement;
+    const writing = id => writeAsk === id || (!!act && act.id === id && act.tagName === 'TEXTAREA' && !!side && side.contains(act));
     const wait = isWaiting(t);
     /* the Done line is written when the panel closes, as for any task; a repeat ticked here moves on, and waits */
-    const done = h('input', { id: 'pvTaskDone', type: 'checkbox', class: 'cb', checked: t.done, onchange: e => {
-      if (e.target.checked) { tickTask(p, t, { log: false }); if (t.repeat) sideTicked = true; }
-      else untickTask(p, t, null, { log: false });
-      changed(p, { touch: false }); render(); Bubble.refresh();
-      const b = side && ($('#pvTaskDone', side) || $('#pvTaskDue', side)); if (b) b.focus();
-    } });
-    /* a waiting repeat's due date is the day it comes back: a nearer one brings it back sooner */
-    const due = h('input', { id: 'pvTaskDue', class: 'field', type: 'date', value: t.due, 'aria-label': 'Due date',
-      onchange: e => { const w = isWaiting(t); t.due = parseYmd(e.target.value) != null ? e.target.value : ''; setWaiting(t, w && !!t.due); changed(p, { touch: false }); render(); } });
-    const d = wait ? null : dueInfo(t);
-    const desc = h('textarea', { id: 'pvTaskDesc', class: 'field pv-note-body', dir: 'auto', rows: '14', placeholder: 'What this task is, in full: what done looks like, where things are, anything Claude should know', 'aria-label': 'Task description',
-      oninput: e => { t.description = e.target.value.slice(0, 8000); changed(p, { touch: false }); } }, t.description || '');
-    return h('div', { class: 'pv-note-ed' },
+    const done = wait ? null : h('input', { id: 'pvTaskDone', type: 'checkbox', class: 'cb', checked: t.done, 'aria-label': 'Done', title: t.done ? 'Done. Click to reopen it' : 'Tick it off',
+      onchange: e => {
+        if (e.target.checked) { tickTask(p, t, { log: false }); if (t.repeat) sideTicked = true; }
+        else untickTask(p, t, null, { log: false });
+        changed(p, { touch: false }); render(); Bubble.refresh();
+        const b = side && ($('#pvTaskDone', side) || $('#pvTaskDue', side)); if (b) b.focus();
+      } });
+
+    /* the title: read as text, written in place */
+    const titleRead = () => h('button', { id: 'pvTaskName', class: 'pv-task-name', type: 'button', dir: 'auto', title: 'Click to edit the title',
+      onclick: e => startWrite(e.currentTarget, titleEdit(), caretAt(e, e.currentTarget)) }, t.text || 'Untitled task');
+    const titleEdit = () => {
+      const f = h('textarea', { id: 'pvTaskTitle', class: 'field pv-note-title pv-task-title-in', dir: 'auto', rows: '1', maxlength: '500', 'aria-label': 'Task title', autocomplete: 'off',
+        oninput: e => {
+          const v = e.target.value.replace(/[\r\n]+/g, ' ');
+          if (v !== e.target.value) e.target.value = v;
+          t.text = v; changed(p, { touch: false });
+          const b = $(`.task[data-id="${t.id}"] .task-title`, root); if (b) b.textContent = t.text;
+          grow(e.target);
+        },
+        onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); const b = side && $('#pvTaskName', side); if (b) b.focus(); } },
+        onblur: e => { if (e.target.isConnected) e.target.replaceWith(titleRead()); } });
+      f.value = t.text; return f;
+    };
+    const title = writing('pvTaskTitle') ? titleEdit() : titleRead();
+
+    /* Pin as next and Star for the city by the title, as icons (X3); a done task has Archive there */
+    const markBtns = isOpenTask(t) ? [
+      ['pin', isPinned(p, t), 'Pin as next', 'Comes first in What is next and the status card', on => setPin(p, t, on)],
+      ['star', isStarred(p, t), 'Star for the city', 'The one task the whole city shows with a star, over its building; starring pins it too', on => setStar(p, t, on)],
+    ].map(([kind, on, name, tip, set]) => h('button', { class: 'icon-btn pv-mark' + (on ? ' on' : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
+      'aria-pressed': String(on), 'aria-label': name, title: (on ? (kind === 'pin' ? 'Pinned' : 'Starred') + '. ' : name + ': ') + tip + (on ? '. Click to take it off.' : ''),
+      html: iconSvg(kind, 16, on ? undefined : 'transparent'),
+      onclick: () => { set(!on); render(); const b = side && $(`[data-mark="${kind}"]`, side); if (b) b.focus(); } }))
+      : canArchive(t) ? [h('button', { id: 'pvTaskArchive', class: 'icon-btn pv-mark', type: 'button', 'aria-label': 'Archive', title: 'Archive it now. Done tasks go there by themselves 7 days after their tick',
+          html: iconSvg('archive', 16), onclick: () => { closeSide(); archiveByHand(p, [t]); root.focus({ preventScroll: true }); } })] : [];
+
+    /* Due: the date in the city's words, its list, and a small x once there is a date */
+    const setDue = v => {
+      const w = isWaiting(t);
+      t.due = parseYmd(v) != null ? v : ''; setWaiting(t, w && !!t.due);
+      closeDue(false); changed(p, { touch: false }); render(); Bubble.refresh();
+      const b = side && $('#pvTaskDue', side); if (b) b.focus();
+    };
+    const pickDate = inp => { try { inp.showPicker(); } catch (_) { inp.focus(); } };
+    const dueList = () => {
+      const pickIn = h('input', { id: 'pvTaskDuePick', class: 'pv-due-pick', type: 'date', tabindex: '-1', 'aria-hidden': 'true', value: t.due || '',
+        onchange: e => { if (parseYmd(e.target.value) != null) setDue(e.target.value); } });
+      const opt = (label, note, run, extra) => h('li', { class: 'qa-opt pv-due-opt', role: 'option', tabindex: '-1', 'aria-selected': 'false', onclick: run },
+        h('span', { class: 'qa-label' }, label), h('span', { class: 'qa-note' }, note), extra || null);
+      const ul = h('ul', { id: 'pvDueList', class: 'qa-list pv-due-list', role: 'listbox', 'aria-label': 'Due date' },
+        opt('Tomorrow', dueWords(dayAhead(1)), () => setDue(dayAhead(1))),
+        opt('Next week', dueWords(dayAhead(7)), () => setDue(dayAhead(7))),
+        opt('Pick a date', 'The calendar', () => pickDate(pickIn), pickIn));
+      ul.addEventListener('keydown', e => {
+        const items = $$('[role="option"]', ul), i = items.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus(); }
+        else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); items[e.key === 'Home' ? 0 : items.length - 1].focus(); }
+        else if ((e.key === 'Enter' || e.key === ' ') && i >= 0) { e.preventDefault(); items[i].click(); }
+        else if (e.key === 'Tab') closeDue(false);
+      });
+      return ul;
+    };
+    const openDue = focusAt => {
+      const wrap = side && $('.pv-due', side); if (!wrap) return;
+      if (!dueOpen) { dueOpen = true; wrap.append(dueList()); document.addEventListener('pointerdown', dueOutside, true); }
+      const b = $('#pvTaskDue', side); b.classList.add('open'); b.setAttribute('aria-expanded', 'true');
+      if (focusAt != null) $$('#pvDueList [role="option"]', side).at(focusAt).focus();
+    };
+    const d = wait || t.done ? null : dueInfo(t), late = !!d && d.diff < 0;
+    const dueBtn = h('button', { id: 'pvTaskDue', class: 'pv-val' + (t.due ? '' : ' empty') + (late ? ' late' : '') + (dueOpen ? ' open' : ''), type: 'button',
+      'aria-haspopup': 'listbox', 'aria-expanded': String(dueOpen), 'aria-label': 'Due: ' + (t.due ? dueWords(t.due) : 'no date'),
+      title: wait ? 'The day it comes back. A nearer one brings it back sooner' : 'Pick the due date',
+      onclick: () => (dueOpen ? closeDue(false) : openDue(null)),
+      onkeydown: e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); openDue(e.key === 'ArrowDown' ? 0 : -1); } } },
+      t.due ? dueWords(t.due) : 'No date', t.due ? null : h('span', { class: 'pv-chev', 'aria-hidden': 'true', html: iconSvg('down', 12) }));
+    const due = h('span', { class: 'pv-due' }, dueBtn,
+      t.due ? h('button', { id: 'pvTaskDueClear', class: 'icon-btn pv-val-x', type: 'button', 'aria-label': 'No date', title: 'Take the due date off', html: iconSvg('close', 12), onclick: () => setDue('') }) : null,
+      late ? h('span', { class: 'due late' }, '! ' + d.text) : null,
+      dueOpen ? dueList() : null);
+
+    /* the description: its own box, read as text, written in place */
+    const descRead = () => {
+      const has = !!(t.description || '').trim();
+      return h('div', { id: 'pvTaskDescView', class: 'pv-desc' + (has ? '' : ' empty'), role: 'button', tabindex: '0', dir: 'auto', title: 'Click to write',
+        onclick: e => {
+          const sel = getSelection();
+          if (sel && !sel.isCollapsed && e.currentTarget.contains(sel.anchorNode)) return;      // text being picked out to copy
+          startWrite(e.currentTarget, descEdit(), has ? caretAt(e, e.currentTarget) : 0);
+        },
+        onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startWrite(e.currentTarget, descEdit()); } } },
+        has ? t.description : DESC_HINT);
+    };
+    const descEdit = () => {
+      const f = h('textarea', { id: 'pvTaskDesc', class: 'field pv-desc pv-desc-in', dir: 'auto', placeholder: DESC_HINT, 'aria-label': 'Task description',
+        oninput: e => { t.description = e.target.value.slice(0, 8000); changed(p, { touch: false }); grow(e.target); },
+        onblur: e => { if (e.target.isConnected) e.target.replaceWith(descRead()); } });
+      f.value = t.description || ''; return f;
+    };
+    const desc = writing('pvTaskDesc') ? descEdit() : descRead();
+
+    return h('div', { class: 'pv-note-ed pv-task-ed' },
       h('p', { class: 'pv-task-ms' }, h('span', { class: 'ms-flag', html: iconSvg('flag', 14) }), ms ? ms.name : ''),
-      title,
-      h('div', { class: 'inline pv-task-meta' },
-        wait ? h('p', { class: 'pv-task-back', title: 'Esc undoes the tick; a nearer due date brings it back sooner' }, iconEl('repeat', 14), 'Ticked. ' + backText(t) + ', due that day.') : h('label', { class: 'check' }, done, 'Done'),
-        canArchive(t) ? h('button', { id: 'pvTaskArchive', class: 'btn btn-quiet btn-small', type: 'button', title: 'Archive it now. Done tasks go there by themselves 7 days after their tick',
-          onclick: () => { closeSide(); archiveByHand(p, [t]); root.focus({ preventScroll: true }); } }, iconEl('archive', 14), 'Archive') : null,
-        h('span', { class: 'lbl' }, 'Due'), due,
-        h('button', { class: 'btn btn-quiet btn-small', type: 'button', onclick: () => { t.due = ''; setWaiting(t, false); due.value = ''; changed(p, { touch: false }); render(); } }, 'Clear'),
-        d && !t.done ? h('span', { class: 'due ' + (d.tone || '') }, (d.tone === 'late' ? '! ' : '') + d.text) : null),
-      t.done ? null : repeatEditor(p, t),
-      shiftEditor(p, t),
-      !isOpenTask(t) ? null : h('div', { class: 'inline pv-task-marks' }, ...[
-        ['pin', isPinned(p, t), 'Pinned', 'Pin as next', 'Comes first in What is next and the status card', on => setPin(p, t, on)],
-        ['star', isStarred(p, t), 'Starred', 'Star for the city', 'The one task the whole city shows with a star, over its building; starring pins it too', on => setStar(p, t, on)],
-      ].map(([kind, on, yes, no, title, set]) => h('button', { class: 'btn btn-quiet btn-small pv-mark' + (on ? ' on' : ''), type: 'button', 'data-mark': kind, 'data-task': t.id,
-        'aria-pressed': String(on), title: on ? title + '. Click to take it off.' : title,
-        onclick: () => { set(!on); render(); const b = side && $(`[data-mark="${kind}"]`, side); if (b) b.focus(); } }, iconEl(kind, 14, on ? undefined : 'transparent'), on ? yes : no))),
+      h('div', { class: 'pv-task-head' }, done, title, markBtns.length ? h('span', { class: 'pv-task-marks' }, ...markBtns) : null),
+      wait ? h('p', { class: 'pv-task-back', title: 'Esc undoes the tick; a nearer due date brings it back sooner' }, iconEl('repeat', 14), 'Ticked. ' + backText(t) + ', due that day.') : null,
+      h('div', { class: 'pv-fields' },
+        h('span', { class: 'pv-flbl', 'aria-hidden': 'true' }, 'Due'), due,
+        t.done ? null : h('span', { class: 'pv-flbl', 'aria-hidden': 'true' }, 'Repeat'), t.done ? null : repeatEditor(p, t),
+        h('span', { class: 'pv-flbl', 'aria-hidden': 'true' }, 'Shift'), shiftEditor(p, t)),
       h('div', { class: 'pv-round-slot' }, Rounds.card(p, t)),                 // its wizard round (0.1.55, P1)
-      h('span', { class: 'lbl' }, 'Description'), desc,
+      h('div', { class: 'pv-desc-sec' }, h('span', { class: 'lbl' }, 'Description'), desc),
       taskNotes(p, t),
-      h('div', { class: 'pv-claude-row' },
-        OpenInClaude.button({ id: 'pvTaskClaude', ...taskClaude(p, t), project: p })),
-      h('div', { class: 'pv-note-foot' },
-        h('button', { id: 'pvTaskToNote', class: 'btn btn-small', type: 'button', title: 'Keep it as an idea in Notes: its title and description stay; its date, repeat and shift go',
+      h('div', { class: 'pv-task-foot' },
+        OpenInClaude.button({ id: 'pvTaskClaude', ...taskClaude(p, t), project: p, label: 'Claude', cls: 'btn-accent', accent: '#FFFFFF' }),
+        h('button', { id: 'pvTaskToNote', class: 'btn btn-small btn-plain', type: 'button', title: 'Keep it as an idea in Notes: its title and description stay; its date, repeat and shift go',
           onclick: () => turnIntoNote(p, t.id) }, iconEl('doc', 14), 'Turn into a note'),
         deleteTaskBtn(p, t)),
-      h('p', { class: 'note' }, 'Saves as you type. Done closes it', kbOnly('; Esc undoes everything since it opened'), '.'));
+      h('p', { class: 'note' }, 'Saves as you type. The × closes it', kbOnly('; Esc undoes everything since it opened'), '.'));
   }
-  /* Delete task. An archived task deleted from its panel goes back to the archive; the last task of a milestone in
-     the archive takes the milestone with it, since nothing would show it again. */
+  /* Delete task, plain and red under Turn into a note (his edit on the mocks). An archived task deleted from its panel
+     goes back to the archive; the last task of a milestone in the archive takes the milestone with it, since nothing
+     would show it again. */
   function deleteTaskBtn(p, t) {
-    return h('button', { id: 'pvTaskDelete', class: 'btn btn-danger btn-small', type: 'button', onclick: () => {
+    return h('button', { id: 'pvTaskDelete', class: 'btn btn-small btn-plain danger', type: 'button', onclick: () => {
       const wasArchived = !!t.archived, ms = p.milestones.find(m => m.id === t.milestoneId);
       const lastOfArchived = ms && milestoneArchived(p, ms) && p.todos.filter(x => x.milestoneId === ms.id).length === 1;
       p.todos.splice(p.todos.indexOf(t), 1);
@@ -784,7 +907,7 @@ const FullView = (() => {
       closeSide(); render(); Bubble.refresh();
       if (wasArchived) openArchive(p);
       toast('Task deleted.');
-    } }, 'Delete task');
+    } }, iconEl('bin', 14), 'Delete task');
   }
   /* An archived task (C2): the same panel, to read, with Restore, Open in Claude (Copy in it) and Delete task. */
   function archivedTask(p, t) {
@@ -803,9 +926,10 @@ const FullView = (() => {
       h('span', { class: 'lbl' }, 'Description'),
       desc ? h('div', { id: 'pvTaskDesc', class: 'note-text pv-arch-desc', tabindex: '-1' }, ...paragraphs(desc)) : h('p', { id: 'pvTaskDesc', class: 'fv-empty', tabindex: '-1' }, 'No description.'),
       taskNotes(p, t, { readOnly: true }),
-      h('div', { class: 'pv-claude-row' },
-        OpenInClaude.button({ id: 'pvTaskClaude', text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', files: () => Rounds.files(t), project: p })),
-      h('div', { class: 'pv-note-foot' }, deleteTaskBtn(p, t)),
+      h('div', { class: 'pv-task-foot' },
+        OpenInClaude.button({ id: 'pvTaskClaude', text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', files: () => Rounds.files(t), project: p,
+          label: 'Claude', cls: 'btn-accent', accent: '#FFFFFF' }),
+        deleteTaskBtn(p, t)),
       h('p', { class: 'note' }, 'To change it, restore it. Esc goes back to the archive.'));
   }
   /* A task's notes (0.1.71, Claude's Notes): under its description, newest first, each with its icon, its title, two
@@ -831,7 +955,7 @@ const FullView = (() => {
      picked takes it off. Like the rest of the panel, Esc undoes it; on its own it is not work, so closing the panel
      leaves Updated alone. */
   function shiftEditor(p, t) {
-    return h('div', { class: 'inline pv-shift-row' }, h('span', { class: 'lbl', 'aria-hidden': 'true' }, 'Shift'),
+    return h('div', { class: 'pv-shift-row' },
       shiftPick(t.shift, id => { setShift(p, t, t.shift === id ? '' : id); render(); Bubble.refresh(); const b = side && $(`.pv-shift[data-shift="${id}"]`, side); if (b) b.focus(); }, { bcls: 'pv-shift' }));
   }
   /* Repeat (R2): every day, every N days, weekly on chosen weekdays, monthly on a date, yearly. A task with no date
@@ -847,7 +971,7 @@ const FullView = (() => {
       const b = side && $(focusSel || '#pvRepeat', side); if (b) b.focus();
     };
     const base = new Date(parseYmd(t.due) != null ? parseYmd(t.due) : startOfDay(Date.now()));
-    const pick = h('select', { id: 'pvRepeat', class: 'field pv-repeat-kind', 'aria-label': 'Repeat', onchange: e => {
+    const pick = h('select', { id: 'pvRepeat', class: 'field pv-repeat-kind pv-plain-select' + (kind === 'none' ? ' empty' : ''), 'aria-label': 'Repeat', onchange: e => {
       const k = e.target.value;
       set(k === 'none' ? null : k === 'daily' ? { every: 'day', n: 1 } : k === 'days' ? { every: 'day', n: 2 }
         : k === 'week' ? { every: 'week', days: [base.getDay()] } : k === 'month' ? { every: 'month', day: base.getDate() }
@@ -868,7 +992,7 @@ const FullView = (() => {
       'aria-pressed': String(r.days.includes(d)), title: r.days.includes(d) ? (r.days.length > 1 ? 'Click to drop ' + WEEKDAYS[d] : 'A weekly repeat needs one day at least') : 'Click to add ' + WEEKDAYS[d],
       onclick: () => { const next = r.days.includes(d) ? r.days.filter(x => x !== d) : [...r.days, d]; if (next.length) set({ every: 'week', days: next.sort((a, b) => a - b) }, `.pv-repeat-days [data-day="${d}"]`); } }, WEEKDAYS[d]))) : null;
     return h('div', { class: 'pv-repeat' },
-      h('div', { class: 'inline pv-repeat-row' }, h('span', { class: 'lbl' }, 'Repeat'), ...row), days,
+      h('div', { class: 'pv-repeat-row' }, ...row), days,
       r ? h('p', { class: 'note pv-repeat-note' }, 'Ticked, it moves on to its next date and waits out of sight until then.'
         + (r.every === 'month' && r.day > 28 ? ' Months without the ' + ordinal(r.day) + ' use their last day.' : r.every === 'year' && r.month === 2 && r.day === 29 ? ' Other years use 28 February.' : '')) : null);
   }
@@ -946,7 +1070,7 @@ const FullView = (() => {
           closeSide(); render(); Bubble.refresh();
           toast('Milestone deleted.');
         } }, 'Delete milestone')),
-      h('p', { class: 'note' }, 'Saves as you type. Done closes it', kbOnly('; Esc undoes the rename'), '.'));
+      h('p', { class: 'note' }, 'Saves as you type. The \u00d7 closes it', kbOnly('; Esc undoes the rename'), '.'));
   }
 
   /* Notes: cards, newest first. A card opens the full note beside the view; Add note starts a new one there. */
@@ -1439,6 +1563,7 @@ const FullView = (() => {
   }
   function closeSide() {
     if (!side) return;
+    closeDue(false);
     if (sideMode === 'note') finishNote();
     if (sideMode === 'task') finishTask();
     if (sideMode === 'milestone') finishMilestone();
@@ -1453,18 +1578,25 @@ const FullView = (() => {
     if (sideMode === 'note') {
       side.replaceChildren(h('div', { class: 'pv-top' }, h('h2', { class: 'pv-title small' }, 'Note'),
         h('div', { class: 'pv-actions' },
-          h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { const ti = noteIn; closeSide(); render(); if (ti && backToTask(p, ti)) return; const b = $('#pvAddNoteBtn', root); if (b) b.focus(); } }, 'Done'),
-          h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close the note', title: 'Close', html: iconSvg('close', 18), onclick: () => { closeSide(); render(); } }))),
+          h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close the note', title: 'Close', html: iconSvg('close', 18),
+            onclick: () => { const ti = noteIn; closeSide(); render(); if (ti && backToTask(p, ti)) return; const b = $('#pvAddNoteBtn', root); if (b) b.focus(); } }))),
         noteEditor(p));
       return;
     }
     if (sideMode === 'task' || sideMode === 'milestone') {
       const label = sideMode === 'task' ? 'Task' : 'Milestone';
+      /* a field being written keeps its place and its caret when the panel draws again */
+      const act = document.activeElement;
+      const keep = sideMode === 'task' && act && side.contains(act) && act.tagName === 'TEXTAREA' && /^pvTask(Desc|Title)$/.test(act.id) ? { id: act.id, s: act.selectionStart, e: act.selectionEnd } : null;
       side.replaceChildren(h('div', { class: 'pv-top' }, h('h2', { class: 'pv-title small' }, label),
         h('div', { class: 'pv-actions' },
-          h('button', { class: 'btn btn-accent btn-small', type: 'button', onclick: () => { closeSide(); render(); } }, 'Done'),
           h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close the ' + label.toLowerCase(), title: 'Close', html: iconSvg('close', 18), onclick: () => { closeSide(); render(); } }))),
         sideMode === 'task' ? taskEditor(p) : milestoneEditor(p));
+      if (sideMode === 'task') {
+        for (const f of $$('textarea.pv-desc-in, textarea.pv-task-title-in', side)) grow(f);
+        const f = keep && $('#' + keep.id, side);
+        if (f) { f.focus({ preventScroll: true }); f.setSelectionRange(keep.s, keep.e); }
+      }
       return;
     }
     if (sideMode === 'leader') {                                            // who leads the building (0.1.51)
@@ -1693,7 +1825,7 @@ const FullView = (() => {
   async function askDelete(p) {
     const ok = await Confirm.ask({
       title: ['Delete ', h('bdi', null, p.name), '?'],
-      body: 'Its building, todos, links, and block art are removed from this browser. Export it first from the more menu if you might want it back.',
+      body: 'Its building, tasks, links, and block art are removed from this browser. Export it first from the more menu if you might want it back.',
       confirm: 'Delete project', danger: true,
     });
     if (!ok) return;
@@ -1707,7 +1839,7 @@ const FullView = (() => {
     open, close, escape, back, render: () => { if (root) render(); },
     scrollBy: dy => { const el = side && side.matches(':hover') ? side : root; if (el) el.scrollTop += dy; },
     isOpen: () => !!root, currentId: () => openId, shows: id => !!root && openId === id, rightEdge,
-    openTask: (pid, tid) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid); },   // from the bubble: the view, with the task open beside it
+    openTask: (pid, tid, o) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid, o); },   // from the bubble: the view, with the task open beside it
     openNote: (pid, nid) => { open(pid); const p = getProject(pid); if (p) openNote(p, nid); },   // from a report (0.1.83): the view, with the note open beside it
     popoverOpen: () => !!pop, closePopover, refreshRounds,
     /* A task taken back out by the one-line add's Undo (0.1.56): its panel goes, with nothing written for it. */

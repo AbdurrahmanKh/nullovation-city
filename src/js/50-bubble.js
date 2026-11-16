@@ -183,7 +183,7 @@ const Bubble = (() => {
       h('span', null, (urg.color === 'red' ? 'Red: ' : 'Yellow: ') + urg.reasons.join('. ') + '.')));
     if (current && current.ms) kids.push(h('p', { class: 'b-ms' }, 'Milestone: ', h('bdi', null, current.ms.name)));
     if (visible.length) {
-      const ul = h('ul', { class: 'b-todos', 'aria-label': 'Next todos' });
+      const ul = h('ul', { class: 'b-todos', 'aria-label': 'Next tasks' });
       for (const t of visible) {
         const cls = [ticking.has(t.id) ? 'ticked' : '', animateNew && !shownIds.has(t.id) ? 'slide-in' : ''].join(' ').trim() || null;
         const li = h('li', { class: cls, 'data-id': t.id });
@@ -200,12 +200,12 @@ const Bubble = (() => {
       }
       kids.push(ul);
     } else {
-      kids.push(h('p', { class: 'b-empty' }, !p.todos.length ? 'No todos yet. Add one with + Task, or enter the building.' : waiting.length
+      kids.push(h('p', { class: 'b-empty' }, !p.todos.length ? 'No tasks yet. Add one with + Task, or enter the building.' : waiting.length
         ? 'Nothing open now. ' + (waiting.length === 1 ? waiting[0].text + ' comes back ' + backWhen(waiting[0]) + '.' : plural(waiting.length, 'repeat comes', 'repeats come') + ' back from ' + backWhen(waiting[0]) + '.')
-        : 'All todos are done.'));
+        : 'All tasks are done.'));
     }
     shownIds = new Set(visible.map(t => t.id));
-    if (moreCount > 0) kids.push(h('p', { class: 'b-more' }, moreCount === 1 ? '1 more open todo inside' : moreCount + ' more open todos inside'));
+    if (moreCount > 0) kids.push(h('p', { class: 'b-more' }, moreCount === 1 ? '1 more open task inside' : moreCount + ' more open tasks inside'));
     /* No add field (0.1.76, The City on a Phone, Round 2, A3: "you don't add tasks from here"): a task is added with
        + Task, Enter on the map or T, on the line over the map, or inside the building. It had one from 0.1.42. */
     kids.push(progressRow(p, 'b-prog'));

@@ -268,7 +268,7 @@ with sync_playwright() as p:
     pg.wait_for_timeout(900)
     ok('then it goes', 'Save a plan as a file' not in rows())
     pg.focus('#atFind'); pg.keyboard.press('ArrowDown'); pg.keyboard.press('ArrowDown'); pg.keyboard.press('Enter'); pg.wait_for_timeout(500)
-    enter_ok = ev(f"() => FullView.shows('{gp}')") and ev("() => document.querySelector('#pvTaskTitle').value") == 'Draw the beds on a grid'
+    enter_ok = ev(f"() => FullView.shows('{gp}')") and ev("() => document.querySelector('#pvTaskName').textContent") == 'Draw the beds on a grid'
     ok('Enter opens the task in its project', enter_ok)
     # SideBar Cleanup: the project view opens over All tasks, and All tasks is back once it closes
     over = ev("() => { const a = document.querySelector('#allTasks').getBoundingClientRect(), v = document.querySelector('#pv').getBoundingClientRect(); const on = x => !!document.elementFromPoint(x, a.top + 300).closest('#pv, #pvSide'); return [!document.querySelector('#allTasks').hidden, Math.round(v.left - a.left), on(a.left + 100), on(a.left + a.width / 2), on(a.right - 10)]; }")

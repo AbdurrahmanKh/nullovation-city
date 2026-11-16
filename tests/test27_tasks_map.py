@@ -172,11 +172,11 @@ with sync_playwright() as p:
     ev(f"() => setStar(getProject('{gp}'), {task(gp, 'Draw the beds on a grid')}, true)"); pg.wait_for_timeout(200)
     pg.click(card); pg.wait_for_timeout(900)
     ok('a click on it opens the task, in its project', ev("() => FullView.isOpen()") and pg.text_content('#pvTitle').strip() == 'Garden planner'
-       and pg.locator('#pvSide #pvTaskDesc').count() == 1 and pg.input_value('#pvSide #pvTaskTitle') == 'Draw the beds on a grid')
+       and pg.locator('#pvSide .pv-desc').count() == 1 and pg.text_content('#pvSide #pvTaskName') == 'Draw the beds on a grid')
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
 
     # ---------- the project view (M4): rows, What is next, the task panel ----------
-    ok('Esc closes the task, leaving its project open', ev("() => FullView.isOpen()") and pg.locator('#pvSide #pvTaskDesc').count() == 0)
+    ok('Esc closes the task, leaving its project open', ev("() => FullView.isOpen()") and pg.locator('#pvSide .pv-desc').count() == 0)
     pin_chip = '.pv-next-head .pv-next-marks .mark-pin'
     ok('What is next shows the pinned task, and its pin says Pinned at the top right', pg.text_content('#pvNextTask').strip() == 'Draw the beds on a grid'
        and pg.get_attribute(pin_chip, 'aria-pressed') == 'true' and (pg.text_content(pin_chip) or '').strip() == 'Pinned')
@@ -189,7 +189,7 @@ with sync_playwright() as p:
     pg.locator('li.task', has_text='Publish the app').locator('.mark-pin').click(); pg.wait_for_timeout(300)
     ok('M4 a pin on a task row pins it', proj(gp)['pin'] == tid(gp, 'Publish the app') and pg.text_content('#pvNextTask').strip() == 'Publish the app')
     ok('What is next names the pinned task’s own milestone', 'Launch' in pg.text_content('.pv-next-ms'))
-    ok('a pin click neither opens the task nor drags the row', pg.locator('#pvSide #pvTaskDesc').count() == 0)
+    ok('a pin click neither opens the task nor drags the row', pg.locator('#pvSide .pv-desc').count() == 0)
     ok('the star stays on its task: the two are separate', proj(gp)['star'] == tid(gp, 'Draw the beds on a grid'))
     pg.screenshot(path=str(SHOTS / '274-next-pinned.png'), clip=pg.query_selector('.pv-next').bounding_box())
     bg = ev("() => [getComputedStyle(document.querySelector('.pv-next')).backgroundColor, getComputedStyle(document.querySelector('#pv')).backgroundColor]")
@@ -217,11 +217,11 @@ with sync_playwright() as p:
     ev(f"() => {{ const p = getProject('{gp}'); {nxt}.due = null; changed(p); FullView.render(); }}"); pg.wait_for_timeout(250)
     pg.click('li.task:has-text("Add plant icons") .task-title'); pg.wait_for_timeout(500)
     pin_btn, star_btn = '#pvSide .pv-mark[data-mark="pin"]', '#pvSide .pv-mark[data-mark="star"]'
-    ok('M4 the task panel has Pin as next and Star for the city', (pg.text_content(pin_btn) or '').strip() == 'Pin as next' and (pg.text_content(star_btn) or '').strip() == 'Star for the city')
+    ok('M4 the task panel has Pin as next and Star for the city, as icons by the title since 0.1.86', pg.get_attribute(pin_btn, 'aria-label') == 'Pin as next' and pg.get_attribute(star_btn, 'aria-label') == 'Star for the city')
     pg.click(pin_btn); pg.wait_for_timeout(250)
-    ok('Pin as next pins it, and turns into Pinned', proj(gp)['pin'] == tid(gp, 'Add plant icons') and (pg.text_content(pin_btn) or '').strip() == 'Pinned' and pg.get_attribute(pin_btn, 'aria-pressed') == 'true')
+    ok('Pin as next pins it, pressed, its tooltip saying Pinned', proj(gp)['pin'] == tid(gp, 'Add plant icons') and pg.get_attribute(pin_btn, 'title').startswith('Pinned') and pg.get_attribute(pin_btn, 'aria-pressed') == 'true')
     pg.click(star_btn); pg.wait_for_timeout(250)
-    ok('Star for the city moves the star here', proj(gp)['star'] == tid(gp, 'Add plant icons') and (pg.text_content(star_btn) or '').strip() == 'Starred')
+    ok('Star for the city moves the star here', proj(gp)['star'] == tid(gp, 'Add plant icons') and pg.get_attribute(star_btn, 'aria-pressed') == 'true' and pg.get_attribute(star_btn, 'title').startswith('Starred'))
     ok('and the side bar shows it', pg.text_content('#sbStar .star-text').strip() == 'Add plant icons')
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     ok('Esc, which undoes the task’s edits, leaves the pin and the star alone', proj(gp)['pin'] == proj(gp)['star'] == tid(gp, 'Add plant icons'))
@@ -232,7 +232,7 @@ with sync_playwright() as p:
     ev(f"() => setStar(getProject('{gp}'), {task(gp, 'Save a plan as a file')}, true)"); pg.wait_for_timeout(200)
     pg.locator('li.task:has-text("Save a plan as a file") .task-title').click(); pg.wait_for_timeout(500)
     pg.click(star_btn); pg.wait_for_timeout(250)
-    ok('Starred in the task panel unstars it, and the side bar lets it go', proj(gp)['star'] == '' and (pg.text_content(star_btn) or '').strip() == 'Star for the city' and not pg.is_visible('#sbStar'))
+    ok('Starred in the task panel unstars it, and the side bar lets it go', proj(gp)['star'] == '' and pg.get_attribute(star_btn, 'aria-pressed') == 'false' and not pg.is_visible('#sbStar'))
     ev(f"() => {{ const p = getProject('{gp}'); setStar(p, {task(gp, 'Save a plan as a file')}, true); p.todos.splice(p.todos.indexOf({task(gp, 'Save a plan as a file')}), 1); changed(p); }}"); pg.wait_for_timeout(200)
     ok('deleting the starred task takes it out of the side bar', not pg.is_visible('#sbStar'))
     b.close()

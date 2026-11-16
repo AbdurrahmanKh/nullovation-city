@@ -217,7 +217,7 @@ with sync_playwright() as p:
     ok('and Open and Undo', ev("() => [...document.querySelectorAll('#toast .toast-act')].map(b => b.textContent)") == ['Open', 'Undo'])
     pg.screenshot(path=str(SHOTS / '392-leader-toast.png'))
     pg.click('#toast .toast-act >> text=Open'); pg.wait_for_timeout(500)
-    ok('Open opens the task in its project', ev("() => FullView.currentId()") == gp and pg.input_value('#pvTaskTitle') == 'Label the rows')
+    ok('Open opens the task in its project', ev("() => FullView.currentId()") == gp and pg.text_content('#pvTaskName') == 'Label the rows')
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150); ev("() => FullView.close()"); pg.wait_for_timeout(200)
     ev(f"() => setLeader(getProject('{nc}'), '')")
     ev(f"() => {{ const l = DB.leaders[0]; l.portrait = false; Leaders.refreshAll(); }}")
@@ -234,9 +234,9 @@ with sync_playwright() as p:
     pg.click('#toast .toast-act >> text=Undo'); pg.wait_for_timeout(300)
     ok(f"Undo with the line still empty fills it again ({val()!r})", task(gp, 'Sow the beans') is None and val() == '/Garden-planner Sow the beans')
     pg.fill('#quickAddIn', 'Hoe the rows /garden'); pg.keyboard.press('Control+Enter'); pg.wait_for_timeout(600)
-    ok('Ctrl+Enter adds it and opens it in its panel, ready for a description', task(gp, 'Hoe the rows') and not pg.is_visible('#quickAdd') and ev("() => FullView.currentId()") == gp and pg.input_value('#pvTaskTitle') == 'Hoe the rows')
+    ok('Ctrl+Enter adds it and opens it in its panel, ready for a description', task(gp, 'Hoe the rows') and not pg.is_visible('#quickAdd') and ev("() => FullView.currentId()") == gp and pg.text_content('#pvTaskName') == 'Hoe the rows' and ev("() => document.activeElement.id") == 'pvTaskDesc')
     pg.click('#toast .toast-act >> text=Undo'); pg.wait_for_timeout(400)
-    ok('Undo then closes its panel, with nothing written for it', task(gp, 'Hoe the rows') is None and pg.locator('#pvTaskTitle').count() == 0
+    ok('Undo then closes its panel, with nothing written for it', task(gp, 'Hoe the rows') is None and pg.locator('#pvTaskName').count() == 0
        and not ev(f"() => getProject('{gp}').activity.some(a => a.text.includes('Hoe the rows'))") and pg.is_visible('#quickAdd'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150); ev("() => FullView.close()"); pg.wait_for_timeout(200)
 

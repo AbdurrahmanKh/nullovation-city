@@ -5,7 +5,7 @@ Round 2, A3)."""
 import json
 from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
-from testkit import FILE, SHOTS, TEST_CITY
+from testkit import FILE, SHOTS, TEST_CITY, set_due
 
 errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
@@ -224,9 +224,9 @@ with sync_playwright() as p:
     ok(f"its panel says it was ticked and when it is back ({pg.text_content('#pvSide .pv-task-back')})", pg.text_content('#pvSide .pv-task-back').startswith('Ticked. Back ') and pg.locator('#pvTaskDone').count() == 0)
     ok('and shows its repeat', pg.input_value('#pvRepeat') == 'days' and pg.input_value('#pvRepeatN') == '3')
     pg.screenshot(path=str(SHOTS / '282-panel-waiting.png'), clip=pg.query_selector('#pvSide').bounding_box())
-    pg.fill('#pvTaskDue', iso(today)); pg.dispatch_event('#pvTaskDue', 'change'); pg.wait_for_timeout(250)
+    set_due(pg, iso(today)); pg.wait_for_timeout(100)
     ok('a nearer due date brings it back sooner', ev(f"() => isOpenTask({task(gp, 'Check the soil')})") and pg.locator('#pvTaskDone').count() == 1)
-    pg.focus('#pvTaskDesc'); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
+    pg.focus('#pvTaskDescView'); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     ok('Esc undoes that, so it waits again', get(gp, 'Check the soil')['due'] == iso(back) and get(gp, 'Check the soil')['waiting'] is True)
 
     pg.click('li.task:has-text("Add plant icons") .task-title'); pg.wait_for_timeout(400)
@@ -252,7 +252,7 @@ with sync_playwright() as p:
     pg.select_option('#pvRepeat', 'days'); pg.wait_for_timeout(250)
     pg.fill('#pvRepeatN', '10'); pg.dispatch_event('#pvRepeatN', 'change'); pg.wait_for_timeout(250)
     ok('Every N days', get(gp, 'Add plant icons')['repeat'] == {'every': 'day', 'n': 10})
-    pg.focus('#pvTaskDesc'); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
+    pg.focus('#pvTaskDescView'); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     t = get(gp, 'Add plant icons')
     ok('Esc undoes the repeat and the date it brought', 'repeat' not in t and t['due'] == '')
     pg.click('li.task:has-text("Add plant icons") .task-title'); pg.wait_for_timeout(400)
@@ -298,7 +298,7 @@ with sync_playwright() as p:
     ok('Enter adds it there and closes', t and t['due'] == iso(today + timedelta(days=1)) and not pg.is_visible('#quickAdd'))
     ok(f"a toast says where it went, with Open ({pg.text_content('#toast')})", pg.text_content('#toast').startswith('Added to Garden planner: Weed the beds.') and 'Open' in pg.text_content('#toast'))
     pg.click('#toast .toast-act'); pg.wait_for_timeout(500)
-    ok('Open opens the task in its project', ev("() => FullView.currentId()") == gp and pg.input_value('#pvTaskTitle') == 'Weed the beds')
+    ok('Open opens the task in its project', ev("() => FullView.currentId()") == gp and pg.text_content('#pvTaskName') == 'Weed the beds')
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     pg.keyboard.press('t'); pg.wait_for_timeout(200)
     pg.keyboard.type('Rake the leaves #monthly !5')

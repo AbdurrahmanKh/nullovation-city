@@ -1,6 +1,6 @@
 import pathlib
 from playwright.sync_api import sync_playwright
-from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY
+from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY, write_desc
 
 errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
@@ -36,7 +36,7 @@ with sync_playwright() as p:
     first_id = pg.get_attribute('#bubble .b-todos li >> nth=0', 'data-id')
     pg.click('#bubble .b-todos li >> nth=0 >> .b-task'); pg.wait_for_timeout(600)
     ok('clicking a task’s text in the bubble does not tick it', pg.evaluate(f"() => DB.projects.find(p => p.id === '{wz}').todos.find(t => t.id === '{first_id}').done") is False)
-    ok('it opens the project view with that task beside it', pg.is_visible('#pv') and pg.is_visible('#pvSide #pvTaskDesc') and pg.get_attribute('.task.on', 'data-id') == first_id)
+    ok('it opens the project view with that task beside it', pg.is_visible('#pv') and pg.is_visible('#pvSide #pvTaskDescView') and pg.get_attribute('.task.on', 'data-id') == first_id)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     pg.evaluate("() => MapView.setCam({ x: 0, y: 230, z: 2 })"); pg.wait_for_timeout(250)
     a = pg.evaluate(f"() => MapView.anchors('{wz}')")
@@ -62,7 +62,7 @@ with sync_playwright() as p:
     ok('2 What is next is not a field and is not stored', pg.locator('.pv-next input, .pv-next textarea').count() == 0 and 'currentlyAt' not in proj())
     # 6.3 and 6.7: a task opens beside the view; description, due date, copy for Claude, Esc undoes
     pg.click('.ms >> nth=1 >> li.task >> nth=0 >> .task-title'); pg.wait_for_timeout(250)
-    pg.fill('#pvTaskDesc', 'Draw each bed to scale and label it.')
+    write_desc(pg, 'Draw each bed to scale and label it.')
     pg.click('#pvTaskClaude'); pg.click('.oc-panel .oc-tile[data-kind="copy"]'); pg.wait_for_timeout(150)   # Copy, in Open in Claude's panel (0.1.63)
     c = clip()
     ok('6.7 Copy task copies the task with its description, and no longer the project\'s About', c.startswith('# Task: Draw the beds') and 'Draw each bed to scale' in c and '## About the project' not in c)

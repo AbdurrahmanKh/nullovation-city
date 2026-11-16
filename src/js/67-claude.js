@@ -176,9 +176,9 @@ const OpenInClaude = (() => {
     const title = opts.think ? 'Opens this in Claude, or copies it: build it, or think it through with a wizard round first' : 'Opens this in Claude, filled in and ready to send, or copies it';
     const btn = opts.icon
       ? h('button', { id: opts.id, class: 'icon-btn oc-btn oc-icon' + (opts.cls ? ' ' + opts.cls : ''), type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
-          'aria-label': 'Open in Claude' + (opts.name ? ': ' + opts.name : ''), title, html: iconSvg('claude', 14) })
+          'aria-label': 'Open in Claude' + (opts.name ? ': ' + opts.name : ''), title: opts.title || title, html: iconSvg('claude', opts.iconSize || 14) })
       : h('button', { id: opts.id, class: 'btn oc-btn' + (opts.small === false ? '' : ' btn-small') + (opts.quiet ? ' btn-quiet' : '') + (opts.cls ? ' ' + opts.cls : ''), type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
-          title: opts.title || title }, iconEl('claude', 14), opts.label || 'Open in Claude');
+          title: opts.title || title }, iconEl('claude', 14, opts.accent), opts.label || 'Open in Claude');
     btn.addEventListener('click', e => { e.stopPropagation(); if (owner === btn) close(); else open(btn, opts); });
     return btn;
   }

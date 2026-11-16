@@ -502,7 +502,7 @@ const Leaders = (() => {
     const says = news.length ? news : [h('span', { class: 'ld-says', dir: 'auto', title: t && t.text.length > LEADER_TITLE_MAX ? t.text : null }, leaderGreeting(p))];
     const box = h('div', { id: 'pvLeader', class: 'ld-card' + (news.length ? ' has-news' : '') }, face(l, 96),
       h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null, ...says),
-      h('button', { class: 'btn btn-quiet btn-small ld-change', type: 'button', title: 'Pick another leader, or edit this one', onclick: onPick }, 'Change'));
+      h('button', { class: 'btn btn-quiet btn-small ld-change on-hover', type: 'button', title: 'Pick another leader, or edit this one', onclick: onPick }, 'Change'));
     box.style.setProperty('--ld', l.color);
     return box;
   }

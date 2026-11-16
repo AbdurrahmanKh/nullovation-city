@@ -8,7 +8,7 @@ installed wizard app from any browser through a web+dwizard: link naming the rou
 import base64, json, pathlib
 from urllib.parse import unquote
 from playwright.sync_api import sync_playwright
-from testkit import FILE, SHOTS, TEST_CITY, open_settings
+from testkit import FILE, SHOTS, TEST_CITY, open_settings, write_desc
 
 errors = []
 def ok(label, cond, got=None): print(('PASS ' if cond else 'FAIL ') + label + ('' if cond or got is None else '  (got ' + repr(got) + ')'))
@@ -219,7 +219,7 @@ with sync_playwright() as p:
     after = proj()
     ok('it is not work: Updated and urgency stay', after['updatedAt'] == before['updatedAt'])
     ok(f'and it writes in Activity, as wizard rounds do (0.1.70) ({after["activity"][-1]["text"]})', len(after['activity']) == len(before['activity']) + 1 and after['activity'][-1]['text'] == 'Attached a wizard round to ' + T1 + ': ' + TITLE)
-    ok('the card shows under Pin and Star, before the description (P1)', ev("""() => { const s = document.querySelector('#pvSide'), c = s.querySelector('.pv-round'), m = s.querySelector('.pv-task-marks'), d = s.querySelector('#pvTaskDesc');
+    ok('the card shows under Pin and Star, before the description (P1)', ev("""() => { const s = document.querySelector('#pvSide'), c = s.querySelector('.pv-round'), m = s.querySelector('.pv-task-marks'), d = s.querySelector('.pv-desc');
        return !!c && !!(m.compareDocumentPosition(c) & 4) && !!(c.compareDocumentPosition(d) & 4); }"""))
     ok('its head: a gray hat, Wizard round, and Waiting: 0 of 8 answered', hat('#pvSide .pv-round-head .hat') == 'open' and pg.text_content('#pvSide .pv-round-state') == 'Waiting: 0 of 8 answered'
        and pg.text_content('#pvSide .pv-round-lbl') == 'Wizard round')
@@ -296,7 +296,7 @@ with sync_playwright() as p:
     ok('Undo puts it back, answers and all', undo() and get(T1)['round']['a']['meta']['answered'] == 3)
     quiet()
     # Esc in the panel undoes what was typed, and leaves the round, as it leaves pins
-    pg.fill('#pvTaskDesc', 'Typed, then undone'); pg.wait_for_timeout(100)
+    write_desc(pg, 'Typed, then undone'); pg.wait_for_timeout(100)
     drop('Draw the beds, Round 1-answers.json', answers(4)); quiet()
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     ok('Esc in the panel undoes the typing and keeps the round with the answers that came while it was open',
@@ -505,7 +505,7 @@ with sync_playwright() as p:
     ok('Read opens the round in its popup, with Open in wizard', pg.locator('.modal.panel.rd .pv-round-ans li').count() == 8 and pg.is_visible('#rdWizard'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
     pg.click('#pvLeader .ld-line.by-other .ld-open'); pg.wait_for_timeout(400)
-    ok('Open opens the task', ev("() => !!document.querySelector('#pvSide #pvTaskDesc')"))
+    ok('Open opens the task', ev("() => !!document.querySelector('#pvSide .pv-desc')"))
     ev("() => document.activeElement && document.activeElement.blur()")
     ok('the answers coming in are not work: Updated stays', proj()['updatedAt'] == u0)
     quiet()

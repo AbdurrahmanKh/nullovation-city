@@ -1,6 +1,6 @@
 import json, pathlib
 from playwright.sync_api import sync_playwright
-from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY, open_settings, close_settings
+from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY, open_settings, close_settings, set_due
 
 errors = []
 def attach(page):
@@ -110,12 +110,12 @@ with sync_playwright() as p:
     import datetime
     tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
     page.click('.ms >> nth=0 >> li.task >> nth=1 >> .task-title'); page.wait_for_timeout(300)
-    page.fill('#pvTaskDue', tomorrow); page.wait_for_timeout(100)
-    page.click('#pvSide >> text=Done'); page.wait_for_timeout(200)
+    set_due(page, tomorrow)
+    page.click('#pvSide .pv-top button[aria-label^="Close"]'); page.wait_for_timeout(200)
     page.screenshot(path=str(SHOTS / '42-edit-milestones.png'))
     page.click('#pvAddNoteBtn'); page.wait_for_timeout(200)
     page.fill('#pvNoteBody', 'Walked the beds with the plan open.')
-    page.click('#pvSide >> text=Done'); page.wait_for_timeout(200)
+    page.click('#pvSide .pv-top button[aria-label^="Close"]'); page.wait_for_timeout(200)
     ok('note added', page.evaluate(f"() => DB.projects.find(p => p.id === '{wid}').notes.length") == 1)
     page.screenshot(path=str(SHOTS / '43-edit-notes.png'))
     page.screenshot(path=str(SHOTS / '44-read-milestones.png'))

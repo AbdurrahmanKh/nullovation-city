@@ -249,7 +249,7 @@ with sync_playwright() as p:
     hold(t1, p=(W['S'] + 0.3) * 1.5); pg.wait_for_timeout(200)
     cx, cy = gcss(); pg.mouse.click(r['x'] + cx, r['y'] + cy); pg.wait_for_timeout(300)
     pg.click('#ghostCard .gc-enter'); pg.wait_for_timeout(500)
-    ok('Enter steps inside the building, with the task open beside it', ev("() => FullView.isOpen()") and pg.is_visible('#pvTaskDesc') and pg.input_value('#pvTaskDesc') == ev(f"() => {T(gp, 'Draw the beds on a grid')}.description") and not pg.is_visible('#ghostCard'))
+    ok('Enter steps inside the building, with the task open beside it', ev("() => FullView.isOpen()") and pg.is_visible('#pvTaskDescView') and pg.text_content('#pvTaskName') == 'Draw the beds on a grid' and not pg.is_visible('#ghostCard'))
     pg.wait_for_timeout(300)
     pic = ev("""() => { const c = document.querySelector('.pv-scene canvas, .fv-scene canvas, .pv-hero canvas'); if (!c) return -1; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0;
         for (let k = 0; k < d.length; k += 4) if (d[k] === 255 && d[k + 1] === 61 && d[k + 2] === 127) n++; return n; }""")

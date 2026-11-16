@@ -122,8 +122,8 @@ with sync_playwright() as p:
     # the task panel: Build it and Think, in Arabic too
     tid = proj(f"DB.projects.find(p => p.id === '{gid}').todos[0].id")
     js(f"() => FullView.openTask('{gid}', '{tid}')"); pg.wait_for_timeout(500)
-    ok('the task panel has Open in Claude alone, no Copy task beside it', pg.is_visible('#pvTaskClaude')
-       and js("() => [...document.querySelectorAll('.pv-claude-row button')].map(b => b.id).join()") == 'pvTaskClaude')
+    ok('the task panel has Claude alone, no Copy task beside it: filled, named Claude (0.1.86)', pg.is_visible('#pvTaskClaude')
+       and js("() => [...document.querySelectorAll('.pv-task-foot .oc-btn')].map(b => b.id + ':' + b.textContent.trim()).join()") == 'pvTaskClaude:Claude')
     pg.click('#pvTaskClaude'); pg.wait_for_timeout(250)
     tabs = js("() => [...document.querySelectorAll('.oc-panel .oc-tab')].map(t => [t.textContent.trim(), t.getAttribute('aria-selected')])")
     ok(f'a task has two tabs, Build it picked ({tabs})', tabs == [['Build it', 'true'], ['Think', 'false']] and js("() => document.activeElement.id") == 'ocTabBuild')

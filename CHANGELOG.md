@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.86 (2026-11-17)
+
+General UX: the project view and the task panel, made quieter and clearer, from General UX, Round 1 and its mocks.
+- The pixel font's c and C open wider, so they no longer read as o and O (Nullovation Oity, Olaude). The city ships its own changed copy of Pixelify Sans; `tools/open_c.py` makes it from the upstream file kept in `tools/fonts/`.
+- Tasks everywhere: the project view's Tasks section and its count, the status card ("2 more open tasks inside") and the copies for Claude say tasks, not todos. The line under the building's picture drops its count, which the bar already shows.
+- The side bar's list is called Due and overdue, and search says Search the city.
+- The project view's header holds Activity and the project's status for Claude as two icons beside the more button; the empty gap at the foot of the About is gone.
+- The leader card says where the building stands, then its next task: "We finished one today, 12 to go. Next up: ...", or that it is on its pace, slipping behind, or has finished nothing for a day, and how many open tasks are overdue. Change shows only while the card is pointed at.
+- The + beside each milestone is plain and shows only on the row pointed at. On a touch screen it and Change show all the time.
+- A note's icon and its copy button sit on the card's corners as stickers, so the title has the card's whole width.
+- The task panel: no pink Done (its x closes it, keeping what was typed); the title and the description read as text and are written in place with a click, the caret where it landed; Pin and Star are icons beside the title; Due, Repeat and Shift sit in one label column; the description keeps its own tall box and grows with its text.
+- The due date is a button in the city's words ("Mon 23 Nov") with a short list: Tomorrow, Next week and Pick a date, the browser's own calendar. A small x takes the date off once there is one.
+- The panel's foot: Claude, filled, then Turn into a note and Delete task under it, plain, Delete task in red with a new bin icon. The note and milestone panels lose their pink Done too.
+- The line over the map's Ctrl+Enter opens the new task with its description ready to write.
+- Tests: test52_general_ux checks the c's opening against the font, the words, the header, what shows on pointing, the notes' stickers, the leader's lines, and the task panel: reading and writing in place, the due date's list with its keys and calendar, the label column, the foot, the panels with no Done, and the same on a phone.
+
 ## 0.1.85 (2026-11-16)
 
 The map keeps its frame rate with the garbage at its ceiling, at 3x and while the zoom glides.

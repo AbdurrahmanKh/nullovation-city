@@ -1,6 +1,6 @@
 import json, pathlib
 from playwright.sync_api import sync_playwright
-from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY
+from testkit import FILE, ROOT, SHOTS, SH, DATA, SKILLS, VERSION, fixture, TEST_CITY, set_due
 
 errors = []
 def ok(label, cond): print(('PASS ' if cond else 'FAIL ') + label)
@@ -61,7 +61,7 @@ with sync_playwright() as p:
     pg.click('#pvAddNoteBtn'); pg.wait_for_timeout(250)
     ok('Add note opens a new note beside the view, title first', pg.is_visible('#pvSide #pvNoteTitle') and pg.evaluate("() => document.activeElement.id") == 'pvNoteTitle')
     pg.fill('#pvNoteTitle', 'A week in'); pg.fill('#pvNoteBody', 'Tried the side panel for a week.')
-    pg.click('#pvSide >> text=Done'); pg.wait_for_timeout(200)
+    pg.click('#pvSide .pv-top button[aria-label^="Close"]'); pg.wait_for_timeout(200)
     ok('the note is kept with its title', any(n['title'] == 'A week in' and n['text'] == 'Tried the side panel for a week.' for n in proj()['notes']))
     ok('it shows as a card', 'A week in' in pg.text_content('[data-sec="notes"] .pv-note-grid'))
     pg.click('[data-sec="notes"] .pv-note-card >> text=A week in'); pg.wait_for_timeout(200)
@@ -78,7 +78,7 @@ with sync_playwright() as p:
     ok('What is next copies that task for Claude', pg.evaluate("() => navigator.clipboard.readText()").startswith('# Task: ' + second))
     import datetime
     past = (datetime.date.today() - datetime.timedelta(days=2)).isoformat()
-    pg.click('#pvNextTask'); pg.wait_for_timeout(200); pg.fill('#pvTaskDue', past); pg.click('#pvSide >> text=Done'); pg.wait_for_timeout(200)
+    pg.click('#pvNextTask'); pg.wait_for_timeout(200); set_due(pg, past); pg.click('#pvSide .pv-top button[aria-label^="Close"]'); pg.wait_for_timeout(200)
     ok('an overdue next task gets the red !', pg.locator('.pv-next-task.late .pv-late-mark').count() == 1 and '2 days overdue' in pg.text_content('.pv-next'))
     ok('no section opened for any of that', pg.locator('#pv .pv-done').count() == 0)
     log = [e['text'] for e in proj()['activity']]
@@ -105,7 +105,7 @@ with sync_playwright() as p:
     pg.screenshot(path=str(SH / 'pv-7-sections.png'))
 
     # the profile line: activity in the side panel, and a copy of this project's status
-    pg.click('#pv .pv-about-btns >> text=Activity'); pg.wait_for_timeout(250)
+    pg.click('#pvActivityBtn'); pg.wait_for_timeout(250)
     ok('Activity opens in the side panel', pg.is_visible('#pvSide') and 'Today' in pg.text_content('#pvSide'))
     ok('the side panel never overlaps the view', pg.evaluate("() => document.querySelector('#pvSide').getBoundingClientRect().left >= document.querySelector('#pv').getBoundingClientRect().right"))
     ok('the feed lists today\u2019s changes, newest first', pg.text_content('#pvSide .pv-day li:first-child span') == 'Renamed to Garden app')

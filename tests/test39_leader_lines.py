@@ -25,7 +25,12 @@ LINES = {
     'week': 'Last week we finished {n} tasks. Next up: {task}.',
     'week_quiet': 'Quiet week: nothing finished. {task} is a good start.',
     'working': 'Claude is working on {task}. Started {ago}.',
-    'greet': 'Welcome back. Next up: {task}.',
+    'greet_done': 'We finished {count} today, {togo}. Next up: {task}.',      # since 0.1.86 (General UX, Round 1, P3): where it stands
+    'greet_on': "We're on pace, {togo}. Next up: {task}.",
+    'greet_behind': 'We slipped behind our pace, {togo}. Next up: {task}.',
+    'greet_behind_more': "We're falling further behind, {togo}. Next up: {task}.",
+    'greet_day': 'Nothing finished here for a day, {togo}. Next up: {task}.',
+    'greet': '{togo}. Next up: {task}.',
     'greet_empty': 'Nothing open here yet. Add the next task.',
 }
 LONG = 'Draw every raised bed on the grid with its soil, its sun and the plants it holds this year'
@@ -67,9 +72,9 @@ with sync_playwright() as p:
     ok('a blank with nothing for it stays as it is; a moment the city does not have says nothing', say('added') == 'Claude added {what}.' and say('nope') == '')
 
     # ---------- the greeting ----------
-    ok('the greeting names the next task: the current milestone\'s first open one', ev(f"() => leaderGreeting(getProject('{gp}'))") == 'Welcome back. Next up: Draw the beds on a grid.')
+    ok('the greeting names the next task: the current milestone\'s first open one', ev(f"() => leaderGreeting(getProject('{gp}'))") == '5 to go. Next up: Draw the beds on a grid.')
     ev(f"() => {{ const p = getProject('{gp}'); setPin(p, p.todos.find(t => t.text === 'Publish the app'), true); }}")
-    ok('a pinned task comes first, from any milestone', ev(f"() => leaderGreeting(getProject('{gp}'))") == 'Welcome back. Next up: Publish the app.')
+    ok('a pinned task comes first, from any milestone', ev(f"() => leaderGreeting(getProject('{gp}'))") == '5 to go. Next up: Publish the app.')
     ev(f"() => {{ const p = getProject('{gp}'); setPin(p, p.todos.find(t => t.text === 'Publish the app'), false); }}")
     ok('with nothing open, it says so', ev("() => leaderGreeting({ todos: [{ id: 'a', text: 'Done', done: true, milestoneId: 'm' }], milestones: [{ id: 'm', name: 'M' }], pin: '' })")
        == 'Nothing open here yet. Add the next task.')
@@ -80,21 +85,21 @@ with sync_playwright() as p:
     before = ev(f"() => {{ const p = getProject('{gp}'); return [p.updatedAt, p.activity.length]; }}")
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(600); quiet()
     c = card()
-    ok(f'the leader card says its greeting with the next task, under the name and role ({c})', c and c['text'] == 'Welcome back. Next up: Draw the beds on a grid.' and c['under'] and c['dir'] == 'auto')
+    ok(f'the leader card says its greeting with the next task, under the name and role ({c})', c and c['text'] == '5 to go. Next up: Draw the beds on a grid.' and c['under'] and c['dir'] == 'auto')
     ok(f'in a quote with a bar in the leader\'s color ({c and c["bar"]})', c and 'rgb(143, 208, 247)' in c['bar'])
     ok('a greeting is not work: Updated stays, and nothing goes in Activity', ev(f"() => {{ const p = getProject('{gp}'); return [p.updatedAt, p.activity.length]; }}") == before)
     pg.screenshot(path=str(SHOTS / '390-leader-greeting.png'), clip=pg.query_selector('.pv-hero').bounding_box())
 
     first = tid_of('Draw the beds on a grid')
     pg.click(f'li.task[data-id="{first}"] .cb'); pg.wait_for_timeout(500)
-    ok(f'ticking the next task moves the greeting on to the one after it ({card()["text"]})', card()['text'] == 'Welcome back. Next up: Save a plan as a file.')
+    ok(f'ticking the next task moves the greeting on to the one after it ({card()["text"]})', card()['text'] == 'We finished one today, 4 to go. Next up: Save a plan as a file.')
     pid = tid_of('Add plant icons')
     pg.hover(f'li.task[data-id="{pid}"]'); pg.click(f'li.task[data-id="{pid}"] .task-mark'); pg.wait_for_timeout(400)
-    ok(f'pinning a task names it in the greeting ({card()["text"]})', card()['text'] == 'Welcome back. Next up: Add plant icons.')
+    ok(f'pinning a task names it in the greeting ({card()["text"]})', card()['text'] == 'We finished one today, 4 to go. Next up: Add plant icons.')
     ev(f"""() => {{ const p = getProject('{gp}'), t = p.todos.find(x => x.text === 'Add plant icons'); t.text = {json.dumps(LONG)}; changed(p); }}""")
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
     c = card()
-    ok(f'a long title is cut short in the line, the full title its tooltip ({c["text"]})', c['text'] == 'Welcome back. Next up: ' + LONG[:59].rstrip() + '….' and c['title'] == LONG)
+    ok(f'a long title is cut short in the line, the full title its tooltip ({c["text"]})', c['text'] == 'We finished one today, 4 to go. Next up: ' + LONG[:59].rstrip() + '….' and c['title'] == LONG)
     ev(f"() => {{ const p = getProject('{gp}'); for (const t of p.todos) {{ t.done = true; t.doneAt = Date.now(); }} p.pin = ''; changed(p); }}")
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
     ok(f'with every task done, it says nothing is open ({card()["text"]})', card()['text'] == 'Nothing open here yet. Add the next task.')

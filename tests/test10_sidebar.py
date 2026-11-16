@@ -32,7 +32,7 @@ with sync_playwright() as p:
 
     # B4: nothing red, no urgent section; the week card shows this week in numbers
     ok('B4 with nothing to say, the News section that took Urgent\'s place hides (0.1.59)', not pg.is_visible('#sbNews') and not js("() => !!document.querySelector('#sbUrgent')"))
-    ok('E1 with nothing due, Due this week hides', not pg.is_visible('#sbDue'))
+    ok('E1 with nothing due, Due and overdue hides', not pg.is_visible('#sbDue'))
     ok('E1 the week card shows this week in numbers', 'This week' in pg.text_content('#btnRecap') and 'Nothing done yet this week' in pg.text_content('#weekNumbers'))
     ok('SideBar Cleanup: the card no longer says Open the week (0.1.64)', 'Open the week' not in pg.text_content('#btnRecap') and not js("() => !!document.querySelector('.week-open')"))
     # C1: weeks start on Saturday
@@ -59,7 +59,7 @@ with sync_playwright() as p:
     ok('E1 its Copy copies the task for Claude, by the new standard', clip().startswith('# Task: Save a plan as a file') and 'Task copied for Claude' in (pg.text_content('#toast') or '')
        and not pg.is_visible('.oc-panel'))
     pg.click('#dueList .due-item >> nth=0 >> .due-task'); pg.wait_for_timeout(700)
-    ok('a due task opens in the project view', pg.is_visible('#pvSide #pvTaskDesc'))
+    ok('a due task opens in the project view', pg.is_visible('#pvSide #pvTaskDescView'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     # a tick from the status bubble now reaches Activity and the week
     js("() => MapView.setCam({ x: 0, y: 230, z: 2 })"); pg.wait_for_timeout(250)

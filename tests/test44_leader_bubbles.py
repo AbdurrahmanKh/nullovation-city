@@ -143,7 +143,7 @@ with sync_playwright() as p:
     pg.click('#pvSide .pv-round-fold'); pg.wait_for_timeout(300)
     ok('Show the answers in the task panel opens the same popup', js("() => { const m = document.querySelector('.modal.panel.rd'); return !!m && m.querySelector('#pnTitle').textContent; }") == TITLE)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
-    ok('and Esc leaves the task panel open', js("() => !!document.querySelector('#pvSide #pvTaskDesc')"))
+    ok('and Esc leaves the task panel open', js("() => !!document.querySelector('#pvSide .pv-desc')"))
     js("() => FullView.close()"); js("() => MapView.deselect()"); pg.wait_for_timeout(300)
 
     # a leader of the city's own named Quill is him: one face in News
@@ -232,7 +232,7 @@ with sync_playwright() as p:
     pg.wait_for_timeout(500)
     ok('on opening the city, one gone overdue meanwhile gets its line', js(f"() => getProject('{gp}').activity.some(e => e.text === 'Overdue: Publish the app')"))
     js(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
-    pg.locator('.pv button:has-text("Activity")').first.click(); pg.wait_for_timeout(400)
+    pg.click('#pvActivityBtn'); pg.wait_for_timeout(400)
     ok('the Activity panel shows it', 'Overdue: Publish the app' in (pg.text_content('.pv-activity') or ''))
     pg.screenshot(path=str(SH / '444-activity-overdue.png'))
     js("() => FullView.close()")

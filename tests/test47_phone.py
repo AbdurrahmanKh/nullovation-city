@@ -116,12 +116,12 @@ with sync_playwright() as p:
     # the task panel: 16 px fields, and no words for Esc
     tid = ev(f"() => getProject('{gp}').todos.find(t => t.text === 'Add plant icons').id")
     ev(f"() => FullView.openTask('{gp}', '{tid}')"); pg.wait_for_timeout(600)
-    sizes = ev("() => ['#pvTaskDesc', '#pvTaskDue'].map(s => getComputedStyle(document.querySelector(s)).fontSize)")
+    sizes = ev("() => ['#pvTaskDescView', '#pvTaskDue'].map(s => getComputedStyle(document.querySelector(s)).fontSize)")
     ok(f'the task panel\'s description and due date are 16 px on a touch screen ({sizes})', sizes == ['16px', '16px'])
-    ok('its title keeps its own bigger size', float(ev("() => getComputedStyle(document.querySelector('#pvTaskTitle')).fontSize")[:-2]) > 16)
+    ok('its title keeps its own bigger size', float(ev("() => getComputedStyle(document.querySelector('#pvTaskName')).fontSize")[:-2]) > 16)
     note = ev("() => { const n = [...document.querySelectorAll('#pvSide p.note')].pop(); return { seen: n.innerText.trim(), all: n.textContent.trim() }; }")
-    ok(f'its foot says what a phone can do: "{note["seen"]}"', note['seen'] == 'Saves as you type. Done closes it.')
-    ok('while its words for Esc stay in the page for a keyboard', note['all'] == 'Saves as you type. Done closes it; Esc undoes everything since it opened.')
+    ok(f'its foot says what a phone can do: "{note["seen"]}"', note['seen'] == 'Saves as you type. The \u00d7 closes it.')
+    ok('while its words for Esc stay in the page for a keyboard', note['all'] == 'Saves as you type. The \u00d7 closes it; Esc undoes everything since it opened.')
     ev("() => FullView.close()"); pg.wait_for_timeout(300)
 
     # the one-line add has no line about keys
@@ -193,10 +193,10 @@ with sync_playwright() as p:
     tid = ev(f"() => getProject('{gp}').todos.find(t => t.text === 'Add plant icons').id")
     pg.evaluate(f"() => {{ const b = [...document.querySelectorAll('#pv li.task button.task-title')].find(x => x.textContent.includes('Add plant icons')); b.scrollIntoView({{ block: 'center' }}); }}")
     pg.locator('#pv li.task button.task-title', has_text='Add plant icons').tap(); pg.wait_for_timeout(600)
-    pg.locator('#pvTaskDesc').tap(); pg.keyboard.type('Pixel icons for each plant.'); pg.wait_for_timeout(300)
+    pg.locator('#pvTaskDescView').tap(); pg.wait_for_timeout(200); pg.keyboard.type('Pixel icons for each plant.'); pg.wait_for_timeout(300)
     pg.go_back(); pg.wait_for_timeout(500)
     ok('back closes the task panel keeping what was typed, as Done does, not undoing it as Esc does',
-       not pg.is_visible('#pvTaskDesc') and ev(f"() => getProject('{gp}').todos.find(t => t.id === '{tid}').description") == 'Pixel icons for each plant.')
+       not pg.is_visible('#pvSide') and ev(f"() => getProject('{gp}').todos.find(t => t.id === '{tid}').description") == 'Pixel icons for each plant.')
     ok('the project view stays open, and still stands guard', ev("() => FullView.isOpen()") and guard())
     pg.go_back(); pg.wait_for_timeout(500)
     ok('back again closes the project view, back to its building\'s card', not ev("() => FullView.isOpen()") and ev("() => App.selectedId") == gp and guard())
@@ -233,8 +233,8 @@ with sync_playwright() as p:
 
     # B4: Open in Claude is Copy only
     ev(f"() => FullView.openTask('{gp}', '{tid}')"); pg.wait_for_timeout(600)
-    pg.evaluate("() => { const b = [...document.querySelectorAll('#pvSide button')].find(x => /Open in Claude/.test(x.textContent)); b.scrollIntoView({ block: 'center' }); }")
-    pg.locator('#pvSide button', has_text='Open in Claude').first.tap(); pg.wait_for_timeout(400)
+    pg.evaluate("() => document.querySelector('#pvTaskClaude').scrollIntoView({ block: 'center' })")
+    pg.locator('#pvTaskClaude').tap(); pg.wait_for_timeout(400)
     oc = ev("() => ({ kinds: [...document.querySelectorAll('.oc-panel [data-kind]')].map(e => e.dataset.kind), tabs: document.querySelectorAll('.oc-panel .oc-tab').length, folder: !!document.querySelector('.oc-panel .oc-folder'), label: (document.querySelector('.oc-panel [data-kind=copy]') || {}).textContent })")
     ok(f'B4 on a phone Open in Claude offers Copy alone, no Chat, Cowork, Code or Terminal, and no folder ({oc})', oc['kinds'] == ['copy'] and not oc['folder'] and oc['label'] == 'Copy')
     ok('a task keeps Build it and Think, which say what Copy copies', oc['tabs'] == 2)

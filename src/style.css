@@ -220,7 +220,6 @@ li:hover > .task-mark, li:focus-within > .task-mark { opacity: .7; }
 li > .task-mark.on, .task-mark:hover, .task-mark:focus-visible { opacity: 1; }
 .b-todos li .task-mark { margin-top: -1px; }
 @media (hover: none) { .task-mark { opacity: .6; } }
-.pv-task-marks { gap: 10px; }
 .pv-mark.on { background: var(--hover); }
 .b-todos label { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; cursor: pointer; }
 .b-todos .ticked .txt { text-decoration: line-through; color: var(--muted); }
@@ -689,8 +688,6 @@ a.oc-tile:hover, a.oc-tile:focus-visible, button.oc-tile:hover, button.oc-tile:f
 .pv-under .pv-scene-tools { margin: 0; }
 .pv-about { margin-top: 0; padding-top: 0; border-top: 0; display: flex; flex-direction: column; min-width: 0; }
 .pv-about .fv-desc p { max-width: none; }
-.pv-about-btns { margin-top: auto; padding-top: 14px; display: grid; justify-items: start; gap: 8px; }
-.pv-about-btns .btn { min-width: 132px; justify-content: flex-start; }
 .pv-add-btn { margin-left: auto; }
 .pv-sec-head { padding-bottom: 8px; margin-bottom: 10px; border-bottom: 2px solid var(--line); }
 .pv-sec-head .pv-h { flex: none; }
@@ -702,9 +699,9 @@ a.oc-tile:hover, a.oc-tile:focus-visible, button.oc-tile:hover, button.oc-tile:f
 .pv-adding .field { flex: 1; min-width: 0; }
 .pv-add-link { grid-template-columns: 1.3fr 1fr auto auto; }
 .pv-prog-ed { display: grid; gap: 6px; margin-top: 14px; }
-.pv-note-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pv-note-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 26px; padding-top: 10px; }
 .pv-note-card {
-  display: flex; flex-direction: column; gap: 6px; min-height: 104px; padding: 10px 12px; margin: 2px;
+  position: relative; display: flex; flex-direction: column; gap: 6px; padding: 14px 12px 10px; margin: 2px;
   text-align: left; background: var(--field); border: 0; box-shadow: var(--px-edge); color: var(--ink); font: inherit; cursor: pointer;
 }
 .pv-note-card:hover, .pv-note-card:focus-visible { background: var(--hover); outline: none; }
@@ -756,7 +753,14 @@ a.oc-tile:hover, a.oc-tile:focus-visible, button.oc-tile:hover, button.oc-tile:f
 .ms-name-btn:hover, .ms-name-btn:focus-visible { text-decoration: underline; outline: none; }
 .ms-row .ms-count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ms-row .ms-current { margin-left: 4px; }
-.ms-plus { margin-left: auto; width: 24px; height: 24px; padding: 0; box-shadow: var(--px-edge); }
+/* the + beside a milestone: plain, and with a mouse only on the row pointed at (General UX, Round 1, X3); a touch
+   screen, with nothing to point, shows it all the time */
+.ms-plus { margin-left: auto; width: 24px; height: 24px; padding: 0; color: var(--ink-soft); }
+.ms-plus:hover { background: var(--hover); color: var(--ink); }
+@media (hover: hover) {
+  .ms-plus { opacity: 0; }
+  .ms-row:hover .ms-plus, .ms-row:focus-within .ms-plus { opacity: 1; }
+}
 ul.tasks { list-style: none; margin: 6px 0 0 26px; padding: 0; display: grid; gap: 2px; }
 li.task { display: flex; align-items: center; gap: 8px; padding: 4px 6px; margin: 0 -6px; cursor: grab; touch-action: pan-y; }
 li.task:hover { background: var(--hover); }
@@ -766,7 +770,7 @@ li.task.done .task-title { color: var(--muted); text-decoration: line-through; }
 .task-title { flex: 1; min-width: 0; background: none; border: 0; padding: 2px 0; color: var(--ink); font: inherit; font-size: 14.5px; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
 .task-title:hover, .task-title:focus-visible { text-decoration: underline; outline: none; }
 .task-has-desc { display: inline-flex; color: var(--muted); }
-li.task .due, .pv-task-meta .due { flex: none; }
+li.task .due { flex: none; }
 .due.late { color: #fff; background: #B02A61; border-color: #B02A61; font-weight: 600; }
 li.task-add { padding: 4px 0; }
 li.task-add .field { width: 100%; box-sizing: border-box; }
@@ -796,7 +800,56 @@ body.pv-dragging, body.pv-dragging * { cursor: grabbing !important; user-select:
 .pv-late-note { margin: 0; font-size: 13px; color: var(--late); font-weight: 600; }
 /* the task and milestone panels */
 .pv-task-ms { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--ink-soft); }
-.pv-task-meta { gap: 10px; align-items: center; }
+/* The task panel (0.1.86, General UX, Round 1): the title row, a label column for Due, Repeat and Shift, fields read as
+   text until clicked, the description in its own box, and the foot: Claude, then Turn into a note and Delete task. */
+.pv-task-head { display: flex; align-items: flex-start; gap: 8px; }
+.pv-task-head > .cb { flex: none; margin-top: 7px; }
+.pv-task-name, .pv-task-title-in { flex: 1; min-width: 0; margin: 0 0 0 -6px; padding: 2px 4px; border: 2px solid transparent;
+  font: 400 20px/1.3 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--ink); overflow-wrap: anywhere; }
+.pv-task-name { background: none; text-align: start; cursor: text; unicode-bidi: plaintext; }
+.pv-task-name:hover, .pv-task-name:focus-visible { background: var(--hover); outline: none; }
+textarea.pv-task-title-in { display: block; min-height: 0; resize: none; overflow: hidden; background: var(--field); border-color: var(--edge); }
+.pv-task-marks { display: flex; gap: 2px; flex: none; }
+.pv-fields { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 6px 12px; }
+.pv-flbl { font-size: 13.5px; color: var(--ink-soft); }
+.pv-due { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; min-width: 0; }
+.pv-val { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 0 -8px; padding: 5px 8px; background: none; border: 0;
+  font: inherit; font-size: 14.5px; color: var(--ink); cursor: pointer; }
+.pv-val:hover, .pv-val.open, .pv-val:focus-visible { background: var(--hover); outline: none; }
+.pv-val.empty { color: var(--muted); }
+.pv-val.late { color: var(--late); }
+.pv-chev { display: inline-flex; opacity: .6; }
+.pv-val-x { width: 22px; height: 22px; padding: 0; opacity: .8; }
+.pv-val-x:hover, .pv-val-x:focus-visible { opacity: 1; }
+.pv-due .due { flex: none; }
+.pv-due-list { left: -8px; right: auto; width: 270px; max-width: calc(100vw - 24px); max-height: none; overflow: visible; }
+.pv-due-opt { position: relative; }
+.pv-due-opt:focus-visible { outline: none; background: var(--hover); box-shadow: inset 3px 0 0 var(--accent); }
+/* Pick a date: the browser's own calendar, unseen over its row; on a touch screen the tap reaches it, as in the line over the map */
+.pv-due-pick { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; pointer-events: none; font-size: 16px; }
+@media (pointer: coarse) { .pv-due-pick { pointer-events: auto; } }
+/* Repeat reads as its words with the same small arrow as Due, as wide as what it says */
+select.field.pv-plain-select { width: auto; field-sizing: content; margin-left: -8px; padding: 5px 30px 5px 8px; border-color: transparent;
+  background: transparent url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8' shape-rendering='crispEdges'><path fill='%23ECE8F6' fill-opacity='.6' d='M1 2h2v1H1zM7 2h2v1H7zM2 3h2v1H2zM6 3h2v1H6zM3 4h4v1H3zM4 5h2v1H4z'/></svg>") no-repeat right 8px center / 12px 10px; font-size: 14.5px; color: var(--ink); cursor: pointer; }
+select.field.pv-plain-select.empty { color: var(--muted); }
+select.field.pv-plain-select:hover { background-color: var(--hover); }
+.pv-fields .pv-repeat { min-width: 0; }
+.pv-desc-sec { display: grid; gap: 6px; }
+.pv-desc { display: block; width: 100%; min-height: 360px; margin: 0; padding: 9px 12px; background: var(--field); border: 2px solid var(--edge);
+  font-family: inherit; font-size: 15px; font-weight: 400; line-height: 1.55; color: var(--ink); text-align: start;
+  white-space: pre-wrap; overflow-wrap: anywhere; unicode-bidi: plaintext; cursor: text; }
+.pv-desc.empty { color: var(--muted); }
+div.pv-desc:hover { border-color: var(--ink-soft); }
+div.pv-desc:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+textarea.pv-desc { min-height: 360px; resize: none; overflow: hidden; }
+.pv-task-foot { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin: 4px 0 6px; }
+.pv-task-foot > .btn-accent { margin-bottom: 8px; }
+.pv-task-foot > .btn-plain { margin-left: -6px; }
+/* a plain button: an icon and its words with no box, lit when pointed at (General UX, Round 1, X3) */
+.btn-plain, .btn-plain:active { background: none; box-shadow: none; transform: none; color: var(--ink-soft); }
+.btn-plain:hover, .btn-plain:focus-visible { background: var(--hover); color: var(--ink); }
+.btn-plain.danger, .btn-plain.danger:hover, .btn-plain.danger:focus-visible { color: var(--late); }
+.btn-plain.danger:hover, .btn-plain.danger:focus-visible { background: #3A1D2E; }
 .pv-add-link { grid-template-columns: auto 1.3fr 1fr auto auto; }
 
 /* ---------- recurring tasks and the one-line add (Tasks, Round 2, R1 to R4, O1, O2) ---------- */
@@ -813,7 +866,6 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .pv-task-back { display: flex; align-items: center; gap: 6px; margin: 0; font: 400 13px/1.3 var(--f-pixel); color: var(--teal); font-variant-ligatures: no-common-ligatures; }
 .pv-repeat { display: grid; gap: 8px; }
 .pv-repeat-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.pv-repeat-row .lbl { margin: 0; }
 .pv-repeat-row .field { width: auto; }
 .pv-repeat-row .field.num { width: 72px; }
 .pv-repeat-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: 340px; }
@@ -1002,7 +1054,12 @@ li.task.waiting:hover, li.task.waiting.on { opacity: 1; }
 .pv-note-copy { position: absolute; top: 6px; inset-inline-end: 6px; width: 28px; height: 28px; padding: 0; opacity: 0; transition: opacity .12s; }
 .pv-note-cell:hover .pv-note-copy, .pv-note-copy:focus-visible { opacity: 1; }
 @media (hover: none) { .pv-note-copy { opacity: .85; } }
-.pv-note-cell .pv-note-h { padding-inline-end: 30px; }
+/* the icon and the copy button as stickers on the card's corners, the title the card's whole width (General UX,
+   Round 1, P2: "make it like a sticker on top of the thing but doesnt cover the text") */
+.pv-note-card .note-ic { position: absolute; top: -10px; left: -8px; width: 26px; height: 26px; margin: 0; display: grid; place-items: center;
+  background: var(--panel); box-shadow: var(--px-edge); transform: rotate(-7deg); }
+.pv-note-cell .pv-note-copy { top: -8px; inset-inline-end: -6px; width: 26px; height: 26px; background: var(--panel); box-shadow: var(--px-edge); transform: rotate(6deg); }
+.pv-note-cell .pv-note-copy:hover { background: var(--hover); }
 
 /* ---------- the milestone view: its tasks, to read ---------- */
 .pv-ms-tasks { list-style: none; margin: 4px 0 14px; padding: 0; display: grid; gap: 2px; }
@@ -1525,6 +1582,12 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .ld-card-text b { font: 400 17px/1.2 var(--f-pixel); font-variant-ligatures: no-common-ligatures; overflow-wrap: anywhere; }
 .ld-card-text > span { font-size: 13px; color: var(--muted); }
 .ld-card .ld-change { margin-left: auto; flex: none; }
+/* Change shows only while the card is pointed at or has the focus (General UX, Round 1, X3: "just when you hover it
+   shows"); a touch screen shows it all the time */
+@media (hover: hover) {
+  .ld-card .ld-change.on-hover { opacity: 0; transition: opacity .12s; }
+  .ld-card:hover .ld-change.on-hover, .ld-card:focus-within .ld-change.on-hover { opacity: 1; }
+}
 /* what the leader says (0.1.58): a quote with a bar in its signature color, as Gus's and Proxima's lines have theirs */
 .ld-card-text .ld-says { margin-top: 6px; padding-left: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ink); box-shadow: inset 2px 0 0 var(--ld, var(--edge)); overflow-wrap: anywhere; }
 .ld-card.empty { color: var(--ink-soft); border: 0; cursor: pointer; text-align: left; box-shadow: var(--px-edge); }
@@ -1640,7 +1703,6 @@ li.ms-archived { display: flex; padding: 2px 0 0; }
 .sp-b.on { background: var(--shift); color: #2B2542; }
 .sp-b.on + .sp-b { box-shadow: none; }
 .pv-shift-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
-.pv-shift-row .lbl { margin: 0; }
 /* the pick a hollow mark opens */
 .shift-pop { position: fixed; z-index: 70; display: flex; flex-direction: column; gap: 7px; padding: 8px 9px 9px; background: var(--paper); box-shadow: var(--px-edge), 6px 8px 0 0 rgba(0, 0, 0, .45); }
 .shift-pop .lbl { font: 400 11px/1 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--muted); }
@@ -1768,6 +1830,7 @@ li.task .round-hat { margin-inline-start: 2px; }
    words for keys a phone has not got. The names' and titles' own bigger fields keep their size. ---------- */
 @media (pointer: coarse) {
   .field:not(.pv-name-in):not(.pv-note-title) { font-size: 16px; }
+  .pv-desc, .pv-val, select.field.pv-plain-select { font-size: 16px; }
 }
 @media (hover: none) and (pointer: coarse) {
   .kb-only, .quick-add-keys { display: none; }

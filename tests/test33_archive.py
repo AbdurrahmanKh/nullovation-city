@@ -201,7 +201,7 @@ with sync_playwright() as p:
     ok('C2 a click opens the archived task in the task panel, to read', pg.is_visible('#pvSide .pv-task-archived') and
        ev("() => document.querySelector('#pvTaskTitle').tagName") == 'H3' and not ev("() => !!document.querySelector('#pvSide input, #pvSide textarea, #pvSide select')"))
     ok('marked in the archive, with the day it was ticked', ev("() => document.querySelector('.pv-arch-state').textContent").startswith('In the archive. Ticked '))
-    ok('with Restore, Back to the archive, Open in Claude (Copy in its panel) and Delete task', all(pg.is_visible(s) for s in ['#pvTaskRestore', '#pvTaskBackArch', '#pvSide .pv-claude-row #pvTaskClaude', '#pvTaskDelete']))
+    ok('with Restore, Back to the archive, Open in Claude (Copy in its panel) and Delete task', all(pg.is_visible(s) for s in ['#pvTaskRestore', '#pvTaskBackArch', '#pvSide .pv-task-foot #pvTaskClaude', '#pvTaskDelete']))
     pg.screenshot(path=str(SHOTS / '332-archived-task.png'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     ok('Esc goes back to the archive, with the task in view', pg.is_visible('#pvSide .pv-archive') and ev("() => document.activeElement.textContent") == 'Draw the beds on a grid')
@@ -224,7 +224,7 @@ with sync_playwright() as p:
     pg.click('.pv-arch-title >> text=Publish the app'); pg.wait_for_timeout(200)
     pg.click('#pvTaskRestore'); pg.wait_for_timeout(300)
     ok('B1 restoring a task of a milestone in the archive brings the milestone back', pg.is_visible('.ms[data-msid="m_launch"]') and rows('m_launch') == ['Publish the app'])
-    ok('Restore in the panel shows the task as it is now, done, with Archive', pg.is_visible('#pvTaskArchive') and ev("() => document.querySelector('#pvTaskTitle').tagName") == 'INPUT')
+    ok('Restore in the panel shows the task as it is now, done, with Archive', pg.is_visible('#pvTaskArchive') and ev("() => document.querySelector('#pvTaskName').tagName") == 'BUTTON')
 
     # by hand from the task panel (A1, h1)
     quiet()

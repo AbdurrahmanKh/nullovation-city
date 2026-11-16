@@ -300,7 +300,7 @@ const QuickAdd = (() => {
     if (FullView.shows(p.id)) FullView.render();
     Sound.task('added', p);
     added(p, t, info);
-    if (open) FullView.openTask(p.id, t.id);
+    if (open) FullView.openTask(p.id, t.id, { write: true });                 // ready for a description
   }
   function added(p, t, info) {
     const acts = [{ label: 'Open', run: () => FullView.openTask(p.id, t.id) }, { label: 'Undo', run: () => undo(p, t, info) }];

@@ -125,7 +125,7 @@ with sync_playwright() as p:
     sec = pg.query_selector('[data-sec="notes"]'); sec.scroll_into_view_if_needed(); pg.wait_for_timeout(200)
     pg.screenshot(path=str(SH / '452-note-cards.png'), clip=sec.bounding_box())
     js(f"() => FullView.openTask('{gp}', getProject('{gp}').todos.find(t => t.text === '{T1}').id)"); pg.wait_for_timeout(500)
-    tl = js("""() => { const s = document.querySelector('#pvSide .pv-tnotes'); return s && { after: !!(document.querySelector('#pvTaskDesc').compareDocumentPosition(s) & 4),
+    tl = js("""() => { const s = document.querySelector('#pvSide .pv-tnotes'); return s && { after: !!(document.querySelector('#pvSide .pv-desc').compareDocumentPosition(s) & 4),
       rows: [...s.querySelectorAll('.pv-tnote')].map(r => [r.querySelector('.pv-tnote-t').textContent, r.classList.contains('by-claude'), !!r.querySelector('.note-ic svg')]), add: !!s.querySelector('#pvTaskAddNote') }; }""")
     ok(f'the task panel lists its notes under the description, newest first, Claude\'s marked, with Add a note (Y1) ({tl})', tl and tl['after'] and tl['add'] and len(tl['rows']) == 4
        and tl['rows'][0][0] == 'Grid of 30 cm' and all(r[1] and r[2] for r in tl['rows']))
@@ -143,24 +143,24 @@ with sync_playwright() as p:
        and [x for x in tnotes(T1) if x['title'] == 'Beds: where it stands'][0]['icon'] == 'book')
     pg.screenshot(path=str(SH / '451-note-icons.png'), clip=pg.query_selector('#pvSide').bounding_box())
     pg.keyboard.press('Escape'); pg.wait_for_timeout(400)
-    ok('Esc undoes it and goes back to the task', [x for x in tnotes(T1) if x['title'] == 'Beds: where it stands'][0]['icon'] == 'sticky' and js("() => !!document.querySelector('#pvSide #pvTaskDesc')"))
+    ok('Esc undoes it and goes back to the task', [x for x in tnotes(T1) if x['title'] == 'Beds: where it stands'][0]['icon'] == 'sticky' and js("() => !!document.querySelector('#pvSide .pv-desc')"))
     pg.click('#pvSide .pv-tnote:has-text("Beds: where it stands")'); pg.wait_for_timeout(300)
     pg.click('#pvSide .pv-note-icon[data-icon="book"]'); pg.wait_for_timeout(200)
     pg.click('#pvNoteBackTask'); pg.wait_for_timeout(400)
     ok('kept on Back to the task: Claude\'s note takes the icon you picked, and it is not work: Updated and Activity stay',
-       [x for x in tnotes(T1) if x['title'] == 'Beds: where it stands'][0]['icon'] == 'book' and js(f"() => getProject('{gp}').updatedAt") == up0 and acts() == a1 and js("() => !!document.querySelector('#pvSide #pvTaskDesc')"))
+       [x for x in tnotes(T1) if x['title'] == 'Beds: where it stands'][0]['icon'] == 'book' and js(f"() => getProject('{gp}').updatedAt") == up0 and acts() == a1 and js("() => !!document.querySelector('#pvSide .pv-desc')"))
     # your own note in the task
     pg.click('#pvTaskAddNote'); pg.wait_for_timeout(300)
     ok('Add a note opens a new note in the task, the focus on its title, the sticky note pressed', js("() => document.activeElement && document.activeElement.id === 'pvNoteTitle'")
        and pg.get_attribute('#pvSide .pv-note-icon[data-icon="sticky"]', 'aria-pressed') == 'true' and pg.text_content('#pvSide .pv-note-task') == T1)
     pg.fill('#pvNoteTitle', 'Ask about the soil'); pg.fill('#pvNoteBody', 'Check the pH first.')
-    pg.click('#pvSide .pv-top .btn-accent'); pg.wait_for_timeout(400)
+    pg.click('#pvSide .pv-top button[aria-label^="Close"]'); pg.wait_for_timeout(400)
     mine = [x for x in tnotes(T1) if x['title'] == 'Ask about the soil']
-    ok(f'Done keeps it in the task, yours, and goes back to the task ({mine})', len(mine) == 1 and mine[0]['by'] is None and js("() => !!document.querySelector('#pvSide #pvTaskDesc')"))
+    ok(f'Done keeps it in the task, yours, and goes back to the task ({mine})', len(mine) == 1 and mine[0]['by'] is None and js("() => !!document.querySelector('#pvSide .pv-desc')"))
     ok(f'with its line in Activity ({acts()[-1]})', acts()[-1] == 'Wrote a note in ' + T1 + ': Ask about the soil')
     pg.click('#pvSide .pv-tnote:has-text("Ask about the soil")'); pg.wait_for_timeout(300)
     pg.click('#pvNoteDelete'); pg.wait_for_timeout(400)
-    ok('Delete note takes it out of the task, back to the task', not any(x['title'] == 'Ask about the soil' for x in tnotes(T1)) and js("() => !!document.querySelector('#pvSide #pvTaskDesc')"))
+    ok('Delete note takes it out of the task, back to the task', not any(x['title'] == 'Ask about the soil' for x in tnotes(T1)) and js("() => !!document.querySelector('#pvSide .pv-desc')"))
     js("() => FullView.close()"); js("() => MapView.deselect()"); pg.wait_for_timeout(300)
 
     # ---------- the copies, the summary, search, saved data ----------

@@ -68,7 +68,7 @@ with sync_playwright() as p:
         reset: document.querySelector('.ld-vreset').hidden, kid: /kid/i.test(v.textContent) }; }""")
     ok(f"the Voice section sits under Leads, across the editor ({lay['order']})", lay['order'].index('ld-voice') == lay['order'].index('ld-leads') + 1 and lay['label'] == 'Voice' and lay['full'])
     ok(f"its picks: Its own, then Male, Female and The city's ({lay['groups']})", lay['groups'] == [['', ['Its own']], ['Male', ['Deep', 'Gruff', 'Warm', 'Steady', 'Bright']], ['Female', ['Low', 'Soft', 'Warm', 'Steady', 'Bright']], ["The city's", ['Gus', 'Proxima', 'Quill']]])
-    ok("a leader with no voice picked has Its own pressed, its greeting as the line, and no Kid anywhere", lay['pressed'] == ['Its own'] and lay['line'].startswith('Welcome back. Next up:') and not lay['kid'])
+    ok("a leader with no voice picked has Its own pressed, its greeting as the line, and no Kid anywhere", lay['pressed'] == ['Its own'] and ' Next up: ' in lay['line'] and not lay['kid'])
     own_hz = BASES[fnv('ld:' + lid) % 7]
     ok(f"the pitch slider, 12 semitones down to 12 up, in the middle at its note ({lay['pitch']})", lay['pitch'] == ['-12', '12', '0', f'{own_hz} Hz'])
     ok('Fine-tune folded, and nothing to go back to', lay['fine'] and lay['fineBtn'] == 'false' and lay['reset'])

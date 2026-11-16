@@ -388,6 +388,7 @@ with sync_playwright() as p:
     evb(f"() => FullView.open('{gp}')"); B.wait_for_timeout(300)
     t3 = evb(f"() => getProject('{gp}').todos[3].id")
     evb(f"() => FullView.openTask('{gp}', '{t3}')"); B.wait_for_timeout(300)
+    B.click('#pvTaskDescView'); B.wait_for_timeout(200)
     ok('on the phone, the task panel is open with the focus in its description', evb("() => document.activeElement && document.activeElement.id === 'pvTaskDesc'"))
     ev(f"() => {{ const p = getProject('{gp}'); p.todos[0].text = 'Draw the beds, renamed'; p.description = 'Plans the garden.'; changed(p); }}")
     A.wait_for_timeout(2500)

@@ -84,7 +84,14 @@ const LEADER_LINES = {
   week: 'Last week we finished {n} tasks. Next up: {task}.',
   week_quiet: 'Quiet week: nothing finished. {task} is a good start.',
   working: 'Claude is working on {task}. Started {ago}.',                       // the status card only
-  greet: 'Welcome back. Next up: {task}.',                                      // the leader card only
+  /* the leader card only: where the building stands, then its next task (General UX, Round 1, P3: "where it stands
+     should be said by the leader"); written at 0.1.86 from the approved "We finished one today, 12 to go. Next up:" */
+  greet_done: 'We finished {count} today, {togo}. Next up: {task}.',          // a task ticked today
+  greet_on: "We're on pace, {togo}. Next up: {task}.",                        // One task per N days, on its pace
+  greet_behind: 'We slipped behind our pace, {togo}. Next up: {task}.',       // yellow, under One task per N days
+  greet_behind_more: "We're falling further behind, {togo}. Next up: {task}.", // red, under One task per N days
+  greet_day: 'Nothing finished here for a day, {togo}. Next up: {task}.',     // red, under Work until finished
+  greet: '{togo}. Next up: {task}.',                                          // no system, or away, and nothing ticked today
   greet_empty: 'Nothing open here yet. Add the next task.',
 };
 /* Quill, the Pocket Wizard (0.1.69, Leader Bubbles, Round 2): the city's voice for wizard rounds, as Gus is for the
@@ -122,10 +129,21 @@ function leaderParts(moment, v = {}) {
 }
 /* The greeting on the leader card, when its building has no news waiting: the next task, pinned or the current
    milestone's first open one, else that nothing is open. */
-function leaderGreeting(p) {
+function leaderGreeting(p, now = Date.now()) {
   const t = nextTask(p);
-  return t ? leaderSay('greet', { task: t.text }) : leaderSay('greet_empty');
+  if (!t) return leaderSay('greet_empty');
+  const open = openTasks(p, now), today = ymd(now);
+  const late = open.filter(x => { const d = dueInfo(x, now); return d && d.diff < 0; }).length;
+  const togo = open.length + ' to go' + (late ? ', ' + late + ' of them overdue' : '');
+  const count = typeof taskTicks === 'function' ? taskTicks([p], now).filter(e => e.day === today).length : 0;
+  const u = urgencyOf(p, now), sys = (p.urgency || {}).system;
+  const moment = count ? 'greet_done'
+    : sys === 'pace' && !awayNow(now) ? (u.system === 'red' ? 'greet_behind_more' : u.system === 'yellow' ? 'greet_behind' : 'greet_on')
+    : sys === 'finish' && u.system === 'red' ? 'greet_day' : 'greet';
+  return leaderSay(moment, { task: t.text, togo, count: countWord(count) });
 }
+/* A small count in words, as the leader says it: one to nine, then the number. */
+const countWord = n => ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'][n] || String(n);
 
 /* A signature color, darker or lighter: f below 0 mixes in black, above 0 white. */
 function shadeHex(hex, f) {

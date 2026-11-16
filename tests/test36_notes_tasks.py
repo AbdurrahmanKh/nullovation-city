@@ -3,7 +3,7 @@ task again. And the project view shows its links above its notes."""
 import json, time
 from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
-from testkit import FILE, SHOTS, TEST_CITY
+from testkit import FILE, SHOTS, TEST_CITY, write_title
 
 errors = []
 def ok(label, cond, got=None): print(('PASS ' if cond else 'FAIL ') + label + ('' if cond or got is None else '  (got ' + repr(got) + ')'))
@@ -28,7 +28,7 @@ with sync_playwright() as p:
     lines = lambda pid=gp: [e['text'] for e in proj(pid)['activity']]
     day = lambda n: (date.today() + timedelta(days=n)).isoformat()
     def done_btn():
-        pg.click('#pvSide .pv-top .btn-accent'); pg.wait_for_timeout(250)
+        pg.click('#pvSide .pv-top button[aria-label^="Close"]'); pg.wait_for_timeout(250)
     def open_view(pid):
         ev(f"() => FullView.open('{pid}')"); pg.wait_for_timeout(500); quiet()
 
@@ -58,11 +58,11 @@ with sync_playwright() as p:
     pg.click(f'li.task[data-id="{tid}"] .task-title'); pg.wait_for_timeout(300)
     ok('the task panel has Turn into a note', pg.is_visible('#pvSide #pvTaskToNote') and pg.text_content('#pvTaskToNote').strip() == 'Turn into a note')
     tn = pg.query_selector('#pvTaskToNote').bounding_box(); dl = pg.query_selector('#pvTaskDelete').bounding_box()
-    ok('at the panel\'s foot, on Delete task\'s row, left of it', abs(tn['y'] - dl['y']) < 2 and tn['x'] + tn['width'] < dl['x'])
+    ok('at the panel\'s foot, over Delete task, on its left edge (0.1.86)', tn['y'] + tn['height'] <= dl['y'] + 1 and abs(tn['x'] - dl['x']) < 2)
     ok('its tooltip says what stays and what goes', 'title and description stay' in pg.get_attribute('#pvTaskToNote', 'title') and 'date, repeat and shift go' in pg.get_attribute('#pvTaskToNote', 'title'))
     ev("() => { const s = document.querySelector('#pvSide'); s.scrollTop = s.scrollHeight; }"); pg.wait_for_timeout(100)
     pg.screenshot(path=str(SHOTS / '361-task-to-note.png'), clip=pg.query_selector('#pvSide').bounding_box())
-    pg.fill('#pvTaskTitle', 'Tune the watering reminders by season'); pg.wait_for_timeout(100)
+    write_title(pg, 'Tune the watering reminders by season'); pg.wait_for_timeout(100)
     t0 = time.time() * 1000
     pg.click('#pvTaskToNote'); pg.wait_for_timeout(450)
     after = proj()
@@ -70,7 +70,7 @@ with sync_playwright() as p:
     ok('the task is gone from the project', tid not in [t['id'] for t in after['todos']] and pg.locator(f'li.task[data-id="{tid}"]').count() == 0)
     ok('a note in its place: the title, as edited in the panel, and the description as its text', note is not None and note['text'] == 'Morning and evening, by the weather.', note)
     ok('written now', note is not None and abs(note['at'] - t0) < 15000)
-    ok('the note opens where the task was, the focus in its text', side_has('#pvNoteBody') and not side_has('#pvTaskTitle') and active() == 'pvNoteBody'
+    ok('the note opens where the task was, the focus in its text', side_has('#pvNoteBody') and not side_has('#pvTaskName') and active() == 'pvNoteBody'
        and pg.input_value('#pvNoteTitle') == 'Tune the watering reminders by season')
     ok('its card shows under Notes, picked', note is not None and pg.locator(f'.pv-note-card.on[data-id="{note["id"]}"]').count() == 1)
     ok('the toast says so, with Undo', toast() == 'Turned Tune the watering reminders by season into a note.' and pg.locator('#toast.show .toast-act').text_content() == 'Undo', toast())
@@ -92,7 +92,7 @@ with sync_playwright() as p:
     ok('and its pin', back['pin'] == tid)
     ok('the note is gone, and so is its line in Activity', not any(n['title'] == 'Tune the watering reminders by season' for n in back['notes'])
        and 'Turned into a note: Tune the watering reminders by season' not in lines())
-    ok('its panel opens again, the focus on Turn into a note', side_has('#pvTaskTitle') and active() == 'pvTaskToNote')
+    ok('its panel opens again, the focus on Turn into a note', side_has('#pvTaskName') and active() == 'pvTaskToNote')
     done_btn(); quiet()
 
     # ---------- a note into a task ----------
@@ -114,7 +114,7 @@ with sync_playwright() as p:
     ok('in the current milestone, at its end, as a task added without @', nt is not None and nt['milestoneId'] == 'm_first' and first[-1]['id'] == nt['id'])
     ok('open, with no date, repeat or shift', nt is not None and not nt['done'] and nt['due'] == '' and 'repeat' not in nt and 'shift' not in nt)
     ok('the note is gone', not any(n['id'] == 'n_seed' for n in after['notes']) and pg.locator('.pv-note-card[data-id="n_seed"]').count() == 0)
-    ok('the task opens where the note was, its row picked in the list', side_has('#pvTaskTitle') and pg.input_value('#pvTaskTitle') == 'A seed library'
+    ok('the task opens where the note was, its row picked in the list', side_has('#pvTaskName') and pg.text_content('#pvTaskName') == 'A seed library'
        and nt is not None and pg.locator(f'li.task.on[data-id="{nt["id"]}"]').count() == 1)
     ok('the toast says where it went, with Undo', toast() == 'Turned A seed library into a task in First release.', toast())
     ok('Activity: "Turned into a task: <title>"', lines()[-1] == 'Turned into a task: A seed library')

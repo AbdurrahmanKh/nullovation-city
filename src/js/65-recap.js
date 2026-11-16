@@ -19,7 +19,7 @@ function projectStatus(p, now = Date.now()) {
   const pr = progressOf(p);
   L.push('## ' + p.name);
   if (leaderLine(p)) L.push(leaderLine(p) + '.');
-  L.push('Progress: ' + pr.pct + '%' + (pr.manual ? ', set manually.' : ' (' + pr.done + ' of ' + pr.total + ' todos done).'));
+  L.push('Progress: ' + pr.pct + '%' + (pr.manual ? ', set manually.' : ' (' + pr.done + ' of ' + pr.total + ' tasks done).'));
   const nx = nextTask(p);
   if (nx) { const d = dueInfo(nx, now); L.push('Next task: ' + nx.text + (d ? ' (' + d.text.toLowerCase() + ')' : '') + '.'); }
   const dl = deadlineInfo(p.deadline, now); if (dl) L.push(dl.text + '.');
@@ -28,14 +28,14 @@ function projectStatus(p, now = Date.now()) {
   const open = openTasks(p, now), waiting = waitingTasks(p, now);
   const msName = id => (p.milestones.find(m => m.id === id) || {}).name;
   if (open.length) {
-    L.push('Open todos:');
+    L.push('Open tasks:');
     for (const t of open.slice(0, 15)) {
       const extra = [msName(t.milestoneId), t.due ? dueInfo(t, now).text : null, t.repeat ? 'repeats ' + repeatText(t.repeat).toLowerCase() : null].filter(Boolean).join(', ');
       L.push('- ' + t.text + (extra ? ' (' + extra + ')' : ''));
       if ((t.description || '').trim()) L.push('  ' + t.description.trim().replace(/\s+/g, ' ').slice(0, 300));
     }
     if (open.length > 15) L.push('- and ' + (open.length - 15) + ' more');
-  } else L.push('No open todos.');
+  } else L.push('No open tasks.');
   if (waiting.length) {
     L.push('Repeats waiting for their next date:');
     for (const t of waiting.slice(0, 15)) L.push('- ' + t.text + ' (' + repeatText(t.repeat).toLowerCase() + ', back ' + backWhen(t, now) + ')');
@@ -79,7 +79,7 @@ function builderCard(p) {
   L.push('');
   L.push('## Project');
   L.push('Name: ' + p.name);
-  L.push('Size signals: ' + [plural(p.todos.length, 'todo', 'todos') + ' (' + open.length + ' open)', plural(p.milestones.length, 'milestone', 'milestones'),
+  L.push('Size signals: ' + [plural(p.todos.length, 'task', 'tasks') + ' (' + open.length + ' open)', plural(p.milestones.length, 'milestone', 'milestones'),
     plural(allNotes(p).length, 'note', 'notes'), plural(p.links.length, 'link', 'links')].join(', '));
   L.push('');
   L.push('## Description');
@@ -91,13 +91,13 @@ function builderCard(p) {
   }
   if (open.length) {
     L.push('');
-    L.push('## Open todos');
+    L.push('## Open tasks');
     for (const t of open.slice(0, 20)) L.push('- ' + clean(t.text));
     if (open.length > 20) L.push('- and ' + (open.length - 20) + ' more');
   }
   if (done.length) {
     L.push('');
-    L.push('## Done todos');
+    L.push('## Done tasks');
     for (const t of done.slice(0, 10)) L.push('- ' + clean(t.text));
     if (done.length > 10) L.push('- and ' + (done.length - 10) + ' more');
   }
