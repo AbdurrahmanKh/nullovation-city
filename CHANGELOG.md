@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.88 (2026-11-17)
+
+Claude Code at work: a building no longer says Claude has finished while a command it started still runs in the background, from the task "Tasks says finished while it is still running long commands".
+- Claude sends a long command, such as the full test run, to the background and ends its reply, then comes back once the command reports. The reply's end used to read as finished, in T3 and in the terminal alike. Now the hook reads the session's transcript when a reply ends, and a command still running makes the session background, not done: each start is a tool result naming its task, each end a task notice with a status, or Claude stopping it.
+- The city shows a session in the background as working: the spark, Claude's drones, the computers' sound, and "Claude is working on <task>" on the card, its start time counting from when the work began. Claude's report on the task waits for the real finish, and so does the finish alert.
+- A command still out has a deadline, its own timeout (30 minutes when none is given, 2 hours at most): once it passes with no word, the building shows the reply it ended on as finished, quietly. A Monitor counts by its own timeout, its events ending nothing.
+- The setup needs to run again once on each PC for the hooks to read the transcript.
+- Tests: test54_claude_background runs the hook on transcripts written as Claude Code writes them (a command reporting as a turn, queued or only in the queue, failed, killed or stopped, a Monitor, two at once, timeouts and their ceiling, a tool's output quoting a notice, a subagent's command, an unreadable line, a 31 MB transcript), then the city: background past working's 20 minutes, the card, the drones, no alert, the deadline passing, and the real finish.
+
 ## 0.1.87 (2026-11-17)
 
 T3 Code: Open in Claude's T3 tile sends a task to T3 Code for real, from T3 Connection, Round 1.

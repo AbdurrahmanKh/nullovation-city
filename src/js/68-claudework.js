@@ -12,7 +12,10 @@ const ClaudeWork = (() => {
   const supported = typeof window.showDirectoryPicker === 'function';
   const HANDLE = 'claudeDir', SEEN_KEY = 'nullovation-city:claudeSeen', EVERY = 3000;
   /* How long each state shows after its last event. Working goes quiet after 20 minutes without a word, since an
-     interrupt (Esc) ends a turn without telling the hooks; finished and failed show until you look, or for 12 hours. */
+     interrupt (Esc) ends a turn without telling the hooks; finished and failed show until you look, or for 12 hours.
+     A reply that ended while a command it started runs on in the background (the hooks' background, 0.1.88) is still
+     work: it shows as working until the command reports and Claude finishes, or until the hooks' until, when the
+     command has run out of time, after which it shows as finished. */
   const LASTS = { working: 20 * 60e3, waiting: 8 * 3600e3, done: 12 * 3600e3, failed: 12 * 3600e3 };
   const RANK = { waiting: 4, working: 3, failed: 2, done: 1 };
   let dir = null, state = supported ? 'off' : 'unsupported', timer = 0, busy = false;
@@ -124,6 +127,7 @@ const ClaudeWork = (() => {
   function heard() {
     if (state !== 'on') return;
     const now = Date.now(), index = folderIndex(), keep = new Set();
+    expire(now);
     for (const { s } of files.values()) {
       if (!s) continue;
       keep.add(s.session);
@@ -143,11 +147,17 @@ const ClaudeWork = (() => {
     const str = v => (typeof v === 'string' ? v : '');
     /* A session that finished and then closed (its last reply kept, since a new prompt clears it) still shows its
        tick until you look: the finish is news either way. Closed in the middle of work, it shows nothing. */
-    const state = str(d.state) === 'ended' && str(d.reply) ? 'done' : str(d.state);
+    const state = str(d.state) === 'ended' && str(d.reply) ? 'done' : str(d.state) === 'background' ? 'working' : str(d.state);
+    const bg = str(d.state) === 'background', until = bg && typeof d.until === 'number' ? d.until : d.at + LASTS.working;
     /* A turn Claude Code starts on its own (a background task's notice) arrives as a prompt in a tag; it is no ask. */
     const ask = /^\s*<[a-z][\w-]*[\s>]/i.test(str(d.ask)) ? '' : str(d.ask);
     return { session: str(d.session), state, ended: str(d.state) === 'ended', at: d.at, since: typeof d.since === 'number' ? d.since : d.at,
-      cwd: str(d.cwd), project: str(d.project), task: str(d.task), ask, reply: str(d.reply) };
+      cwd: str(d.cwd), project: str(d.project), task: str(d.task), ask, reply: str(d.reply), ...(bg ? { bg, until } : {}) };
+  }
+  /* A background command that ran out of time without a word: the reply it ended on is Claude's last, so the session
+     shows as finished from then on. */
+  function expire(now = Date.now()) {
+    for (const { s } of files.values()) if (s && s.bg && s.state === 'working' && now > s.until) s.state = 'done';
   }
 
   /* ---------- which project a session belongs to ---------- */
@@ -179,11 +189,12 @@ const ClaudeWork = (() => {
     const name = s.project.trim().toLowerCase();
     return name ? DB.projects.find(p => p.name.trim().toLowerCase() === name) || null : null;
   }
-  const live = (s, now) => LASTS[s.state] != null && now - s.at <= LASTS[s.state];
+  const live = (s, now) => s.bg && s.state === 'working' ? now <= s.until : LASTS[s.state] != null && now - s.at <= LASTS[s.state];
   /* Groups the sessions by project. Returns whether anything a viewer sees changed. */
   let lastSig = '';
   function place() {
     const now = Date.now(), index = folderIndex(), next = new Map(), lost = [];
+    expire(now);
     lastHeard = 0;
     for (const { s } of files.values()) {
       if (!s) continue;

@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T3 Connection: what the city can use from T3 Code</title>
+<style>
+  :root {
+    --bg: #17142a; --surface: #1E1A30; --panel: #2E2748; --line: #463d68;
+    --ink: #F4EEFF; --ink2: #CFC6EA; --muted: #9D94BD;
+    --teal: #2DB5A9; --gold: #FFD27A; --coral: #F29A74; --lav: #B7A5F0; --sky: #8FD0F7; --pink: #FF8FBF; --red: #FF6B8B;
+    --run: #3987e5; --bgw: #d95926; --ask: #199e70;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  .wrap { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 32px; max-width: 1260px; margin: 0 auto; padding: 28px 24px 80px; }
+  nav { position: sticky; top: 20px; align-self: start; font-size: 13.5px; }
+  nav .t { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; margin-bottom: 8px; }
+  nav a { display: block; color: var(--ink2); text-decoration: none; padding: 4px 8px; border-left: 2px solid var(--line); }
+  nav a:hover { color: var(--gold); border-left-color: var(--gold); }
+  header { border-bottom: 1px solid var(--line); padding-bottom: 18px; margin-bottom: 8px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; }
+  h1 small { display: block; font-size: 14px; color: var(--muted); font-weight: 400; margin-top: 8px; }
+  h2 { font-size: 22px; margin: 44px 0 12px; padding-top: 8px; color: var(--gold); }
+  h3 { font-size: 17px; margin: 28px 0 8px; color: var(--sky); }
+  p, li { color: var(--ink2); }
+  strong, b { color: var(--ink); }
+  a { color: var(--sky); }
+  code { font: 13px/1.4 Consolas, "Cascadia Mono", monospace; background: #120f22; color: #E6DCFF; padding: 1px 5px; border-radius: 4px; border: 1px solid #2c2547; }
+  pre { font: 13px/1.5 Consolas, "Cascadia Mono", monospace; background: #120f22; border: 1px solid #2c2547; border-radius: 8px; padding: 12px 14px; overflow-x: auto; color: #E6DCFF; }
+  .lead { font-size: 16.5px; color: var(--ink); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .card h4 { margin: 0 0 6px; font-size: 14.5px; color: var(--ink); }
+  .card p { margin: 0; font-size: 14px; }
+  .card.good { border-left: 4px solid var(--teal); }
+  .card.warn { border-left: 4px solid var(--gold); }
+  .card.bad { border-left: 4px solid var(--red); }
+  .card.new { border-left: 4px solid var(--pink); }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid #2f2850; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; border-bottom-color: var(--line); }
+  td { color: var(--ink2); }
+  td:first-child { color: var(--ink); }
+  .pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+  .p-yes { background: #164a45; color: #9ff0e6; }
+  .p-no { background: #4d1f30; color: #ffb3c4; }
+  .p-mid { background: #4a3c17; color: #ffe2a3; }
+  .p-tested { background: #1c3a5e; color: #b9dbff; }
+  .p-read { background: #33295a; color: #d9cdff; }
+  .note { background: #241f3c; border: 1px dashed var(--line); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--ink2); }
+  .fig { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 14px 0 6px; position: relative; }
+  .fig svg { width: 100%; height: auto; display: block; }
+  .cap { font-size: 13px; color: var(--muted); margin: 4px 2px 18px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--ink2); margin: 2px 4px 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 14px; height: 10px; border-radius: 3px; display: inline-block; }
+  .tip { position: absolute; pointer-events: none; background: #0f0c1d; border: 1px solid var(--line); color: var(--ink); font-size: 12.5px; padding: 6px 9px; border-radius: 6px; opacity: 0; transition: opacity .1s; max-width: 280px; }
+  .verbatim { color: var(--ink); font-style: italic; }
+  details { margin: 8px 0 16px; }
+  summary { cursor: pointer; color: var(--sky); }
+  ul.tight li { margin: 2px 0; }
+  @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } nav { position: static; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav aria-label="Sections">
+  <div class="t">T3 report</div>
+  <a href="#short">In short</a>
+  <a href="#map">The ways into T3</a>
+  <a href="#cli">The t3 command</a>
+  <a href="#tools">The agent tools (MCP)</a>
+  <a href="#watch">Watching T3</a>
+  <a href="#test">The live test</a>
+  <a href="#send">Sending prompts back</a>
+  <a href="#web">What a web page can reach</a>
+  <a href="#routes">Routes for the city</a>
+  <a href="#terminal">The city as a terminal</a>
+  <a href="#newer">Newer than v0.1.3</a>
+  <a href="#method">How this was found</a>
+</nav>
+
+<main>
+<header>
+  <h1>T3 Connection: what the city can use from T3 Code
+    <small>Nullovation City Hall, task "T3 Connection: Research" · 17 November 2026 · T3 Code (Beta) v0.1.3 on Abdurrahman's PC</small>
+  </h1>
+  <p class="lead">Everything in T3 that can be reached from the command line, and from a web page like the city, for two jobs: watching what goes on in T3 from the city, and sending prompts back. Scope as picked in T3 Connection Research, Round 1: the <code>t3</code> command plus T3's other ways in (its server, its agent tools, its trace), not its database; read-only tests plus one short test thread; the installed version, with what newer releases add.</p>
+</header>
+
+<section id="short">
+<h2>In short</h2>
+<div class="cards">
+  <div class="card good"><h4>The t3 command sees every agent's threads</h4><p><code>t3 thread list --json</code> and <code>t3 thread show --json</code> give each thread's status, agent, model, branch, pull requests, how many answers it waits for, and its latest messages, for any agent, with no sign-in on this PC.</p></div>
+  <div class="card good"><h4>Sending a prompt back works today</h4><p><code>t3 thread send</code> was tested: an idle thread takes it at once ("Sent."), a busy one queues it as its next turn ("Queued.") and nothing is interrupted. The city's T3 helper could run it the way it runs <code>t3 thread start</code>.</p></div>
+  <div class="card warn"><h4>The command is thin; the agent tools are richer</h4><p>The command is a wrapper over T3's agent tools at <code>/mcp</code>. Those can also steer a running turn, restart it, stop it, and answer an agent's question. Approvals can be answered only in T3's window.</p></div>
+  <div class="card warn"><h4>Waiting on you is a count, not a status</h4><p>While the test thread's question was open, its status stayed <code>running</code>; <code>pendingRequestCount</code> went to 1. A watcher has to read the count.</p></div>
+  <div class="card bad"><h4>The command misses background work</h4><p>With a command still running in the background (and the agent asking T3 to wait on it), <code>thread show</code> said <code>completed</code> for 54 seconds. T3's own window knows (<code>pendingBackgroundTasks</code>), but only over its private protocol.</p></div>
+  <div class="card warn"><h4>A web page cannot use the agent tools</h4><p>T3's HTTP routes answer any web page (<code>Access-Control-Allow-Origin: *</code>), but <code>/mcp</code> refuses any request that carries an Origin header, which every browser sends. The city page needs the helper, a watcher, or T3's own WebSocket.</p></div>
+  <div class="card new"><h4>New fact for the build round</h4><p>You decided every agent's threads come to the city only in production, once it is no longer a web app. Three of the routes below would show every agent's threads while the city is still a web app.</p></div>
+  <div class="card warn"><h4>T3 is six releases behind</h4><p>v0.1.4 to v0.1.9 came out between 29 October and 11 November, and 0.1.10 nightlies on 16 November. v0.1.7 changed how questions show ("questions always move a thread out of Working").</p></div>
+</div>
+</section>
+
+<section id="map">
+<h2>The ways into T3</h2>
+<p>T3 Code is a desktop app with a server on this PC at <code>127.0.0.1:3773</code>. Its window talks to the server over a WebSocket; outside agents and the <code>t3</code> command talk to its agent tools at <code>/mcp</code>. The city today sends tasks through its helper, and sees Claude's threads through Claude's hooks, not through T3.</p>
+
+<div class="fig">
+<svg viewBox="0 0 980 470" role="img" aria-labelledby="mapT mapD">
+  <title id="mapT">How the city, the helper and T3 connect</title>
+  <desc id="mapD">Solid arrows are what the city uses today: the send link to the helper, the helper running the t3 command, which calls T3's agent tools; and Claude's hooks writing session files that the city reads. Dashed arrows are possible routes: a watcher on the PC, and the city opening T3's WebSocket directly. A crossed arrow shows that T3's agent tools refuse web pages.</desc>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#CFC6EA"/></marker>
+    <marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFD27A"/></marker>
+    <marker id="ahp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FF8FBF"/></marker>
+  </defs>
+  <style>
+    .bx { fill: #2E2748; stroke: #5b5185; stroke-width: 1.5; }
+    .bt { fill: #F4EEFF; font: 600 14px "Segoe UI", sans-serif; }
+    .bs { fill: #9D94BD; font: 12px "Segoe UI", sans-serif; }
+    .lk { stroke: #CFC6EA; stroke-width: 2; fill: none; }
+    .lg { stroke: #FFD27A; stroke-width: 2; fill: none; stroke-dasharray: 7 5; }
+    .lp { stroke: #FF8FBF; stroke-width: 2; fill: none; stroke-dasharray: 7 5; }
+    .ll { fill: #CFC6EA; font: 12px "Segoe UI", sans-serif; }
+    .lgt { fill: #FFD27A; font: 12px "Segoe UI", sans-serif; }
+    .lpt { fill: #FF8FBF; font: 12px "Segoe UI", sans-serif; }
+  </style>
+  <!-- PC frame -->
+  <rect x="8" y="8" width="964" height="454" rx="14" fill="none" stroke="#3a3260" stroke-dasharray="3 5"/>
+  <text x="22" y="30" class="bs">This PC</text>
+
+  <!-- City -->
+  <rect class="bx" x="30" y="52" width="210" height="76" rx="10" style="stroke:#FFD27A"/>
+  <text class="bt" x="46" y="80">Nullovation City</text>
+  <text class="bs" x="46" y="100">a web page in Chrome or Edge</text>
+  <text class="bs" x="46" y="116">local copy, or the GitHub Pages app</text>
+
+  <!-- Claude folder -->
+  <rect class="bx" x="30" y="232" width="210" height="88" rx="10"/>
+  <text class="bt" x="46" y="260">The Claude folder</text>
+  <text class="bs" x="46" y="280">session files, t3/ sends and answers,</text>
+  <text class="bs" x="46" y="296">inbox/, city/summary.json</text>
+  <text class="bs" x="46" y="312">(the city reads and writes it)</text>
+
+  <!-- Helper -->
+  <rect class="bx" x="330" y="52" width="200" height="76" rx="10"/>
+  <text class="bt" x="346" y="80">The T3 helper</text>
+  <text class="bs" x="346" y="100">Python, run by a click on a</text>
+  <text class="bs" x="346" y="116">nullovation-t3: link</text>
+
+  <!-- Watcher (possible) -->
+  <rect class="bx" x="330" y="232" width="200" height="76" rx="10" style="stroke:#FFD27A;stroke-dasharray:6 4"/>
+  <text class="bt" x="346" y="260">A watcher (possible)</text>
+  <text class="bs" x="346" y="280">a small program left running</text>
+  <text class="bs" x="346" y="296">that writes T3's state to the folder</text>
+
+  <!-- t3 command -->
+  <rect class="bx" x="600" y="52" width="150" height="76" rx="10"/>
+  <text class="bt" x="616" y="80">t3 command</text>
+  <text class="bs" x="616" y="100">thread list, start,</text>
+  <text class="bs" x="616" y="116">send, show</text>
+
+  <!-- T3 server -->
+  <rect class="bx" x="600" y="186" width="350" height="176" rx="12" style="stroke:#2DB5A9"/>
+  <text class="bt" x="616" y="212">T3 server, 127.0.0.1:3773</text>
+  <rect x="616" y="226" width="150" height="38" rx="6" fill="#211c38" stroke="#463d68"/>
+  <text class="bt" x="628" y="243" style="font-size:12.5px">/mcp</text>
+  <text class="bs" x="628" y="257">agent tools, bearer</text>
+  <rect x="784" y="226" width="150" height="38" rx="6" fill="#211c38" stroke="#463d68"/>
+  <text class="bt" x="796" y="243" style="font-size:12.5px">/ws</text>
+  <text class="bs" x="796" y="257">its window's protocol</text>
+  <rect x="616" y="274" width="318" height="38" rx="6" fill="#211c38" stroke="#463d68"/>
+  <text class="bt" x="628" y="291" style="font-size:12.5px">HTTP routes: websocket-ticket, .well-known</text>
+  <text class="bs" x="628" y="305">answer any web page</text>
+  <text class="bs" x="616" y="340">trace file and database in %USERPROFILE%\.t3\userdata</text>
+
+  <!-- Threads -->
+  <rect class="bx" x="600" y="392" width="350" height="54" rx="10"/>
+  <text class="bt" x="616" y="416">Agent threads</text>
+  <text class="bs" x="616" y="434">Claude (on), Codex, Cursor, Grok, OpenCode and more (off)</text>
+
+  <!-- Claude hooks -->
+  <rect class="bx" x="330" y="392" width="200" height="54" rx="10"/>
+  <text class="bt" x="346" y="416">Claude's hooks</text>
+  <text class="bs" x="346" y="434">only Claude threads</text>
+
+  <!-- today: city -> helper -->
+  <path class="lk" d="M240 90 L328 90" marker-end="url(#ah)"/>
+  <text class="ll" x="252" y="82">send link</text>
+  <!-- helper -> t3 -->
+  <path class="lk" d="M530 90 L598 90" marker-end="url(#ah)"/>
+  <!-- t3 -> /mcp -->
+  <path class="lk" d="M675 128 L675 224" marker-end="url(#ah)"/>
+  <!-- server -> threads -->
+  <path class="lk" d="M775 362 L775 390" marker-end="url(#ah)"/>
+  <!-- threads -> hooks -->
+  <path class="lk" d="M600 419 L532 419" marker-end="url(#ah)"/>
+  <!-- hooks -> folder -->
+  <path class="lk" d="M330 419 L135 419 L135 322" marker-end="url(#ah)"/>
+  <text class="ll" x="150" y="410">session files</text>
+  <!-- folder <-> city -->
+  <path class="lk" d="M135 230 L135 130" marker-end="url(#ah)" marker-start="url(#ah)"/>
+  <text class="ll" x="145" y="186">reads every 3 s</text>
+
+  <!-- possible: watcher -->
+  <path class="lg" d="M530 262 L612 248" marker-end="url(#ahg)"/>
+  <path class="lg" d="M330 276 L242 276" marker-end="url(#ahg)"/>
+  <text class="lgt" x="250" y="268">status file</text>
+
+  <!-- possible: city -> /ws direct -->
+  <path class="lp" d="M240 70 C 470 20, 820 20, 858 224" marker-end="url(#ahp)"/>
+  <text class="lpt" x="560" y="34">direct, with a read-only token (not tried from the page)</text>
+
+  <!-- refused: city -> /mcp -->
+  <path d="M240 112 C 420 160, 560 170, 614 232" stroke="#FF6B8B" stroke-width="2" fill="none" stroke-dasharray="2 4"/>
+  <g transform="translate(470 156)"><circle r="11" fill="#4d1f30" stroke="#FF6B8B"/><path d="M-5 -5 L5 5 M5 -5 L-5 5" stroke="#FF6B8B" stroke-width="2.4"/></g>
+  <text x="488" y="146" style="fill:#FF6B8B;font:12px 'Segoe UI',sans-serif">refused: has an Origin</text>
+</svg>
+</div>
+<div class="legend">
+  <span><span class="sw" style="background:#CFC6EA"></span>in use today</span>
+  <span><span class="sw" style="background:#FFD27A"></span>possible: a watcher on the PC</span>
+  <span><span class="sw" style="background:#FF8FBF"></span>possible: the city straight to T3</span>
+  <span><span class="sw" style="background:#FF6B8B"></span>refused by T3</span>
+</div>
+<p class="cap">The paths read in T3's server code and checked with read-only requests on 17 November 2026.</p>
+
+<table>
+  <thead><tr><th>Way in</th><th>What it gives</th><th>Who can use it</th><th>How live</th><th>How stable</th></tr></thead>
+  <tbody>
+    <tr><td><code>t3</code> command</td><td>Threads per project: list, start, send, show. Projects: add, remove, rename. Plus service, trace, update, doctor, pair, auth, connect.</td><td>Anything on this PC that can run a program: the helper, a watcher, Claude Code. Not the page itself.</td><td>Answers when asked</td><td><span class="pill p-yes">Documented</span> in T3's docs (outside-agents.md)</td></tr>
+    <tr><td>Agent tools, <code>/mcp</code></td><td>About 50 tools: thread list, read (messages or every timeline item), send (4 modes), wait, interrupt, pending questions, queue, worktrees, projects, scheduled tasks, agents and models.</td><td>A program with a bearer token and no Origin header. Agents inside T3 threads get them already. Web pages: <span class="pill p-no">refused</span></td><td>Answers when asked; <code>t3_thread_wait</code> holds until a run ends</td><td><span class="pill p-yes">Documented</span> as T3's way for outside agents</td></tr>
+    <tr><td>Its window's protocol, <code>/ws</code></td><td>Everything T3's window shows, pushed as it happens: status, the open question or approval and its kind, the latest message, background tasks, last error, diffs.</td><td>Any client with a ticket from <code>/api/auth/websocket-ticket</code> (bearer token). A web page could, in principle.</td><td><span class="pill p-yes">Live</span>, pushed</td><td><span class="pill p-no">Private</span>: T3 refuses clients on another protocol version (426)</td></tr>
+    <tr><td>HTTP routes</td><td><code>/.well-known/t3/environment</code>: environment id, version, protocol, capabilities. <code>/health</code>.</td><td>Anyone, any web page</td><td>When asked</td><td>Small and plain</td></tr>
+    <tr><td>Trace file</td><td><code>t3 trace summary</code>: counts and timings of the server's work, about 70,000 spans in 30 minutes.</td><td>The PC</td><td>Written as it goes</td><td>Diagnostics only: says nothing per thread</td></tr>
+    <tr><td>T3 Connect</td><td>Reaching this PC from other devices, push notifications and Live Activities to T3's own phone app (<code>t3 connect publish</code>).</td><td>T3's apps on your other devices</td><td><span class="pill p-yes">Live</span></td><td>Off on this PC ("Exposure: disabled"). The phone stays on Copy for now.</td></tr>
+    <tr><td>Scheduled tasks and webhooks</td><td>T3 runs a prompt on a timer, at a time of day, or when a webhook arrives (<code>/api/hooks/:hookId/:token</code>), its body usable in the prompt.</td><td>Set up by an agent (<code>schedule_task</code>); a webhook from outside needs T3 Connect for a public address</td><td>Starts runs; reports nothing out</td><td>Documented in T3's tools</td></tr>
+    <tr><td>Database</td><td><code>statev2.sqlite</code> holds every thread.</td><td colspan="3">Left out, as picked: T3's private format, which any update can change.</td></tr>
+  </tbody>
+</table>
+</section>
+
+<section id="cli">
+<h2>The t3 command, all of it</h2>
+<p><code>%USERPROFILE%\.t3\bin\t3.cmd</code> runs the CLI bundled in the app (<code>T3 Code (Beta).exe</code> as Node). Every <code>thread</code> command reads <code>server-runtime.json</code> for the server's address, gives itself a short full-access session straight from T3's data folder, calls the agent tools at <code>/mcp</code>, and revokes the session at the end. That is why it needs no sign-in on this PC, and why it needs T3 running.</p>
+<table>
+  <thead><tr><th>Command</th><th>What it does</th><th>Use for the city</th></tr></thead>
+  <tbody>
+    <tr><td><code>thread list [--project &lt;id or path&gt;] [--json]</code></td><td>A project's threads, newest first: id, title, status, agent, model, pull requests, settled, snoozed, item count, times. Pages through every thread (100 a page).</td><td><span class="pill p-yes">Watching</span></td></tr>
+    <tr><td><code>thread show &lt;thread&gt; [--messages N] [--json]</code></td><td>One thread's state and its last N user and assistant messages (10 by default): status, active and latest run, branch, worktree, runs, <code>pendingRequestCount</code>, archived, settled, snoozed.</td><td><span class="pill p-yes">Watching</span></td></tr>
+    <tr><td><code>thread start &lt;project&gt; &lt;message or -&gt; [--title] [--provider --model] [--worktree &lt;ref&gt; [--branch]] [--wait] [--json]</code></td><td>Starts a thread; <code>--worktree</code> runs it in a new git worktree; <code>--wait</code> waits and prints the reply, exiting 1 when the run fails and 2 when it waits for an answer.</td><td><span class="pill p-tested">Built</span> (the T3 tile)</td></tr>
+    <tr><td><code>thread send &lt;thread&gt; &lt;message or -&gt; [--wait] [--json]</code></td><td>Sends a message; a busy thread gets it as its next turn. Prints "Sent." or "Queued.", or JSON with <code>runId</code> and <code>delivery</code>.</td><td><span class="pill p-yes">Sending</span></td></tr>
+    <tr><td><code>project add | remove [--force] | rename</code></td><td>Add a folder as a project; remove one (with <code>--force</code>, its threads too); rename.</td><td>Built (add)</td></tr>
+    <tr><td><code>app [path]</code></td><td>Opens a project in the running desktop app.</td><td>Possible: "Open in T3"</td></tr>
+    <tr><td><code>service install | restart | uninstall | status</code></td><td>T3 as a background service. On this PC: "unavailable on this machine, supported on Linux with systemd, macOS with launchd", so T3 runs only while its app is open.</td><td>Note: watching needs the app open</td></tr>
+    <tr><td><code>trace summary [--since 30m] [--limit N]</code></td><td>Counts, rates and timings of the server's spans.</td><td>No</td></tr>
+    <tr><td><code>auth session issue [--scope ...] [--ttl 30d] [--label] [--token-only] [--json]</code>, <code>list</code>, <code>revoke</code></td><td>A bearer token for a client, with only the scopes asked for, such as <code>orchestration:read</code> alone ("A read-only grant holds orchestration:read alone", environment-auth.md).</td><td>The key for a watcher or the city straight to T3</td></tr>
+    <tr><td><code>auth pairing create | list | revoke</code>, <code>pair [--scope] [--ttl] [--tailscale]</code></td><td>One-time pairing links for another device, as a QR code.</td><td>Phone, later</td></tr>
+    <tr><td><code>connect login | link | publish | status | unlink | logout</code></td><td>T3 Connect: reach this PC from your other devices, and push agent activity to T3's phone app.</td><td>Phone, later</td></tr>
+    <tr><td><code>start</code>, <code>serve</code></td><td>Run the server yourself (<code>serve</code> without a browser, printing pairing details); <code>--log-ws-events</code> logs every push.</td><td>No</td></tr>
+    <tr><td><code>update [version] [--channel stable|nightly|preview] [--yes]</code>, <code>uninstall</code>, <code>doctor [--fix] [--dry-run]</code>, <code>triage</code>, <code>theme</code>, <code>browser setup</code></td><td>Upkeep of T3 itself.</td><td>No</td></tr>
+  </tbody>
+</table>
+<p class="note">Thread statuses, from T3's code: <code>idle</code>, <code>preparing</code>, <code>queued</code>, <code>starting</code>, <code>running</code>, <code>waiting</code>, <code>completed</code>, <code>interrupted</code>, <code>failed</code>, <code>cancelled</code>, <code>rolled_back</code>. A thread's status is its active run's, else its latest run's, else idle.</p>
+</section>
+
+<section id="tools">
+<h2>The agent tools (MCP)</h2>
+<p>The tools T3 gives agents in a thread are the same ones it gives outside clients at <code>/mcp</code>. Those that matter here, with T3's own words for them:</p>
+<table>
+  <thead><tr><th>Tool</th><th>T3's description</th></tr></thead>
+  <tbody>
+    <tr><td><code>t3_thread_list</code></td><td class="verbatim">"List threads in a project, newest first. Omit `projectId` for yours. Filter by status, title, settled, or snoozed. Page with the cursor."</td></tr>
+    <tr><td><code>t3_thread_read</code></td><td class="verbatim">"Read any thread by id. `messages` (default): user and assistant messages and plans. `activity`: all timeline items."</td></tr>
+    <tr><td><code>t3_thread_send</code></td><td class="verbatim">"Send a message to any thread. ... `mode:'auto'` starts an idle thread, steers a running turn, or queues. `queue`: new turn. `steer`: mid-turn update. `restart`: interrupt and restart."</td></tr>
+    <tr><td><code>t3_thread_wait</code></td><td class="verbatim">"Wait for a thread's run to finish. No `runId`: latest. Idle: at once."</td></tr>
+    <tr><td><code>t3_thread_interrupt</code></td><td class="verbatim">"Interrupt a top-level thread's running turn. No `runId`: newest running turn. No effect when idle."</td></tr>
+    <tr><td><code>t3_pending_request</code></td><td class="verbatim">"Pending user questions in a thread. ... list: their ids; approvals are not listed. read: one by `requestId`. respond: answer one with `answers`; this cannot approve a permission request."</td></tr>
+    <tr><td><code>t3_queue</code></td><td class="verbatim">"Manage a thread's queued messages. ... list ... read ... edit ... cancel ... reorder ... promote_to_steer"</td></tr>
+    <tr><td><code>t3_background_wait</code></td><td class="verbatim">"Keep this thread in Working while background work runs. Pass its task ID after starting it. ... Does not stop the task. Claude only."</td></tr>
+    <tr><td><code>orchestrator_capabilities</code></td><td>Lists every agent and its models, and which are on. On this PC: Claude on (Opus, Sonnet and Haiku 5.5); Codex not installed; Cursor, Grok, OpenCode, Antigravity, fx, Muse Code and Pi off. The city's T3 agent list is kept by hand because the command cannot list agents; this tool can.</td></tr>
+    <tr><td><code>t3_project_list</code>, <code>t3_worktree_list</code>, <code>t3_worktree_status</code>, <code>schedule_task</code></td><td>Projects, worktrees, and T3's repeats (interval, a time of day, or a webhook).</td></tr>
+  </tbody>
+</table>
+<p class="note">Some tools work only inside a thread ("Calling them from outside returns an error", outside-agents.md); <code>t3_background_wait</code> and <code>t3_pending_request</code> without a thread id are among them. The list and read tools take a thread id and work from outside: the <code>t3</code> command uses them.</p>
+</section>
+
+<section id="watch">
+<h2>Watching T3</h2>
+
+<h3>Whether a thread is working, waiting for you, or done</h3>
+<ul>
+  <li><b>From the command or the tools:</b> <code>status</code> on every thread, for every agent. <code>t3_thread_list</code> filters by status, so "everything running" is one call per project. There is no call for every project at once in the command; the tools page through projects with <code>t3_project_list</code>.</li>
+  <li><b>From T3's window protocol:</b> the same status, pushed as it changes, plus the open request, the latest visible message, background tasks and the last error on each thread.</li>
+  <li><b>From Claude's hooks (today):</b> working, waiting, done, failed and, since 0.1.88, background, for Claude only. Other agents run no Claude hooks.</li>
+</ul>
+
+<h3>A thread's latest messages</h3>
+<p><code>t3 thread show &lt;id&gt; --messages 3 --json</code> gives the last three user and assistant messages whole. <code>t3_thread_read</code> with <code>view: "activity"</code> gives every timeline item: thinking, commands with their output, tool calls, questions, checkpoints, each with its run, status and time, paged and cut to a size asked for. Thread links come as <code>t3-thread://v1/&lt;id&gt;</code>.</p>
+
+<h3>Questions and approvals waiting on you</h3>
+<ul>
+  <li><b>Tested:</b> while the agent's question (Claude's AskUserQuestion) was open, <code>thread show</code> said <code>running</code> with <code>pendingRequestCount: 1</code>. The status <code>waiting</code> never showed. So the count is the signal, and the command does not say whether it is a question or an approval.</li>
+  <li><b>The kinds,</b> in T3's code: <code>command</code>, <code>file-read</code>, <code>file-change</code>, <code>mcp-elicitation</code> and <code>permission</code> (approvals), <code>user_input</code> (questions), <code>dynamic_tool_call</code>, <code>auth_refresh</code>. T3's window protocol names the open one's kind and whether it blocks the run.</li>
+  <li><b>Newer T3:</b> v0.1.7 says "fix(clients): questions always move a thread out of Working". Worth testing again after an update.</li>
+  <li><b>With <code>--wait</code>,</b> start and send exit 2 when the agent waits for an answer.</li>
+</ul>
+
+<h3>Long commands still running in the background</h3>
+<ul>
+  <li><b>Tested:</b> a run ends when the agent's reply ends, even with a command still running in the background and the agent having called <code>t3_background_wait</code> on it. For 54 seconds <code>thread show</code> said <code>completed</code> while <code>sleep 60</code> ran.</li>
+  <li><b>T3 does know.</b> After the run settles, T3 works out each thread's <code>pendingBackgroundTasks</code> (commands, monitors, subagents, pull request watches; awaited or not) and sends it to its window. It is not in the command's or the tools' answers.</li>
+  <li><b>T3 wakes the thread</b> when the command ends: a new run started by itself (runs 4 and 5 in the test), so the reply that follows is a real finish.</li>
+  <li><b>For the open task</b> "Tasks says finished while it is still running long commands": the city's 0.1.88 hook reads Claude's transcript for commands still out, which covers Claude in T3 and in the terminal alike. T3's own <code>pendingBackgroundTasks</code> would be a second source, for every agent, but only over the window protocol.</li>
+</ul>
+
+<h3>Mentioned only</h3>
+<table>
+  <thead><tr><th>Signal</th><th>Where it is</th></tr></thead>
+  <tbody>
+    <tr><td>Errors and failed turns</td><td>Run statuses <code>failed</code>, <code>interrupted</code>, <code>cancelled</code> in the command; the thread's <code>lastError</code>, its class and code, and <code>usageLimitResetAt</code> in the window protocol.</td></tr>
+    <tr><td>Files changed and the diff</td><td><code>orchestration.getTurnDiff</code> and <code>getFullThreadDiff</code> in the window protocol; nothing in the command.</td></tr>
+    <tr><td>Tokens and cost</td><td>T3 keeps usage (<code>usage-model-rates.json</code> and a usage cache in its data folder) and shows it in its window. Not found in the command or the tools.</td></tr>
+    <tr><td>Branches, worktrees and pull requests</td><td><code>branch</code>, <code>worktreePath</code>, <code>pullRequests</code> and <code>linkedPullRequest</code> on every thread in the command; <code>t3_worktree_list</code> and <code>t3_worktree_status</code> in the tools. A worktree is a second copy of the repository in its own folder, on its own branch, so an agent can work there without touching the main folder.</td></tr>
+  </tbody>
+</table>
+</section>
+
+<section id="test">
+<h2>The live test</h2>
+<p>One short thread on Claude Haiku 5.5, in a scratch folder added to T3 as a project for the test, then deleted with its thread. Three steps: start a 75 second command in the background and wait on it with <code>t3_background_wait</code>; a follow-up sent while that ran, asking a question; then, on the idle thread, a 60 second command in the background. The thread's state was read with <code>t3 thread show --json</code> every 6 to 7 seconds.</p>
+
+<div class="legend" aria-hidden="true">
+  <span><span class="sw" style="background:var(--run)"></span>a run (an agent turn)</span>
+  <span><span class="sw" style="background:var(--bgw)"></span>a command in the background</span>
+  <span><span class="sw" style="background:var(--ask)"></span>a question waiting on you</span>
+  <span><span class="sw" style="background:#3a3458;border:1px solid #6d6496"></span>what t3 thread show said</span>
+</div>
+<div class="fig" id="tl">
+<svg viewBox="0 0 980 330" role="img" aria-labelledby="tlT tlD">
+  <title id="tlT">The test thread, second by second</title>
+  <desc id="tlD">Timeline from 03:01:59 to 03:04:40. Run 1 lasted 9 seconds while a 75 second background command ran on to 03:03:19. Run 2, the queued follow-up, started the moment run 1 ended; its question was open from about 03:02:12 to 03:02:30 while the command reported running. Runs 3 and 4 came at 03:03:14 to 03:03:25. A 60 second background command ran from about 03:03:17 to 03:04:19, while the command reported completed. Run 5 woke at 03:04:19 and replied Done.</desc>
+  <g id="tlg"></g>
+</svg>
+<div class="tip" id="tltip"></div>
+</div>
+<p class="cap">Times are from the poll, so a bar's ends are within about 6 seconds, except runs 1 and 2, whose times T3 recorded. Hover a bar for its details; the table under it has the same.</p>
+
+<details>
+<summary>The test as a table</summary>
+<table>
+  <thead><tr><th>Time</th><th>What happened</th><th>What <code>thread show</code> said</th></tr></thead>
+  <tbody>
+    <tr><td>03:01:59</td><td>Thread started (run 1). <code>sleep 75</code> went to the background at 03:02:04; <code>t3_background_wait</code> matched its task at 03:02:07.</td><td>running</td></tr>
+    <tr><td>03:02:07</td><td>Follow-up sent while busy: <code>"delivery":"queued"</code>, its own run 2.</td><td>running</td></tr>
+    <tr><td>03:02:09</td><td>Run 1 ended ("Started."), the background command still running; run 2 began 0.1 s later.</td><td>running</td></tr>
+    <tr><td>03:02:12 to 03:02:25</td><td>Run 2's question open ("Pick a color", Red or Blue).</td><td>running, pendingRequestCount 1</td></tr>
+    <tr><td>03:02:30</td><td>The question was answered Red in T3 (not by this research), and the agent replied "Red".</td><td>completed at 03:02:32</td></tr>
+    <tr><td>03:03:14</td><td>Step 3 sent to the idle thread: "Sent." Run 3 started <code>sleep 60</code> in the background.</td><td>running at 03:03:19</td></tr>
+    <tr><td>about 03:03:19</td><td><code>sleep 75</code> ended; T3 woke the thread (run 4), which said it was still waiting on the other one.</td><td>completed at 03:03:25</td></tr>
+    <tr><td>03:03:25 to 03:04:12</td><td><code>sleep 60</code> running, awaited.</td><td><b>completed</b>, eight polls in a row</td></tr>
+    <tr><td>about 03:04:19</td><td><code>sleep 60</code> ended; T3 woke the thread (run 5), which replied "Done."</td><td>running, then completed at 03:04:26</td></tr>
+  </tbody>
+</table>
+</details>
+</section>
+
+<section id="send">
+<h2>Sending prompts back</h2>
+<table>
+  <thead><tr><th>Action</th><th>How</th><th>From where</th><th>Found</th></tr></thead>
+  <tbody>
+    <tr><td>Send a follow-up</td><td><code>t3 thread send &lt;id&gt; -</code>, the message on its input; queues on a busy thread, never interrupts</td><td>The helper, as sends work today: a link names a file the city wrote</td><td><span class="pill p-tested">Tested</span></td></tr>
+    <tr><td>Steer a running turn, or restart it</td><td><code>t3_thread_send</code> with <code>mode: "steer"</code> (a mid-turn update) or <code>"restart"</code> (interrupt and restart); <code>"auto"</code> picks</td><td>A program with a token (the helper could)</td><td><span class="pill p-read">Read in T3</span></td></tr>
+    <tr><td>Change or cancel a queued message</td><td><code>t3_queue</code>: edit, cancel, reorder, send it now as steering</td><td>A program with a token</td><td><span class="pill p-read">Read in T3</span></td></tr>
+    <tr><td>Answer an agent's question</td><td><code>t3_pending_request</code>, <code>respond</code> with the answers; the question's id and options come from <code>read</code></td><td>A program with a token</td><td><span class="pill p-read">Read in T3</span>; not tried, the test's question was answered in T3 first</td></tr>
+    <tr><td>Approve a command or a file change</td><td>Not in the command or the tools ("this cannot approve a permission request"); T3's window, or its window protocol</td><td>T3's window</td><td><span class="pill p-read">Read in T3</span></td></tr>
+    <tr><td>Stop a thread</td><td><code>t3_thread_interrupt</code>; no effect when idle</td><td>A program with a token</td><td><span class="pill p-read">Read in T3</span></td></tr>
+    <tr><td>Start a thread</td><td><code>t3 thread start</code>, with <code>--worktree</code> and <code>--branch</code> for a new worktree</td><td>The helper</td><td><span class="pill p-tested">Built</span></td></tr>
+  </tbody>
+</table>
+<p class="note">How the helper would get a token for the tools: <code>t3 auth session issue --scope orchestration:read --scope orchestration:operate --ttl 1h --token-only</code>, then calls to <code>http://127.0.0.1:3773/mcp</code> with <code>Authorization: Bearer</code> and no Origin header, as the <code>t3</code> command itself does.</p>
+</section>
+
+<section id="web">
+<h2>What a web page can reach</h2>
+<p>Read-only requests on 17 November 2026, each sent with <code>Origin: https://abdurrahmankh.github.io</code>, the GitHub Pages city's address:</p>
+<table>
+  <thead><tr><th>Request</th><th>Answer</th><th>What it means</th></tr></thead>
+  <tbody>
+    <tr><td><code>GET /.well-known/t3/environment</code></td><td>200, <code>access-control-allow-origin: *</code>, JSON with <code>serverVersion</code> 0.1.3, <code>orchestrationProtocolVersion</code> 2 and capabilities</td><td>The city can tell whether T3 is open, and its version, with no token</td></tr>
+    <tr><td><code>GET /mcp</code></td><td>401 <code>invalid_mcp_credential</code>, <code>access-control-allow-origin: *</code></td><td>Needs a token</td></tr>
+    <tr><td><code>OPTIONS /mcp</code></td><td>204, allows <code>authorization</code>, <code>content-type</code>, <code>dpop</code>, <code>x-t3-orchestration-protocol</code></td><td>The browser would let the request go, but</td></tr>
+    <tr><td>Any <code>/mcp</code> request with an Origin header</td><td>T3's code: "Requests with an `Origin` header are rejected unless the exact origin appears in `allowedOrigins`; Origin-less non-browser clients remain valid."</td><td><span class="pill p-no">Closed</span> to the city page</td></tr>
+    <tr><td><code>POST /api/auth/websocket-ticket</code>, then <code>/ws?wsTicket=</code></td><td>The ticket route takes a bearer token; the WebSocket checks the ticket, with no origin check for bearer clients (browser cookies must come from T3's own address)</td><td><span class="pill p-mid">Open in principle</span>, not tried from the page</td></tr>
+    <tr><td>The local file copy (<code>Origin: null</code>)</td><td>200, <code>access-control-allow-origin: *</code></td><td>Same answers</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><b>Chrome's Local Network Access:</b> since Chrome 142 a website asks your permission once before it reaches apps on this computer, such as T3 at 127.0.0.1 (<a href="https://developer.chrome.com/blog/local-network-access">Chrome</a>). The GitHub Pages city would ask once; how a page opened as a file is treated was not tried.</li>
+  <li><b>A token in the page:</b> the city straight to T3 means a T3 token in the browser's storage. With <code>orchestration:read</code> alone it can read threads and nothing else. The GitHub Pages city shares its address, and so its storage, with the wizard's app.</li>
+  <li><b>Links need a click:</b> the city's <code>nullovation-t3:</code> links go while a click still counts as yours, so the helper runs on a click, never on a timer.</li>
+</ul>
+</section>
+
+<section id="routes">
+<h2>Routes for the city</h2>
+<p>What the city could build on, for watching and sending. What gets built is for the decision round that comes with this report.</p>
+<table>
+  <thead><tr><th>Route</th><th>What the city would see</th><th>Agents</th><th>Live</th><th>Needs</th><th>Weak spots</th></tr></thead>
+  <tbody>
+    <tr><td><b>A. Claude's hooks</b> (today)</td><td>Working, waiting, done, failed, background; the task, the last reply</td><td>Claude only</td><td><span class="pill p-yes">Yes</span>, every 3 s</td><td>Nothing new</td><td>No other agent; no messages beyond the reply's start; no thread id</td></tr>
+    <tr><td><b>B. The helper, on a click</b></td><td>A building's T3 threads: status, waiting count, latest messages, branch, pull requests</td><td>Every agent</td><td><span class="pill p-no">No</span>, when you click</td><td>A new link kind, like <code>nullovation-t3:look/&lt;id&gt;</code>, and the helper running <code>thread list</code> and <code>show</code></td><td>Misses background work; a snapshot only</td></tr>
+    <tr><td><b>C. A watcher on the PC</b></td><td>The same as B, or with the tools, also open questions and their text; written to the Claude folder every few seconds, as the hooks write</td><td>Every agent</td><td><span class="pill p-yes">Yes</span>, a few seconds</td><td>A program left running while T3 is open, started with Windows or by the city's setup</td><td>Something running in the background, which the send setup avoided; misses background work unless it reads the window protocol</td></tr>
+    <tr><td><b>D. The city straight to T3</b></td><td>Everything T3's window sees, as it happens: status, the open request and its kind, latest message, background tasks, errors</td><td>Every agent</td><td><span class="pill p-yes">Yes</span>, pushed</td><td>A read-only token made once and pasted in Settings; Chrome's permission once</td><td>T3's private protocol, changed by any release; a token in the page; not tried from the page</td></tr>
+    <tr><td><b>Sending, through the helper</b></td><td>Follow-ups from the city (tested by command); with a token, steer, stop and answering questions</td><td>Every agent</td><td>On a click</td><td>New link kinds beside <code>send</code></td><td>Approvals only in T3's window</td></tr>
+  </tbody>
+</table>
+<p class="note">You decided the city shows only what Claude's hooks report for now, and every agent's threads once it is no longer a web app (T3 Connection, Round 1, C1). Routes B, C and D would show every agent's threads while it is still a web app. Today only Claude is turned on in your T3, so for now they would show the same agent the hooks do, with more about each thread.</p>
+</section>
+
+<section id="terminal">
+<h2>The city as a terminal</h2>
+<p>For the task "Nullovation city as my terminal": working with agents from the city instead of switching to T3's window. What it needs, and the T3 piece for each:</p>
+<table>
+  <thead><tr><th>Needs</th><th>From T3</th><th>Reachable by</th></tr></thead>
+  <tbody>
+    <tr><td>Follow a whole conversation</td><td><code>t3_thread_read</code>, <code>activity</code> view, paged with <code>afterPosition</code>; long text continued with <code>textOffset</code></td><td>Helper or watcher (tools)</td></tr>
+    <tr><td>Live, as the agent writes</td><td><code>orchestration.subscribeThread</code> in the window protocol; the tools only answer when asked</td><td>Route D</td></tr>
+    <tr><td>Send, steer, restart, stop</td><td><code>t3_thread_send</code> modes, <code>t3_thread_interrupt</code></td><td>Helper (tools)</td></tr>
+    <tr><td>Answer questions</td><td><code>t3_pending_request</code> respond</td><td>Helper (tools)</td></tr>
+    <tr><td>Approve commands and edits</td><td>Only T3's window or its window protocol</td><td>Route D, or T3's window</td></tr>
+    <tr><td>Attach files</td><td><code>t3_attachment_prepare_upload</code>, then <code>t3_thread_send_attachments</code></td><td>Helper (tools)</td></tr>
+    <tr><td>Show T3's own window inside the city</td><td>T3 serves its window at <code>127.0.0.1:3773</code> with no header that forbids framing (checked 17 November)</td><td>A frame in the city; whether its sign-in works inside another page was not tried</td></tr>
+  </tbody>
+</table>
+<p>Also in T3 since v0.1.3: <span class="verbatim">"share a thread with a guest who watches live and sends messages you approve"</span>, and since v0.1.8 <span class="verbatim">"use T3 Code in another app (MCP)"</span>. The brainstorm "City as My Terminal, Brainstorm 1" is attached to that task, waiting for your answers.</p>
+</section>
+
+<section id="newer">
+<h2>Newer than v0.1.3</h2>
+<p>The installed v0.1.3 came out on 27 October 2026. Since then, from T3's releases on GitHub: v0.1.4 and v0.1.5 (29 October), v0.1.6 (31 October), v0.1.7 (4 November), v0.1.8 (9 November), v0.1.9 (11 November), and 0.1.10 nightlies up to 16 November. Lines that touch this research, word for word:</p>
+<table>
+  <thead><tr><th>Version</th><th>Release notes</th></tr></thead>
+  <tbody>
+    <tr><td>v0.1.4</td><td>"feat(web): pending approvals show on their timeline row" · "fix(server): outside MCP clients get thread links they can open" · "feat(server): t3_thread_launch takes clientRequestId" · "fix(server): Claude background-task wakes start when the queue is held"</td></tr>
+    <tr><td>v0.1.6</td><td>"feat(cli): t3 up asks how your other devices reach this machine" · "perf(cli): thread show reads only the end of long threads" · "fix(server): empty MCP status filters no longer hide threads" · "fix(server): HEAD webhook probes no longer start agent runs"</td></tr>
+    <tr><td>v0.1.7</td><td>"fix(clients): questions always move a thread out of Working" · "fix(server): an open question stays in the thread window, so its answer panel shows" · "fix(server): delegated tasks finish even when the child leaves a watcher running" · "fix(claude): a background-task wake run no longer hangs after a user turn absorbed its wake" · "fix(server): Claude subagents left by a stopped process no longer stay Running"</td></tr>
+    <tr><td>v0.1.8</td><td>"feat(web,server): use T3 Code in another app (MCP)" · "fix(server): phones get the approval push when a subagent waits" · "fix(client): finishing a long background thread no longer freezes the app"</td></tr>
+    <tr><td>v0.1.9</td><td>"fix(server): a t3 thread send to a finished delegated child notifies its parent" · "fix(server): Claude turns whose CLI exits before its first frame fail instead of running forever" · "fix(web): notify when a new request replaces the pending one in a run"</td></tr>
+    <tr><td>0.1.10 nightly</td><td>"fix(server): work a dead provider process was running no longer stays Running"</td></tr>
+  </tbody>
+</table>
+<p>T3's docs on GitHub also name commands v0.1.3 does not have, among them <code>t3 up</code>, <code>t3 status --json</code> and <code>t3 auth connect-device</code>. <code>t3 update</code> moves to the newest stable release; T3 runs only while its app is open on this PC, since its background service is not available on Windows.</p>
+</section>
+
+<section id="method">
+<h2>How this was found</h2>
+<ul class="tight">
+  <li><b>The command's own help,</b> every command and subcommand, on this PC.</li>
+  <li><b>T3's server code,</b> read in the app's bundle (<code>resources\server.asar</code>, <code>apps/server/dist</code>): the routes, the agent tools and their descriptions, the statuses, the origin rule, the WebSocket's checks, the background work. Read only; nothing in T3 was changed.</li>
+  <li><b>Read-only requests</b> to <code>127.0.0.1:3773</code>, <code>t3 thread list</code> and <code>show</code>, <code>t3 service status</code>, <code>t3 trace summary</code>, <code>t3 connect status</code>.</li>
+  <li><b>One test thread</b> on Claude Haiku 5.5, in a scratch project made for it; the project and its thread were deleted afterwards (<code>t3_project_delete</code>), and the scratch folder removed.</li>
+  <li><b>T3's docs and releases:</b>
+    <a href="https://github.com/pingdotgg/t3code/blob/main/docs/README.md">docs</a>,
+    <a href="https://github.com/pingdotgg/t3code/blob/main/docs/user/outside-agents.md">outside agents</a>,
+    <a href="https://github.com/pingdotgg/t3code/blob/main/docs/user/remote-access.md">remote access</a>,
+    <a href="https://github.com/pingdotgg/t3code/blob/main/docs/internals/environment-auth.md">environment auth</a>,
+    <a href="https://github.com/pingdotgg/t3code/blob/main/docs/internals/overview.md">overview</a>,
+    <a href="https://github.com/pingdotgg/t3code/releases">releases</a>. The Mintlify mirror of the docs is gone (410).</li>
+  <li><b>Not tried:</b> the city page opening T3's WebSocket; answering a question from outside; a T3 window inside a frame; anything on v0.1.4 or later.</li>
+</ul>
+</section>
+</main>
+</div>
+
+<script>
+(function () {
+  // The live test, in seconds from 03:01:59 (T0).
+  var T0 = 0, T1 = 165;
+  var rows = [
+    { label: 'Runs', y: 0 },
+    { label: 'Background', y: 1 },
+    { label: 'Question', y: 2 },
+    { label: 'thread show', y: 3 }
+  ];
+  var bars = [
+    { r: 0, a: 0.8, b: 10.1, c: 'var(--run)', t: 'Run 1', d: 'Run 1: 03:01:59.8 to 03:02:09.1. Started the background command, replied "Started."' },
+    { r: 0, a: 10.2, b: 32.7, c: 'var(--run)', t: 'Run 2', d: 'Run 2: the follow-up queued at 03:02:07.9; ran 03:02:09.2 to 03:02:31.7.' },
+    { r: 0, a: 76, b: 81, c: 'var(--run)', t: '3', d: 'Run 3: step 3, sent 03:03:14 to the idle thread ("Sent."). About 03:03:15 to 03:03:20.' },
+    { r: 0, a: 81.5, b: 86, c: 'var(--run)', t: '4', d: 'Run 4: T3 woke the thread when sleep 75 ended. Done by 03:03:25.' },
+    { r: 0, a: 140, b: 147, c: 'var(--run)', t: '5', d: 'Run 5: T3 woke the thread when sleep 60 ended; replied "Done." by 03:04:26.' },
+    { r: 1, a: 5, b: 80, c: 'var(--bgw)', t: 'sleep 75', d: 'sleep 75 in the background, 03:02:04 to about 03:03:19, awaited with t3_background_wait. Run 1 ended at 03:02:09 regardless.' },
+    { r: 1, a: 80, b: 140, c: 'var(--bgw)', t: 'sleep 60', d: 'sleep 60 in the background, about 03:03:17 to 03:04:19, awaited with t3_background_wait.' },
+    { r: 2, a: 13, b: 31, c: 'var(--ask)', t: 'open', d: 'The question, seen from 03:02:12; answered Red in T3 at 03:02:30. thread show said running, pendingRequestCount 1.' },
+    { r: 3, a: 0, b: 33, c: '#3a3458', t: 'running', d: 'thread show: running (the 1 second between runs 1 and 2 was not seen).', k: 1 },
+    { r: 3, a: 33, b: 76, c: '#262140', t: 'completed', d: 'thread show: completed. Idle, nothing running.', k: 1 },
+    { r: 3, a: 76, b: 86, c: '#3a3458', t: '', d: 'thread show: running, runs 3 and 4.', k: 1 },
+    { r: 3, a: 86, b: 140, c: '#262140', t: 'completed, while sleep 60 runs', d: 'thread show: completed for 8 polls in a row, 03:03:25 to 03:04:12, while sleep 60 still ran.', k: 1, hi: 1 },
+    { r: 3, a: 140, b: 147, c: '#3a3458', t: '', d: 'thread show: running, run 5.', k: 1 },
+    { r: 3, a: 147, b: 162, c: '#262140', t: '', d: 'thread show: completed.', k: 1 }
+  ];
+  var L = 120, R = 965, top = 22, rowH = 62, barH = 30;
+  var g = document.getElementById('tlg'), NS = 'http://www.w3.org/2000/svg';
+  function x(s) { return L + (s - T0) / (T1 - T0) * (R - L); }
+  function el(n, at, txt) { var e = document.createElementNS(NS, n); for (var k in at) e.setAttribute(k, at[k]); if (txt) e.textContent = txt; g.appendChild(e); return e; }
+  // grid, every 30 s
+  var ticks = [[1, '03:02:00'], [31, '03:02:30'], [61, '03:03:00'], [91, '03:03:30'], [121, '03:04:00'], [151, '03:04:30']];
+  ticks.forEach(function (t) {
+    el('line', { x1: x(t[0]), x2: x(t[0]), y1: top - 6, y2: top + rowH * 4 - 10, stroke: '#2f2850', 'stroke-width': 1 });
+    el('text', { x: x(t[0]), y: top + rowH * 4 + 8, fill: '#9D94BD', 'font-size': 12, 'text-anchor': 'middle', 'font-family': 'Segoe UI, sans-serif' }, t[1]);
+  });
+  rows.forEach(function (r) {
+    el('text', { x: L - 12, y: top + r.y * rowH + barH / 2 + 5, fill: '#CFC6EA', 'font-size': 13, 'text-anchor': 'end', 'font-family': 'Segoe UI, sans-serif' }, r.label);
+  });
+  var tip = document.getElementById('tltip'), fig = document.getElementById('tl');
+  bars.forEach(function (b) {
+    var y = top + b.r * rowH, w = Math.max(3, x(b.b) - x(b.a) - 2);
+    var rect = el('rect', { x: x(b.a) + 1, y: y, width: w, height: barH, rx: 4, fill: b.c, stroke: b.k ? (b.hi ? '#FF6B8B' : '#6d6496') : '#1E1A30', 'stroke-width': b.hi ? 2 : (b.k ? 1 : 2) });
+    if (b.t && w > 26) el('text', { x: x(b.a) + 8, y: y + barH / 2 + 5, fill: b.k ? (b.hi ? '#FFB3C4' : '#CFC6EA') : '#ffffff', 'font-size': 12.5, 'font-weight': 600, 'font-family': 'Segoe UI, sans-serif', 'pointer-events': 'none' }, b.t);
+    var hit = el('rect', { x: x(b.a), y: y - 8, width: Math.max(14, x(b.b) - x(b.a)), height: barH + 16, fill: 'transparent' });
+    hit.style.cursor = 'default';
+    hit.addEventListener('mousemove', function (ev) {
+      var box = fig.getBoundingClientRect();
+      tip.textContent = b.d; tip.style.opacity = 1;
+      var lx = ev.clientX - box.left + 14, ly = ev.clientY - box.top + 14;
+      if (lx > box.width - 290) lx = ev.clientX - box.left - 290;
+      tip.style.left = lx + 'px'; tip.style.top = ly + 'px';
+      rect.setAttribute('opacity', 0.85);
+    });
+    hit.addEventListener('mouseleave', function () { tip.style.opacity = 0; rect.setAttribute('opacity', 1); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -29,15 +29,18 @@ block or change anything Claude does: they only write the files. Nothing leaves 
 
 Each file is <session id>.json:
     state    working, waiting (a permission or a question for you), done (your turn), failed (an API error),
+             background (a reply ended while a command it started still runs, so Claude comes back to it),
              idle (no longer working, such as after an interrupt) or ended (the session closed)
+    until    while background, when the last of those commands runs out of time, in milliseconds
     cwd      the folder Claude Code runs in; the city matches it to a project's folder links
     project  the "Project:" line of a copy from the city, when the prompt was one
     task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session
     ask      the first line of the latest prompt
     reply    the start of Claude's last reply
-    at, since, started   milliseconds since 1970: the last event, when this state began, when the session began
+    at, since, started   milliseconds since 1970: the last event, when this state began (working and background
+             count as one stretch), when the session began
 """
-import json, os, pathlib, re, shutil, sys, time
+import datetime, json, os, pathlib, re, shutil, sys, time
 
 APP = 'nullovation-city'
 NAME = 'nullovation-city-status.py'              # the installed copy's name, which marks the hooks as ours
@@ -146,6 +149,90 @@ def read_copy(prompt):
     return project, task
 
 
+# ---------- what a session left running in the background ----------
+# A command Claude Code runs in the background (Bash or PowerShell with run_in_background, or a Monitor) keeps going
+# after Claude's reply ends, so that reply's Stop does not mean the work is done: Claude comes back in a turn of its
+# own once the command reports. The session's transcript says what is still out. Each start is a tool result naming
+# its task (backgroundTaskId, or a Monitor's taskId); each end is a <task-notification> naming it with a <status>,
+# or Claude stopping it (TaskStop, KillShell before it). A Monitor's events carry no status, so they end nothing.
+# A command still out has a deadline, Claude Code's own limit for it: its timeout, 30 minutes when none is given,
+# 2 hours at most, so a command whose session died without a word never keeps a building busy.
+BG_DEFAULT_MS = 30 * 60 * 1000
+BG_MAX_MS = 2 * 3600 * 1000
+BG_MARGIN_MS = 2 * 60 * 1000
+BG_MARKS = ('backgroundTaskId', '"taskId"', 'run_in_background', '"Monitor"', 'task-notification', 'TaskStop', 'KillShell')
+
+
+def stamp_ms(text):
+    try:
+        return int(datetime.datetime.fromisoformat(str(text).replace('Z', '+00:00')).timestamp() * 1000)
+    except Exception:
+        return 0
+
+
+def notice_text(e):
+    """The text of a task notification, wherever the transcript keeps it: a turn of its own, one queued while Claude
+    was busy, or the queue's own record of it. Never a tool's output, which may quote one."""
+    kind, s = e.get('type'), None
+    if kind == 'queue-operation':
+        s = e.get('content')
+    elif kind == 'attachment':
+        a = e.get('attachment')
+        s = a.get('prompt') if isinstance(a, dict) and a.get('type') == 'queued_command' else None
+    elif kind == 'user':
+        c = (e.get('message') or {}).get('content')
+        if isinstance(c, list):
+            c = next((b.get('text') for b in c if isinstance(b, dict) and b.get('type') == 'text'), None)
+        s = c
+    return s if isinstance(s, str) and s.lstrip().startswith('<task-notification>') else ''
+
+
+def still_running(transcript, now):
+    """The deadlines, soonest first, of the commands this session left running in the background."""
+    path = pathlib.Path(str(transcript or ''))
+    if not transcript or not path.is_file():
+        return []
+    uses, deadline, ended = {}, {}, set()
+    with open(path, encoding='utf-8', errors='replace') as f:
+        for line in f:
+            if not any(m in line for m in BG_MARKS):   # most lines name none of it; skip them unread
+                continue
+            try:
+                e = json.loads(line)
+            except Exception:
+                continue
+            if not isinstance(e, dict) or e.get('isSidechain'):
+                continue
+            text = notice_text(e)
+            if text:
+                m = re.search(r'<task-id>\s*([\w-]+)\s*</task-id>', text)
+                if m and '<status>' in text:
+                    ended.add(m.group(1))
+                continue
+            c = (e.get('message') or {}).get('content')
+            for b in c if isinstance(c, list) else []:
+                if not isinstance(b, dict):
+                    continue
+                if b.get('type') == 'tool_use':
+                    i = b.get('input') if isinstance(b.get('input'), dict) else {}
+                    name = str(b.get('name') or '')
+                    if name in ('TaskStop', 'KillShell'):
+                        ended.update(v for k, v in i.items() if k in ('task_id', 'shell_id', 'id') and isinstance(v, str))
+                    elif i.get('run_in_background') is True or name == 'Monitor':
+                        uses[b.get('id')] = (name, i)
+                elif b.get('type') == 'tool_result' and b.get('tool_use_id') in uses and not b.get('is_error'):
+                    r = e.get('toolUseResult')
+                    name, i = uses[b['tool_use_id']]
+                    task = (r.get('backgroundTaskId') or (r.get('taskId') if name == 'Monitor' else None)) if isinstance(r, dict) else None
+                    if not isinstance(task, str) or not task:
+                        continue
+                    wait = BG_MAX_MS if r.get('persistent') else r.get('timeoutMs') if name == 'Monitor' else i.get('timeout')
+                    if not isinstance(wait, (int, float)) or isinstance(wait, bool) or wait <= 0:
+                        wait = BG_DEFAULT_MS
+                    deadline[task] = (stamp_ms(e.get('timestamp')) or now) + min(wait, BG_MAX_MS) + BG_MARGIN_MS
+    return sorted(d for t, d in deadline.items() if t not in ended and d > now)
+
+
 # ---------- the hook: one event in, one file out ----------
 
 def log_error(folder, message):
@@ -200,6 +287,14 @@ def hook(state, folder):
         folder.mkdir(parents=True, exist_ok=True)
         if state == 'start':
             prune(folder)
+        running = []
+        if state == 'done':                        # read before the file, so a later event is seen as later
+            try:
+                running = still_running(event.get('transcript_path'), at)
+            except Exception as e:
+                log_error(folder, 'reading the transcript: ' + type(e).__name__ + ': ' + str(e))
+            if running:
+                state = 'background'               # the reply ended, but Claude is coming back to it
         path = folder / (session + '.json')
         old = {}
         if path.exists():
@@ -211,15 +306,19 @@ def hook(state, folder):
             return                                 # a later event already landed; the hooks run in the background
         was = old.get('state')
         if state == 'start':
-            state = was if was in ('working', 'waiting') else 'idle'
+            state = was if was in ('working', 'waiting', 'background') else 'idle'
         elif state == 'idle' and was not in ('working', 'waiting'):
             state = was or 'idle'                  # idle only ends a stretch of work that never reported its end
         data = dict(old)
         data.update({'v': 1, 'app': APP, 'kind': 'claude-session', 'session': session, 'state': state,
                      'event': str(event.get('hook_event_name') or ''), 'at': at})
         data.setdefault('started', at)
-        if state != was or 'since' not in data:
-            data['since'] = at
+        if (state != was and not {state, was} <= {'working', 'background'}) or 'since' not in data:
+            data['since'] = at                     # working and background are one stretch of work
+        if state == 'background' and running:
+            data['until'] = running[-1]
+        elif state != 'background':
+            data.pop('until', None)
         if event.get('cwd'):
             data['cwd'] = str(event['cwd'])
         entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')
@@ -236,7 +335,7 @@ def hook(state, folder):
                 data['task'] = task
             data['ask'] = one_line(prompt, 160)
             data.pop('reply', None)
-        if state == 'done' and event.get('last_assistant_message'):
+        if state in ('done', 'background') and event.get('last_assistant_message'):
             data['reply'] = one_line(event['last_assistant_message'], 240)
         write_atomic(path, data)
     except Exception as e:                         # never stop Claude Code over the city: note it and go on
