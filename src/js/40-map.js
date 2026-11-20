@@ -33,7 +33,8 @@ const MapView = (() => {
   const worldToTile = (x, y) => [(y / HH + x / HW) / 2, (y / HH - x / HW) / 2];
   const plotTop = (u, v) => tileToWorld(MARGIN + u * PITCH, MARGIN + v * PITCH);
   const zMin = () => 1;
-  const zMax = () => Math.max(4, Math.round(8 * dpr));
+  /* the closest zoom, always an even step (8x on a screen at 1x): at 110%, 8.8 rounded to 9 sat past the last step, 8 */
+  const zMax = () => Math.max(4, 2 * Math.round(4 * dpr));
   function xf() { const z = cam.z; return { z, tx: Math.round(vw / 2 - cam.x * z), ty: Math.round(vh / 2 - cam.y * z) }; }
   function worldToCss(x, y) { const { z, tx, ty } = xf(); return [(x * z + tx) / dpr, (y * z + ty) / dpr]; }
   function cssToWorld(cx, cy) { const { z, tx, ty } = xf(); return [(cx * dpr - tx) / z, (cy * dpr - ty) / z]; }
@@ -916,9 +917,10 @@ const MapView = (() => {
 
   /* ---------- camera ---------- */
   function updateZoomLabel() {
-    /* on a touch screen, the screen pixels a building pixel takes, in whole numbers (0.1.75, S2): a phone has three
-       to a point, which counted in points read 0.7x on opening */
-    const v = touchScreen() ? cam.z : Math.round((cam.z / dpr) * 10) / 10;
+    /* the screen pixels a building pixel takes, so every step reads as a whole number on every screen: a phone since
+       0.1.75 (S2), where points read 0.7x on opening, and a computer since 0.1.89, where a screen at 110% read 0.9x,
+       1.8x, 2.7x and 3.6x. Only a zoom on its way between two steps shows a tenth. */
+    const v = Math.round(cam.z * 10) / 10;
     $('#zoomLevel').textContent = (Number.isInteger(v) ? v : v.toFixed(1)) + 'x';
   }
   function zoomAt(cssX, cssY, z) {
@@ -1000,7 +1002,7 @@ const MapView = (() => {
   }
   function setCam(c) {
     cam.x = c.x; cam.y = c.y;
-    cam.z = clamp(Math.round(c.z * dpr), zMin(), zMax());
+    cam.z = snapZ(c.z * dpr);   // the saved zoom, in points, onto this screen's nearest step
     clampCam(); updateZoomLabel(); invalidate();
   }
   const saveUiSoon = debounce(() => Store.saveUi({ cam: { x: cam.x, y: cam.y, z: cam.z / dpr } }), 500);
@@ -1008,7 +1010,7 @@ const MapView = (() => {
   function resize() {
     const r = wrap.getBoundingClientRect();
     const nd = window.devicePixelRatio || 1;
-    if (nd !== dpr) { cam.z = clamp(Math.round((cam.z * nd) / dpr), 1, Math.max(4, Math.round(8 * nd))); dpr = nd; }
+    if (nd !== dpr) { const pts = cam.z / dpr; dpr = nd; cam.z = snapZ(pts * nd); anim.zoom = null; }   // the browser's zoom changed: the same size, on a step
     vw = Math.max(1, Math.round(r.width * dpr)); vh = Math.max(1, Math.round(r.height * dpr));
     canvas.width = vw; canvas.height = vh;
     ctx.imageSmoothingEnabled = false;

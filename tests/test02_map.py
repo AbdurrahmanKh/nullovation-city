@@ -182,4 +182,47 @@ with sync_playwright() as p:
     page.screenshot(path=str(SHOTS / '24-dpr2.png'), clip={'x': 520, 'y': 300, 'width': 420, 'height': 320})
     b.close()
 
+    # 0.1.89: the zoom's number counts screen pixels on a computer too, so a screen at 110% (the browser's zoom, Ctrl
+    # and + once) reads 1x to 8x, not 0.9x, 1.8x, 2.7x and 3.6x; and the closest zoom is a step it can rest on
+    def steps(page):
+        """Every zoom step from the farthest to the closest: its label, the zoom, and whether it is the closest."""
+        for _ in range(10): page.click('#zoomOut'); page.wait_for_timeout(260)
+        out = []
+        for _ in range(12):
+            out.append(page.evaluate("() => ({ label: document.querySelector('#zoomLevel').textContent, z: MapView.camState().z, max: MapView.atMaxZoom() })"))
+            page.click('#zoomIn'); page.wait_for_timeout(260)
+        seen = []
+        for s in out:
+            if not seen or seen[-1]['z'] != s['z']: seen.append(s)
+        return seen
+    for dpr, want in ((1.1, [1, 2, 3, 4, 6, 8]), (1.25, [1, 2, 4, 6, 8, 10]), (2, [1, 2, 4, 6, 8, 10, 12, 14, 16]), (0.9, [1, 2, 3, 4, 6, 8])):
+        b = p.chromium.launch(channel='chrome')
+        ctx = b.new_context(viewport={'width': 1440, 'height': 900}, device_scale_factor=dpr)
+        ctx.add_init_script(TEST_CITY)
+        page = ctx.new_page(); attach(page)
+        page.goto(FILE); page.wait_for_timeout(600)
+        s = steps(page)
+        ok(f'a screen at {round(dpr * 100)}%: the zoom steps {[x["z"] for x in s]}', [x['z'] for x in s] == want)
+        ok(f'and each reads as a whole number, the screen pixels a building pixel takes ({[x["label"] for x in s]})', [x['label'] for x in s] == [f'{z}x' for z in want])
+        ok('the closest step is the closest zoom (the crowd\'s sound plays there)', s[-1]['max'] and not any(x['max'] for x in s[:-1]))
+        if dpr == 1.1: page.screenshot(path=str(SHOTS / '25-zoom-110.png'), clip={'x': 1000, 'y': 820, 'width': 440, 'height': 80})
+        b.close()
+
+    # the browser's zoom changing under an open city lands on a step, with a whole number
+    b = p.chromium.launch(channel='chrome')
+    ctx = b.new_context(viewport={'width': 1440, 'height': 900}, device_scale_factor=1)
+    ctx.add_init_script(TEST_CITY)
+    page = ctx.new_page(); attach(page)
+    page.goto(FILE); page.wait_for_timeout(600)
+    cdp = ctx.new_cdp_session(page)
+    for z, nd, want in ((8, 1.1, 8), (6, 1.1, 6), (3, 1.25, 4), (4, 1.5, 6)):
+        cdp.send('Emulation.setDeviceMetricsOverride', {'width': 1440, 'height': 900, 'deviceScaleFactor': 1, 'mobile': False})
+        page.evaluate("() => window.dispatchEvent(new Event('resize'))"); page.wait_for_timeout(100)
+        page.evaluate(f"() => {{ const c = MapView.camState(); MapView.setCam({{ x: c.x, y: c.y, z: {z} }}); }}")
+        cdp.send('Emulation.setDeviceMetricsOverride', {'width': 1440, 'height': 900, 'deviceScaleFactor': nd, 'mobile': False})
+        page.evaluate("() => window.dispatchEvent(new Event('resize'))"); page.wait_for_timeout(150)
+        r = page.evaluate("() => ({ label: document.querySelector('#zoomLevel').textContent, z: MapView.camState().z, dpr: MapView.camState().dpr })")
+        ok(f'{z}x at 100%, the browser zoomed to {round(nd * 100)}%: on the step {want}x ({r})', abs(r['dpr'] - nd) < 1e-6 and r['z'] == want and r['label'] == f'{want}x')
+    b.close()
+
 print('\n'.join(errors) if errors else 'no console errors')

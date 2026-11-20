@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.89 (2026-11-20)
+
+The zoom's number is a whole number on any screen, from the task "Fix the wrong numbers zoom".
+- On a computer the number between the zoom buttons counted points, so a screen at 110%, as the browser's zoom one step in gives, read 0.9x, 1.8x, 2.7x and 3.6x. It now counts the screen pixels a building pixel takes, as a phone's has since 0.1.75: 1x, 2x, 3x, 4x, 6x and 8x there. A screen at 100% reads as before; one at 200% steps 1x to 16x, where it read 0.5x to 8x.
+- The closest zoom is always a step, so at 110% the map rests there and the crowd's sound plays; it sat at 9, past the last step, 8x.
+- The browser's zoom changing under an open city, or a zoom kept from a screen at another scale, lands on the nearest step, where 6x and 8x became 7 and 9.
+- Tests: test02_map checks the steps and their numbers on screens at 90%, 110%, 125% and 200%, the closest step, and the browser's zoom changing under an open city.
+
 ## 0.1.88 (2026-11-17)
 
 Claude Code at work: a building no longer says Claude has finished while a command it started still runs in the background, from the task "Tasks says finished while it is still running long commands".
