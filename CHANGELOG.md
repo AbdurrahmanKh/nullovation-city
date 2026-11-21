@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.90 (2026-11-21)
+
+A task's T3 threads, the first part of the city as my terminal, from City as My Terminal, Round 1 (A1, A2) and its brainstorm.
+- Every task keeps the T3 threads its sends start: the thread, T3's environment, the agent, how it started (Build it, Think or a brainstorm), its title, and when it was last sent to. Keeping one is not work: Updated, urgency and Activity stay. A thread started in T3 itself belongs to no task, for now.
+- The T3 tile goes on in the task's thread: Build it after Think lands in the same conversation. The tile says "its thread", and a line under the folder names the thread and where it lands. New thread sits behind the more button beside it, on the agent picked, and the task keeps that thread too.
+- Open says where it lands before the click: the agent, and the thread's state from the task's Claude session (working, waiting on you, stopped on an error, handed back), else when it was last sent to. It is on the task's row as a T3 mark beside the hat, in All tasks, in the task panel as a list of its threads, newest first, and as Open in T3 on Claude's lines in the leader's news, the status card and the leader card.
+- The helper sends into a thread with T3's own `t3 thread send`: an idle thread starts on it, a busy one gets it as its next turn. The T3 setup runs again once on each PC for it; a helper from before starts a new thread instead, and the city says to run the setup again.
+- Open in Claude's panel stays on the screen as a list opens in it, and a thread kept after a send leaves the focus on Claude.
+- Tests: test55_t3_threads runs the helper on sends that name a thread (the command, the copy on its input, no agent passed, a bad id refused, a thread T3 no longer has, no folder needed, T3 not running), then the city: the first send kept on its task, the row's mark and the panel's list, going on in the thread from Build it and Think, New thread and back, where it lands with a session waiting, Open in T3 on the status card, an old helper, Esc, reading back and the limit of 12. test53_t3 keeps checking new threads.
+
 ## 0.1.89 (2026-11-20)
 
 The zoom's number is a whole number on any screen, from the task "Fix the wrong numbers zoom".

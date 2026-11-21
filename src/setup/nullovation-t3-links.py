@@ -20,6 +20,13 @@ with the task's copy on its input, and writes what T3 said back beside it, as t3
 or why it could not start. The city reads that and says it was sent, with Open, which shows the thread in T3.
 A building's folder that no T3 project holds yet is added to T3 as a project first (t3 project add).
 
+Since Nullovation City 0.1.90 a task keeps the threads its sends started, and a send that names one of them goes on in
+it rather than starting another:
+
+    t3 thread send <thread> - --json
+
+with the copy on its input: an idle thread starts on it at once, and a busy one gets it as its next turn.
+
 A link carries only a file's name, never a prompt, and only the city writes that folder, so no other web page can make
 this PC run anything: a link naming a file that is not there does nothing, a send is taken once, and one older than
 two minutes is refused. The helper never runs anything but T3's own command. T3 Code has to be running (its app
@@ -144,7 +151,7 @@ def run_t3(args, stdin=b'', timeout=180):
     return r.returncode, r.stdout.decode('utf-8', 'replace'), r.stderr.decode('utf-8', 'replace')
 
 
-def plain_error(code, err):
+def plain_error(code, err, doing='start the thread'):
     """T3's error, said the way the city says things."""
     first = next((line.strip() for line in err.splitlines() if line.strip()), '')
     if code is None and err == 'not found':
@@ -155,7 +162,7 @@ def plain_error(code, err):
         return 'T3 Code is not running. Open it, then send again.'
     if 'Could not reach' in err or 'unreachable' in err.lower() or 'ECONNREFUSED' in err:
         return 'T3 Code did not answer. Check it is open, then send again.'
-    return 'T3 could not start the thread: ' + (first[:300] or 'it gave no reason.')
+    return 'T3 could not ' + doing + ': ' + (first[:300] or 'it gave no reason.')
 
 
 def environment_id():
@@ -192,8 +199,11 @@ def read_send(d, ident):
     at = d.get('at')
     if not isinstance(at, (int, float)) or abs(time.time() * 1000 - at) > MAX_AGE * 1000:
         return None, 'The send is too old to start: send it again from the city.'
+    thread = d.get('thread') or ''
+    if thread and not (isinstance(thread, str) and SLUG.match(thread)):
+        return None, 'The send names a thread T3 would not know.'
     where = d.get('folder')
-    if not isinstance(where, str) or not os.path.isabs(where) or not os.path.isdir(where):
+    if not thread and (not isinstance(where, str) or not os.path.isabs(where) or not os.path.isdir(where)):
         return None, 'The building\'s folder was not found on this PC: ' + str(where)
     message = d.get('message')
     if not isinstance(message, str) or not message.strip() or len(message) > 120000:
@@ -202,7 +212,17 @@ def read_send(d, ident):
     if bool(provider) != bool(model) or (provider and not (SLUG.match(str(provider)) and SLUG.match(str(model)))):
         return None, 'The send names an agent T3 would not know.'
     title = re.sub(r'\s+', ' ', d.get('title') if isinstance(d.get('title'), str) else '').strip()[:80]
-    return {'folder': where, 'message': message, 'title': title, 'provider': str(provider), 'model': str(model)}, None
+    return {'folder': where if isinstance(where, str) else '', 'message': message, 'title': title, 'provider': str(provider), 'model': str(model),
+            'thread': thread}, None
+
+
+def send_to_thread(s):
+    """Runs t3 thread send: the copy goes on in the task's thread, at once on an idle one, as its next turn on a busy
+    one. Returns the answer, naming the same thread, so the city knows it went where it was meant to."""
+    code, _, err = run_t3(['thread', 'send', s['thread'], '-', '--json'], s['message'].encode('utf-8'))
+    if code != 0:
+        return {'ok': False, 'error': plain_error(code, err, 'send it to the thread')}
+    return {'ok': True, 'thread': s['thread'], 'env': environment_id(), 'continued': True}
 
 
 def start_thread(s):
@@ -275,13 +295,13 @@ def open_link(link):
         except Exception:
             pass
         return 1
-    answer = start_thread(s)
+    answer = send_to_thread(s) if s['thread'] else start_thread(s)
     write_answer(folder, ident, answer)
     try:
         taken.unlink()
     except Exception:
         pass
-    note(('Sent ' if answer.get('ok') else 'Not sent ') + ident + ' to T3 in ' + s['folder'] + ': '
+    note(('Sent ' if answer.get('ok') else 'Not sent ') + ident + (' to T3 thread ' + s['thread'] if s['thread'] else ' to T3 in ' + s['folder']) + ': '
          + (answer.get('thread') or answer.get('error') or ''))
     return 0 if answer.get('ok') else 1
 

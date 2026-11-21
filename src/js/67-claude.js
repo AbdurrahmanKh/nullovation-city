@@ -78,7 +78,9 @@ const OpenInClaude = (() => {
     close();
     const p = opts.project || null, folders = p ? places(p).folders : [];
     /* a Think task opens on Think, any other on Build it; one click switches (Shifts UX, Round 1, C2) */
-    const st = { tab: opts.think && opts.thinkFirst && opts.thinkFirst() ? 'think' : 'build', brainstorm: false, folder: folderOf(p, folders), listing: false, agents: false };
+    const st = { tab: opts.think && opts.thinkFirst && opts.thinkFirst() ? 'think' : 'build', brainstorm: false, folder: folderOf(p, folders), listing: false, agents: false,
+      /* a task's T3 thread, which the T3 tile goes on in, and whether New thread was picked instead (0.1.90, A1) */
+      thread: opts.task ? T3.latest(opts.task) : null, fresh: false, more: false };
     panel = h('div', { class: 'oc-panel', role: 'dialog', 'aria-label': 'Open in Claude' });
     const textFor = kind => (st.tab === 'think' && opts.think ? opts.think(kind, { brainstorm: st.brainstorm }) : opts.text(kind));
     const files = () => (opts.files ? opts.files() : []);
@@ -98,13 +100,17 @@ const OpenInClaude = (() => {
       toast(ok ? said : 'The browser blocked copying. Try again.', ok ? '' : 'error');
       if (ok) close(true);
     }
-    /* The T3 tile: a thread in the folder with the text sent, titled by the task, or Think: and Brainstorm: for those */
+    /* The T3 tile: a thread in the folder with the text sent, titled by the task, or Think: and Brainstorm: for those.
+       A task with a thread goes on in it, Build it after Think too (Brainstorm 1, Round 2, i1: "the task should continue
+       after it moves from think to build"), unless New thread was picked; either way the task keeps the thread. */
+    const goesOn = () => !!(st.thread && st.thread.env && !st.fresh);
     function sendNow() {
       const text = textFor('t3'), name = (text.split('\n')[0] || '').replace(/^#+\s*/, '').replace(/^Task:\s*/, '').trim();
-      const title = (st.tab === 'think' ? (st.brainstorm ? 'Brainstorm: ' : 'Think: ') : '') + name;
+      const kind = st.tab === 'think' ? (st.brainstorm ? 'brainstorm' : 'think') : 'build';
+      const title = (kind === 'brainstorm' ? 'Brainstorm: ' : kind === 'think' ? 'Think: ' : '') + name;
       const folder = st.folder;
       close(true);
-      T3.send({ project: p, folder, text, title });
+      T3.send({ project: p, folder, text, title, task: opts.task || null, thread: goesOn() ? st.thread : null, kind });
     }
     const what = () => (st.tab === 'think' ? (st.brainstorm ? 'asking Claude for a brainstorm on this task' : 'asking Claude for a wizard round on this task') : 'with this filled in');
     function render() {
@@ -131,8 +137,11 @@ const OpenInClaude = (() => {
       /* Which tiles show is Settings, Links' T3 and Claude, T3 only or Claude only (0.1.87, T3 Connection, A3). */
       const mode = T3.tiles(), withT3 = mode !== 'claude', withClaude = mode !== 't3';
       const agent = T3.agentOf(p), t3why = !f ? (p ? "T3 starts a thread in the building's folder: add a link to a folder on this computer" : 'T3 starts a thread in a project\'s folder') : T3.why();
+      const on = goesOn(), asks = st.tab !== 'think' ? 'with this sent at once' : (st.brainstorm ? 'asking for a brainstorm' : 'asking for a wizard round') + ' on this task, sent at once';
       const row = [
-        withT3 ? tile('t3', 'T3', 't3', { note: agent.short, ok: !t3why, off: t3why, title: 'A new T3 thread in ' + f + ', on ' + agent.label + ', ' + (st.tab !== 'think' ? 'with this sent at once' : (st.brainstorm ? 'asking for a brainstorm' : 'asking for a wizard round') + ' on this task, sent at once') }) : null,
+        withT3 ? tile('t3', 'T3', 't3', { note: on ? 'its thread' : agent.short, ok: !t3why, off: t3why, title: on
+          ? "Into this task's T3 thread, " + (st.thread.title || 'its thread') + ' (' + T3.whereOf(p, opts.task, st.thread) + '), ' + asks
+          : 'A new T3 thread in ' + f + ', on ' + agent.label + ', ' + asks }) : null,
         withClaude ? tile('chat', 'Chat', 'chat', { note: 'no folder', title: 'A new Claude chat ' + what() }) : null,
         withClaude ? tile('cowork', 'Cowork', 'cowork', { title: 'A new Cowork task ' + what() + (f ? ', in ' + f : '') }) : null,
         withClaude ? tile('code', 'Code', 'code', { ok: !!f, off: need, title: 'A new Claude Code session in ' + f + ', ' + what() }) : null,
@@ -156,8 +165,28 @@ const OpenInClaude = (() => {
         h('button', { class: 'oc-folder-opt' + (x === f ? ' on' : ''), type: 'button', role: 'option', 'aria-selected': String(x === f), dir: 'ltr', title: x,
           onclick: () => { st.folder = x; st.listing = false; keepFolder(p, x); render(); const b = $('#ocFolderPick', panel); if (b) b.focus(); } },
           h('span', { class: 'oc-folder-name' }, base(x)), h('span', { class: 'oc-folder-full' }, x)))));
-      /* The agent and model a T3 send runs on, kept per building as its folder is (A2) */
-      if (withT3 && !t3why) {
+      /* A task's thread, which the T3 tile goes on in: its title and where it lands, and the more button, which starts a
+         new thread instead (0.1.90, A1, his note: "the new should be in ellipsis or something"), or goes back to it. */
+      if (withT3 && !t3why && st.thread && st.thread.env) {
+        const name = st.thread.title || (opts.task && opts.task.text) || 'its thread';
+        kids.push(h('div', { class: 'oc-folder oc-thread' },
+          h('span', { class: 'oc-thread-text', title: on ? T3.openTitle(p, opts.task, st.thread) : 'A new T3 thread, on the agent picked under it' },
+            h('b', null, 'T3 thread:'), ' ',
+            on ? h('span', { class: 'oc-folder-path', dir: 'auto' }, name) : h('span', { class: 'oc-folder-path' }, 'a new one'),
+            on ? h('span', { class: 'oc-thread-where' }, T3.whereOf(p, opts.task, st.thread)) : null),
+          h('button', { id: 'ocThreadMore', class: 'icon-btn oc-thread-more', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': String(st.more),
+            'aria-label': 'More for the T3 thread', title: on ? 'Start a new T3 thread instead' : "Go on in the task's thread instead",
+            onclick: () => { st.more = !st.more; st.agents = false; st.listing = false; render(); const b = $(st.more ? '#ocThreadSwap' : '#ocThreadMore', panel); if (b) b.focus(); },
+            html: iconSvg('more', 14) })));
+        if (st.more) kids.push(h('div', { class: 'oc-folders oc-thread-menu', role: 'menu', 'aria-label': 'The T3 thread' },
+          h('button', { id: 'ocThreadSwap', class: 'oc-folder-opt', type: 'button', role: 'menuitem',
+            title: on ? 'Starts a fresh T3 thread for this task, on the agent you pick; the task keeps both' : 'Sends it into ' + name + ' again',
+            onclick: () => { st.fresh = on; st.more = false; render(); const b = $('#ocThreadMore', panel); if (b) b.focus(); } },
+            h('span', { class: 'oc-folder-name' }, on ? 'New thread' : 'Continue its thread'),
+            h('span', { class: 'oc-folder-full' }, on ? 'A fresh T3 thread for this task, on the agent you pick' : name))));
+      }
+      /* The agent and model a T3 send runs on, kept per building as its folder is (A2); a thread gone on in keeps its own */
+      if (withT3 && !t3why && !on) {
         kids.push(h('div', { class: 'oc-folder oc-agent' }, h('button', { id: 'ocAgentPick', class: 'oc-folder-pick', type: 'button', 'aria-expanded': String(st.agents), title: 'Pick the agent and model T3 runs it on',
           onclick: () => { st.agents = !st.agents; st.listing = false; render(); const b = $('#ocAgentPick', panel); if (b) b.focus(); } },
           h('b', null, 'T3 agent:'), ' ', h('span', { class: 'oc-folder-path' }, agent.label), h('span', { class: 'oc-folder-more', 'aria-hidden': 'true' }, st.agents ? '∨' : '>'))));
@@ -167,6 +196,8 @@ const OpenInClaude = (() => {
             h('span', { class: 'oc-folder-name' }, x.label), h('span', { class: 'oc-folder-full' }, x.hint)))));
       }
       panel.replaceChildren(...kids);
+      /* a list opening (folders, agents, the thread's more) makes it taller: placed again, so it stays on the screen */
+      if (panel.isConnected && owner) place(owner);
     }
     render();
     document.body.append(panel);
@@ -215,7 +246,7 @@ const OpenInClaude = (() => {
   /* A task's panel: Build it sends the task; Think, on an open task, asks for a round or a brainstorm about it (Open in
      Claude Panel, A2, A3), and is the tab it opens on for a Think task (Shifts UX); Copy copies either; Cowork gets the
      round's file. The project view, Due this week and All tasks share it. */
-  const forTask = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', project: p, name: t.text,
+  const forTask = (p, t) => ({ text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', project: p, name: t.text, task: t,
     think: isOpenTask(t) ? (kind, o = {}) => taskForClaude(p, t, Date.now(), { kind, ask: o.brainstorm ? 'brainstorm' : true }) : null, files: () => Rounds.files(t),
     thinkFirst: () => t.shift === 'think' });
   return { button, forTask, go, places, close, isOpen: () => !!panel };

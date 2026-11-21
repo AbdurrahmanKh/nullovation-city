@@ -469,10 +469,11 @@ const FullView = (() => {
       changed(p); render();
       const again = $(`.task[data-id="${t.id}"] .task-title`, root); if (again) again.focus();
     });
-    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark, .round-hat, .shift-mark')) return; dragTask(e, p, li); });
+    li.addEventListener('pointerdown', e => { if (e.target.closest('.cb, .task-mark, .round-hat, .t3-open, .shift-mark')) return; dragTask(e, p, li); });
     const d = t.done || wait ? null : dueInfo(t);
     li.append(...[cb, title, (t.description || '').trim() ? h('span', { class: 'task-has-desc', title: 'Has a description', html: iconSvg('doc', 12) }) : null,
       Rounds.hatButton(p, t, 'row-round'),                                      // its wizard round (0.1.55)
+      T3.rowButton(p, t, 'row-t3'),                                             // its T3 thread, saying where it lands (0.1.90)
       t.repeat && !wait ? h('span', { class: 'repeat-mark', title: 'Repeats: ' + repeatText(t.repeat), html: iconSvg('repeat', 12) }) : null,
       shiftTag(t, 'row-shift') || (wait ? null : shiftHollow(p, t, id => { setShift(p, t, id); render(); Bubble.refresh(); const b = $(`.task[data-id="${t.id}"] .task-title`, root); if (b) b.focus(); }, 'row-shift')),
       wait ? h('span', { class: 'due back', title: repeatText(t.repeat) }, backText(t)) : null,
@@ -714,9 +715,10 @@ const FullView = (() => {
     const p = P(); if (!p || !sideTask) return;
     const i = p.todos.findIndex(x => x.id === sideTask);
     if (i >= 0 && taskSnap) {
-      const live = p.todos[i].round, liveNotes = p.todos[i].notes;   // a round, or a note, came, went or changed while open: Esc leaves it, as it leaves pins
+      const live = p.todos[i].round, liveNotes = p.todos[i].notes, liveThreads = p.todos[i].threads;   // a round, a note or a T3 thread came, went or changed while open: Esc leaves it, as it leaves pins
       p.todos[i] = taskSnap;
       if (live) taskSnap.round = live; else delete taskSnap.round;
+      if (liveThreads) taskSnap.threads = liveThreads; else delete taskSnap.threads;
       if (liveNotes) taskSnap.notes = liveNotes; else delete taskSnap.notes;
     }
     changed(p, { touch: false });
@@ -885,6 +887,7 @@ const FullView = (() => {
       h('div', { class: 'pv-round-slot' }, Rounds.card(p, t)),                 // its wizard round (0.1.55, P1)
       h('div', { class: 'pv-desc-sec' }, h('span', { class: 'lbl' }, 'Description'), desc),
       taskNotes(p, t),
+      h('div', { class: 'pv-t3-slot' }, T3.taskList(p, t)),                     // its T3 threads, each saying where it lands (0.1.90)
       h('div', { class: 'pv-task-foot' },
         OpenInClaude.button({ id: 'pvTaskClaude', ...taskClaude(p, t), project: p, label: 'Claude', cls: 'btn-accent', accent: '#FFFFFF' }),
         h('button', { id: 'pvTaskToNote', class: 'btn btn-small btn-plain', type: 'button', title: 'Keep it as an idea in Notes: its title and description stay; its date, repeat and shift go',
@@ -926,6 +929,7 @@ const FullView = (() => {
       h('span', { class: 'lbl' }, 'Description'),
       desc ? h('div', { id: 'pvTaskDesc', class: 'note-text pv-arch-desc', tabindex: '-1' }, ...paragraphs(desc)) : h('p', { id: 'pvTaskDesc', class: 'fv-empty', tabindex: '-1' }, 'No description.'),
       taskNotes(p, t, { readOnly: true }),
+      h('div', { class: 'pv-t3-slot' }, T3.taskList(p, t)),                     // its T3 threads stay with it (0.1.90)
       h('div', { class: 'pv-task-foot' },
         OpenInClaude.button({ id: 'pvTaskClaude', text: kind => taskForClaude(p, t, Date.now(), { kind }), copied: 'Task copied for Claude.', files: () => Rounds.files(t), project: p,
           label: 'Claude', cls: 'btn-accent', accent: '#FFFFFF' }),
@@ -1560,6 +1564,18 @@ const FullView = (() => {
     const t = sideMode === 'task' && p.todos.find(x => x.id === sideTask), slot = side && $('.pv-round-slot', side);
     if (t && slot) slot.replaceChildren(...[Rounds.card(p, t, { readOnly: !!t.archived })].filter(Boolean));
     for (const b of $$('li.task .round-hat', root)) { const x = p.todos.find(y => y.id === b.dataset.task), nu = x && Rounds.hatButton(p, x, 'row-round'); if (nu) b.replaceWith(nu); else b.remove(); }
+    refreshThreads();
+  }
+  /* A T3 thread kept on a task (0.1.90): its list in the panel, and the mark on each row, redrawn in place, so the focus
+     stays where it is, on Claude after a send. */
+  function refreshThreads() {
+    const p = P(); if (!p || !root) return;
+    const t = (sideMode === 'task' && p.todos.find(x => x.id === sideTask)) || null, t3 = t && side && $('.pv-t3-slot', side);
+    if (t3) t3.replaceChildren(...[T3.taskList(p, t)].filter(Boolean));
+    for (const li of $$('li.task', root)) {
+      const x = p.todos.find(y => y.id === li.dataset.id), had = $('.t3-open', li), nu = x && T3.rowButton(p, x, 'row-t3');
+      if (had && nu) had.replaceWith(nu); else if (had) had.remove(); else if (nu) { const after = $('.round-hat', li) || $('.task-has-desc', li) || $('.task-title', li); if (after) after.after(nu); }
+    }
   }
   function closeSide() {
     if (!side) return;
@@ -1841,7 +1857,7 @@ const FullView = (() => {
     isOpen: () => !!root, currentId: () => openId, shows: id => !!root && openId === id, rightEdge,
     openTask: (pid, tid, o) => { open(pid); const p = getProject(pid); if (p) openTask(p, tid, o); },   // from the bubble: the view, with the task open beside it
     openNote: (pid, nid) => { open(pid); const p = getProject(pid); if (p) openNote(p, nid); },   // from a report (0.1.83): the view, with the note open beside it
-    popoverOpen: () => !!pop, closePopover, refreshRounds,
+    popoverOpen: () => !!pop, closePopover, refreshRounds, refreshThreads,
     /* A task taken back out by the one-line add's Undo (0.1.56): its panel goes, with nothing written for it. */
     closeTaskOf: tid => {
       if (!side || sideMode !== 'task' || sideTask !== tid) return;

@@ -408,6 +408,24 @@ function readArchive(t) {
   if (typeof t.archiveFrom === 'string' && parseYmd(t.archiveFrom) != null) out.archiveFrom = t.archiveFrom;
   return out;
 }
+/* The T3 threads a task's sends started (0.1.90, City as My Terminal, Round 1, A1): each its thread's id and T3's
+   environment, which Open needs, the agent it runs on, how it started (Build it, Think or a brainstorm), its title as
+   sent, and when it started and was last sent to. At most THREADS_MAX, the latest kept. */
+const THREADS_MAX = 12, THREAD_KINDS = ['build', 'think', 'brainstorm'];
+const threadSlug = v => (typeof v === 'string' && /^[A-Za-z0-9._:-]{1,80}$/.test(v) ? v : '');
+function readThreads(t) {
+  if (!Array.isArray(t.threads)) return {};
+  const seen = new Set(), out = [];
+  for (const x of t.threads) {
+    const id = x && threadSlug(x.id);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const at = typeof x.at === 'number' && isFinite(x.at) ? x.at : Date.now();
+    out.push({ id, env: threadSlug(x.env), agent: typeof x.agent === 'string' ? x.agent.slice(0, 40) : '', kind: THREAD_KINDS.includes(x.kind) ? x.kind : 'build',
+      title: typeof x.title === 'string' ? x.title.slice(0, 120) : '', at, last: typeof x.last === 'number' && isFinite(x.last) ? Math.max(x.last, at) : at });
+  }
+  return out.length ? { threads: out.sort((a, b) => a.last - b.last).slice(-THREADS_MAX) } : {};
+}
 /* Makes any loaded or imported data safe to use: fills gaps, fixes types, resolves plot clashes. */
 function sanitizeProjects(raw) {
   const out = [];
@@ -430,7 +448,7 @@ function sanitizeProjects(raw) {
         id: typeof t.id === 'string' && t.id ? t.id : uid('t'), text: t.text.slice(0, 500), description: typeof t.description === 'string' ? t.description.slice(0, 8000) : '',
         done: !!t.done, doneAt: typeof t.doneAt === 'number' ? t.doneAt : null,
         due: parseYmd(t.due) != null ? t.due : '', milestoneId: typeof t.milestoneId === 'string' ? t.milestoneId : null,
-        ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}), ...readRound(t),
+        ...readRepeat(t), ...readArchive(t), ...(shiftOf(t.shift) ? { shift: t.shift } : {}), ...readRound(t), ...readThreads(t),
         ...(Array.isArray(t.notes) && t.notes.some(isNote) ? { notes: t.notes.filter(isNote).map(readNote) } : {}),      // its notes (0.1.71)
       })),
       milestones: (Array.isArray(r.milestones) ? r.milestones : []).filter(m => m && typeof m.name === 'string').map(m => ({

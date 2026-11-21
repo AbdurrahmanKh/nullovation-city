@@ -226,6 +226,8 @@ HTMLAnchorElement.prototype.click = function () { const href = this.getAttribute
         tiles = lambda: ev("() => [...document.querySelectorAll('.oc-panel .oc-tiles .oc-tile')].map(e => ({ kind: e.dataset.kind, off: e.classList.contains('off'), note: (e.querySelector('.oc-tile-note') || {}).textContent || '', title: e.getAttribute('title') || '' }))")
         def open_task_panel():
             ev("() => OpenInClaude.close()")
+            # each send here starts a thread of its own; going on in a task's thread is pass 55's (0.1.90)
+            ev(f"() => {{ const t = getProject('{gp}').todos.find(t => t.id === '{tid}'); if (t) delete t.threads; }}")
             ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(400)
             pg.click(f'li.task[data-id="{tid}"] .task-title'); pg.wait_for_timeout(300); quiet()
             pg.locator('#pvTaskClaude').scroll_into_view_if_needed(); pg.click('#pvTaskClaude'); pg.wait_for_timeout(200)
@@ -412,7 +414,7 @@ HTMLAnchorElement.prototype.click = function () { const href = this.getAttribute
 
         # ---------- nothing new in the city ----------
         db = ev("() => localStorage.getItem('nullovation-city:v1')")
-        ok('nothing about T3 is saved in the city', not any(w in db for w in ('t3-send', 'nullovation-t3', 'claude-sonnet', 't3Agent', 'openTiles')))
+        ok('no send and no T3 setting is saved in the city (a task keeps only its threads, pass 55)', not any(w in db for w in ('t3-send', 'nullovation-t3', 'claude-sonnet', 't3Agent', 'openTiles')))
         b.close()
 finally:
     shutil.rmtree(work, ignore_errors=True)

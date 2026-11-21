@@ -1854,3 +1854,33 @@ li.task .round-hat { margin-inline-start: 2px; }
   .cb::after { inset: -9px -3px -9px -10px; }
   .news-dismiss::after { inset: -8px 0 0 -8px; }
 }
+
+/* ---------- a task's T3 threads (0.1.90, City as My Terminal, Round 1) ---------- */
+/* The T3 mark on a task's row, beside its hat: a click opens its latest thread; it wears T3's state in its color. */
+.t3-open { flex: none; width: 22px; height: 22px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-soft); }
+.t3-open:hover, .t3-open:focus-visible { background: var(--hover); color: var(--ink); }
+.t3-open.working { color: #FF8B6B; }
+.t3-open.waiting { color: var(--soon); }
+.t3-open.failed { color: var(--muted); }
+.t3-open.done { color: var(--teal); }
+li.task .t3-open { margin-inline-start: 2px; }
+.at-meta .t3-open { width: 18px; height: 18px; margin-inline-end: 2px; }
+/* In the task panel, over Claude: each thread, newest first, saying where it lands. */
+.pv-t3-slot:empty { display: none; }
+.pv-t3-sec { display: grid; gap: 4px; justify-items: start; }
+.pv-t3-sec > .lbl { margin-bottom: 2px; }
+.t3-thread { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 6px 8px; font: inherit; color: var(--ink); background: var(--field); border: 0; box-shadow: var(--px-edge); margin: 2px 0; text-align: left; cursor: pointer; }
+.t3-thread:hover, .t3-thread:focus-visible { background: var(--hover); outline: none; }
+.t3-thread .ic { display: inline-flex; margin-top: 2px; color: var(--ink-soft); }
+.t3-thread-text { display: grid; gap: 1px; min-width: 0; }
+.t3-thread-title { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t3-thread-where { font-size: 11.5px; color: var(--muted); }
+.t3-more { margin-left: -6px; }
+/* In Open in Claude: the task's thread the T3 tile goes on in, and its more button. */
+.oc-thread { align-items: center; gap: 6px; }
+.oc-thread-text { display: flex; flex-wrap: wrap; align-items: baseline; min-width: 0; flex: 1; }
+.oc-thread-text > b { margin-right: .3em; }
+.oc-thread-text > .oc-folder-path { flex: 1; }
+.oc-thread-where { flex-basis: 100%; margin-top: 1px; font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-thread-more { flex: none; width: 24px; height: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin: -4px -4px -4px 0; color: var(--ink-soft); }
+.oc-thread-more[aria-expanded="true"] { background: var(--hover); color: var(--ink); }

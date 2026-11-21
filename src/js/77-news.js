@@ -673,6 +673,13 @@ const News = (() => {
       Promise.resolve(run()).then(() => acted(p, it, where, stay));
     } }, label);
   }
+  /* Open in T3 on Claude's lines, for a task whose send started a T3 thread (0.1.90, City as My Terminal): it opens the
+     task's latest thread in T3's window, its tooltip saying where it lands, the agent and the thread's state. */
+  function t3Act(p, t, it, where) {
+    const th = t && typeof T3 !== 'undefined' ? T3.latest(t) : null;
+    if (!th || !th.env) return null;
+    return act(p, it, where, 'Open in T3', 'ld-t3', T3.openTitle(p, t, th), () => T3.openThread(th), true);
+  }
   function acted(p, it, where, stay) {
     const left = !!it && stay && hasActs(p, it);
     if (where === 'say') { if (bub) { if (left) draw(); else next(); } return; }
@@ -760,12 +767,13 @@ const News = (() => {
   /* A finish heads its report (A1): Claude's summary under it (C2), then its parts. Tick it comes only from Claude
      asking to tick the task off (B3); a finish with no update keeps Tick it, with the start of the reply as its words. */
   function finishView(p, { task, at, s, rep, it = null, tick }, where) {
-    const nodes = [...sayNodes(p, 'finished', { task }, task ? taskNamed(p, task) : null, where, it), ' ', whenEl(at)];
-    if (rep) return { nodes, more: [wordsEl(rep.summary), ...parts(p, rep, it, where)].filter(Boolean), acts: [] };
+    const named = task ? taskNamed(p, task) : null, t3 = t3Act(p, named, it, where);
+    const nodes = [...sayNodes(p, 'finished', { task }, named, where, it), ' ', whenEl(at)];
+    if (rep) return { nodes, more: [wordsEl(rep.summary), ...parts(p, rep, it, where)].filter(Boolean), acts: t3 ? [t3] : [] };
     const tk = tick !== undefined ? tick : typeof ClaudeWork === 'undefined' ? null : s ? ClaudeWork.taskOf(p, s)
       : it && it.ref.task ? ClaudeWork.taskOf(p, { task: it.ref.task, project: it.ref.project || '' }) : null;
     return { nodes, more: [wordsEl(plainReply(s && s.reply))].filter(Boolean),
-      acts: tk ? [act(p, it, where, 'Tick it', 'b-claude-tick', 'Tick off ' + tk.text + ', the task this session started from', () => ClaudeWork.tick(p, tk))] : [] };
+      acts: [tk ? act(p, it, where, 'Tick it', 'b-claude-tick', 'Tick off ' + tk.text + ', the task this session started from', () => ClaudeWork.tick(p, tk)) : null, t3].filter(Boolean) };
   }
   /* On its own: what Claude added, with Read and Undo, and its summary. */
   function addedView(p, it, where) {
@@ -804,6 +812,7 @@ const News = (() => {
   }
   function actsOf(p, it, where) {
     const out = [];
+    if (it.moment === 'waiting' || it.moment === 'failed') { const b = t3Act(p, taskFor(p, it), it, where); if (b) out.push(b); }
     if (it.moment === 'answers') {
       const t = p.todos.find(x => x.id === it.ref.tid);
       if (t && t.round) out.push(roundRead(p, t));
@@ -858,9 +867,9 @@ const News = (() => {
         const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, rep, tick: x.tick }, where);
         lines.push({ rank: rep ? repRank(p, rep) : VOICE_RANK.finished, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'finished', cls: 'b-claude ' + x.s.state }) });
       } else {
-        const t = x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null;
+        const t = x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null, t3 = t3Act(p, t, null, where);
         lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, x.v, t, where),
-          { more: rep ? [wordsEl(rep.summary), ...parts(p, rep, null, where)].filter(Boolean) : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
+          { more: rep ? [wordsEl(rep.summary), ...parts(p, rep, null, where)].filter(Boolean) : [], acts: t3 ? [t3] : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
       }
     }
     for (const it of mine) {
