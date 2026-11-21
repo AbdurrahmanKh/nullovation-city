@@ -77,6 +77,11 @@ const LEADER_LINES = {
   added: 'Claude added {what}.',
   round: 'Claude attached a wizard round to {task}: {round}.',
   waiting: 'Claude is waiting for you on {task}.',
+  /* City as My Terminal (0.1.91), written at the build: an approval (L3, his i6 answer "take you to t3"), a message
+     from the city taken (L3, card only), and a send held while T3 is closed (L3, its bubble carrying Open T3) */
+  waiting_ok: 'Claude needs your OK on {task}.',
+  took: 'Claude took your message on {task}. Started {ago}.',                    // the status card only
+  t3closed: 'T3 is closed, so {task} waits to be sent.',
   asks: 'Claude wants your OK first: {change}.',
   failed: 'Claude stopped on an error while working on {task}.',
   finished: 'Claude handed {task} back to you.',                             // whether it is done is yours to say (0.1.69)
@@ -112,7 +117,8 @@ function leaderSay(moment, v = {}) {
 /* The same line in parts (0.1.60): plain words, and each blank filled, with its name and its whole value, so a task in
    it can be shown as a link. */
 function leaderParts(moment, v = {}) {
-  const text = LEADER_LINES[moment];
+  /* an approval says so (0.1.91); a working line from the city's own message says it was taken */
+  const text = LEADER_LINES[moment === 'waiting' && v.wait === 'approval' ? 'waiting_ok' : moment === 'working' && v.took ? 'took' : moment];
   if (!text) return [];
   const out = [], re = /\{n\} tasks|\{(\w+)\}/g;
   let last = 0, m;

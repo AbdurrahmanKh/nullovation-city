@@ -116,6 +116,8 @@ with sync_playwright() as p:
     ok(f"not work: Updated and Activity stay ({before})", js(f"() => {{ const p = getProject('{gp}'); return [p.updatedAt, p.activity.length]; }}") == before)
 
     # ---------- the leader talks in it ----------
+    # its news opens by itself on the map: the editor open would hold it for a break (0.1.91, City as My Terminal, L2)
+    js("() => { Leaders.closeEditor(); Leaders.close(); }"); pg.wait_for_timeout(200)
     js("() => News._test.typeMs(26)")
     clear()
     js(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'a note' }})"); pg.wait_for_timeout(400)
@@ -133,7 +135,7 @@ with sync_playwright() as p:
     ok(f"its speed paces the typing too: after 0.75 s a 1.6x voice has said its line whole, a 0.6x one is still at it ({slow[1]} of {slow[2]} letters)", fast[0] is False and slow[0] is True and 0 < slow[1] < slow[2] * 0.75)
 
     # ---------- Its own again: nothing kept ----------
-    pg.click('#btnOpenLeaders') if not js("() => Leaders.editorOpen()") else None
+    js(f"() => {{ Leaders.open(); Leaders.edit('{lid}'); }}"); pg.wait_for_timeout(300)
     pg.click('.ld-vchip[data-voice="own"]'); pg.wait_for_timeout(400)
     ok('Its own picked back: the leader keeps no voice, and talks in its own again', js(f"() => ['voice' in getLeader('{lid}'), Sound.voices.of('ld:{lid}').base]") == [False, own_hz])
 
@@ -153,6 +155,7 @@ with sync_playwright() as p:
 
     # ---------- Quill: his own voice, or the one picked for a leader named Quill ----------
     pg.mouse.click(150, 560); pg.wait_for_timeout(300)
+    js("() => { if (Leaders.editorOpen()) Leaders.closeEditor(); if (Leaders.isOpen()) Leaders.close(); }"); pg.wait_for_timeout(200)
     js("() => News._test.typeMs(26)")
     clear()
     js(f"() => News.add(getProject('{gp}'), 'round', {{ task: 'Draw the beds', round: 'Beds, Round 1' }})"); pg.wait_for_timeout(400)

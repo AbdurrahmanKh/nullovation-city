@@ -45,7 +45,8 @@
         <div id="briefRow" class="brief-row"></div>
       </section>
       <section id="sbNews" class="sb-sec" aria-label="News" hidden>
-        <h2 class="sb-h">News</h2>
+        <div class="news-head"><h2 class="sb-h">News</h2><button id="newsQuiet" class="news-quiet" type="button" aria-pressed="false">Quiet</button></div>
+        <div id="newsWork" class="news-work-list" hidden></div>
         <div id="newsList" class="news-list"></div>
       </section>
       <section id="sbDue" class="sb-sec" aria-label="Due and overdue" hidden>
@@ -165,6 +166,10 @@
           <section class="set-group">
             <label class="check set-row" data-set="ghosts"><input id="optGhosts" type="checkbox" class="cb"> Ghosts</label>
             <p class="note">Overdue tasks, and the next task of a building behind its pace, creep round their blocks as ghosts. Click one to tick it.</p>
+          </section>
+          <section class="set-group">
+            <label class="check set-row" data-set="quiet"><input id="optQuiet" type="checkbox" class="cb"> Quiet</label>
+            <p class="note">Bubbles that would open by themselves wait in News until you turn it off. Off, they still wait while you are in a panel, a building or a field, and open at your next break.</p>
           </section>
           <section class="set-group">
             <h3 class="set-h set-row" data-set="motion">Motion</h3>

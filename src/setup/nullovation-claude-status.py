@@ -274,6 +274,48 @@ def prune(folder):
             pass
 
 
+THOUGHT_MAX = 240                                  # characters of a thought the city shows (0.1.92)
+THOUGHT_TAIL = 512 * 1024                          # how far back from the transcript's end a thought is looked for
+
+
+# The end of a thought, where it has got to: its last sentences, up to THOUGHT_MAX characters.
+def gist(text):
+    t = ' '.join(str(text).split())
+    if len(t) <= THOUGHT_MAX:
+        return t
+    tail = t[-THOUGHT_MAX:]
+    m = re.search(r'(?<=[.!?])\s+', tail)
+    return chr(0x2026) + (tail[m.end():] if m and m.end() < len(tail) - 40 else tail.lstrip())
+
+
+# Claude's latest thought in this session (0.1.92, City as My Terminal, Round 1, T1): the text of the newest thinking
+# block in the transcript's tail, a subagent's left out; '' when there is none, or it carries no text.
+def latest_thought(path):
+    if not path:
+        return ''
+    p = pathlib.Path(path)
+    size = p.stat().st_size
+    with open(p, 'rb') as f:
+        f.seek(max(0, size - THOUGHT_TAIL))
+        lines = f.read().decode('utf-8', 'replace').splitlines()
+    if size > THOUGHT_TAIL:
+        lines = lines[1:]                          # the first may be cut in half
+    for line in reversed(lines):
+        if '"thinking"' not in line:
+            continue                               # most lines say nothing of it: skipped unread
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        if not isinstance(d, dict) or d.get('type') != 'assistant' or d.get('isSidechain'):
+            continue
+        content = d['message'].get('content') if isinstance(d.get('message'), dict) else None
+        for c in reversed(content if isinstance(content, list) else []):
+            if isinstance(c, dict) and c.get('type') == 'thinking' and str(c.get('thinking') or '').strip():
+                return gist(c['thinking'])
+    return ''
+
+
 def hook(state, folder):
     at = now_ms()
     folder = pathlib.Path(folder)
@@ -319,6 +361,24 @@ def hook(state, folder):
             data['until'] = running[-1]
         elif state != 'background':
             data.pop('until', None)
+        name = str(event.get('hook_event_name') or '')
+        if state == 'working' and name == 'PostToolUse':      # Claude's latest thought, as it goes (0.1.92)
+            try:
+                thought = latest_thought(event.get('transcript_path'))
+            except Exception as e:
+                thought = ''
+                log_error(folder, 'reading a thought: ' + type(e).__name__ + ': ' + str(e))
+            if thought:
+                data['thought'], data['thoughtAt'] = thought, at
+        if state not in ('working', 'background') or name == 'UserPromptSubmit':
+            data.pop('thought', None)              # a new turn, or the work over: its thoughts go with it
+            data.pop('thoughtAt', None)
+        if state == 'waiting':                     # what it waits for (0.1.91): an approval, a question or a form
+            name, kind = str(event.get('hook_event_name') or ''), str(event.get('notification_type') or '')
+            data['wait'] = ('question' if name == 'PreToolUse' else 'form' if kind == 'elicitation_dialog'
+                            else 'approval' if name == 'PermissionRequest' or kind == 'permission_prompt' else data.get('wait') or 'approval')
+        else:
+            data.pop('wait', None)
         if event.get('cwd'):
             data['cwd'] = str(event['cwd'])
         entry = os.environ.get('CLAUDE_CODE_ENTRYPOINT')

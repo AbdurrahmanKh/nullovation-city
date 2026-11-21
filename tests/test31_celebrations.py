@@ -221,20 +221,16 @@ with sync_playwright() as p:
     ok('and is said after the first', ev("() => Proxima.saying()") == 'milestone' and 'First release' in pg.inner_text('#pxSayText'))
     calm()
 
-    # beside the project view
+    # inside the building: she waits for the break, stepping out (0.1.91, City as My Terminal, L2); until 0.1.90 she
+    # spoke beside the project view
     reopen_all(gp)
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(600)
     for t in ['Draw the beds on a grid', 'Save a plan as a file', 'Add plant icons', 'Tune the watering reminders']: tick(gp, t)
-    pg.wait_for_timeout(400)
-    left = ev("() => document.querySelector('#pxSay').getBoundingClientRect().left - document.querySelector('#mapWrap').getBoundingClientRect().left")
-    ok('with the project view open, her bubble sits beside it, over the map', pg.is_visible('#pxSay') and left >= ev("() => FullView.rightEdge()"))
-    sq = ev("""() => { const b = document.querySelector('#pxSay'), t = document.querySelector('#pxSayText').getBoundingClientRect(),
-        f = document.querySelector('#pxSayFace').getBoundingClientRect(), r = b.getBoundingClientRect(), m = document.querySelector('#mapWrap').getBoundingClientRect();
-        return { narrow: b.classList.contains('narrow'), text: Math.round(t.width), face: Math.round(f.width), under: t.top >= f.bottom, inside: r.right <= m.right + 1 }; }""")
-    ok(f'squeezed beside the view, her bubble keeps its 100 px face and puts her words under it, across the bubble, inside the map (0.1.57) ({sq})',
-       sq['narrow'] and sq['face'] == 100 and sq['under'] and sq['text'] >= 180 and sq['inside'])
+    pg.wait_for_timeout(1200)
+    ok('inside the building the party starts, and she waits to announce it', parties() == [gp] and not ev("() => Proxima.isSaying()") and len(ev("() => Proxima._test.queue()")) == 1)
+    ev("() => FullView.close()"); pg.wait_for_timeout(1200)
+    ok('stepping out back to the map, she announces it', ev("() => Proxima.saying()") == 'milestone' and 'First release' in pg.inner_text('#pxSayText'))
     pg.screenshot(path=str(SHOTS / '314-proxima-beside-view.png'))
-    ev("() => FullView.close()"); pg.wait_for_timeout(300)
     calm()
 
     # with the traffic off: only the particles and the lights

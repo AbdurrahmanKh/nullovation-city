@@ -16,7 +16,9 @@ const ClaudeWork = (() => {
      A reply that ended while a command it started runs on in the background (the hooks' background, 0.1.88) is still
      work: it shows as working until the command reports and Claude finishes, or until the hooks' until, when the
      command has run out of time, after which it shows as finished. */
-  const LASTS = { working: 20 * 60e3, waiting: 8 * 3600e3, done: 12 * 3600e3, failed: 12 * 3600e3 };
+  /* waiting lasts until you answer, however long you were gone (0.1.91, City as My Terminal, Brainstorm 1, i8; 8 hours
+     until then): its file goes once the session moves on or ends, or when a new session clears files 3 days old */
+  const LASTS = { working: 20 * 60e3, waiting: Infinity, done: 12 * 3600e3, failed: 12 * 3600e3 };
   const RANK = { waiting: 4, working: 3, failed: 2, done: 1 };
   let dir = null, state = supported ? 'off' : 'unsupported', timer = 0, busy = false;
   let canWrite = false, summaryAt = 0, summaryErr = '';   // write access, and when the summary was last written
@@ -152,7 +154,11 @@ const ClaudeWork = (() => {
     /* A turn Claude Code starts on its own (a background task's notice) arrives as a prompt in a tag; it is no ask. */
     const ask = /^\s*<[a-z][\w-]*[\s>]/i.test(str(d.ask)) ? '' : str(d.ask);
     return { session: str(d.session), state, ended: str(d.state) === 'ended', at: d.at, since: typeof d.since === 'number' ? d.since : d.at,
-      cwd: str(d.cwd), project: str(d.project), task: str(d.task), ask, reply: str(d.reply), ...(bg ? { bg, until } : {}) };
+      cwd: str(d.cwd), project: str(d.project), task: str(d.task), ask, reply: str(d.reply), ...(bg ? { bg, until } : {}),
+      /* what a waiting session waits for (0.1.91): approval, question or form, from the hooks since then */
+      ...(state === 'waiting' && /^(approval|question|form)$/.test(str(d.wait)) ? { wait: str(d.wait) } : {}),
+      /* Claude's latest thought while it works (0.1.92, City as My Terminal, Round 1, T1), from the hooks since then */
+      ...(state === 'working' && str(d.thought).trim() ? { thought: str(d.thought).trim().slice(0, 300), thoughtAt: typeof d.thoughtAt === 'number' ? d.thoughtAt : d.at } : {}) };
   }
   /* A background command that ran out of time without a word: the reply it ended on is Claude's last, so the session
      shows as finished from then on. */
@@ -292,8 +298,12 @@ const ClaudeWork = (() => {
       let t = s.state === 'done' ? taskOf(p, s) : null;
       if (t && ticked.has(t.id)) t = null;
       if (t) ticked.add(t.id);
-      out.push({ s, moment, v: { task, ago: relAgo(s.since) }, text: leaderSay(moment, { task, ago: relAgo(s.since) }),
-        reply: s.state === 'done' ? s.reply : '', tick: t });
+      /* a stretch of work that began on a message the city sent into the task's T3 thread: Claude took it (L3, card
+         only) */
+      const tk = s.state === 'working' ? taskOf(p, s) : null, th = tk && typeof T3 !== 'undefined' ? T3.latest(tk) : null;
+      const took = !!th && s.since >= th.last - 5e3 && s.since - th.last <= 10 * 60e3;
+      const v = { task, ago: relAgo(s.since), ...(s.wait ? { wait: s.wait } : {}), ...(took ? { took: true } : {}) };
+      out.push({ s, moment, v, text: leaderSay(moment, v), reply: s.state === 'done' ? s.reply : '', tick: t });
     }
     return out;
   }

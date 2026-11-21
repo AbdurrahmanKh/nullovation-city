@@ -165,6 +165,14 @@ def plain_error(code, err, doing='start the thread'):
     return 'T3 could not ' + doing + ': ' + (first[:300] or 'it gave no reason.')
 
 
+def failed(code, err, doing='start the thread'):
+    """A failed answer; T3 not running is marked, so the city holds the send until T3 is open (0.1.91)."""
+    out = {'ok': False, 'error': plain_error(code, err, doing)}
+    if 'No running T3 Code server' in (err or ''):
+        out['down'] = True
+    return out
+
+
 def environment_id():
     try:
         return (t3_home() / 'userdata' / 'environment-id').read_text(encoding='utf-8').strip()
@@ -221,7 +229,7 @@ def send_to_thread(s):
     one. Returns the answer, naming the same thread, so the city knows it went where it was meant to."""
     code, _, err = run_t3(['thread', 'send', s['thread'], '-', '--json'], s['message'].encode('utf-8'))
     if code != 0:
-        return {'ok': False, 'error': plain_error(code, err, 'send it to the thread')}
+        return failed(code, err, 'send it to the thread')
     return {'ok': True, 'thread': s['thread'], 'env': environment_id(), 'continued': True}
 
 
@@ -237,11 +245,11 @@ def start_thread(s):
     if code not in (None, 0) and 'No T3 Code project matches' in err:
         acode, _, aerr = run_t3(['project', 'add', s['folder']])
         if acode != 0:
-            return {'ok': False, 'error': plain_error(acode, aerr)}
+            return failed(acode, aerr)
         added = True
         code, out, err = run_t3(args, stdin)
     if code != 0:
-        return {'ok': False, 'error': plain_error(code, err), **({'added': True} if added else {})}
+        return {**failed(code, err), **({'added': True} if added else {})}
     launched = None
     for line in reversed(out.strip().splitlines()):
         try:

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.92 (2026-11-21)
+
+The leaders at work, with Claude's thought, the third part of the city as my terminal, from City as My Terminal, Brainstorm 1, Round 2 (i6, x5) and Round 1 (T1).
+- Each leader whose building Claude works on heads the News section, Proxima for a building with no leader: its face with Claude's spark, wearing a thought bubble with Claude's latest thought, which moves in as Claude thinks. With no thought, it says the working line. A click shows the building with its card. Quiet leaves them in view.
+- The Claude Code at work hooks read Claude's latest thought from the session's transcript after each tool it uses: the newest thinking block's end, up to 240 characters, a subagent's left out, gone with a new prompt or the work's end.
+- The Claude Code at work setup runs again once on each PC for it.
+- Tests: test57_thoughts runs the hook on transcripts written as Claude Code writes them, then checks the rows in the city: the leader and Proxima at work, the thought and the working line, a new thought moving in, the click, Quiet, and the rows going.
+
+## 0.1.91 (2026-11-21)
+
+Bubbles held for a break, and Quiet, the second part of the city as my terminal, from City as My Terminal, Brainstorm 1, Round 2 (x2) and Round 1 (L2, L3).
+- A bubble that would open by itself, a leader's news, Gus's word or Proxima's report, waits while you are at something: a panel open, inside a building, Edit City, typing in a field, or the city's tab out of view. It opens at the next break: closing the panel, stepping out of the building, coming back to the tab. A pause in typing is not a break. A bubble opened with a click is never held.
+- Quiet: a switch in the News section's head and in Settings, Look. While it is on, every bubble waits in News, the faces still counting, and turning it off opens what waited.
+- An approval says so: "Claude needs your OK on <task>.", opening by itself, with Open in T3 when the task has a thread. The hooks now say what a waiting session waits for: an approval, a question or a form.
+- A message the city sent, once Claude takes it, shows on the status card and the leader card only: "Claude took your message on <task>."
+- A send while T3 is closed waits, in place of the error toast: its leader says so in a bubble, with Open T3 and Send it. Where the panels leave no room, a toast says it waits in News, with Open T3.
+- A session waiting for you stays waiting until you answer, where it was let go after 8 hours.
+- The Claude Code at work setup and the T3 setup run again once on each PC.
+- Tests: test56_hold checks the hooks' wait, the helper's down, and in the city each hold and each break, a click never held, Gus waiting, Quiet in both places and kept, the new lines, waiting for ever, an approval's bubble, a message taken on the card only, and a send held while T3 is closed, sent again, and dropped on a reload.
+
 ## 0.1.90 (2026-11-21)
 
 A task's T3 threads, the first part of the city as my terminal, from City as My Terminal, Round 1 (A1, A2) and its brainstorm.

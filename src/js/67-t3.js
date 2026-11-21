@@ -143,7 +143,8 @@ const T3 = (() => {
     follow('nullovation-t3:send/' + id);
     const tname = task ? task.text : name;
     pending.set(id, { p, title: name, at: Date.now(), test: false, taken: false, name: tname, kind, thread: thread ? thread.id : '',
-      agent: thread ? thread.agent : a.short, ref: task && p ? { pid: p.id, tid: task.id } : null });
+      agent: thread ? thread.agent : a.short, ref: task && p ? { pid: p.id, tid: task.id } : null,
+      args: { project: p, folder, text, title, agent: a, task, thread, kind } });
     toast(thread ? 'Sending ' + tname + ' to its T3 thread.' : 'Sending ' + name + ' to T3' + (a.provider ? ', on ' + a.label : '') + '.');
     watch(0);
     return true;
@@ -190,14 +191,48 @@ const T3 = (() => {
     busy = false;
     watch();
   }
+  /* ---------- a send held while T3 is closed (0.1.91, City as My Terminal, Round 1, L3) ---------- */
+  /* T3 runs only while its app is open. A send it could not take waits, kept while the page stays open, and its
+     building's leader says so in a bubble by itself, with Open T3 and Send it; it answers your own click, so it opens
+     at once where there is room, and a toast says it where there is not. Sent again, it goes as it would have. */
+  const heldSends = new Map();                        // id -> the send's own arguments
+  function holdSend(s) {
+    const hid = newId(), t = s.args.task, p = s.p;
+    heldSends.set(hid, { ...s.args, name: s.name });
+    const key = 't3closed:' + p.id + ':' + (t ? t.id : s.name);
+    for (const [k, v] of heldSends) if (k !== hid && v.key === key) heldSends.delete(k);   // the same send again replaces the one waiting
+    heldSends.get(hid).key = key;
+    const it = typeof News !== 'undefined' ? News.add(p, 't3closed', { task: s.name }, { ref: { held: hid, tid: t ? t.id : '', direct: true }, key }) : null;
+    setTimeout(() => {
+      if (it && News.showing(it.id)) return;
+      toast('T3 Code is not running, so ' + s.name + ' waits in News.', 'error', [{ label: 'Open T3', run: () => openApp(hid) }]);
+    }, 150);
+  }
+  const held = id => heldSends.get(id) || null;
+  /* T3's window: the task's thread when it has one, else T3's own link for a new thread. Windows starts T3 for it. */
+  function openApp(id) {
+    const x = held(id), th = x && x.task ? latest(x.task) : null;
+    follow(th && th.env ? threadHref(th.env, th.id) : 't3code://new');
+  }
+  function retry(id) {
+    const x = held(id);
+    if (!x) return false;
+    heldSends.delete(id);
+    const { name, key, ...args } = x;
+    return send(args);
+  }
   function said(s, a) {
     if (s.test) {
       toast(a.running ? 'T3 links work, and T3 Code is running.' : a.t3 ? 'T3 links work, but T3 Code is not running: open it before you send.'
         : "T3 links work, but T3 Code's t3 command was not found on this PC: open T3 Code once.", a.running ? '' : 'error');
       return;
     }
+    if (!a.ok && s.p && (a.down || /^T3 Code is not running/.test(String(a.error || '')))) { holdSend(s); return; }
     if (!a.ok) { toast(String(a.error || 'T3 could not start the thread.'), 'error'); return; }
     if (s.ref) keepThread(s.ref, a, s);
+    /* a send that went makes any held for the same task, or the same title, needless: they go, and their news with them */
+    for (const [k, v] of heldSends) if (v.task && s.args.task ? v.task.id === s.args.task.id : v.name === s.name) heldSends.delete(k);
+    if (typeof News !== 'undefined') News.renderSection();
     const lead = s.p && typeof Leaders !== 'undefined' ? Leaders.toastLead(s.p) : null;
     const open = a.env && a.thread ? [{ label: 'Open', run: () => follow(threadHref(a.env, a.thread)) }] : [];
     /* A helper from before 0.1.90 knows no thread to send into, and starts a new one: said, so the setup runs again. */
@@ -208,6 +243,6 @@ const T3 = (() => {
   }
 
   return { AGENTS, TILES, TILE_NOTES, tiles, setTiles, agentOf, keepAgent, why, send, test, threadHref, pending: () => pending.size,
-    threadsOf, latest, stateOf, whereOf, openThread, openTitle, rowButton, taskList,
+    threadsOf, latest, stateOf, whereOf, openThread, openTitle, rowButton, taskList, held, retry, openApp,
     _test: { times: (take, run) => { TAKE_MS = take; RUN_MS = run; } } };
 })();

@@ -1884,3 +1884,30 @@ li.task .t3-open { margin-inline-start: 2px; }
 .oc-thread-where { flex-basis: 100%; margin-top: 1px; font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .oc-thread-more { flex: none; width: 24px; height: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin: -4px -4px -4px 0; color: var(--ink-soft); }
 .oc-thread-more[aria-expanded="true"] { background: var(--hover); color: var(--ink); }
+
+/* ---------- bubbles held for a break, and Quiet (0.1.91, City as My Terminal) ---------- */
+.news-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+.news-head .sb-h { margin: 0; }
+.news-quiet { padding: 2px 8px; font: 400 12px/1.4 var(--f-pixel); font-variant-ligatures: no-common-ligatures; color: var(--muted); background: none; border: 0; box-shadow: inset 0 0 0 1px var(--line); cursor: pointer; }
+.news-quiet:hover, .news-quiet:focus-visible { color: var(--ink); background: var(--hover); outline: none; }
+.news-quiet[aria-pressed="true"] { color: #1A1628; background: var(--soon); box-shadow: none; }
+.news-quiet-note { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+/* ---------- the leaders at work, and Claude's thought (0.1.92, City as My Terminal, T1) ---------- */
+.news-work-list { display: grid; gap: 10px; margin: 0 0 10px; }
+.news-work { display: flex; align-items: flex-start; gap: 10px; }
+.news-work-face { position: relative; flex: none; padding: 0; background: none; border: 0; cursor: pointer; }
+.news-work-face:hover .ld-face, .news-work-face:focus-visible .ld-face { box-shadow: 0 0 0 2px #FFFFFF; }
+.news-work-face:focus-visible { outline: none; }
+.news-work-spark { position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; display: grid; place-items: center; background: #FF8B6B; color: #FFFFFF; box-shadow: 0 0 0 2px var(--panel); }
+/* the thought bubble: a cloud, two small bubbles trailing to the face, as the Think shift's icon draws it */
+.news-thought { position: relative; flex: 1; min-width: 0; margin: 2px 0 0 8px; padding: 6px 9px; font-size: 12px; line-height: 1.35; font-style: italic; color: var(--ink-soft);
+  background: #2E2748; border-radius: 12px; overflow-wrap: anywhere; }
+.news-thought > span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.news-thought::before, .news-thought::after { content: ''; position: absolute; background: #2E2748; border-radius: 50%; }
+.news-thought::before { width: 8px; height: 8px; left: -9px; top: 14px; }
+.news-thought::after { width: 4px; height: 4px; left: -15px; top: 20px; }
+.news-thought.plain { font-style: normal; }
+.news-thought.new > span { animation: thought-in .45s ease-out; }
+@keyframes thought-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.m-still .news-thought.new > span { animation: none; }

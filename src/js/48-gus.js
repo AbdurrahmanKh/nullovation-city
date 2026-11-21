@@ -107,8 +107,18 @@ const Gus = (() => {
     clearTimeout(sayTimer);
     if (!stay) sayTimer = setTimeout(hush, sayMs);
   }
-  /* By himself: a bubble's sound as it opens, or his alarm's horn at 50 and 200 (0.1.78). */
+  /* By himself: a bubble's sound as it opens, or his alarm's horn at 50 and 200 (0.1.78). Since 0.1.91 it waits while
+     you are at something, or Quiet is on, and he says it at the next break; a later word replaces one still waiting. */
+  let waiting = null, waitT = 0;
   function say(text, alarm = false) {
+    clearTimeout(waitT);
+    if (typeof Hold !== 'undefined' && Hold.busy()) {
+      waiting = { text, alarm: alarm || !!(waiting && waiting.alarm) };
+      line = text; render();
+      waitT = setTimeout(() => { const w = waiting; waiting = null; if (w) say(w.text, w.alarm); }, 500);
+      return;
+    }
+    waiting = null;
     if (typeof Sound !== 'undefined') { if (alarm) Sound.gusAlarm(); else Sound.bubble(); }
     line = text; show(false);
   }
@@ -165,6 +175,6 @@ const Gus = (() => {
     }
     setInterval(render, 60000);                                // a new day or a late task's new day, quietly
   }
-  return { init, render, report, reportLine, fixLine, fill, LINES, say, hush, open, shows, faceEl, isSaying: () => saying, line: () => line,
+  return { init, render, report, reportLine, fixLine, fill, LINES, say, hush, open, shows, faceEl, isSaying: () => saying, line: () => line, waiting: () => !!waiting,
     _test: { sayMs: ms => { sayMs = ms; }, days: () => ({ ...days }), forget: () => { days = {}; saveDays(); } } };
 })();

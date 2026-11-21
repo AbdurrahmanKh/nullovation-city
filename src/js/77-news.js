@@ -20,9 +20,9 @@
      its own, as before. Tick it shows when Claude asks to tick the task off, and on a finish with no update (B3).
    Kept in this browser (nullovation-city:news): nothing new in the city. Undo, for Claude's additions, lasts while the
    page stays open, as a toast's does. */
-const NEWS_RANK = { behind_more: 0, behind_day: 0, behind: 0, waiting: 1, asks: 1, failed: 1, due: 2, due_many: 2, one_left: 3,
+const NEWS_RANK = { behind_more: 0, behind_day: 0, behind: 0, waiting: 1, asks: 1, failed: 1, t3closed: 1, due: 2, due_many: 2, one_left: 3,
   added: 4, round: 4, finished: 5, answers: 5, week: 6, week_quiet: 6, working: 7 };
-const NEWS_OPENS = new Set(['behind', 'behind_more', 'behind_day', 'due', 'due_many', 'one_left', 'added', 'round', 'waiting', 'asks', 'failed']);
+const NEWS_OPENS = new Set(['behind', 'behind_more', 'behind_day', 'due', 'due_many', 'one_left', 'added', 'round', 'waiting', 'asks', 'failed', 't3closed']);
 const NEWS_CLAUDE = new Set(['waiting', 'failed', 'finished', 'asks']);
 /* How far behind a building is (M1): its pace one period behind (the bubble yellow), two or more (red), or a day
    without a tick under Work until finished (red). Work until finished's yellow is a fresh tick, not behind. */
@@ -71,7 +71,7 @@ const News = (() => {
   /* The most pressing first; among the same, the leaders before Proxima, as in the side bar, then the oldest first. */
   const proximaSays = it => (speakerFor(it).k === 'px' ? 1 : 0);
   const sortItems = list => [...list].sort((a, b) => rankOf(a) - rankOf(b) || proximaSays(a) - proximaSays(b) || a.at - b.at);
-  const live = () => st.items.filter(it => getProject(it.pid));
+  const live = () => st.items.filter(it => getProject(it.pid) && !heldGone(it));
 
   /* ---------- raising news ---------- */
   function raise(p, moment, v, ref = {}, key = null) {
@@ -90,6 +90,8 @@ const News = (() => {
     if (bub) { grow(); } else pumpSoon();
   }
   const pumpSoon = () => { clearTimeout(waitT); waitT = setTimeout(pump, 30); };
+  /* a send held while T3 is closed is news only while the page keeps it: gone after a reload, or once sent */
+  const heldGone = it => it.moment === 't3closed' && !(typeof T3 !== 'undefined' && T3.held(it.ref && it.ref.held));
   /* What reads an item: its bubble went past it or closed, its card showed it, or its face was dismissed. */
   function readIds(ids) {
     const set = new Set(ids);
@@ -215,7 +217,7 @@ const News = (() => {
           const task = s.task || s.ask || 'a task';
           if (s.state === 'waiting') {
             const key = 'waiting:' + s.session + ':' + s.since;
-            if (!wasRaised(key)) { raise(p, 'waiting', { task }, { session: s.session }, key); moved = true; }
+            if (!wasRaised(key)) { raise(p, 'waiting', { task, ...(s.wait ? { wait: s.wait } : {}) }, { session: s.session }, key); moved = true; }
           } else if (s.state === 'failed' && !ClaudeWork.isSeen(s)) {
             const key = 'failed:' + s.session + ':' + s.since;
             if (!wasRaised(key)) { raise(p, 'failed', { task }, { session: s.session }, key); moved = true; }
@@ -246,7 +248,7 @@ const News = (() => {
       }
       if (st.items.length !== n0) moved = true;
     });
-    if (moved) after();
+    if (moved) after(); else renderSection();               // the leaders at work, and their thoughts, follow every change (0.1.92)
   }
 
   /* ---------- Claude's reports (0.1.68, Claude's News on the Status Card, A1) ---------- */
@@ -383,9 +385,49 @@ const News = (() => {
     if (color) t.style.setProperty('--ld', color);
     return t;
   }
+  /* ---------- the leaders at work (0.1.92, Brainstorm 1, Round 2, i6: "the leaders who are currently working will show
+     as working in the side bar", and Round 1, T1, The leader thinks it) ---------- */
+  /* Each leader whose building Claude works on, Proxima for one with no leader, heads News: its face with Claude's
+     spark, wearing a thought bubble with Claude's latest thought, as the wizard's companions think, moving on as Claude
+     thinks; with no thought (hooks from before 0.1.92, or another agent), the working line. A click shows the building
+     and its card, which says what Claude is doing there. */
+  const thoughtSeen = new Map();                             // a speaker: the thought it showed last, so a new one moves in
+  function workRows() {
+    if (typeof ClaudeWork === 'undefined') return [];
+    const by = new Map(), when = s => s.thoughtAt || s.at;
+    for (const p of DB.projects) {
+      const ss = ClaudeWork.sessionsOf(p).filter(s => s.state === 'working');
+      if (!ss.length) continue;
+      const sp = speakerOf(p), s = [...ss].sort((a, b) => (!!b.thought - !!a.thought) || when(b) - when(a))[0], cur = by.get(sp.k);
+      if (!cur) by.set(sp.k, { sp, p, s, n: ss.length });
+      else { cur.n += ss.length; if ((!!s.thought - !!cur.s.thought) > 0 || (!!s.thought === !!cur.s.thought && when(s) > when(cur.s))) Object.assign(cur, { p, s }); }
+    }
+    return [...by.values()].sort((a, b) => a.sp.name.localeCompare(b.sp.name));
+  }
+  function renderWork() {
+    const box = $('#newsWork');
+    if (!box) return 0;
+    const rows = workRows();
+    const els = rows.map(({ sp, p, s, n }) => {
+      const what = s.task || s.ask || 'a task', text = s.thought || leaderSay('working', { task: what, ago: relAgo(s.since) });
+      const moved = !!s.thought && thoughtSeen.has(sp.k) && thoughtSeen.get(sp.k) !== s.thought;
+      thoughtSeen.set(sp.k, s.thought || '');
+      const who = sp.name + (sp.role ? ', ' + sp.role : '');
+      return h('div', { class: 'news-work', 'data-k': sp.k, 'data-pid': p.id },
+        h('button', { class: 'news-work-face', type: 'button', title: who + ': Claude is working on ' + what + ' in ' + p.name + (n > 1 ? ', and ' + plural(n - 1, 'more', 'more') : '') + '. Show it.',
+          'aria-label': sp.name + ' is at work on ' + p.name, onclick: () => { Menu.closeDrawer(); MapView.select(p.id); } },
+          faceOf(sp, 40), h('span', { class: 'news-work-spark', 'aria-hidden': 'true', html: iconSvg('claude', 12) })),
+        h('p', { class: 'news-thought' + (s.thought ? '' : ' plain') + (moved ? ' new' : ''), dir: 'auto', title: s.thought ? 'Claude thinks, working on ' + what + ': ' + s.thought : text }, h('span', null, text)));
+    });
+    for (const k of [...thoughtSeen.keys()]) if (!rows.some(r => r.sp.k === k)) thoughtSeen.delete(k);
+    box.replaceChildren(...els);
+    box.hidden = !els.length;
+    return els.length;
+  }
   function renderSection() {
     const sec = $('#sbNews'), box = $('#newsList');
     if (!sec) return;
+    const working = renderWork();
     const a = document.activeElement, focus = a && box.contains(a) ? [a.closest('.news-tile') && a.closest('.news-tile').dataset.k, a.classList.contains('news-dismiss')] : null;
     const tiles = [];
     if (typeof Gus !== 'undefined' && Gus.shows()) {
@@ -400,7 +442,12 @@ const News = (() => {
         title: f.name + (f.role ? ', ' + f.role : '') + ': ' + plural(n, 'piece of news', 'pieces of news') + '. Hear it.',
         open: () => { Menu.closeDrawer(); openFace(f.k); }, dismiss: () => dismiss(f.k) }));
     }
-    sec.hidden = !tiles.length;
+    /* Quiet (0.1.91): the switch in the section's head, the section kept in view while it is on */
+    const q = typeof Hold !== 'undefined' && Hold.quiet(), qb = $('#newsQuiet');
+    if (qb) { qb.setAttribute('aria-pressed', String(q)); qb.title = q ? 'Quiet is on: news waits here. Turn it off to hear it' : 'Quiet: every bubble waits here, until you turn it off'; }
+    sec.hidden = !tiles.length && !q && !working;
+    sec.classList.toggle('quiet', q);
+    if (q && !tiles.length && !working) tiles.push(h('p', { class: 'news-quiet-note' }, 'Quiet: news waits here.'));
     box.replaceChildren(...tiles.filter(Boolean));
     if (focus && focus[0]) {
       const t = $(`.news-tile[data-k="${focus[0]}"]`, box);
@@ -429,9 +476,16 @@ const News = (() => {
   function pump() {
     clearTimeout(waitT);
     if (!started || bub) return;
-    const due = sortItems(live().filter(it => !it.popped && opens(it)));
+    let due = sortItems(live().filter(it => !it.popped && opens(it)));
     if (!due.length) return;
     if (blocked()) { waitT = setTimeout(pump, 500); return; }
+    /* held for a break (0.1.91): while you are at something, only what answers your own click opens now, and with
+       Quiet on, nothing */
+    if (typeof Hold !== 'undefined' && Hold.busy()) {
+      const now = Hold.quiet() ? [] : due.filter(it => it.ref && it.ref.direct);
+      if (!now.length) { waitT = setTimeout(pump, 500); return; }
+      due = now;
+    }
     show(due, { auto: true });
   }
   /* New news while the bubble shows joins it, as one more of N. */
@@ -812,6 +866,11 @@ const News = (() => {
   }
   function actsOf(p, it, where) {
     const out = [];
+    /* a send held while T3 was closed (0.1.91, L3): Open T3, then Send it */
+    if (it.moment === 't3closed' && typeof T3 !== 'undefined' && T3.held(it.ref.held)) {
+      out.push(act(p, it, where, 'Open T3', 'ld-t3', 'Opens T3 Code, so the send can go', () => T3.openApp(it.ref.held), true));
+      out.push(act(p, it, where, 'Send it', 'ld-open', 'Sends it to T3 again, now T3 is open', () => { readIds([it.id]); T3.retry(it.ref.held); }));
+    }
     if (it.moment === 'waiting' || it.moment === 'failed') { const b = t3Act(p, taskFor(p, it), it, where); if (b) out.push(b); }
     if (it.moment === 'answers') {
       const t = p.todos.find(x => x.id === it.ref.tid);
@@ -829,7 +888,8 @@ const News = (() => {
       const have = held.get(pid) || [];
       held.set(pid, [...have, ...mine.filter(it => !have.some(x => x.id === it.id))]);
       if (bub && bub.list.some(it => it.pid === pid && mine.includes(it))) { /* the bubble keeps showing what it shows */ }
-      readIds(mine.map(it => it.id));
+      /* a send held while T3 is closed stays news until it goes (0.1.91): the card says it, and it waits in News */
+      readIds(mine.filter(it => it.moment !== 't3closed').map(it => it.id));
     }
     return sortItems(held.get(pid) || []);
   }
@@ -913,6 +973,14 @@ const News = (() => {
     b.addEventListener('pointerdown', () => hold());
     window.addEventListener('storage', e => { if (e.key === KEY) { st = load(); renderSection(); } });
     Art.onLoad(id => { if (bub && bub.list[bub.i] && bub.list[bub.i].pid === id) draw(); });   // its building's own art, loaded after it opened
+    /* Quiet (0.1.91): its switch in the section's head; turning it off is a break, so what waited opens */
+    $('#newsQuiet').addEventListener('click', () => { Hold.setQuiet(!Hold.quiet()); $('#newsQuiet').focus(); });
+    Hold.onQuiet(q => {
+      renderSection();
+      if (typeof Settings !== 'undefined') Settings.refresh();
+      toast(q ? 'Quiet: bubbles wait in News until you turn it off.' : 'Quiet is off: bubbles open again.');
+      if (!q) pumpSoon();
+    });
     check();
     claude();
     renderSection();
@@ -920,7 +988,7 @@ const News = (() => {
     setInterval(check, 60000);                               // a new day, a new week, and pace slipping while the city stays open
   }
   return { init, check, claude, ticked, add, report, renderSection, take, release, cardLines, viewLines, reportFace, yieldTo, hide, pump, redraw, plainReply, typer,
-    isShowing: () => !!bub, isHeld: () => !!bub && !bub.auto, items: () => sortItems(live()), lineOf,
+    isShowing: () => !!bub, isHeld: () => !!bub && !bub.auto, items: () => sortItems(live()), lineOf, showing: id => !!bub && bub.list.some(x => x.id === id),
     _test: { sayMs: ms => { sayMs = ms; }, typeMs: ms => { typeMs = ms; }, talk: () => T.state(), state: () => JSON.parse(JSON.stringify(st)), bubble: () => bub && { ids: bub.list.map(x => x.id), i: bub.i, auto: bub.auto },
       forget: () => { st = fresh(); save(); held.clear(); undos.clear(); }, held: pid => (held.get(pid) || []).map(x => x.id), reports: () => JSON.parse(JSON.stringify(st.reports)) } };
 })();

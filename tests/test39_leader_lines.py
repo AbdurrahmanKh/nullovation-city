@@ -25,6 +25,10 @@ LINES = {
     'week': 'Last week we finished {n} tasks. Next up: {task}.',
     'week_quiet': 'Quiet week: nothing finished. {task} is a good start.',
     'working': 'Claude is working on {task}. Started {ago}.',
+    # City as My Terminal (0.1.91), written at the build: an approval, a message from the city taken, a send held while T3 is closed
+    'waiting_ok': 'Claude needs your OK on {task}.',
+    'took': 'Claude took your message on {task}. Started {ago}.',
+    't3closed': 'T3 is closed, so {task} waits to be sent.',
     'greet_done': 'We finished {count} today, {togo}. Next up: {task}.',      # since 0.1.86 (General UX, Round 1, P3): where it stands
     'greet_on': "We're on pace, {togo}. Next up: {task}.",
     'greet_behind': 'We slipped behind our pace, {togo}. Next up: {task}.',

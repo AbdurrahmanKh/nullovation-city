@@ -330,7 +330,8 @@ HTMLAnchorElement.prototype.click = function () { const href = this.getAttribute
         state(down=True)
         open_task_panel(); pg.click('.oc-panel .oc-tile[data-kind="t3"]'); pg.wait_for_timeout(300)
         run_link(); pg.wait_for_timeout(1400)
-        ok('with T3 not running, the city says so as an error', said() == 'T3 Code is not running. Open it, then send again.' and ev("() => document.querySelector('#toast').classList.contains('error')"), said())
+        ok('with T3 not running, the city says so as an error, the send waiting in News (0.1.91, pass 56)', said() == 'T3 Code is not running, so ' + task + ' waits in News. Open T3'
+           and ev("() => document.querySelector('#toast').classList.contains('error')"), said())
         state(); quiet()
         # a send nobody takes: the setup has not run
         ev("() => T3._test.times(1500, 4000)")
