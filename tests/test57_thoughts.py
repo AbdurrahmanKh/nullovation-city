@@ -132,7 +132,7 @@ window.showDirectoryPicker = async () => window.__cdir;
            and r[0]['text'] == 'The grid is 4 by 6, so each bed is one cell.' and 'plain' not in r[0]['cls'], r)
         ok('News shows for it, though it holds no news', not ev("() => document.querySelector('#sbNews').hidden"))
         title = ev("() => document.querySelector('#newsWork .news-work-face').title")
-        ok('its face says who works on what, where', title == 'Fern Rowe, Head Gardener: Claude is working on ' + task + ' in Garden planner. Show it.', title)
+        ok('its face says who works on what, where', title == 'Fern Rowe, Head Gardener: Claude is working on ' + task + ' in Garden planner. Talk about it.', title)
         ok('the thought\'s whole text is its tooltip', ev("() => document.querySelector('#newsWork .news-thought').title") == 'Claude thinks, working on ' + task + ': The grid is 4 by 6, so each bed is one cell.')
         pg.screenshot(path=str(SHOTS / '570-thought.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 520})
         put('c-1', garden, thought='I will draw them in the order they are planted.', thoughtAt=int(time.time() * 1000))
@@ -155,8 +155,9 @@ window.showDirectoryPicker = async () => window.__cdir;
         pg.screenshot(path=str(SHOTS / '571-thoughts-two.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 560})
         # a click shows the building and its card
         pg.click('#newsWork .news-work[data-pid="' + gp + '"] .news-work-face'); pg.wait_for_timeout(400)
-        ok('a click on the face shows the building with its card', ev("() => Bubble.openId()") == gp)
-        ev("() => Bubble.close()")
+        ok('a click on the face opens the bubble of its leader on that conversation (0.1.94; its building and card until then)', 'Claude is working on' in ev("() => document.querySelector('#ldSayText').textContent")
+           and ev("() => document.querySelector('#ldSay .ld-say-bld').textContent") == 'Garden planner')
+        ev("() => News.hide({ read: false })")
         # Quiet does not hide who is at work
         ev("() => Hold.setQuiet(true)"); pg.wait_for_timeout(100)
         ok('Quiet leaves the leaders at work in view', len(rows()) == 2)

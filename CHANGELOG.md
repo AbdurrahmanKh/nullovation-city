@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.94 (2026-11-21)
+
+Talking to the leaders, the last part of the city as my terminal, from City as My Terminal, Round 1 (L1, L4, R1 to R3) and its brainstorm (i5, i6).
+- Topics: the status card and the leader card say one topic at a time, a piece of news or a conversation with Claude, with arrows to flip them and where it is, "2 of 3". The bubble flips its topics with the same arrows in place of Next, and goes back too.
+- A click on a leader's face opens its bubble on its news and then its conversations with Claude on every building it leads, each with its building named. A click on a leader at work opens it on that conversation.
+- What Claude asks in a T3 thread shows with its choices as buttons, the one Claude recommends marked with the wizard's hat; one click answers, or Send answers for several questions. An approval still goes to T3.
+- A reply box ends each conversation: Send steers a running turn, starts an idle thread, or answers Claude's question while it asks; Queue, behind the more button, sends it as the next turn. What is typed survives the card being drawn again.
+- The T3 helper steers and answers through T3's agent tools with a key for five minutes, revoked at once; a turn T3 will not steer goes as the next turn, and the city says so. Queue and a reply to an idle thread go through t3 thread send.
+- Tests: test59_talk checks the helper's answer, steer, fallback and queue, then the question, the answer, the reply box, steering and queuing, and topics on the cards and in the bubble. Passes changed for the cards' topics are noted in the knowledge file.
+
+## 0.1.93 (2026-11-21)
+
+The T3 watcher, from T3 Connection Research, Round 2 (W2), on T3 v0.1.11.
+- The T3 setup now starts a small watcher, at once and whenever you sign in. While T3 is open it reads Claude's T3 threads every 3 seconds through T3's own agent tools, with a read-only key it asks T3 for and keeps in AppData, and writes them into the Claude folder for the city: each thread's state, its folder, its latest message, and what it asks while it waits, or that it waits for an approval. While T3 is closed it rests.
+- Each of a task's T3 threads says its own state from it: working, waiting on you, waiting for your OK, stopped or handed back. The task panel shows each thread's latest message.
+- A Claude Code session in T3 is paired with its thread, a thread started in T3 itself included: its lines on the status card, the leader card and its bubble get Open in T3 and the thread's latest message.
+- Settings, Links, T3 Code says what the watcher sees, that T3 is closed, or that it has not been heard from.
+- The helper's --uninstall stops the watcher and revokes its key; --status says whether it runs.
+- Tests: test58_watcher runs the watcher against a fake T3 server and a fake t3 command (what it reads and writes, its key, a refused key, a failing look, T3 closed), then the city reading it.
+
 ## 0.1.92 (2026-11-21)
 
 The leaders at work, with Claude's thought, the third part of the city as my terminal, from City as My Terminal, Brainstorm 1, Round 2 (i6, x5) and Round 1 (T1).

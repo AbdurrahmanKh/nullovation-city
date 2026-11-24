@@ -634,7 +634,7 @@ with sync_playwright() as p:
     st = state(T3)
     ok(f'Claude\'s add-round brings round 2, which replaces round 1: aims, extras, 1 extra, 2 ideas and the order make 6 cards ({st})', get(T3)['round']['title'] == BT + ', Round 2'
        and st['brainstorm'] == 2 and st['total'] == 6 and st['answered'] == 0)
-    news = ev("() => [...News.items().filter(it => it.moment === 'round').map(it => News.lineOf(it)), ...[...document.querySelectorAll('#pvLeader .ld-line[data-moment=\"round\"] .ld-says')].map(x => x.textContent.replace(/^Quill: /, '').replace(/ Sent just now\\.$/, ''))]")
+    news = ev("() => [...News.items().filter(it => it.moment === 'round').map(it => News.lineOf(it)), ...(FullView.currentId() ? News.viewLines(getProject(FullView.currentId())) : []).filter(x => x.dataset.moment === 'round').map(x => x.querySelector('.ld-says').textContent.replace(/^Quill: /, '').replace(/ Sent just now\\.$/, ''))]")   # every topic of the leader card (0.1.94)
     ok(f'Quill says so, in News or on the card of the project view open ({news[-1:]})', news[-1:] == ['Claude attached a wizard round to ' + T3 + ': ' + BT + ', Round 2.'])
     ev("() => { const b = document.querySelector('#ldSayClose'); if (b && !document.querySelector('#ldSay').hidden) b.click(); }"); quiet()
     A2 = {'meta': {'tool': 'decision-wizard', 'kind': 'brainstorm', 'round': 2, 'wizard_version': '0.10.1', 'wizard_title': BT + ', Round 2', 'total': 6, 'seen': 6, 'ideas': 3},
@@ -655,7 +655,7 @@ with sync_playwright() as p:
         '## Brainstorm, round 2: ' + BT + ', Round 2', '- Extras:', '  - "Icons that smile when watered." (kept)', '- Idea i1: "A sprout, then a leaf, then a flower."',
         '  - In your words: "Icons that grow in three stages."', '  - A change, from Black: "Three stages only."', '  - You answered White (Which plants first?): "Herbs first."',
         '  - Taken from Green as a new idea: "Animate the growth."', '  - Your variant: "A seed before the sprout."', '- Your order:', '  1. "Icons that grow in three stages."', '  2. "Leaf shapes for herbs."']))
-    news = ev("() => [...News.items().filter(it => it.moment === 'answers').map(it => News.lineOf(it)), ...[...document.querySelectorAll('#pvLeader .ld-line[data-moment=\"answers\"] .ld-says')].map(x => x.textContent.replace(/^Quill: /, ''))]")
+    news = ev("() => [...News.items().filter(it => it.moment === 'answers').map(it => News.lineOf(it)), ...(FullView.currentId() ? News.viewLines(getProject(FullView.currentId())) : []).filter(x => x.dataset.moment === 'answers').map(x => x.querySelector('.ld-says').textContent.replace(/^Quill: /, ''))]")   # every topic of the leader card (0.1.94)
     ok(f'its news says the answers are in, in cards ({news})', news == ['Your answers are in for ' + BT + ', Round 2: 6 of 6.'])
     ok('and its Activity line counts cards seen', any(e['text'] == 'Answers in for ' + BT + ', Round 2: 6 of 6 cards seen' for e in proj()['activity']))
     quiet()

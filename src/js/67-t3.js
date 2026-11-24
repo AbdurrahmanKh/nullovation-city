@@ -62,20 +62,101 @@ const T3 = (() => {
      started in T3 itself belongs to no task, for now (A2). */
   const threadsOf = t => (t && Array.isArray(t.threads) ? [...t.threads].sort((a, b) => b.last - a.last) : []);
   const latest = t => threadsOf(t)[0] || null;
-  /* Where Open lands, said before the click (Brainstorm 1, Round 2, i1): the agent, and the thread's state. Until T3
-     Connection Research, Round 2 picks how the city reads T3, the state is the task's Claude session, from Claude's
-     hooks: the one working, waiting or done on it; with none, when it was last sent. */
+  /* ---------- what the watcher sees (0.1.93, T3 Connection Research, Round 2, W2) ---------- */
+  /* The watcher, a small program the T3 setup starts at sign-in (W2a), writes Claude's T3 threads into the Claude
+     folder as t3/watch.json every few seconds while T3 is open: each thread's state, its folder, its latest message,
+     and what it asks while it waits. The city reads it every 3 seconds, as it reads Claude's hooks. It is live while
+     written in the last 90 seconds (the watcher writes at least every 30). */
+  const WATCH_EVERY = 3000, WATCH_STALE = 90e3;
+  let watched = null, watchT = 0, watchBusy = false;
+  async function readWatch() {
+    clearTimeout(watchT);
+    if (!watchBusy && typeof ClaudeWork !== 'undefined' && ClaudeWork.folder() && !document.hidden) {
+      watchBusy = true;
+      let d = null;
+      try { d = JSON.parse(await ClaudeWork.read(SUB + '/watch.json')); } catch (e) { d = null; }
+      if (d && d.app === 'nullovation-city' && d.kind === 't3-watch' && typeof d.at === 'number') {
+        const threads = Array.isArray(d.threads) ? d.threads.filter(x => x && typeof x.id === 'string') : [];
+        const sig = JSON.stringify([d.running, d.error || '', threads]), moved = !watched || watched.sig !== sig;
+        watched = { at: d.at, running: !!d.running, error: typeof d.error === 'string' ? d.error : '', t3: typeof d.t3 === 'string' ? d.t3 : '', threads, sig,
+          byId: new Map(threads.map(x => [x.id, x])) };
+        if (moved) watchMoved();
+      }
+      watchBusy = false;
+    }
+    watchT = setTimeout(readWatch, WATCH_EVERY);
+  }
+  setTimeout(readWatch, 1500);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) readWatch(); });
+  const watchLive = () => !!watched && Date.now() - watched.at < WATCH_STALE;
+  const watchedThread = id => (id && watchLive() && watched.running ? watched.byId.get(id) || null : null);
+  function watchMoved() {
+    if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshThreads();
+    if (typeof AllTasks !== 'undefined') AllTasks.refresh();
+    if (typeof Bubble !== 'undefined') Bubble.refresh();
+    if (typeof Leaders !== 'undefined') Leaders.redrawCard();
+    if (typeof Settings !== 'undefined' && Settings.isOpen()) Settings.refresh();
+  }
+  /* The watcher in Settings, Links: what it sees now, or what is missing. */
+  function watchWords() {
+    if (!watched) return 'Watcher: not heard from on this PC. Run the T3 setup again to start it, then keep T3 open.';
+    if (!watchLive()) return 'Watcher: last heard from ' + relAgo(watched.at) + '. It starts when you sign in; the T3 setup starts it again.';
+    if (!watched.running) return 'Watcher: T3 is closed, so it rests.';
+    if (watched.error) return 'Watcher: T3 is open, but its last look failed: ' + watched.error;
+    const n = watched.threads.length;
+    return 'Watcher: sees ' + plural(n, 'Claude thread', 'Claude threads') + (watched.t3 ? ' in T3 v' + watched.t3 : ' in T3') + ', looking every few seconds.';
+  }
+  /* A T3 thread's state in the city's words: working, waiting, failed or done. */
+  const T3_STATE = { preparing: 'working', queued: 'working', starting: 'working', running: 'working', waiting: 'waiting', completed: 'done', idle: 'done',
+    failed: 'failed', interrupted: 'failed', cancelled: 'failed', rolled_back: 'failed' };
+  /* The thread a session of Claude Code's runs in, for a session in T3 (its hooks name T3 as where it was started): the
+     task's thread when the session is on a task that has one, else the one watched thread at work in the session's
+     folder, or the one in it last busy near the session's last word; none when that is not plain (A2: threads started
+     in T3 itself belong to no task, but they show on their building, W2c). */
+  function sessionThread(p, s) {
+    if (!s || !watchLive() || !watched.running) return null;
+    const t = typeof ClaudeWork !== 'undefined' ? ClaudeWork.taskOf(p, s) : null, th = t && latest(t);
+    if (th && watched.byId.has(th.id)) return watched.byId.get(th.id);
+    if (s.entry && s.entry !== 't3-code') return null;
+    const k = typeof ClaudeWork !== 'undefined' ? ClaudeWork.pathKey(s.cwd) : '';
+    if (!k) return null;
+    const here = watched.threads.filter(x => ClaudeWork.pathKey(x.folder) === k);
+    const busy = here.filter(x => T3_STATE[x.status] === 'working' || T3_STATE[x.status] === 'waiting');
+    if (s.state === 'working' || s.state === 'waiting') {
+      /* two at work in one building: the one in the same state, waiting with waiting, else the one its title names */
+      if (busy.length === 1) return busy[0];
+      const same = busy.filter(x => (T3_STATE[x.status] === 'waiting') === (s.state === 'waiting'));
+      if (same.length === 1) return same[0];
+      const ask = String(s.ask || s.task || '').trim().toLowerCase();
+      const named = (same.length ? same : busy).filter(x => ask && x.title && ask.startsWith(String(x.title).trim().toLowerCase().slice(0, 40)));
+      return named.length === 1 ? named[0] : null;
+    }
+    const near = here.filter(x => Math.abs((x.updated || 0) - s.at) < 3 * 60e3);
+    return near.length === 1 ? near[0] : null;
+  }
+  /* The latest message a watched thread holds, its text plain. */
+  const lastOf = w => (w && w.last && typeof w.last.text === 'string' ? w.last.text : '');
+
+  /* Where Open lands, said before the click (Brainstorm 1, Round 2, i1): the agent, and the thread's state. Since 0.1.93
+     each thread's own state comes from the watcher while it runs; without it, the latest thread's is the task's Claude
+     session, from Claude's hooks: the one working, waiting or done on it; with neither, when it was last sent. */
   const STATE_RANK = { waiting: 0, working: 1, failed: 2, done: 3 };
-  const STATE_WORDS = { waiting: 'waiting on you', working: 'working', failed: 'stopped on an error', done: 'handed back to you' };
-  function stateOf(p, t) {
+  const STATE_WORDS = { waiting: 'waiting on you', approval: 'waiting for your OK', working: 'working', failed: 'stopped on an error', done: 'handed back to you' };
+  function hookState(p, t) {
     if (!p || !t || typeof ClaudeWork === 'undefined') return '';
     const mine = ClaudeWork.sessionsOf(p).filter(s => STATE_RANK[s.state] != null && ClaudeWork.taskOf(p, s) === t);
     mine.sort((a, b) => STATE_RANK[a.state] - STATE_RANK[b.state] || b.at - a.at);
     return mine.length ? mine[0].state : '';
   }
+  function threadState(p, t, th) {
+    const w = th && watchedThread(th.id);
+    if (w) return w.status === 'waiting' && w.approval ? 'approval' : T3_STATE[w.status] || '';
+    return th && th === latest(t) ? hookState(p, t) : '';
+  }
+  const stateOf = (p, t) => threadState(p, t, latest(t));
   function whereOf(p, t, th = latest(t)) {
     if (!th) return '';
-    const st = th === latest(t) ? stateOf(p, t) : '';
+    const st = threadState(p, t, th);
     return (th.agent ? (th.agent === 'default' ? "T3's default agent" : th.agent) + ', ' : '') + (st ? STATE_WORDS[st] : 'sent ' + relAgo(th.last));
   }
   function openThread(th) { if (th && th.id && th.env) follow(threadHref(th.env, th.id)); }
@@ -85,7 +166,7 @@ const T3 = (() => {
     const th = latest(t);
     if (!th || !th.env) return null;
     const st = stateOf(p, t);
-    return h('button', { class: 'icon-btn t3-open' + (st ? ' ' + st : '') + (cls ? ' ' + cls : ''), type: 'button', 'data-task': t.id, 'aria-label': 'Open in T3: ' + t.text,
+    return h('button', { class: 'icon-btn t3-open' + (st ? ' ' + (st === 'approval' ? 'waiting' : st) : '') + (cls ? ' ' + cls : ''), type: 'button', 'data-task': t.id, 'aria-label': 'Open in T3: ' + t.text,
       title: openTitle(p, t, th), html: iconSvg('t3', 12),
       onclick: e => { e.stopPropagation(); openThread(th); } });
   }
@@ -95,7 +176,9 @@ const T3 = (() => {
     if (!all.length) return null;
     const row = th => h('button', { class: 't3-thread', type: 'button', 'data-thread': th.id, title: openTitle(p, t, th), onclick: () => openThread(th) },
       h('span', { class: 'ic', 'aria-hidden': 'true', html: iconSvg('t3', 14) }),
-      h('span', { class: 't3-thread-text' }, h('span', { class: 't3-thread-title', dir: 'auto' }, th.title || t.text), h('span', { class: 't3-thread-where' }, whereOf(p, t, th))));
+      h('span', { class: 't3-thread-text' }, h('span', { class: 't3-thread-title', dir: 'auto' }, th.title || t.text), h('span', { class: 't3-thread-where' }, whereOf(p, t, th)),
+        /* its latest message, while the watcher sees it (W2c) */
+        lastOf(watchedThread(th.id)) ? h('span', { class: 't3-thread-last', dir: 'auto' }, (typeof News !== 'undefined' ? News.plainReply(lastOf(watchedThread(th.id))) : lastOf(watchedThread(th.id)))) : null));
     const box = h('div', { class: 'pv-t3-sec' }, h('span', { class: 'lbl' }, all.length > 1 ? 'T3 threads' : 'T3 thread'));
     const SHOW = 3;
     box.append(...all.slice(0, SHOW).map(row));
@@ -148,6 +231,43 @@ const T3 = (() => {
     toast(thread ? 'Sending ' + tname + ' to its T3 thread.' : 'Sending ' + name + ' to T3' + (a.provider ? ', on ' + a.label : '') + '.');
     watch(0);
     return true;
+  }
+  /* ---------- talking back (0.1.94, City as My Terminal, Round 1, R1 to R3) ---------- */
+  /* A reply or an answer goes as a send does: written into the Claude folder, its link followed on the click, the
+     helper doing it in T3. A reply names its mode: steer (a running turn, R2), auto (an idle thread starts on it) or
+     queue (the next turn, R2); an answer names the request and each question's answer (R3, i6). */
+  async function talk(p, w, doc, say) {
+    const no = why();
+    if (no) { toast(no + '.', 'error'); return false; }
+    if (!w || !w.id) return false;
+    const id = newId(), name = String(w.title || '').trim() || 'its thread';
+    const full = { app: 'nullovation-city', kind: 't3-send', version: 1, id, at: Date.now(), project: p ? p.name : '', folder: w.folder || '', title: name.slice(0, 80), thread: w.id, ...doc };
+    try { await ClaudeWork.write(SUB + '/send-' + id + '.json', JSON.stringify(full)); } catch (e) {
+      toast('The city could not write it into the Claude folder' + (e && e.name ? ' (' + e.name + ')' : '') + '.', 'error');
+      return false;
+    }
+    follow('nullovation-t3:send/' + id);
+    pending.set(id, { p, title: name, name, at: Date.now(), test: false, taken: false, talk: true, action: doc.action, mode: doc.mode || '', request: doc.request || '', env: w.env, thread: w.id });
+    toast(say);
+    watch(0);
+    return true;
+  }
+  const reply = (p, w, text, mode) => talk(p, w, { action: 'reply', mode, message: text },
+    mode === 'steer' ? 'Steering Claude on ' + (w.title || 'its thread') + '.' : mode === 'queue' ? 'Queuing it for Claude’s next turn.' : 'Sending it to Claude.');
+  const answer = (p, w, request, answers) => talk(p, w, { action: 'answer', request, answers }, 'Answering Claude on ' + (w.title || 'its thread') + '.');
+  function saidTalk(s, a) {
+    const lead = s.p && typeof Leaders !== 'undefined' ? Leaders.toastLead(s.p) : null;
+    const open = s.env && s.thread ? [{ label: 'Open', run: () => follow(threadHref(s.env, s.thread)) }] : [];
+    if (!a.ok) {
+      if (s.request && typeof News !== 'undefined') News.unanswer(s.request);
+      toast(String(a.error || 'T3 did not take it.'), 'error', a.down ? [{ label: 'Open T3', run: () => follow(s.env && s.thread ? threadHref(s.env, s.thread) : 't3code://new') }] : open);
+      return;
+    }
+    const words = s.action === 'answer' ? 'Answered Claude on ' + s.name + '.'
+      : a.queued && s.mode === 'steer' ? 'T3 took it as Claude’s next turn on ' + s.name + ': the turn could not be steered.'
+      : s.mode === 'steer' ? 'Steered Claude on ' + s.name + '.' : s.mode === 'queue' ? 'Queued for Claude’s next turn on ' + s.name + '.' : 'Sent to Claude on ' + s.name + '.';
+    toast(words, '', open, { lead });
+    readWatch();
   }
   /* Settings' Test T3 link: the helper answers, saying whether T3's command is there and T3 is running. */
   async function test() {
@@ -222,6 +342,7 @@ const T3 = (() => {
     return send(args);
   }
   function said(s, a) {
+    if (s.talk) { saidTalk(s, a); return; }
     if (s.test) {
       toast(a.running ? 'T3 links work, and T3 Code is running.' : a.t3 ? 'T3 links work, but T3 Code is not running: open it before you send.'
         : "T3 links work, but T3 Code's t3 command was not found on this PC: open T3 Code once.", a.running ? '' : 'error');
@@ -243,6 +364,8 @@ const T3 = (() => {
   }
 
   return { AGENTS, TILES, TILE_NOTES, tiles, setTiles, agentOf, keepAgent, why, send, test, threadHref, pending: () => pending.size,
-    threadsOf, latest, stateOf, whereOf, openThread, openTitle, rowButton, taskList, held, retry, openApp,
+    threadsOf, latest, stateOf, whereOf, openThread, openTitle, rowButton, taskList, held, retry, openApp, reply, answer,
+    watched: () => (watchLive() ? watched : null), watchedThread, watchWords, sessionThread, lastOf, T3_STATE,
+    openWatched: w => { if (w && w.env && w.id) follow(threadHref(w.env, w.id)); }, readWatch,
     _test: { times: (take, run) => { TAKE_MS = take; RUN_MS = run; } } };
 })();

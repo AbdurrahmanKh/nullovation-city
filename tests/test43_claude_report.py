@@ -45,6 +45,7 @@ with sync_playwright() as p:
     pg.wait_for_function("() => typeof ClaudeWork !== 'undefined' && typeof DB !== 'undefined' && DB.projects.length === 2", timeout=20000)
     pg.wait_for_timeout(600)
     js = pg.evaluate
+    js("() => News._test.flat(true)")   # every line of a card at once: topics flip in pass 59 (0.1.94)
     ids = js("() => Object.fromEntries(DB.projects.map(p => [p.name, p.id]))")
     gp, nc = ids['Garden planner'], ids['Nullovation City']
     js("""() => { const p = DB.projects.find(p => p.name === 'Garden planner');

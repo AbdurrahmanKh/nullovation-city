@@ -168,6 +168,7 @@ const Bubble = (() => {
   function render(animateNew) {
     const p = getProject(openId); if (!p) return;
     const focusId = document.activeElement && el.contains(document.activeElement) ? (document.activeElement.closest('li') || {}).dataset?.id : null;
+    const a = document.activeElement, keep = a && el.contains(a) && a.id ? { id: a.id, at: typeof a.selectionStart === 'number' ? a.selectionStart : null } : null;
     const { list: visible, current } = bubbleTodos(p, BUBBLE_TODOS, new Set(ticking.keys()));
     const openCount = openTasks(p).length;
     const moreCount = openCount - visible.filter(t => isOpenTask(t)).length;
@@ -222,6 +223,7 @@ const Bubble = (() => {
     kids.push(tail);
     el.replaceChildren(...kids.filter(Boolean));
     if (focusId) { const cb = $(`li[data-id="${focusId}"] .cb`, el); if (cb) cb.focus(); }
+    else keepFocus(keep);                                                    // a reply being typed, or a topic's arrow (0.1.94)
     if (typeof ClaudeWork !== 'undefined') ClaudeWork.markSeen(p.id);
   }
 

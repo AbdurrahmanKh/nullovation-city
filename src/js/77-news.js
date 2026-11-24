@@ -414,8 +414,8 @@ const News = (() => {
       thoughtSeen.set(sp.k, s.thought || '');
       const who = sp.name + (sp.role ? ', ' + sp.role : '');
       return h('div', { class: 'news-work', 'data-k': sp.k, 'data-pid': p.id },
-        h('button', { class: 'news-work-face', type: 'button', title: who + ': Claude is working on ' + what + ' in ' + p.name + (n > 1 ? ', and ' + plural(n - 1, 'more', 'more') : '') + '. Show it.',
-          'aria-label': sp.name + ' is at work on ' + p.name, onclick: () => { Menu.closeDrawer(); MapView.select(p.id); } },
+        h('button', { class: 'news-work-face', type: 'button', title: who + ': Claude is working on ' + what + ' in ' + p.name + (n > 1 ? ', and ' + plural(n - 1, 'more', 'more') : '') + '. Talk about it.',
+          'aria-label': sp.name + ' is at work on ' + p.name, onclick: () => { Menu.closeDrawer(); openFace(sp.k, { session: s.session }); } },
           faceOf(sp, 40), h('span', { class: 'news-work-spark', 'aria-hidden': 'true', html: iconSvg('claude', 12) })),
         h('p', { class: 'news-thought' + (s.thought ? '' : ' plain') + (moved ? ' new' : ''), dir: 'auto', title: s.thought ? 'Claude thinks, working on ' + what + ': ' + s.thought : text }, h('span', null, text)));
     });
@@ -501,11 +501,29 @@ const News = (() => {
     const ids = new Set(list.map(it => it.id));
     edit(() => { for (const it of st.items) if (ids.has(it.id)) it.popped = true; });
   }
-  function openFace(k) {
-    const list = sortItems(live().filter(it => speakerFor(it).k === k));
+  /* A leader's conversations with Claude on its buildings, as topics (0.1.94, L1: "each conversation with an agent is
+     one topic"; i5: each leader carries the conversations of every project it leads, its building named on each):
+     each session at work, waiting, stopped or finished there that no piece of news already holds. Not news: nothing is
+     kept or read. */
+  function convItems(k, have) {
+    if (typeof ClaudeWork === 'undefined') return [];
+    const out = [], covered = new Set(have.filter(it => it.ref && it.ref.session).map(it => it.ref.session));
+    for (const p of DB.projects) {
+      if (speakerOf(p).k !== k) continue;
+      for (const x of ClaudeWork.voice(p)) {
+        if (covered.has(x.s.session)) continue;
+        out.push({ id: 'conv:' + x.s.session, key: 'conv:' + x.s.session, pid: p.id, moment: x.moment, v: x.v, ref: { session: x.s.session, task: x.s.task, project: x.s.project }, at: x.s.at, popped: true, conv: true });
+      }
+    }
+    return out;
+  }
+  function openFace(k, { session = null } = {}) {
+    const news = sortItems(live().filter(it => speakerFor(it).k === k));
+    const list = [...news, ...convItems(k, news)];
     if (!list.length) return;
     if (typeof Gus !== 'undefined' && Gus.isSaying()) Gus.hush();
     show(list, { auto: false, k });
+    if (session) { const at = list.findIndex(it => it.ref && it.ref.session === session); if (at > 0) { bub.i = at; draw(); } }
     if (typeof Proxima !== 'undefined') Proxima.yieldToGus();       // her bubble goes, and comes back after this one
     const b = box(), first = b && ($('.ld-say-acts .btn', b) || $('#ldSayClose'));
     if (first) first.focus({ preventScroll: true });
@@ -546,8 +564,11 @@ const News = (() => {
     $('#ldSayMore').replaceChildren(...v.more);
     $('#ldSayActs').replaceChildren(...[...v.acts,
       h('button', { class: 'btn btn-small btn-quiet ld-go', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } }, 'Go to it'),
-      n > 1 ? h('span', { id: 'ldSayCount', class: 'ld-say-count' }, (bub.i + 1) + ' of ' + n) : null,
-      n > 1 && bub.i < n - 1 ? h('button', { id: 'ldSayNext', class: 'btn btn-small ld-next', type: 'button', onclick: () => { hold(); next(); } }, 'Next') : null].filter(Boolean));
+      /* the topics, flipped with arrows (0.1.94, i5's variant), in place of Next */
+      n > 1 ? h('span', { class: 'ld-flip ld-say-flip', role: 'group', 'aria-label': 'Topics' },
+        h('button', { id: 'ldSayPrev', class: 'icon-btn ld-flip-btn', type: 'button', disabled: bub.i === 0, 'aria-label': 'The topic before', title: 'The topic before', html: iconSvg('back', 14), onclick: () => { hold(); prev(); } }),
+        h('span', { id: 'ldSayCount', class: 'ld-say-count ld-flip-n' }, (bub.i + 1) + ' of ' + n),
+        h('button', { id: 'ldSayNext', class: 'icon-btn ld-flip-btn next', type: 'button', disabled: bub.i >= n - 1, 'aria-label': 'Next', title: 'The next topic', html: iconSvg('back', 14), onclick: () => { hold(); next(); } })) : null].filter(Boolean));
     MapView.light(p.id);
     const edge = panelEdge();                                                 // beside the project view or All tasks, as Proxima's
     b.style.left = edge ? Math.round(edge + 22) + 'px' : '';
@@ -558,6 +579,11 @@ const News = (() => {
   const keyOf = el => (el.id ? '#' + el.id : el.classList && el.classList.length ? '.' + el.classList[el.classList.length - 1] : null);
   /* Draws the bubble again, as it is: its portraits or its building's art loaded after it opened. */
   function redraw() { if (bub) draw(); }
+  function prev() {
+    if (!bub || bub.i <= 0) return;
+    bub.i--;
+    draw();
+  }
   function next() {
     if (!bub) return;
     const cur = bub.list[bub.i];
@@ -734,6 +760,126 @@ const News = (() => {
     if (!th || !th.env) return null;
     return act(p, it, where, 'Open in T3', 'ld-t3', T3.openTitle(p, t, th), () => T3.openThread(th), true);
   }
+  /* The same for a session's T3 thread the watcher sees (0.1.93, W2c), a thread started in T3 itself included. */
+  function t3ActW(p, w, it, where) {
+    if (!w || !w.env || typeof T3 === 'undefined') return null;
+    const st = T3.T3_STATE[w.status] || '';
+    return act(p, it, where, 'Open in T3', 'ld-t3', 'Opens its T3 thread' + (w.title ? ', ' + w.title : '') + (st ? ': ' + (w.approval ? 'waiting for your OK' : { waiting: 'waiting on you', working: 'working', failed: 'stopped', done: 'handed back to you' }[st]) : '') + '.',
+      () => T3.openWatched(w), true);
+  }
+  const watchedOf = (p, s) => (s && typeof T3 !== 'undefined' ? T3.sessionThread(p, s) : null);
+
+  /* ---------- talking back (0.1.94, City as My Terminal, Round 1, R1 to R3, L4, and Brainstorm 1, i6) ---------- */
+  /* A conversation with Claude in a T3 thread the watcher sees ends with what it asks and a reply box, in the bubble
+     and on the cards alike (i6: "I want to unify everything"). What it asks: each question with its choices as buttons,
+     like the report buttons (L4), the one Claude recommends marked with the wizard's hat, one click taking it (i6,
+     Yellow's change); several questions, or several choices allowed, are sent once each is answered. An approval goes
+     to T3 (i6: "take you to t3"). The reply box (R1): Send steers a running turn, starts an idle thread on it; Queue,
+     behind the more button (R2, his note: "Queue Is almost hidden"), sends it as the next turn; while Claude asks, what
+     is typed answers its question (R3). Each goes through the T3 helper on the click. What is typed is kept per thread
+     while the page stays open, so a redraw never loses it. */
+  const drafts = new Map(), picks = new Map(), answered = new Map();
+  const REC = /\s*\(recommended\)\s*$/i;
+  const sessOf = (p, id) => (id && typeof ClaudeWork !== 'undefined' ? ClaudeWork.sessionsOf(p).find(x => x.session === id) || null : null);
+  function sendAnswers(p, w, req) {
+    const got = picks.get(req.request) || {};
+    const answers = {};
+    for (const q of req.questions) {
+      const v = got[q.id];
+      if (v == null || (Array.isArray(v) && !v.length)) return false;
+      answers[q.id] = v;
+    }
+    answered.set(req.request, answers);
+    picks.delete(req.request);
+    T3.answer(getProject(p.id), w, req.request, answers);
+    hold();
+    redrawTalk();
+    return true;
+  }
+  function redrawTalk() { if (bub) draw(); Bubble.refresh(); Leaders.redrawCard(); }
+  /* An answer T3 did not take: its choices come back, to try again. */
+  function unanswer(request) { if (answered.delete(request)) redrawTalk(); }
+  function askEl(p, w, where) {
+    const req = w && w.asks && w.asks[0];
+    if (!req || !req.questions || !req.questions.length) return null;
+    const done = answered.get(req.request);
+    if (done) return h('p', { class: 'ld-asked' }, 'Answered: ', h('bdi', null, Object.values(done).map(v => (Array.isArray(v) ? v.join(', ') : String(v)).replace(REC, '')).join('; ')), '. Waiting for Claude.');
+    const got = picks.get(req.request) || {};
+    const one = req.questions.length === 1 && !req.questions[0].multi;
+    const box = h('div', { class: 'ld-ask', 'data-request': req.request });
+    req.questions.forEach((q, qi) => {
+      const sel = got[q.id];
+      box.append(h('div', { class: 'ld-q' },
+        q.header ? h('span', { class: 'ld-q-head', dir: 'auto' }, q.header) : null,
+        h('p', { class: 'ld-q-text', dir: 'auto' }, q.question),
+        h('div', { class: 'ld-q-opts', role: q.multi ? 'group' : 'radiogroup', 'aria-label': q.header || q.question },
+          ...q.options.map((o, oi) => {
+            const rec = REC.test(o.label), label = o.label.replace(REC, ''), on = q.multi ? Array.isArray(sel) && sel.includes(o.label) : sel === o.label;
+            return h('button', { id: 'ldQ-' + where + '-' + qi + '-' + oi, class: 'btn btn-small ld-q-opt' + (rec ? ' rec' : '') + (on ? ' on' : ''), type: 'button', 'aria-pressed': String(on),
+              title: (o.description ? o.description + '. ' : '') + (rec ? 'Claude recommends it. ' : '') + (one ? 'One click answers.' : q.multi ? 'Pick as many as fit.' : 'Pick one.'),
+              onclick: () => {
+                hold();
+                const cur = { ...(picks.get(req.request) || {}) };
+                if (q.multi) { const s = new Set(Array.isArray(cur[q.id]) ? cur[q.id] : []); if (s.has(o.label)) s.delete(o.label); else s.add(o.label); cur[q.id] = [...s]; }
+                else cur[q.id] = o.label;
+                picks.set(req.request, cur);
+                if (!(one && sendAnswers(p, w, req))) redrawTalk();
+              } }, rec ? h('span', { class: 'ld-q-rec', 'aria-hidden': 'true', html: hatSvg(13) }) : null, label);
+          }))));
+    });
+    if (!one) {
+      const ready = req.questions.every(q => got[q.id] != null && (!Array.isArray(got[q.id]) || got[q.id].length));
+      box.append(h('button', { id: 'ldQSend-' + where, class: 'btn btn-small btn-accent ld-q-send', type: 'button', disabled: !ready,
+        title: ready ? 'Send your answers to Claude' : 'Answer each question first', onclick: () => sendAnswers(p, w, req) }, 'Send answers'));
+    }
+    return box;
+  }
+  function replyEl(p, w, where) {
+    if (!w || !w.env || w.approval) return null;
+    const asking = w.asks && w.asks[0] && w.asks[0].questions && w.asks[0].questions.length && !answered.has(w.asks[0].request);
+    const running = typeof T3 !== 'undefined' && T3.T3_STATE[w.status] === 'working';
+    const send = mode => {
+      const inp = $('#ldReply-' + where), text = inp ? inp.value.trim() : '';
+      if (!text) { if (inp) inp.focus(); return; }
+      hold();
+      if (asking && mode !== 'queue') {
+        const req = w.asks[0], q = req.questions.find(x => !(picks.get(req.request) || {})[x.id]) || req.questions[0];
+        picks.set(req.request, { ...(picks.get(req.request) || {}), [q.id]: q.multi ? [text] : text });
+        if (!sendAnswers(p, w, req)) { redrawTalk(); }
+      } else T3.reply(getProject(p.id), w, text, mode === 'queue' ? 'queue' : running ? 'steer' : 'auto');
+      drafts.delete(w.id);
+      if (inp) inp.value = '';
+    };
+    const hint = asking ? 'Answer Claude' : running ? 'Steer Claude' : 'Reply to Claude';
+    const says = asking ? 'Answer Claude’s question, or pick a choice above' : running ? 'Steer Claude, mid-turn' : 'Reply to Claude';
+    const inp = h('input', { id: 'ldReply-' + where, class: 'field ld-reply-in', type: 'text', dir: 'auto', 'data-thread': w.id, placeholder: hint, 'aria-label': says, title: says, maxlength: '20000',
+      oninput: e => { drafts.set(w.id, e.target.value); hold(); }, onfocus: () => hold(),
+      onkeydown: e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); send(e.ctrlKey || e.metaKey ? 'queue' : 'send'); } } });
+    inp.value = drafts.get(w.id) || '';
+    const menuId = 'ldReplyMenu-' + where;
+    const more = h('button', { id: 'ldReplyMore-' + where, class: 'icon-btn ld-reply-more', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': 'More ways to send',
+      title: 'Queue: send it as the next turn', html: iconSvg('more', 14), onclick: e => {
+        e.stopPropagation(); hold();
+        const m = $('#' + menuId);
+        if (m) { m.remove(); more.setAttribute('aria-expanded', 'false'); return; }
+        more.setAttribute('aria-expanded', 'true');
+        more.closest('.ld-reply').append(h('div', { id: menuId, class: 'ld-reply-menu', role: 'menu' },
+          h('button', { id: 'ldReplyQueue-' + where, class: 'oc-folder-opt', type: 'button', role: 'menuitem', title: 'Waits for Claude’s turn to end, then goes as its next turn',
+            onclick: () => { send('queue'); const mm = $('#' + menuId); if (mm) mm.remove(); } },
+            h('span', { class: 'oc-folder-name' }, 'Queue'), h('span', { class: 'oc-folder-full' }, 'Send it as the next turn, interrupting nothing'))));
+        const q = $('#ldReplyQueue-' + where); if (q) q.focus();
+      } });
+    return h('div', { class: 'ld-reply' }, h('div', { class: 'ld-reply-row' }, inp,
+      h('button', { id: 'ldReplySend-' + where, class: 'btn btn-small btn-accent ld-reply-send', type: 'button',
+        title: asking ? 'Answers Claude’s question with what you typed' : running ? 'Steers Claude’s running turn' : 'Sends it to Claude now', onclick: () => send('send') }, 'Send'), more));
+  }
+  /* The extras of a conversation's line: what it asks, then the reply box, for a session whose T3 thread the watcher
+     sees. */
+  function talkEls(p, s, where) {
+    const w = watchedOf(p, s);
+    return w ? [askEl(p, w, where), replyEl(p, w, where)].filter(Boolean) : [];
+  }
+  const lastWords = w => (w && typeof T3 !== 'undefined' && T3.lastOf(w) ? wordsEl(plainReply(T3.lastOf(w))) : null);
   function acted(p, it, where, stay) {
     const left = !!it && stay && hasActs(p, it);
     if (where === 'say') { if (bub) { if (left) draw(); else next(); } return; }
@@ -821,12 +967,13 @@ const News = (() => {
   /* A finish heads its report (A1): Claude's summary under it (C2), then its parts. Tick it comes only from Claude
      asking to tick the task off (B3); a finish with no update keeps Tick it, with the start of the reply as its words. */
   function finishView(p, { task, at, s, rep, it = null, tick }, where) {
-    const named = task ? taskNamed(p, task) : null, t3 = t3Act(p, named, it, where);
+    const named = task ? taskNamed(p, task) : null, w = watchedOf(p, s), t3 = t3Act(p, named, it, where) || t3ActW(p, w, it, where);
     const nodes = [...sayNodes(p, 'finished', { task }, named, where, it), ' ', whenEl(at)];
-    if (rep) return { nodes, more: [wordsEl(rep.summary), ...parts(p, rep, it, where)].filter(Boolean), acts: t3 ? [t3] : [] };
+    if (rep) return { nodes, more: [wordsEl(rep.summary), ...parts(p, rep, it, where), ...talkEls(p, s, where)].filter(Boolean), acts: t3 ? [t3] : [] };
     const tk = tick !== undefined ? tick : typeof ClaudeWork === 'undefined' ? null : s ? ClaudeWork.taskOf(p, s)
       : it && it.ref.task ? ClaudeWork.taskOf(p, { task: it.ref.task, project: it.ref.project || '' }) : null;
-    return { nodes, more: [wordsEl(plainReply(s && s.reply))].filter(Boolean),
+    /* the thread's latest message, whole as the watcher read it, else the start of the reply the hooks kept */
+    return { nodes, more: [lastWords(w) || wordsEl(plainReply(s && s.reply)), ...talkEls(p, s, where)].filter(Boolean),
       acts: [tk ? act(p, it, where, 'Tick it', 'b-claude-tick', 'Tick off ' + tk.text + ', the task this session started from', () => ClaudeWork.tick(p, tk)) : null, t3].filter(Boolean) };
   }
   /* On its own: what Claude added, with Read and Undo, and its summary. */
@@ -862,7 +1009,8 @@ const News = (() => {
     if (it.moment === 'added') return addedView(p, it, where);
     if (it.moment === 'round') return roundView(p, it, where);
     if (it.moment === 'asks') return asksView(p, entryOf(it.ref.entry), it, where);
-    return { nodes: sayNodes(p, it.moment, it.v, taskFor(p, it), where, it), more: [], acts: actsOf(p, it, where) };
+    const talk = it.ref && it.ref.session ? (() => { const s = sessOf(p, it.ref.session), w = watchedOf(p, s); return [w && it.moment !== 'waiting' ? lastWords(w) : null, ...talkEls(p, s, where)]; })() : [];
+    return { nodes: sayNodes(p, it.moment, it.v, taskFor(p, it), where, it), more: talk.filter(Boolean), acts: actsOf(p, it, where) };
   }
   function actsOf(p, it, where) {
     const out = [];
@@ -871,7 +1019,11 @@ const News = (() => {
       out.push(act(p, it, where, 'Open T3', 'ld-t3', 'Opens T3 Code, so the send can go', () => T3.openApp(it.ref.held), true));
       out.push(act(p, it, where, 'Send it', 'ld-open', 'Sends it to T3 again, now T3 is open', () => { readIds([it.id]); T3.retry(it.ref.held); }));
     }
-    if (it.moment === 'waiting' || it.moment === 'failed') { const b = t3Act(p, taskFor(p, it), it, where); if (b) out.push(b); }
+    if (it.moment === 'waiting' || it.moment === 'failed' || (it.conv && it.moment === 'working')) {
+      const s = typeof ClaudeWork !== 'undefined' ? ClaudeWork.sessionsOf(p).find(x => x.session === it.ref.session) : null;
+      const b = t3Act(p, taskFor(p, it), it, where) || t3ActW(p, watchedOf(p, s), it, where);
+      if (b) out.push(b);
+    }
     if (it.moment === 'answers') {
       const t = p.todos.find(x => x.id === it.ref.tid);
       if (t && t.round) out.push(roundRead(p, t));
@@ -927,9 +1079,10 @@ const News = (() => {
         const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, rep, tick: x.tick }, where);
         lines.push({ rank: rep ? repRank(p, rep) : VOICE_RANK.finished, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'finished', cls: 'b-claude ' + x.s.state }) });
       } else {
-        const t = x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null, t3 = t3Act(p, t, null, where);
+        const t = x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null, w = watchedOf(p, x.s), t3 = t3Act(p, t, null, where) || t3ActW(p, w, null, where);
+        /* its thread's latest message, while the watcher sees it (0.1.93, W2c) */
         lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, x.v, t, where),
-          { more: rep ? [wordsEl(rep.summary), ...parts(p, rep, null, where)].filter(Boolean) : [], acts: t3 ? [t3] : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
+          { more: [...(rep ? [wordsEl(rep.summary), ...parts(p, rep, null, where)] : [lastWords(w)]), ...talkEls(p, x.s, where)].filter(Boolean), acts: t3 ? [t3] : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
       }
     }
     for (const it of mine) {
@@ -950,6 +1103,24 @@ const News = (() => {
   /* The leader card in the project view: what the status card says, read as it shows it (0.1.69, Leader Bubbles,
      Round 2, N1); with nothing to say, its greeting shows. */
   const viewLines = p => cardLines(p, 'view');
+  /* Topics (0.1.94, Brainstorm 1, Round 2, i5's variant: "you get to talk to the leaders on different topics (I'd like
+     arrows to flip the topics instead of having the UI grows very long)", and Round 1, L1): a card says one topic at a
+     time, a piece of news or a conversation with Claude, the most pressing first, with arrows to flip them and where
+     it is, "2 of 3". The place is kept per building while the page stays open. */
+  const flipAt = new Map();
+  let flat = false;                                          // the tests that check every line of a card at once lay them out flat
+  function flip(key, lines, again) {
+    if (lines.length < 2 || flat) { flipAt.delete(key); return lines; }
+    const i = Math.min(flipAt.get(key) || 0, lines.length - 1), where = key.split(':')[0];
+    flipAt.set(key, i);
+    const go = d => { flipAt.set(key, (i + d + lines.length) % lines.length); again(); const b = $('#ldFlip' + (d < 0 ? 'Prev' : 'Next') + '-' + where); if (b) b.focus({ preventScroll: true }); };
+    return [lines[i], h('div', { class: 'ld-flip', role: 'group', 'aria-label': 'Topics' },
+      h('button', { id: 'ldFlipPrev-' + where, class: 'icon-btn ld-flip-btn', type: 'button', 'aria-label': 'The topic before', title: 'The topic before', html: iconSvg('back', 14), onclick: e => { e.stopPropagation(); go(-1); } }),
+      h('span', { class: 'ld-flip-n' }, (i + 1) + ' of ' + lines.length),
+      h('button', { id: 'ldFlipNext-' + where, class: 'icon-btn ld-flip-btn next', type: 'button', 'aria-label': 'The next topic', title: 'The next topic', html: iconSvg('back', 14), onclick: e => { e.stopPropagation(); go(1); } }))];
+  }
+  const cardTopics = p => flip('card:' + p.id, cardLines(p, 'card'), () => Bubble.refresh());
+  const viewTopics = p => flip('view:' + p.id, cardLines(p, 'view'), () => Leaders.redrawCard());
 
   /* ---------- Reports: the leader's face beside a building's row ---------- */
   function reportFace(p, size = 24) {
@@ -987,8 +1158,8 @@ const News = (() => {
     pump();
     setInterval(check, 60000);                               // a new day, a new week, and pace slipping while the city stays open
   }
-  return { init, check, claude, ticked, add, report, renderSection, take, release, cardLines, viewLines, reportFace, yieldTo, hide, pump, redraw, plainReply, typer,
+  return { init, check, claude, ticked, add, report, renderSection, take, release, cardLines, viewLines, cardTopics, viewTopics, openFace, unanswer, reportFace, yieldTo, hide, pump, redraw, plainReply, typer,
     isShowing: () => !!bub, isHeld: () => !!bub && !bub.auto, items: () => sortItems(live()), lineOf, showing: id => !!bub && bub.list.some(x => x.id === id),
-    _test: { sayMs: ms => { sayMs = ms; }, typeMs: ms => { typeMs = ms; }, talk: () => T.state(), state: () => JSON.parse(JSON.stringify(st)), bubble: () => bub && { ids: bub.list.map(x => x.id), i: bub.i, auto: bub.auto },
+    _test: { flat: v => { flat = !!v; }, sayMs: ms => { sayMs = ms; }, typeMs: ms => { typeMs = ms; }, talk: () => T.state(), state: () => JSON.parse(JSON.stringify(st)), bubble: () => bub && { ids: bub.list.map(x => x.id), i: bub.i, auto: bub.auto },
       forget: () => { st = fresh(); save(); held.clear(); undos.clear(); }, held: pid => (held.get(pid) || []).map(x => x.id), reports: () => JSON.parse(JSON.stringify(st.reports)) } };
 })();

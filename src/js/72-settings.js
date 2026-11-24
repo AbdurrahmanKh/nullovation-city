@@ -276,6 +276,7 @@ const Settings = (() => {
     if (document.activeElement !== $('#optWizard')) $('#optWizard').value = wizardSetting();
     choiceRow($('#optWizardOpen'), WIZARD_OPENS, wizardOpens(), v => set('wizardOpen', v));
     choiceRow($('#optTiles'), T3.TILES, T3.tiles(), v => set('tiles', v));
+    $('#t3Watch').textContent = T3.watchWords();                   // the watcher (0.1.93, T3 Connection Research, Round 2, W2)
     $('#tilesNote').textContent = T3.TILE_NOTES[T3.tiles()];
     /* the dots */
     const tabs = new Set();

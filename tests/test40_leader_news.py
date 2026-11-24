@@ -27,7 +27,7 @@ with sync_playwright() as p:
     tiles = lambda: ev("() => [...document.querySelectorAll('#newsList .news-tile')].map(t => [t.dataset.k, t.querySelector('.news-badge').textContent, t.querySelector('.news-name').textContent, !!t.querySelector('.news-dismiss')])")
     say = lambda: ev("""() => { const b = document.querySelector('#ldSay'); if (b.hidden) return null;
         return { k: b.dataset.k, moment: b.dataset.moment, name: $('#ldSayName').textContent, role: $('#ldSayRole').textContent, where: $('#ldSayWhere').textContent, text: $('#ldSayText').textContent,
-          acts: [...b.querySelectorAll('#ldSayActs button')].map(x => x.textContent), count: ($('#ldSayCount') || {}).textContent || '', face: (b.querySelector('#ldSayFace .ld-face, #ldSayFace .gus-face') || {}).offsetWidth || 0,
+          acts: [...b.querySelectorAll('#ldSayActs button')].map(x => (x.textContent || x.getAttribute('aria-label')) + (x.disabled ? ' (off)' : '')), count: ($('#ldSayCount') || {}).textContent || '', face: (b.querySelector('#ldSayFace .ld-face, #ldSayFace .gus-face') || {}).offsetWidth || 0,
           left: Math.round(b.getBoundingClientRect().left - document.querySelector('#mapWrap').getBoundingClientRect().left), top: Math.round(b.getBoundingClientRect().top - document.querySelector('#mapWrap').getBoundingClientRect().top),
           color: getComputedStyle(b).getPropertyValue('--ld').trim() }; }""")
     unread = lambda: ev("() => News.items().map(it => it.moment + ':' + (getProject(it.pid) || {}).name)")
@@ -196,7 +196,7 @@ with sync_playwright() as p:
     pg.click('#newsList .news-face'); settle(300)
     s = say()
     ok(f'a click on the face opens its bubble, the oldest first, with Next ({s and (s["text"], s["acts"], s["count"])})',
-       s and s['text'] == 'Quiet week: nothing finished. Publish the app is a good start.' and s['acts'] == ['Go to it', 'Next'] and s['count'] == '1 of 2')
+       s and s['text'] == 'Quiet week: nothing finished. Publish the app is a good start.' and s['acts'] == ['Go to it', 'The topic before (off)', 'Next'] and s['count'] == '1 of 2')
     ok('the focus moves into the bubble', ev("() => document.querySelector('#ldSay').contains(document.activeElement)"))
     pg.wait_for_timeout(1700)
     ok('opened by a click, it stays', say() is not None)

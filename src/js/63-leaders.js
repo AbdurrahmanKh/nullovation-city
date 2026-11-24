@@ -488,7 +488,7 @@ const Leaders = (() => {
   let lastPick = null;
   function card(p, onPick) {
     lastPick = { pid: p.id, onPick };
-    const l = leaderOf(p), news = News.viewLines(p);
+    const l = leaderOf(p), news = News.viewTopics(p);                        // one topic at a time, with arrows (0.1.94)
     if (!l && !news.length) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
       noFace(48), h('span', { class: 'ld-card-text' }, h('b', null, 'No leader yet'), h('span', null, 'Pick a leader')));
     if (!l) {
@@ -511,13 +511,16 @@ const Leaders = (() => {
     const el = $('#pvLeader');
     if (!el || !lastPick || typeof FullView === 'undefined' || !FullView.shows(lastPick.pid)) return;
     const p = getProject(lastPick.pid);
-    if (p) el.replaceWith(card(p, lastPick.onPick));
+    if (!p) return;
+    const a = document.activeElement, keep = a && el.contains(a) && a.id ? { id: a.id, at: typeof a.selectionStart === 'number' ? a.selectionStart : null } : null;
+    el.replaceWith(card(p, lastPick.onPick));
+    keepFocus(keep);                                                         // a reply being typed, or an arrow, keeps the focus (0.1.94)
   }
   /* the status card's line under the building's name: the face at 48 px (32 until 0.1.57), the name and the role, then
      what its leader says (0.1.59): the building's news, read as the card shows it, and Claude's lines in its voice. A
      building with no leader has Proxima say it, when there is something to say. */
   function statusLine(p) {
-    const l = leaderOf(p), lines = News.cardLines(p);
+    const l = leaderOf(p), lines = News.cardTopics(p);                       // one topic at a time, with arrows (0.1.94)
     if (!l && !lines.length) return null;
     const line = h('div', { class: 'b-leader' + (l ? '' : ' px-voice') + (lines.length ? ' has-news' : '') },
       l ? face(l, 48) : breathe(Proxima.faceEl(48), 'proxima'),

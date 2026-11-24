@@ -78,6 +78,14 @@ function fmtStamp(ts) {
   return fmtDate(ts) + ', ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 function daysBetween(a, b) { return Math.round((startOfDay(b) - startOfDay(a)) / DAY); }
+/* The focus back on an element drawn again, found by its id, a field's caret where it was (0.1.94). */
+function keepFocus(keep) {
+  if (!keep) return;
+  const el = document.getElementById(keep.id);
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  if (keep.at != null && typeof el.setSelectionRange === 'function') { const n = Math.min(keep.at, el.value.length); try { el.setSelectionRange(n, n); } catch (e) { /* not a text field */ } }
+}
 function relAgo(ts, now = Date.now()) {
   const s = Math.max(0, (now - ts) / 1000);
   if (s < 60) return 'just now';

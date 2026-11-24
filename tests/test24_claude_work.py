@@ -188,6 +188,7 @@ with sync_playwright() as p:
     pg.wait_for_function("() => typeof ClaudeWork !== 'undefined' && typeof DB !== 'undefined' && DB.projects.length === 2", timeout=20000)
     pg.wait_for_timeout(600)
     js = pg.evaluate
+    js("() => News._test.flat(true)")   # every line of a card at once: topics flip in pass 59 (0.1.94)
     ids = js("() => Object.fromEntries(DB.projects.map(p => [p.name, p.id]))")
     gp, nc = ids['Garden planner'], ids['Nullovation City']
     js("""() => { const add = (p, url) => p.links.push({ id: uid('l'), label: '', url, icon: 'folder', shortcut: true });
@@ -533,6 +534,7 @@ with sync_playwright() as p:
 
     # seen survives a reload; paused and allowed; a missing folder
     pg.reload(); pg.wait_for_function("() => typeof ClaudeWork !== 'undefined' && DB.projects.length === 2", timeout=20000)
+    js("() => News._test.flat(true)")
     js("() => { const get = Store.getHandle; Store.getHandle = async k => k === 'claudeDir' ? window.__cdir : get(k); }")
     js("t => window.__cf.set('c1.json', { text: t, t: Date.now() })", c1)
     js(S('a1', 'working', 'C:\\Users\\me\\garden\\src', task='Water the beds on time'))

@@ -154,7 +154,7 @@ const ClaudeWork = (() => {
     /* A turn Claude Code starts on its own (a background task's notice) arrives as a prompt in a tag; it is no ask. */
     const ask = /^\s*<[a-z][\w-]*[\s>]/i.test(str(d.ask)) ? '' : str(d.ask);
     return { session: str(d.session), state, ended: str(d.state) === 'ended', at: d.at, since: typeof d.since === 'number' ? d.since : d.at,
-      cwd: str(d.cwd), project: str(d.project), task: str(d.task), ask, reply: str(d.reply), ...(bg ? { bg, until } : {}),
+      cwd: str(d.cwd), project: str(d.project), task: str(d.task), ask, reply: str(d.reply), ...(bg ? { bg, until } : {}), entry: str(d.entry),
       /* what a waiting session waits for (0.1.91): approval, question or form, from the hooks since then */
       ...(state === 'waiting' && /^(approval|question|form)$/.test(str(d.wait)) ? { wait: str(d.wait) } : {}),
       /* Claude's latest thought while it works (0.1.92, City as My Terminal, Round 1, T1), from the hooks since then */
