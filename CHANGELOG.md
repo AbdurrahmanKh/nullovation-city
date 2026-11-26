@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.95 (2026-11-25)
+
+One report under one finish, and a status card that reads, from Abdurrahman's "seriously wtf is this UX?" on Mammoth Expedition's card: two "Claude wants your OK first" lines, what Claude added, Quill's round and a new note version each on its own, and "Claude handed he is the main voice right now because I worked a lot on th... back to you."
+- Claude's updates find their session: an update naming a task no session works on goes to the one session with no task of its own (a thread started in T3, or a terminal prompt), at work or just finished, or whose run the update file was written in, so updates that waited while the city was closed still sit under their finish.
+- A finish carries every update of its turn: each one's summary, then its parts, the oldest first. Until now it carried only the last, and the first was said nowhere. A working line shows every update it holds the same way.
+- A finish or working line for a session with no task names the task its updates name, as a link.
+- A session with no task and no update is named by its prompt in quotes, cut at 48 characters ("Claude handed "he is the main voice right now because I worked..." back to you."), unless the prompt is a task's title there. The leaders at work say it the same way.
+- A task named in a leader's line is a link that wraps with the words, not a button: Chrome laid the button out as a box of its own, which broke the line round a long title and cut its end off ("Wants Get Claude to understand the game and its art" with no "ticked off").
+- A report's parts keep their words whole: the words take their width and the buttons follow them, beside a short line or under a long one, never squeezed into a narrow column or pushed to the far edge.
+- A status card taller than the map scrolls, its foot over the map's buttons, its tail hidden, and keeps its place when drawn again. The wheel scrolls it, and a leader's bubble with more than fits, in place of zooming the map.
+- Enter never sits on the card: when a tall card covers the building's door, Enter goes under the card, or beside it.
+- Tick it, Apply and Dismiss act on the change as the city holds it now, so a part no longer lingers as "It is ticked off already." until the next read of the inbox.
+- Tests: test60_one_report checks all of it. test40, test41 and test59 now expect the task as a link and a prompt in quotes.
+
 ## 0.1.94 (2026-11-21)
 
 Talking to the leaders, the last part of the city as my terminal, from City as My Terminal, Round 1 (L1, L4, R1 to R3) and its brainstorm (i5, i6).

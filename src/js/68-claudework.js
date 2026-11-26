@@ -154,6 +154,7 @@ const ClaudeWork = (() => {
     /* A turn Claude Code starts on its own (a background task's notice) arrives as a prompt in a tag; it is no ask. */
     const ask = /^\s*<[a-z][\w-]*[\s>]/i.test(str(d.ask)) ? '' : str(d.ask);
     return { session: str(d.session), state, ended: str(d.state) === 'ended', at: d.at, since: typeof d.since === 'number' ? d.since : d.at,
+      started: typeof d.started === 'number' ? d.started : 0,                // when the session began: an update written since is its (0.1.95)
       cwd: str(d.cwd), project: str(d.project), task: str(d.task), ask, reply: str(d.reply), ...(bg ? { bg, until } : {}), entry: str(d.entry),
       /* what a waiting session waits for (0.1.91): approval, question or form, from the hooks since then */
       ...(state === 'waiting' && /^(approval|question|form)$/.test(str(d.wait)) ? { wait: str(d.wait) } : {}),
@@ -266,6 +267,19 @@ const ClaudeWork = (() => {
     if (document.title !== t) document.title = t;
   }
 
+  /* What a line names a session by (0.1.95): the task a city copy started it on, or its latest prompt when that is a
+     task's title here; else the prompt in quotes, cut short, since it is something you said, not a task ("Claude
+     handed he is the main voice... back to you" read as nonsense). */
+  const ASK_MAX = 48;
+  function what(p, s) {
+    if (!s) return 'a task';
+    if (s.task) return s.task;
+    const ask = String(s.ask || '').replace(/\s+/g, ' ').trim();
+    if (!ask) return 'a task';
+    const k = ask.toLowerCase(), t = p && p.todos.find(x => !x.archived && x.text.trim().toLowerCase() === k);
+    if (t) return t.text;
+    return '“' + (ask.length > ASK_MAX ? ask.slice(0, ASK_MAX - 1).trimEnd() + '…' : ask) + '”';
+  }
   /* The open task a city copy started, in this project, found by its title. */
   function taskOf(p, s) {
     if (!s || !s.task) return null;
@@ -292,7 +306,7 @@ const ClaudeWork = (() => {
     const ticked = new Set(), out = [];
     const ss = [...st.sessions].sort((a, b) => (RANK[b.state] || 0) - (RANK[a.state] || 0) || b.at - a.at).slice(0, 4);
     for (const s of ss) {
-      const what = s.task || s.ask, task = what || 'a task';
+      const task = what(p, s);
       const moment = { working: 'working', waiting: 'waiting', done: 'finished', failed: 'failed' }[s.state];
       if (!moment) continue;
       let t = s.state === 'done' ? taskOf(p, s) : null;
@@ -441,7 +455,7 @@ const ClaudeWork = (() => {
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && state === 'on') poll(); });
 
-  return { init, poll, render, redraw, statusOf, mapStatus, voice, tick, working: () => [...byProject.values()].some(ss => ss.some(s => s.state === 'working')), sessionsOf: p => byProject.get(p.id) || [], isSeen, markSeen, pathKey, taskOf, cityChanged, citySummary, writeSummary, waitingCount,
+  return { init, poll, render, redraw, statusOf, mapStatus, voice, tick, working: () => [...byProject.values()].some(ss => ss.some(s => s.state === 'working')), sessionsOf: p => byProject.get(p.id) || [], isSeen, markSeen, pathKey, taskOf, what, cityChanged, citySummary, writeSummary, waitingCount,
     canWrite: () => canWrite, folder: () => (state === 'on' && canWrite ? dir : null), state: () => state,
     read: readFile, write: writeIn, remove: removeFile,
     sessions: () => [...files.values()].map(f => f.s).filter(Boolean), unplaced: () => unplaced, LASTS };

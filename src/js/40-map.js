@@ -1304,6 +1304,9 @@ const MapView = (() => {
   }
   function onWheel(e) {
     if (e.target.closest && e.target.closest('.lv1')) return;      // All tasks and a leader's editor scroll themselves (0.1.64)
+    /* a status card taller than the map, and a leader's bubble with more than fits, scroll themselves (0.1.95) */
+    const sc = e.target.closest && e.target.closest('#bubble.tall, .gus-say-body');
+    if (sc && sc.scrollHeight > sc.clientHeight + 1) return;
     if (FullView.isOpen()) {
       if (e.target.closest && e.target.closest('#pv, #pvSide')) return;   // the panels scroll themselves
       e.preventDefault();

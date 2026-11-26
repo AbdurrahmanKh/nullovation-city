@@ -214,7 +214,7 @@ const News = (() => {
           else if (!s || (s.state !== 'working' && s.state !== 'waiting')) { alone(p, rep); moved = true; }
         }
         for (const s of ss) {
-          const task = s.task || s.ask || 'a task';
+          const task = ClaudeWork.what(p, s);
           if (s.state === 'waiting') {
             const key = 'waiting:' + s.session + ':' + s.since;
             if (!wasRaised(key)) { raise(p, 'waiting', { task, ...(s.wait ? { wait: s.wait } : {}) }, { session: s.session }, key); moved = true; }
@@ -256,38 +256,50 @@ const News = (() => {
   const finKey = s => 'finished:' + s.session + ':' + tkey(s.task || s.ask || 'a task').slice(0, 160);
   const reportOf = id => (id && st.reports.find(r => r.id === id)) || null;
   const entryOf = name => (name && typeof ClaudeInbox !== 'undefined' ? ClaudeInbox.pending().find(e => e.name === name) : null) || null;
-  /* The report a finish heads: the one its session sent in the turn that finished, known by the turn's reply. */
-  const finishReport = s => [...st.reports].reverse().find(r => r.sid === s.session && r.fin && r.reply === (s.reply || '')) || null;
-  /* The report a session still working has sent, waiting for its finish. */
-  const heldReport = s => [...st.reports].reverse().find(r => r.sid === s.session && !r.alone && !r.fin) || null;
-  /* The session an update came from: the one working on the task it names (or that just finished it), else, when it
-     names none of its own, the one session working on the building, or the one that finished there a moment ago. */
+  /* The reports a finish heads: every one its session sent in the turn that finished, known by the turn's reply, the
+     oldest first. Two updates in one turn, or two that came in together while the city was closed, are one report
+     under one finish (0.1.95); until then a finish carried only the last, and the first was said nowhere. */
+  const finishReports = s => st.reports.filter(r => r.sid === s.session && r.fin && r.reply === (s.reply || ''));
+  /* The reports a session still working has sent, waiting for its finish. */
+  const heldReports = s => st.reports.filter(r => r.sid === s.session && !r.alone && !r.fin);
+  /* A finish item's reports: the list since 0.1.95, else the one it carried. */
+  const repsOf = it => (it && it.ref ? (Array.isArray(it.ref.reports) ? it.ref.reports : it.ref.report ? [it.ref.report] : []) : []).map(reportOf).filter(Boolean);
+  /* The task a finish or a working line names: the session's own, else, for a session that has none (a thread started
+     in T3 itself, or a prompt typed in a terminal), the task its update names (0.1.95). */
+  const ownTask = (task, s, reps) => { const r = !(s && s.task) && reps.find(x => x.task); return r ? r.task : task; };
+  /* The session an update came from: the one working on the task it names (or that just finished it); else one with no
+     task of its own, since the city cannot tell what that one works on (0.1.95: a thread started in T3 sent its
+     updates for a task, and each was said on its own); else, when the update names none of its own, any. From those:
+     the one session working on the building, or the one that finished there a moment ago, or whose run the update was
+     written in, so updates that wait while the city is closed still find their finish. */
   function sessionFor(p, rep, named) {
     if (typeof ClaudeWork === 'undefined') return null;
-    const ss = ClaudeWork.sessionsOf(p), k = tkey(rep.task), now = Date.now();
+    const all = ClaudeWork.sessionsOf(p), k = tkey(rep.task), now = Date.now();
     const busy = s => s.state === 'working' || s.state === 'waiting';
     const best = list => [...list].sort((a, b) => busy(b) - busy(a) || b.at - a.at)[0] || null;
+    let ss = all;
     if (k) {
-      const m = ss.filter(s => tkey(s.task || s.ask) === k && (busy(s) || (s.state === 'done' && now - s.at < FIN_NEAR)));
+      const m = all.filter(s => tkey(s.task || s.ask) === k && (busy(s) || (s.state === 'done' && now - s.at < FIN_NEAR)));
       if (m.length) return best(m);
-      if (named) return null;
+      if (named) ss = all.filter(s => !s.task);
     }
     const b = ss.filter(busy);
     if (b.length) return b.length === 1 ? b[0] : null;
-    const d = ss.filter(s => s.state === 'done' && now - s.at < FIN_JUST);
+    const w = rep.written || 0;
+    const d = ss.filter(s => s.state === 'done' && (now - s.at < FIN_JUST || (w && s.started && w >= s.started - FIN_JUST && w <= s.at + FIN_JUST)));
     return d.length === 1 ? d[0] : null;
   }
   /* An update Claude sent (the inbox, 0.1.68): what it added, with Undo, what it asks first, and its summary, as one
      report. Its session still working, it waits for the finish; finished, it is said under the finish; with no session,
      it is said on its own, as before: what it added, each round, and what it asks. Said once the poll that brought it
      is done (claude), so what it asks is read by then. */
-  function report(p, { task = '', named = false, summary = '', undo = null, entry = '' } = {}) {
+  function report(p, { task = '', named = false, summary = '', undo = null, entry = '', written = 0 } = {}) {
     if (!p) return null;
     const upd = undo && Array.isArray(undo.updated) ? undo.updated : [];
     const add = undo && (undo.todos.length || undo.notes.length || undo.links.length || upd.length) ? { todos: [...undo.todos], notes: [...undo.notes], links: [...undo.links], updated: upd.map(w => w.id) } : null;
     const rounds = (undo && undo.rounds || []).map(r => { const t = p.todos.find(x => x.id === r.id); return { tid: r.id, title: t && t.round ? t.round.title : '' }; });
     if (!add && !rounds.length && !entry) return null;
-    const rep = { id: uid('rp'), pid: p.id, task, summary, at: Date.now(), sid: '', fin: 0, reply: '', alone: false, entry, add, rounds };
+    const rep = { id: uid('rp'), pid: p.id, task, summary, at: Date.now(), written: written || 0, sid: '', fin: 0, reply: '', alone: false, entry, add, rounds };
     const none = { todos: [], ms: [], notes: [], links: [], rounds: [], updated: [] };
     if (add) undos.set(rep.id, { ...none, todos: undo.todos, ms: undo.ms, notes: undo.notes, links: undo.links, updated: upd });
     for (const r of undo && undo.rounds || []) undos.set(rep.id + ':' + r.id, { ...none, rounds: [r] });
@@ -301,12 +313,16 @@ const News = (() => {
     flush = true;
     return rep;
   }
-  /* Under its finish: the finish's news carries it, and opens by itself again while it holds something to act on. */
+  /* Under its finish: the finish's news carries it, with any other report of the same turn, and opens by itself again
+     while it holds something to act on. A session with no task of its own names the task the report names. */
   function attach(p, rep, s) {
     rep.fin = s.at; rep.reply = s.reply || '';
-    const key = finKey(s), it = st.items.find(x => x.key === key);
-    if (it) { it.ref.report = rep.id; it.popped = false; }
-    else raise(p, 'finished', { task: s.task || s.ask || 'a task' }, { session: s.session, task: s.task, project: s.project, report: rep.id }, key);
+    const key = finKey(s), it = st.items.find(x => x.key === key), task = s.task || rep.task || ClaudeWork.what(p, s);
+    if (it) {
+      const ids = repsOf(it).filter(r => r.reply === rep.reply).map(r => r.id);
+      it.ref.reports = [...ids.filter(id => id !== rep.id), rep.id]; it.ref.report = rep.id; it.popped = false;
+      if (!s.task && rep.task) it.v = { ...it.v, task: ownTask(it.v.task, s, repsOf(it)) };
+    } else raise(p, 'finished', { task }, { session: s.session, task: s.task, project: s.project, report: rep.id, reports: [rep.id] }, key);
   }
   /* On its own, with no finish to sit under: as before, what it added, each round, and what it asks, each its item. */
   function alone(p, rep) {
@@ -343,7 +359,7 @@ const News = (() => {
     if (it.moment === 'asks') { const e = entryOf(it.ref.entry); return !!e && ClaudeInbox.openIdx(e).length > 0; }
     if (it.moment === 'added') return undos.has(it.ref.report || it.id);
     if (it.moment === 'round') { const rep = reportOf(it.ref.report); return undos.has(rep ? rep.id + ':' + it.ref.tid : it.id); }
-    if (it.moment === 'finished') { const rep = reportOf(it.ref.report); return !!rep && repActs(p, rep); }
+    if (it.moment === 'finished') return repsOf(it).some(rep => repActs(p, rep));
     return false;
   }
   /* A report ranks by the most pressing thing in it: what asks first, then what Claude added, then the finish. */
@@ -353,8 +369,8 @@ const News = (() => {
     return repActs(p, rep) ? NEWS_RANK.added : NEWS_RANK.finished;
   }
   function rankOf(it) {
-    const p = it.moment === 'finished' && it.ref && it.ref.report ? getProject(it.pid) : null, rep = p && reportOf(it.ref.report);
-    return rep ? repRank(p, rep) : NEWS_RANK[it.moment] ?? 9;
+    const p = it.moment === 'finished' ? getProject(it.pid) : null, reps = p ? repsOf(it) : [];
+    return reps.length ? Math.min(...reps.map(rep => repRank(p, rep))) : NEWS_RANK[it.moment] ?? 9;
   }
   /* What opens a bubble by itself: the moments that do, and a finish whose report holds something to act on. */
   function opens(it) {
@@ -409,7 +425,7 @@ const News = (() => {
     if (!box) return 0;
     const rows = workRows();
     const els = rows.map(({ sp, p, s, n }) => {
-      const what = s.task || s.ask || 'a task', text = s.thought || leaderSay('working', { task: what, ago: relAgo(s.since) });
+      const what = ClaudeWork.what(p, s), text = s.thought || leaderSay('working', { task: what, ago: relAgo(s.since) });
       const moved = !!s.thought && thoughtSeen.has(sp.k) && thoughtSeen.get(sp.k) !== s.thought;
       thoughtSeen.set(sp.k, s.thought || '');
       const who = sp.name + (sp.role ? ', ' + sp.role : '');
@@ -711,12 +727,18 @@ const News = (() => {
   function sayNodes(p, moment, v, t, where, it = null) {
     return leaderParts(moment, v).map(x => {
       if (x.blank !== 'task' || !t) return x.text;
-      return h('button', { class: 'ld-task', type: 'button', dir: 'auto', title: 'Open ' + x.full, 'data-task': t.id, onclick: e => {
-        e.stopPropagation();
-        if (where === 'say' && it) { readIds([it.id]); hide({ read: false }); }
-        FullView.openTask(p.id, t.id);
-      } }, x.text);
+      return taskA(p, t, x.text, 'Open ' + x.full, where, it);
     });
+  }
+  /* A task named in a line: a link in its own color, a click opening it. A link and not a button since 0.1.95: Chrome
+     lays a button out as a box of its own, so a title that wrapped broke the line around it, and the line's end fell
+     out of sight ("Wants Get Claude to understand the game and its art" with no "ticked off"). */
+  function taskA(p, t, text, title, where, it) {
+    return h('a', { class: 'ld-task', href: '#', dir: 'auto', title, 'data-task': t.id, onclick: e => {
+      e.preventDefault(); e.stopPropagation();
+      if (where === 'say' && it) { readIds([it.id]); hide({ read: false }); }
+      FullView.openTask(p.id, t.id);
+    } }, text);
   }
 
   /* ---------- how an item reads (0.1.68): its line with its one time, Claude's own words, and a short line for
@@ -736,13 +758,7 @@ const News = (() => {
     return t ? h('p', { class: 'b-claude-said', dir: 'auto', title: 'In Claude’s words: ' + String(text).trim() }, iconEl('claude', 12), h('span', null, t)) : null;
   }
   /* A task named in a part's line: in its own color, a click opening it, as in a leader's line. */
-  function taskLink(p, t, where, it) {
-    return h('button', { class: 'ld-task', type: 'button', dir: 'auto', title: 'Open ' + t.text, 'data-task': t.id, onclick: e => {
-      e.stopPropagation();
-      if (where === 'say' && it) { readIds([it.id]); hide({ read: false }); }
-      FullView.openTask(p.id, t.id);
-    } }, lineTitle(t.text));
-  }
+  const taskLink = (p, t, where, it) => taskA(p, t, lineTitle(t.text), 'Open ' + t.text, where, it);
   const partEl = (kind, text, acts) => h('div', { class: 'ld-part', 'data-part': kind }, h('span', { class: 'ld-part-text', dir: 'auto' }, ...text),
     acts.filter(Boolean).length ? h('span', { class: 'ld-part-acts' }, ...acts.filter(Boolean)) : null);
   /* A button. It acts, then the item is read and the bubble goes on to the next one; a part's button (stay) keeps the
@@ -945,8 +961,9 @@ const News = (() => {
     return { text: ['Sent a change the city does not know.'], acts: [no('Put it away')] };
   }
   const askParts = (p, e, task, it, where) => ClaudeInbox.openIdx(e).map(i => { const a = askOf(p, e, i, task, it, where); return partEl('ask ' + e.changes[i].do, a.text, a.acts); });
-  /* A report's parts, under its finish: what Claude added, with Read and Undo; each wizard round; what it asks. */
-  function parts(p, rep, it, where) {
+  /* A report's parts, under its finish: what Claude added, with Read and Undo; each wizard round; what it asks. Own is
+     the task the line over them names, said as "this task". */
+  function parts(p, rep, it, where, own = rep.task) {
     const out = [];
     if (rep.add && addLive(p, rep.add)) {
       const u = undos.get(rep.id);
@@ -956,20 +973,23 @@ const News = (() => {
     for (const r of rep.rounds) {
       const t = p.todos.find(x => x.id === r.tid), uk = rep.id + ':' + r.tid, u = undos.get(uk);
       if (!t || !t.round || t.round.title !== r.title) continue;                        // taken off, or another round since
-      const same = tkey(t.text) === tkey(rep.task);
+      const same = tkey(t.text) === tkey(own);
       out.push(partEl('round', same ? ['Attached a wizard round, ', h('bdi', null, t.round.title), '.'] : ['Attached a wizard round to ', taskLink(p, t, where, it), ', ', h('bdi', null, t.round.title), '.'],
         [roundRead(p, t), u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }, true) : null]));
     }
     const e = entryOf(rep.entry);
-    if (e) out.push(...askParts(p, e, rep.task, it, where));
+    if (e) out.push(...askParts(p, e, own, it, where));
     return out;
   }
+  /* Several reports under one line (0.1.95): each one's summary, then its parts, the oldest first. */
+  const repsMore = (p, reps, it, where, own) => reps.flatMap(rep => [wordsEl(rep.summary), ...parts(p, rep, it, where, own)]);
   /* A finish heads its report (A1): Claude's summary under it (C2), then its parts. Tick it comes only from Claude
      asking to tick the task off (B3); a finish with no update keeps Tick it, with the start of the reply as its words. */
-  function finishView(p, { task, at, s, rep, it = null, tick }, where) {
+  function finishView(p, { task, at, s, reps = [], it = null, tick }, where) {
+    task = ownTask(task, s || (it && it.ref.task ? { task: it.ref.task } : null), reps);
     const named = task ? taskNamed(p, task) : null, w = watchedOf(p, s), t3 = t3Act(p, named, it, where) || t3ActW(p, w, it, where);
     const nodes = [...sayNodes(p, 'finished', { task }, named, where, it), ' ', whenEl(at)];
-    if (rep) return { nodes, more: [wordsEl(rep.summary), ...parts(p, rep, it, where), ...talkEls(p, s, where)].filter(Boolean), acts: t3 ? [t3] : [] };
+    if (reps.length) return { nodes, more: [...repsMore(p, reps, it, where, task), ...talkEls(p, s, where)].filter(Boolean), acts: t3 ? [t3] : [] };
     const tk = tick !== undefined ? tick : typeof ClaudeWork === 'undefined' ? null : s ? ClaudeWork.taskOf(p, s)
       : it && it.ref.task ? ClaudeWork.taskOf(p, { task: it.ref.task, project: it.ref.project || '' }) : null;
     /* the thread's latest message, whole as the watcher read it, else the start of the reply the hooks kept */
@@ -1004,7 +1024,7 @@ const News = (() => {
   function viewOf(p, it, where) {
     if (it.moment === 'finished') {
       const s = typeof ClaudeWork !== 'undefined' ? ClaudeWork.sessionsOf(p).find(x => x.session === it.ref.session) || null : null;
-      return finishView(p, { task: it.v.task, at: s && s.state === 'done' ? s.at : it.at, s, rep: reportOf(it.ref.report), it }, where);
+      return finishView(p, { task: it.v.task, at: s && s.state === 'done' ? s.at : it.at, s, reps: repsOf(it), it }, where);
     }
     if (it.moment === 'added') return addedView(p, it, where);
     if (it.moment === 'round') return roundView(p, it, where);
@@ -1073,20 +1093,23 @@ const News = (() => {
     const mine = where === 'card' && typeof FullView !== 'undefined' && FullView.shows(p.id) ? sortItems(held.get(p.id) || []) : take(p.id);
     const VOICE_RANK = { waiting: 1, working: 1.2, failed: 1.4, finished: 5 };      // Claude's own order: waiting, working, stopped, finished
     for (const x of voice) {
-      const rep = x.moment === 'finished' ? finishReport(x.s) : heldReport(x.s);
-      if (rep) { said.add(rep.id); if (rep.entry) said.add('e:' + rep.entry); }
+      const reps = x.moment === 'finished' ? finishReports(x.s) : heldReports(x.s);
+      for (const rep of reps) { said.add(rep.id); if (rep.entry) said.add('e:' + rep.entry); }
       if (x.moment === 'finished') {
-        const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, rep, tick: x.tick }, where);
-        lines.push({ rank: rep ? repRank(p, rep) : VOICE_RANK.finished, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'finished', cls: 'b-claude ' + x.s.state }) });
+        const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, reps, tick: x.tick }, where);
+        lines.push({ rank: reps.length ? Math.min(...reps.map(rep => repRank(p, rep))) : VOICE_RANK.finished, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'finished', cls: 'b-claude ' + x.s.state }) });
       } else {
-        const t = x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null, w = watchedOf(p, x.s), t3 = t3Act(p, t, null, where) || t3ActW(p, w, null, where);
+        /* a session with no task of its own works on the one its updates name (0.1.95) */
+        const task = ownTask(x.v.task, x.s, reps), t = taskNamed(p, task) || (x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null);
+        const w = watchedOf(p, x.s), t3 = t3Act(p, t, null, where) || t3ActW(p, w, null, where);
         /* its thread's latest message, while the watcher sees it (0.1.93, W2c) */
-        lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, x.v, t, where),
-          { more: [...(rep ? [wordsEl(rep.summary), ...parts(p, rep, null, where)] : [lastWords(w)]), ...talkEls(p, x.s, where)].filter(Boolean), acts: t3 ? [t3] : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
+        lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, { ...x.v, task }, t, where),
+          { more: [...(reps.length ? repsMore(p, reps, null, where, task) : [lastWords(w)]), ...talkEls(p, x.s, where)].filter(Boolean), acts: t3 ? [t3] : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
       }
     }
     for (const it of mine) {
       if (it.ref && it.ref.report && said.has(it.ref.report)) continue;
+      if (it.moment === 'finished' && repsOf(it).some(r => said.has(r.id))) continue;
       if (it.moment === 'asks') continue;                     // said below for as long as it waits in inbox/pending; once applied or dismissed, gone
       if (it.moment === 'waiting') continue;                  // Claude's own line says it while it waits; once the session moves on, gone
       if (NEWS_CLAUDE.has(it.moment) && it.moment !== 'asks' && voice.some(x => x.s.session === it.ref.session)) continue;

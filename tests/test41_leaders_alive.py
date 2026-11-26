@@ -116,7 +116,7 @@ with sync_playwright() as p:
         return { shown: !b.hidden, typing: t.classList.contains('typing'), on: t.querySelectorAll('.ty.on').length, all: t.querySelectorAll('.ty').length, text: t.textContent,
           talking: f.classList.contains('talking'), anim: f.querySelector('.breathes > *') ? getComputedStyle(f.querySelector('.breathes > *')).animationName : '',
           seen: [...t.querySelectorAll('.ty')].filter(x => getComputedStyle(x).opacity === '1').length, h: Math.round(b.getBoundingClientRect().height),
-          link: !!t.querySelector('button.ld-task'), plain: [...t.childNodes].every(n => n.nodeType === 3 || n.matches('button.ld-task')) }; }"""
+          link: !!t.querySelector('a.ld-task'), plain: [...t.childNodes].every(n => n.nodeType === 3 || n.matches('a.ld-task')) }; }"""
     talk = lambda: ev(TALK)
     ev(f"() => {{ const p = getProject('{gp}'); p.urgency.lastWorked = Date.now() - 1.5 * {D}; changed(p); }}")
     pg.wait_for_timeout(120)

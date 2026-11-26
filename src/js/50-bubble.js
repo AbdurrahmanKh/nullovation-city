@@ -115,6 +115,7 @@ const Bubble = (() => {
     if (was && was !== id) News.release(was);               // the news the last card held, read
     el.hidden = false; enter.hidden = false;
     el.classList.remove('show');
+    if (was !== id) el.scrollTop = 0;
     render(false); position();
     requestAnimationFrame(() => el.classList.add('show'));
   }
@@ -221,7 +222,9 @@ const Bubble = (() => {
     tail.style.color = 'var(--edge)';
     tail.style.setProperty('--ic-o', 'var(--paper)');
     kids.push(tail);
+    const sc = el.scrollTop;                                                 // a tall card keeps its place when drawn again (0.1.95)
     el.replaceChildren(...kids.filter(Boolean));
+    el.scrollTop = sc;
     if (focusId) { const cb = $(`li[data-id="${focusId}"] .cb`, el); if (cb) cb.focus(); }
     else keepFocus(keep);                                                    // a reply being typed, or a topic's arrow (0.1.94)
     if (typeof ClaudeWork !== 'undefined') ClaudeWork.markSeen(p.id);
@@ -236,13 +239,28 @@ const Bubble = (() => {
     const a = MapView.anchors(openId); if (!a) return;
     const wrap = $('#mapWrap');
     const W = wrap.clientWidth;
+    /* a card taller than the map scrolls, its tail hidden, so its tasks and buttons stay in reach, over the map's
+       buttons at its foot (0.1.95) */
+    const tools = $('.map-tools'), foot = tools && tools.offsetParent ? tools.offsetTop - 8 : wrap.clientHeight;
+    const room = Math.max(160, Math.min(wrap.clientHeight, foot) - topRoom() - 12), tall = el.scrollHeight > room;
+    el.classList.toggle('tall', tall);
+    el.style.maxHeight = tall ? room + 'px' : '';
     const bw = el.offsetWidth, bh = el.offsetHeight;
     const left = clamp(a.topX - bw / 2, 12, Math.max(12, W - bw - 12));
     const top = Math.max(topRoom(), a.topY - bh - 20);
     el.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
     if (tail) tail.style.left = Math.round(clamp(a.topX - left, 24, bw - 24) - 12) + 'px';
-    const ew = enter.offsetWidth;
-    enter.style.transform = `translate(${Math.round(a.baseX - ew / 2)}px, ${Math.round(a.baseY + 12)}px)`;
+    /* Enter at the building's door; a card taller than the room over the building comes down over it, so Enter goes
+       under the card, or beside it with no room under, and never sits on the card's tasks (0.1.95) */
+    const ew = enter.offsetWidth, eh = enter.offsetHeight, low = Math.min(wrap.clientHeight, foot) - eh, bottom = top + bh + 12;
+    let ex = a.baseX - ew / 2, ey = a.baseY + 12;
+    if (ex < left + bw + 6 && ex + ew > left - 6 && ey < bottom + 6 && ey + eh > top - 6) {
+      if (bottom + 8 <= low) ey = bottom + 8;
+      else if (left + bw + 12 + ew <= W - 8) { ex = left + bw + 12; ey = clamp(ey, 8, low); }
+      else if (left - 12 - ew >= 8) { ex = left - 12 - ew; ey = clamp(ey, 8, low); }
+      else ey = Math.min(bottom + 8, low);
+    }
+    enter.style.transform = `translate(${Math.round(ex)}px, ${Math.round(ey)}px)`;
   }
 
   return { init, open, close, refresh, position, height, letThrough, isOpen: () => !!openId, openId: () => openId };

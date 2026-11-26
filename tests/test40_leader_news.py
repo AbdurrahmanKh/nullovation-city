@@ -142,7 +142,7 @@ with sync_playwright() as p:
     settle()
     link = ev("""() => { const a = document.querySelector('#ldSayText .ld-task'); return a ? { text: a.textContent, tag: a.tagName, title: a.title, color: getComputedStyle(a).color, task: a.dataset.task,
         line: document.querySelector('#ldSayText').textContent } : null; }""")
-    ok(f'the task in the line is a button in its own color, the rest of the line as it was ({link})', link and link['tag'] == 'BUTTON' and link['text'] == 'Save a plan as a file'
+    ok(f'the task in the line is a link in its own color, the rest of the line as it was (a button until 0.1.95) ({link})', link and link['tag'] == 'A' and link['text'] == 'Save a plan as a file'
        and link['color'] == 'rgb(255, 210, 122)' and link['task'] == plan and link['line'] == 'Claude attached a wizard round to Save a plan as a file: Plans, Round 2.')
     bld = ev("() => { const b = document.querySelector('#ldSayWhere .ld-say-bld'); return b ? [b.tagName, b.textContent, b.title] : null; }")
     ok(f'the building is a button too ({bld})', bld == ['BUTTON', 'Garden planner', 'Show Garden planner on the map'])

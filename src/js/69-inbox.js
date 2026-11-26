@@ -17,6 +17,7 @@ const ClaudeInbox = (() => {
   const ASK = new Set(['done', 'edit-description', 'replace-plan']);
   const KEEP_DAYS = 14;                       // done and rejected files are cleared after two weeks
   let pending = [], pendingSig = '', busy = false, prunedDay = '';
+  let gen = 0;                                // a change applied or dismissed since a read began: that read is stale (0.1.95)
   const str = (x, n) => (typeof x === 'string' ? x.trim().slice(0, n) : '');
   const keyOf = s => String(s || '').trim().toLowerCase();
   const projectNamed = name => DB.projects.find(p => keyOf(p.name) === keyOf(name)) || null;
@@ -42,6 +43,7 @@ const ClaudeInbox = (() => {
     if (busy || !dir) return false;
     busy = true;
     let moved = false;
+    const g = gen;
     try {
       const inbox = await sub(dir, 'inbox');
       if (take) {
@@ -56,16 +58,21 @@ const ClaudeInbox = (() => {
         try { const d = JSON.parse(await (await fh.getFile()).text()); if (d && Array.isArray(d.changes)) next.push({ name, project: str(d.project, 120), summary: str(d.summary, 300), changes: d.changes, at: d.received || 0, logged: !!d.logged }); } catch (e) { /* half written: next time */ }
       }
       next.sort((a, b) => a.at - b.at);
-      const sig = next.map(x => x.name).join('|');
-      if (sig !== pendingSig) { pendingSig = sig; moved = true; }
-      pending = next;
+      /* a Tick it, Apply or Dismiss while this read ran has marked what is in memory already; the read, begun before
+         it, would bring the change back for a poll (a part saying "It is ticked off already."), so the next one reads */
+      if (g !== gen) { pendingSig = ''; moved = true; }
+      else {
+        const sig = next.map(x => x.name).join('|');
+        if (sig !== pendingSig) { pendingSig = sig; moved = true; }
+        pending = next;
+      }
     } catch (e) { /* no write access, or the folder went: the Claude folder's own state says so */ }
     busy = false;
     return moved;
   }
   async function arrive(dir, inbox, name, fh) {
-    let text = '', data = null;
-    try { text = await (await fh.getFile()).text(); data = JSON.parse(text); } catch (e) { data = null; }
+    let text = '', data = null, written = 0;
+    try { const file = await fh.getFile(); written = file.lastModified || 0; text = await file.text(); data = JSON.parse(text); } catch (e) { data = null; }
     const p = data && data.app === 'nullovation-city' && data.kind === 'change' && Array.isArray(data.changes) ? projectNamed(data.project) : null;
     if (!p) {
       await move(inbox, name, await sub(dir, 'inbox/rejected'), text);
@@ -82,7 +89,7 @@ const ClaudeInbox = (() => {
        (A1, 0.1.68). The task is the one the update names, else the one a tick, a description or a round is for. */
     const named = c => (c && (c.do === 'done' || c.do === 'edit-description' || c.do === 'add-round') ? str(c.task, 500) : '');
     News.report(p, { task: str(data.task, 500) || data.changes.map(named).find(Boolean) || '', named: !!str(data.task, 500),
-      summary: str(data.summary, 300), undo: undo && undo.what ? undo : null, entry: later.length ? name : '' });
+      summary: str(data.summary, 300), undo: undo && undo.what ? undo : null, entry: later.length ? name : '', written });
   }
   async function prune(inbox) {
     const cutoff = Date.now() - KEEP_DAYS * 86400e3;
@@ -189,8 +196,12 @@ const ClaudeInbox = (() => {
   /* The changes still waiting in an entry. Since 0.1.68 each has its own line, applied or dismissed on its own, and
      marked so in its pending file until the last one goes; then the file moves to inbox/done. */
   const openIdx = entry => entry.changes.map((c, i) => (c && !c._settled ? i : -1)).filter(i => i >= 0);
+  /* The entry as the city holds it now: each read of the pending folder makes new ones, so a button drawn before the
+     last read would mark one the city no longer holds, and the change would stay on its card until the next (0.1.95). */
+  const current = entry => pending.find(x => x.name === entry.name) || entry;
   /* Applies one change (i), or every one still waiting. A tick from its own line is its leader's toast, as Tick it's. */
   async function apply(entry, i = null) {
+    entry = current(entry);
     const p = projectNamed(entry.project), dir = ClaudeWork.folder();
     if (!p || !dir) return;
     const which = openIdx(entry).filter(k => i == null || k === i);
@@ -214,6 +225,7 @@ const ClaudeInbox = (() => {
     else if (one && one.c.do === 'replace-plan') toast('Replaced the plan of ' + p.name + '.');
   }
   async function dismiss(entry, i = null) {
+    entry = current(entry);
     const dir = ClaudeWork.folder();
     if (!dir) return;
     const which = openIdx(entry).filter(k => i == null || k === i);
@@ -227,12 +239,14 @@ const ClaudeInbox = (() => {
     changes: entry.changes, received: entry.at, logged: !!entry.logged, ...extra }, null, 1);
   /* What is left waits in its pending file, marked; with nothing left the file moves to inbox/done. */
   async function keep(dir, entry) {
+    gen++;
     if (!openIdx(entry).length) { await settle(dir, entry, 'settled'); return; }
     try { await put(await sub(dir, 'inbox/pending'), entry.name, entryFile(entry)); } catch (e) { /* settled by another tab */ }
     pendingSig = '';
     ClaudeWork.redraw();
   }
   async function settle(dir, entry, how) {
+    gen++;
     try {
       const pend = await sub(dir, 'inbox/pending');
       await move(pend, entry.name, await sub(dir, 'inbox/done'), entryFile(entry, { [how]: Date.now() }));
