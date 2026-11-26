@@ -305,15 +305,15 @@ with sync_playwright() as p:
     # the status card, and seeing what finished
     close_settings(pg)
     js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(800)
-    line = pg.text_content('#bubble .b-claude') or ''
-    who = pg.text_content('#bubble .b-leader .ld-name') or ''
-    ok(f'the status card says Claude finished, and what, in the leaders\' line, Proxima saying it for a building with no leader (0.1.59) ({who}: {line[:80]})', who == 'Proxima Pace' and line.startswith('Claude handed Fix the bubble back to you.'))
+    line = pg.text_content('#bubble .ld-line[data-moment="finished"]') or ''
+    who = js("() => { const l = document.querySelector('#bubble .ld-line[data-moment=\"finished\"]'); return l ? l.closest('.lc').querySelector('.lc-nm').textContent : ''; }")
+    ok(f'the status card says Claude finished, and what, on a page of the leader\'s card, Proxima saying it for a building with no leader (0.1.59; 0.1.96) ({who}: {line[:80]})', who == 'Proxima Pace' and line.startswith('Claude handed Fix the bubble back to you.'))
     ok('with the start of its reply', 'the bubble sits beside the red one now' in line)
     pg.screenshot(path=str(SH / '242-claude-card-done.png'), clip=pg.query_selector('#bubble').bounding_box())
     ok('looking at the card counts as seeing it: the tick goes', cb(nc) is None and js(f"() => MapView.bubbleAt('{nc}')['color']") == 'red')
     js("() => MapView.deselect()"); pg.wait_for_timeout(300)
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(800)
-    line = pg.text_content('#bubble .b-claude') or ''
+    line = pg.text_content('#bubble .ld-line[data-moment="working"]') or ''
     ok(f'a working session\'s card says so, with its task and start ({line[:70]})', line.startswith('Claude is working on Water the beds on time. Started 2 minutes ago.'))
     pg.screenshot(path=str(SH / '243-claude-card-working.png'), clip=pg.query_selector('#bubble').bounding_box())
     ok('a working session stays on the map while you look', cb(gp)['state'] == 'working')
@@ -322,17 +322,20 @@ with sync_playwright() as p:
     settle()
     ok('a newer finish shows the tick again', cb(nc)['state'] == 'done')
 
-    # Tick it: the open task a city copy started, ticked from the finish line
+    # a finish from a city copy: its open task in the page's own line, a link to it; no Tick it since 0.1.96 (M1: News has no buttons)
     js(S('t1', 'done', 'C:\\Users\\me\\city', task='Build the block art skill', project='Nullovation City', reply='The skill is built.'))
     settle()
     js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(800)
-    acts = pg.locator('#bubble .b-claude .ld-acts')
-    ok(f'a finish from a city copy offers Tick it for its open task ({acts.count()})', acts.count() == 1 and pg.is_visible('#bubble .b-claude-tick'))
+    fp = js("""() => [...document.querySelectorAll('#bubble .ld-line[data-moment="finished"]')].map(l => ({ says: l.querySelector('.ld-says').textContent, type: l.dataset.type,
+      task: (l.closest('.lc').querySelector('.lc-tline .ld-task') || {}).textContent || '', btns: l.querySelectorAll('.ld-acts button').length }))""")
+    t1p = next((x for x in fp if x['task'] == 'Build the block art skill'), None)
+    ok(f'a finish from a city copy is a News page naming its open task in its own line, with no Tick it (0.1.96) ({t1p})', t1p and t1p['type'] == 'news'
+       and t1p['says'].startswith('Claude handed this task back to you.') and t1p['btns'] == 0 and pg.locator('#bubble .b-claude-tick').count() == 0)
     pg.screenshot(path=str(SH / '246-claude-tick-it.png'), clip=pg.query_selector('#bubble').bounding_box())
-    pg.click('#bubble .b-claude-tick'); pg.wait_for_timeout(500)
-    t1 = js(f"() => {{ const p = getProject('{nc}'), t = p.todos.find(x => x.text === 'Build the block art skill'); return {{ done: t.done, at: !!t.doneAt, worked: Date.now() - (p.urgency.lastWorked || 0) < 60000, act: p.activity[p.activity.length - 1].text }}; }}")
-    ok(f'Tick it ticks it off as a tick does: done, work for urgency, a line in Activity ({t1})', t1 == {'done': True, 'at': True, 'worked': True, 'act': 'Done: Build the block art skill'})
-    ok('and the button goes, since the task is done', pg.locator('#bubble .b-claude-tick').count() == 0 and 'Ticked off: Build the block art skill.' in pg.text_content('#toast'))
+    js("() => [...document.querySelectorAll('#bubble .lc-tline .ld-task')].find(a => a.textContent === 'Build the block art skill').click()"); pg.wait_for_timeout(600)
+    t1 = js(f"() => {{ const p = getProject('{nc}'), t = p.todos.find(x => x.text === 'Build the block art skill'); return {{ done: t.done, open: FullView.shows('{nc}') && !!document.querySelector('#pvSide .pv-desc') }}; }}")
+    ok(f'its task\'s link opens the task in its project, which stays open: whether it is done is yours to say ({t1})', t1 == {'done': False, 'open': True})
+    js("() => FullView.close()"); pg.wait_for_timeout(300)
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     js(S('t2', 'done', 'C:\\Users\\me\\city', task='Make block art for each project', project='Garden planner'))
     js(S('t3', 'done', 'C:\\Users\\me\\city', task='A task the city does not have', project='Nullovation City'))
@@ -340,18 +343,18 @@ with sync_playwright() as p:
     js(S('t5', 'done', 'C:\\Users\\me\\city', task='Round 3: decide the block art loop', project='Nullovation City'))
     settle()
     js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(800)
-    fin = [x.strip() for x in pg.locator('#bubble .b-claude .ld-says').all_text_contents()]
-    tick = pg.get_attribute('#bubble .b-claude-tick', 'title') or ''
-    ok(f'one line a session, the working one first; Tick it under its own finish only, another project\'s copy and a missing task offering none ({fin})',
-       fin[0] == 'Claude is working on Try the project view for a week. Started 2 minutes ago.' and 'Claude handed Round 3: decide the block art loop back to you. Just now.' in fin
-       and pg.locator('#bubble .b-claude-tick').count() == 1 and 'Round 3: decide the block art loop' in tick and len(fin) <= 4)
+    fin = js("""() => [...document.querySelectorAll('#bubble .ld-line')].filter(l => ['working', 'waiting', 'failed', 'finished'].includes(l.dataset.moment))
+      .map(l => [l.querySelector('.ld-says').textContent.trim(), (l.closest('.lc').querySelector('.lc-tline') || {}).textContent || ''])""")
+    ok(f'one page a session, the working one first, its task in its own line; no Tick it under any finish (0.1.96) ({fin})',
+       fin and fin[0] == ['Claude is working on this task. Started 2 minutes ago.', 'Try the project view for a week'] and ['Claude handed this task back to you. Just now.', 'Round 3: decide the block art loop'] in fin
+       and ['Claude handed A task the city does not have back to you. Just now.', ''] in fin and pg.locator('#bubble .b-claude-tick').count() == 0 and len(fin) <= 4)
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     for k in ('t1', 't2', 't3', 't4', 't5'):
         js(f"() => window.__cf.delete('{k}.json')")
     js(S('t6', 'working', 'C:\\Users\\me\\city', ask='<task-notification> a background task finished'))
     settle()
     js(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(600)
-    ok('a turn Claude Code starts on its own shows no <task-notification> as its ask', '<task-notification>' not in (pg.text_content('#bubble .b-claude') or '') and (pg.text_content('#bubble .b-claude .ld-says') or '').startswith('Claude is working on a task.'))
+    ok('a turn Claude Code starts on its own shows no <task-notification> as its ask', '<task-notification>' not in (pg.text_content('#bubble .b-leader') or '') and (pg.text_content('#bubble .ld-line[data-moment="working"] .ld-says') or '').startswith('Claude is working on a task.'))
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     js("() => window.__cf.delete('t6.json')"); settle()
 
@@ -372,17 +375,24 @@ with sync_playwright() as p:
     launch = js(f"() => {{ const p = getProject('{gp}'), m = p.milestones.find(m => m.name === 'Launch'); return p.todos.filter(t => t.milestoneId === m.id).map(t => t.text); }}")
     ok(f'adding tasks, a note and a link applies at once, in the milestone named, by the project\'s name in any case ({launch[-2:]})',
        launch[-2:] == ['Test the reminders on a phone', 'Write the reminder copy'] and 'Reminder timing' in st1['notes'] and 'https://github.com/me/garden/pull/12' in st1['links'] and st1['ms'] == st0['ms'])
-    said = js("() => document.querySelector('#ldSay').hidden ? null : [$('#ldSayName').textContent, $('#ldSayWhere').textContent, $('#ldSayText').textContent, [...document.querySelectorAll('#ldSayActs button')].map(b => b.textContent)]")
-    ok(f'its building\'s news says so, in place of the toast, naming what it added, with its time, Read and Undo (0.1.68) ({said})',
-       said == ['Proxima Pace', 'Garden planner', 'Claude added 2 tasks, a note, Reminder timing, and a link, Reminders PR. Sent just now.', ['Read', 'Undo', 'Go to it']]
-       and 'Claude added' not in (pg.text_content('#toast') or ''))
+    said = lambda: js("() => document.querySelector('#ldSay').hidden ? null : [$('#ldSayName').textContent, $('#ldSayWhere').textContent, $('#ldSayText').textContent, [...document.querySelectorAll('#ldSayActs button')].map(b => b.textContent), document.querySelector('#ldSay').dataset.moment]")
+    waits = js(f"() => News.items().filter(it => it.pid === '{gp}').map(it => it.moment)")
+    ok(f'its building\'s news waits in News, in place of the toast, and no bubble opens by itself for it (0.1.96) ({waits})', said() is None and 'added' in waits and 'Claude added' not in (pg.text_content('#toast') or ''))
+    js("() => { News.openFace('px'); for (let i = 0; i < 8 && document.querySelector('#ldSay').dataset.moment !== 'added'; i++) { const n = document.querySelector('#ldSayNext'); if (!n || n.disabled) break; n.click(); } }")   # what Proxima's face in News opens
+    pg.wait_for_timeout(300)
+    ok(f'Proxima\'s face says it on an Attachment page, naming what it added, with its time and a Delete for each (0.1.68; 0.1.96) ({said()})',
+       said() == ['Proxima Pace', 'Garden planner', 'Claude added 2 tasks, a note, Reminder timing, and a link, Reminders PR. Sent just now.', ['Go to it'], 'added']
+       and js("() => document.querySelector('#ldSay').dataset.type") == 'attach' and js("() => document.querySelectorAll('#ldSay .lc-atts .ld-del').length") == 4)
     words = js("() => { const w = document.querySelector('#ldSayMore .b-claude-said'); return w && [w.textContent, !!w.querySelector('svg')]; }")
     ok(f'Claude\'s summary under it, in its own words, marked with its spark (C2) ({words})', words == ['Reminders built', True])
     ok('the file moves to inbox/done, so nothing applies twice', js("() => window.__sub.has('inbox/done/2026-10-14-0900-garden.json') && !window.__sub.has('inbox/2026-10-14-0900-garden.json')"))
     acts = js(f"() => getProject('{gp}').activity.slice(-6).map(e => e.text)")
     ok(f'and Activity says nothing of it: Claude writes nothing there since 0.1.69, but a wizard round ({acts[-3:]})', not any(x.startswith('Claude') or x.startswith('Added todo: Write the reminder') for x in acts))
-    pg.click('#ldSay .ld-undo'); pg.wait_for_timeout(400)
-    ok('Undo takes back exactly what Claude added', gp_state() == st0 and js("() => document.querySelector('#ldSay').hidden"))
+    for _ in range(4):
+        pg.click('#ldSay .lc-atts .ld-del'); pg.wait_for_timeout(400)
+    ok('Delete, one by one, takes back exactly what Claude added, and its page goes (0.1.96: Delete in place of Undo)', gp_state() == st0
+       and 'added' not in js(f"() => News.items().filter(it => it.pid === '{gp}').map(it => it.moment)") and (said() or [None] * 5)[4] != 'added')
+    js("() => { const m = document.querySelector('#ldSayMin'); if (m && !document.querySelector('#ldSay').hidden) m.click(); }"); pg.wait_for_timeout(300)
 
     drop('2026-10-14-0910-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'Garden planner', 'summary': 'Plans save as files',
         'changes': [{'do': 'done', 'task': 'Save a plan as a file'}, {'do': 'edit-description', 'task': 'Draw the beds on a grid', 'description': 'Drawn at 1:50. Left: labels.'},
@@ -396,17 +406,19 @@ with sync_playwright() as p:
     settle()
     ok(f'the building\'s Claude bubble asks with a ?, over a session working there ({cb(gp)})', cb(gp)['state'] == 'waiting' and cb(gp)['text'] == '?')
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(800)
-    asks = pg.locator('#bubble .b-claude-asks')
+    asks = pg.locator('#bubble .ld-line[data-moment="asks"]')
     first = asks.nth(0) if asks.count() else None
     head = first.locator('.ld-says').text_content() if first else ''
     lines = [x.strip() for x in first.locator('.ld-part-text').all_text_contents()] if first else []
+    ftask = js("() => { const l = document.querySelector('#bubble .ld-line[data-moment=\"asks\"]'); return l ? (l.closest('.lc').querySelector('.lc-tline') || {}).textContent || '' : ''; }")
     btns = [[b.strip() for b in first.locator('.ld-part').nth(i).locator('button.btn').all_text_contents()] for i in range(len(lines))] if first else []
-    ok(f'the status card names what Claude asks, never its summary, with one time (0.1.68) ({asks.count()} | {head})', asks.count() == 2 and head == 'Claude wants your OK first: 3 changes. Sent just now.'
-       and first.locator('.b-claude-said').text_content() == 'Plans save as files')
-    ok(f'a short line for each change, each with its own buttons (A2) ({lines} | {btns})', lines == ['Wants Save a plan as a file ticked off.', 'Wants a new description for Draw the beds on a grid.', 'Wants A task that is not there ticked off. It is not open here.']
-       and btns == [['Tick it', 'Dismiss'], ['Read', 'Apply', 'Dismiss'], ['Dismiss']])
+    ok(f'the status card names what Claude asks, never its summary, with one time, a Need Approval page each (0.1.68; 0.1.96) ({asks.count()} | {head})', asks.count() == 2 and head == 'Claude wants your OK on 3 changes. Sent just now.'
+       and first.get_attribute('data-type') == 'approval' and first.locator('.b-claude-said').text_content() == 'Plans save as files')
+    ok(f'a short line for each change, each with its own buttons, No in place of Dismiss; the first change\'s task in the page\'s own line, "this task" in its words (A2; 0.1.96) ({ftask} | {lines} | {btns})', ftask == 'Save a plan as a file'
+       and lines == ['Tick this task off.', 'A new description for Draw the beds on a grid.', 'Tick A task that is not there off. It is not open here.']
+       and btns == [['Tick it', 'No'], ['Read', 'Apply', 'No'], ['No']])
     second = asks.nth(1).text_content() if asks.count() > 1 else ''
-    ok(f'one change alone has its buttons on the line ({second[:80]})', second.startswith('Claude wants your OK first: a new plan. Sent just now.') and [b.strip() for b in asks.nth(1).locator('.ld-acts button').all_text_contents()] == ['Read', 'Apply', 'Dismiss'])
+    ok(f'one change alone has its buttons on the page ({second[:80]})', second.startswith('Claude wants your OK first: a new plan with 1 milestone and 1 task. Sent just now.') and [b.strip() for b in asks.nth(1).locator('.ld-acts button').all_text_contents()] == ['Read', 'Apply', 'No'])
     pg.screenshot(path=str(SH / '248-claude-asks-first.png'), clip=pg.query_selector('#bubble').bounding_box())
     first.locator('.ld-part').nth(1).locator('.ld-read').click(); pg.wait_for_timeout(300)
     rd = js("() => { const m = document.querySelector('.modal.panel.cr'); return m && [m.querySelector('#pnTitle').textContent, [...m.querySelectorAll('.cr-h')].map(x => x.textContent), [...m.querySelectorAll('.cr-text')].map(x => x.textContent)]; }")
@@ -416,14 +428,14 @@ with sync_playwright() as p:
     g = js(f"() => {{ const p = getProject('{gp}'); return {{ done: p.todos.find(t => t.text === 'Save a plan as a file').done, desc: p.todos.find(t => t.text === 'Draw the beds on a grid').description }}; }}")
     ok(f'Tick it ticks that task alone, and the rest waits, marked in its pending file ({g})', g['done'] is True and g['desc'] != 'Drawn at 1:50. Left: labels.'
        and js("() => { const f = window.__subjson('inbox/pending/2026-10-14-0910-garden.json'); return !!f && f.changes[0]._settled === 'applied' && !f.changes[1]._settled; }")
-       and pg.locator('#bubble .b-claude-asks').nth(0).locator('.ld-part').count() == 2)
+       and pg.locator('#bubble .ld-line[data-moment="asks"]').nth(0).locator('.ld-part').count() == 2)
     asks.nth(0).locator('.ld-part').nth(0).locator('.b-claude-apply').click(); pg.wait_for_timeout(700)
     g = js(f"() => getProject('{gp}').todos.find(t => t.text === 'Draw the beds on a grid').description")
     ok(f'Apply writes the description ({g})', g == 'Drawn at 1:50. Left: labels.' and 'Gave Draw the beds on a grid its new description.' in pg.text_content('#toast'))
     asks.nth(0).locator('.b-claude-dismiss').click(); pg.wait_for_timeout(700)
-    ok('with the last one dismissed, the entry is put away in inbox/done', js("() => !window.__sub.has('inbox/pending/2026-10-14-0910-garden.json') && window.__sub.has('inbox/done/2026-10-14-0910-garden.json')") and pg.locator('#bubble .b-claude-asks').count() == 1)
-    pg.locator('#bubble .b-claude-asks .b-claude-dismiss').click(); pg.wait_for_timeout(600)
-    ok('Dismiss puts it away without applying it', js("() => !window.__sub.has('inbox/pending/2026-10-14-0920-garden.json')") and pg.locator('#bubble .b-claude-asks').count() == 0
+    ok('with the last one said No to, the entry is put away in inbox/done', js("() => !window.__sub.has('inbox/pending/2026-10-14-0910-garden.json') && window.__sub.has('inbox/done/2026-10-14-0910-garden.json')") and pg.locator('#bubble .ld-line[data-moment="asks"]').count() == 1)
+    pg.locator('#bubble .ld-line[data-moment="asks"] .b-claude-dismiss').click(); pg.wait_for_timeout(600)
+    ok('No puts it away without applying it', js("() => !window.__sub.has('inbox/pending/2026-10-14-0920-garden.json')") and pg.locator('#bubble .ld-line[data-moment="asks"]').count() == 0
        and js(f"() => getProject('{gp}').milestones.map(m => m.name)") == st0['ms'])
     js(S('a1', 'idle', 'C:\\Users\\me\\garden\\src', task='Water the beds on time'))
     settle()
@@ -431,11 +443,13 @@ with sync_playwright() as p:
     js(f"() => {{ const p = getProject('{gp}'), t = p.todos.find(t => t.text === 'Tune the watering reminders'); t.repeat = {{ every: 'day', n: 7 }}; t.due = ymd(); changed(p); }}")
     drop('2026-10-14-0925-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'Garden planner', 'changes': [{'do': 'done', 'task': 'Tune the watering reminders'}]})
     settle()
-    asks = pg.locator('#bubble .b-claude-asks')
+    asks = pg.locator('#bubble .ld-line[data-moment="asks"]')
     said = asks.nth(0).text_content() if asks.count() else ''
+    rtask = js("() => { const l = document.querySelector('#bubble .ld-line[data-moment=\"asks\"]'); return l ? (l.closest('.lc').querySelector('.lc-tline') || {}).textContent || '' : ''; }")
     if asks.count(): asks.nth(0).locator('.b-claude-tick').click(); pg.wait_for_timeout(700)
     rep = js(f"() => {{ const t = getProject('{gp}').todos.find(t => t.text === 'Tune the watering reminders'); return [t.done, t.due === ymd(plusDays(startOfDay(Date.now()), 7)), !!t.waiting]; }}")
-    ok(f'Claude ticking a repeat asks first, and Tick it moves it on a week, waiting ({rep} | {said[:90]})', 'Claude wants your OK first: tick off Tune the watering reminders, on to its next date.' in said and rep == [False, True, True])
+    ok(f'Claude ticking a repeat asks first, the task in its own line, and Tick it moves it on a week, waiting ({rep} | {rtask} | {said[:90]})', 'Claude wants your OK first: tick this task off, on to its next date.' in said
+       and rtask == 'Tune the watering reminders' and rep == [False, True, True])
     js(f"() => {{ const p = getProject('{gp}'), t = p.todos.find(t => t.text === 'Tune the watering reminders'); delete t.repeat; delete t.waiting; t.due = ''; changed(p); }}")
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     drop('2026-10-14-0930-nowhere.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'A project the city has not', 'changes': [{'do': 'add-note', 'title': 'x', 'text': 'y'}]})
@@ -479,7 +493,7 @@ with sync_playwright() as p:
     js("() => { window.__cf.delete('w1.json'); }")
     settle()                                   # the update waited for w1, the session waiting there; gone, it is said on its own
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(600)
-    pg.locator('#bubble .b-claude-asks .b-claude-dismiss').click(); pg.wait_for_timeout(500)
+    pg.locator('#bubble .ld-line[data-moment="asks"] .b-claude-dismiss').click(); pg.wait_for_timeout(500)
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
     settle()
     ok(f'with nothing waiting, the title is the city\'s own ({pg.title()})', pg.title() == 'Nullovation City')

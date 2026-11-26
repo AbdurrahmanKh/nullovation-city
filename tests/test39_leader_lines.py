@@ -37,6 +37,32 @@ LINES = {
     'greet': '{togo}. Next up: {task}.',
     'greet_empty': 'Nothing open here yet. Add the next task.',
 }
+# the card's lines (0.1.96, One Leader Card, Round 1, W1, word for word as approved): with the task on the card's own
+# line, the words say "this task"; the greeting's other states follow the approved "We finished one today, 12 to go. This one is next."
+CARD = {
+    'behind': 'We slipped behind our pace. This task puts us back on track.',
+    'behind_more': "We're falling further behind. This task pulls us back.",
+    'behind_day': 'Nothing finished here for a day. This task gets us moving.',
+    'due': 'This task is due today.',
+    'due_many': '{n} tasks are due today. This one is first up.',
+    'one_left': '{milestone} is one task from done: this one. Finish it and we throw a street party.',
+    'round': 'Claude attached a wizard round to this task: {round}.',
+    'waiting': 'Claude is waiting for you on this task.',
+    'waiting_ok': 'Claude needs your OK on this task.',
+    'took': 'Claude took your message on this task. Started {ago}.',
+    't3closed': 'T3 is closed, so your message for this task waits to be sent.',
+    'failed': 'Claude stopped on an error while working on this task.',
+    'finished': 'Claude handed this task back to you.',
+    'working': 'Claude is working on this task. Started {ago}.',
+    'week': 'Last week we finished {n} tasks. This one is next.',
+    'week_quiet': 'Quiet week: nothing finished. This task is a good start.',
+    'greet_done': 'We finished {count} today, {togo}. This one is next.',
+    'greet_on': "We're on pace, {togo}. This one is next.",
+    'greet_behind': 'We slipped behind our pace, {togo}. This one is next.',
+    'greet_behind_more': "We're falling further behind, {togo}. This one is next.",
+    'greet_day': 'Nothing finished here for a day, {togo}. This one is next.',
+    'greet': '{togo}. This one is next.',
+}
 LONG = 'Draw every raised bed on the grid with its soil, its sun and the plants it holds this year'
 
 with sync_playwright() as p:
@@ -52,14 +78,19 @@ with sync_playwright() as p:
     nc = ev("() => DB.projects.find(p => p.name === 'Nullovation City').id")
     tid_of = lambda text, pid=gp: ev(f"() => (getProject('{pid}').todos.find(t => t.text === {json.dumps(text)}) || {{}}).id || null")
     quiet = lambda: ev("() => { const t = document.querySelector('#toast'); t.className = 'toast'; document.querySelectorAll('#gusSay, #pxSay').forEach(e => e.hidden = true); }")
-    card = lambda: ev("""() => { const c = document.querySelector('#pvLeader'); if (!c) return null; const s = c.querySelector('.ld-says');
-        return s ? { text: s.textContent, title: s.getAttribute('title'), bar: getComputedStyle(s).boxShadow, dir: s.getAttribute('dir'),
-          under: !!c.querySelector('.ld-card-text span:not(.ld-says)') && (c.querySelector('.ld-card-text span:not(.ld-says)').compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING) > 0 } : { text: null }; }""")
+    # since 0.1.96 (One Leader Card) the task is in the card's own line (.lc-tline), a link, and the words say "this one"
+    card = lambda: ev("""() => { const c = document.querySelector('#pvLeader'); if (!c) return null; const s = c.querySelector('.ld-says'), a = c.querySelector('.lc-tline .ld-task'), r = c.querySelector('.lc-role');
+        return s ? { text: s.textContent, task: a ? a.textContent : null, tip: a ? a.title : null, bar: getComputedStyle(s).boxShadow, dir: s.getAttribute('dir'),
+          plain: !!c.querySelector('.lc.plain'), under: !!r && (r.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING) > 0 } : { text: null }; }""")
 
     # ---------- the lines, word for word ----------
     got = ev("() => LEADER_LINES")
     ok(f'every line is in the city, word for word, one per moment ({len(got)} moments)', got == LINES, {k: v for k, v in got.items() if LINES.get(k) != v})
     ok('no line names its building: each speaks for it as "we"', all('{project}' not in v and '{building}' not in v for v in got.values()))
+    gc = ev("() => CARD_LINES")
+    ok(f'0.1.96: the card\'s lines say "this task", word for word as W1 approved ({len(gc)} moments)', gc == CARD, {k: v for k, v in gc.items() if CARD.get(k) != v})
+    ok('a line that names no task says the same on the card; off the card the title stays',
+       ev("() => [leaderSay('added', { what: '1 link' }, true), leaderSay('behind', { task: 'Draw the beds' })]") == ['Claude added 1 link.', 'We slipped behind our pace. Draw the beds puts us back on track.'])
 
     # ---------- filling the blanks ----------
     ok('a task fills its blank', say('behind', {'task': 'Draw the beds'}) == 'We slipped behind our pace. Draw the beds puts us back on track.')
@@ -89,21 +120,25 @@ with sync_playwright() as p:
     before = ev(f"() => {{ const p = getProject('{gp}'); return [p.updatedAt, p.activity.length]; }}")
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(600); quiet()
     c = card()
-    ok(f'the leader card says its greeting with the next task, under the name and role ({c})', c and c['text'] == '5 to go. Next up: Draw the beds on a grid.' and c['under'] and c['dir'] == 'auto')
+    ok(f'the leader card says its greeting, under the name and role, the next task in its own line, a link (0.1.96) ({c})', c and c['text'] == '5 to go. This one is next.'
+       and c['task'] == 'Draw the beds on a grid' and c['plain'] and c['under'] and c['dir'] == 'auto')
     ok(f'in a quote with a bar in the leader\'s color ({c and c["bar"]})', c and 'rgb(143, 208, 247)' in c['bar'])
     ok('a greeting is not work: Updated stays, and nothing goes in Activity', ev(f"() => {{ const p = getProject('{gp}'); return [p.updatedAt, p.activity.length]; }}") == before)
     pg.screenshot(path=str(SHOTS / '390-leader-greeting.png'), clip=pg.query_selector('.pv-hero').bounding_box())
 
     first = tid_of('Draw the beds on a grid')
     pg.click(f'li.task[data-id="{first}"] .cb'); pg.wait_for_timeout(500)
-    ok(f'ticking the next task moves the greeting on to the one after it ({card()["text"]})', card()['text'] == 'We finished one today, 4 to go. Next up: Save a plan as a file.')
+    c = card()
+    ok(f'ticking the next task moves the greeting on to the one after it ({c and (c["text"], c["task"])})', c['text'] == 'We finished one today, 4 to go. This one is next.' and c['task'] == 'Save a plan as a file')
     pid = tid_of('Add plant icons')
     pg.hover(f'li.task[data-id="{pid}"]'); pg.click(f'li.task[data-id="{pid}"] .task-mark'); pg.wait_for_timeout(400)
-    ok(f'pinning a task names it in the greeting ({card()["text"]})', card()['text'] == 'We finished one today, 4 to go. Next up: Add plant icons.')
+    c = card()
+    ok(f'pinning a task names it in the greeting\'s task line ({c and (c["text"], c["task"])})', c['text'] == 'We finished one today, 4 to go. This one is next.' and c['task'] == 'Add plant icons')
     ev(f"""() => {{ const p = getProject('{gp}'), t = p.todos.find(x => x.text === 'Add plant icons'); t.text = {json.dumps(LONG)}; changed(p); }}""")
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
     c = card()
-    ok(f'a long title is cut short in the line, the full title its tooltip ({c["text"]})', c['text'] == 'We finished one today, 4 to go. Next up: ' + LONG[:59].rstrip() + '….' and c['title'] == LONG)
+    ok(f'a long title stays out of the words: its own line holds it whole as a link, "Open" and the title its tooltip (0.1.96; cut short in the words before) ({c["text"]})',
+       c['text'] == 'We finished one today, 4 to go. This one is next.' and c['task'] == LONG and c['tip'] == 'Open ' + LONG)
     ev(f"() => {{ const p = getProject('{gp}'); for (const t of p.todos) {{ t.done = true; t.doneAt = Date.now(); }} p.pin = ''; changed(p); }}")
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(500)
     ok(f'with every task done, it says nothing is open ({card()["text"]})', card()['text'] == 'Nothing open here yet. Add the next task.')
@@ -113,8 +148,8 @@ with sync_playwright() as p:
     ok('a building with no leader has no line: its card still asks for a leader', ev("() => !!document.querySelector('#pvLeader.empty') && !document.querySelector('#pvLeader .ld-says')"))
     ev("() => FullView.close()"); pg.wait_for_timeout(300)
     ev(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(600)
-    sc = ev("() => { const l = document.querySelector('#bubble .b-leader'); return l ? [l.querySelector('.ld-name').textContent, l.querySelector('.b-leader-text span').textContent, !!l.querySelector('.ld-says')] : null; }")
-    ok(f'the status card keeps its name and role, with no greeting: news comes there later ({sc})', sc == ['Talal', 'Head of Nullovations', False])
+    sc = ev("() => { const l = document.querySelector('#bubble .b-leader'); return l ? [l.querySelector('.lc-nm').textContent, l.querySelector('.lc-role').textContent, (l.querySelector('.ld-says') || {}).textContent || null, !!l.querySelector('.lc.plain')] : null; }")
+    ok(f'the status card keeps its name and role, and with no news says the greeting too, a plain card (0.1.96, S1; no greeting there before) ({sc})', sc == ['Talal', 'Head of Nullovations', 'Nothing open here yet. Add the next task.', True])
 
     pg.reload(); pg.wait_for_timeout(2200)
     ok('nothing new is saved: the lines live in the tool, not the city', ev("() => Object.keys(DB.leaders[0]).sort().join(',')") == 'color,createdAt,id,name,portrait,role')

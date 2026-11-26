@@ -160,9 +160,13 @@ with sync_playwright() as p:
     js("() => { Motion.set('still'); }"); force(40); js("() => Gus.hush()")
     force(0); pg.wait_for_timeout(300)
     r = js(READ)
-    ok(f'the last piece goes: he says so ({r["say"]})', r['saying'] and r['say'] in lines['clean'] and r['shown'])
-    js("() => Gus.hush()"); pg.wait_for_timeout(200)
-    ok('and steps away once his bubble closes', not js(READ)['shown'])
+    cl = js("() => Gus.clean()")
+    ok(f'the last piece goes: Clean streets is News, and waits in News with his face, no bubble by itself (0.1.96) ({cl})', not r['saying'] and cl in lines['clean'] and r['shown'])
+    pg.click('.news-tile[data-k="gus"] .news-face'); pg.wait_for_timeout(300)
+    r = js(READ)
+    ok(f'his face opens it, on the card as News ({r["say"]})', r['saying'] and r['say'] == cl and js("() => document.querySelector('#gusCard').dataset.type") == 'news')
+    pg.click('#gusSayClose'); pg.wait_for_timeout(200)
+    ok('his x: heard, and he steps away', not js(READ)['shown'] and js("() => Gus.clean()") == '')
     js(f"() => Garbage._test.force('{hall}', null)")
     js("() => Motion.set('full')")
     state([[HALL, None, [-2]]])
@@ -170,7 +174,8 @@ with sync_playwright() as p:
     force(20); force(80)
     saying = js(READ)['saying']
     pg.wait_for_timeout(900)
-    ok('a speech bubble goes by itself after a while', saying and not js(READ)['saying'])
+    ok('his bubble no longer goes by itself: it stays until closed (0.1.96, One Leader Card, X2)', saying and js(READ)['saying'])
+    js("() => Gus.hush()")
     js(f"() => Garbage._test.force('{hall}', null)"); pg.wait_for_timeout(200)
 
     # ---------- the Garbage switch ----------

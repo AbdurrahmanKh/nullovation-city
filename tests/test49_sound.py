@@ -167,7 +167,7 @@ with sync_playwright() as p:
 
     # ---------- the street party (8-bit chip) ----------
     clear()
-    js("() => Celebrate._test.partyMs(3000)")
+    js("() => { Celebrate._test.partyMs(3000); Proxima._test.forget(); }")     # the First release party the ticks above threw no longer waits in News
     js(f"""() => {{ const p = getProject('{gp}'), m = {{ id: uid('m'), name: 'Party test' }}; p.milestones.push(m);
       p.todos.push({{ id: uid('t'), text: 'First of two', done: true, doneAt: Date.now(), milestoneId: m.id, due: '', description: '' }});
       const t = {{ id: uid('t'), text: 'Last of two', done: false, milestoneId: m.id, due: '', description: '' }}; p.todos.push(t); changed(p); tickTask(p, t); changed(p); }}""")
@@ -175,7 +175,13 @@ with sync_playwright() as p:
     ok(f"a finished milestone's party: the tick, then the cheer and its music in the Music group ({said()})", 'party' in said() and [x['group'] for x in log() if x['id'] == 'party'] == ['music'])
     ok('the music plays while the party lasts', js(f"() => Sound._test.parties().includes('{gp}')"))
     pg.wait_for_timeout(1800)
-    ok(f"Proxima announces it: a bubble's sound, then her radio chirp as her line types out ({said()})", 'bubble' in said() and 'voice:proxima' in said())
+    pw = js("() => [Proxima._test.queue().map(x => x.line ? x.key : x), document.querySelector('#pxSay').hidden]")
+    ok(f"Proxima's word on it waits in News: no bubble by itself, so no bubble's sound and no voice yet (0.1.96) ({said()}, {pw})", 'bubble' not in said() and 'voice:proxima' not in said()
+       and len(pw[0]) == 1 and pw[1] is True and js("() => ((Proxima._test.queue()[0] || {}).line || '').includes('Party test')"))
+    clear()
+    js("() => document.querySelector('#newsList .news-tile[data-k=\"px\"] .news-face').click()"); pg.wait_for_timeout(300)
+    s = said()
+    ok(f"her face opens it: her radio chirp as her line types out; a bubble opened with a click has no bubble's sound, as a leader's ({s})", 'voice:proxima' in s and 'bubble' not in s)
     ok('her line types out in her bubble, and her face talks', js("() => [document.querySelector('#pxSayText').classList.contains('typing') || document.querySelector('#pxSayText').textContent.length > 0, !!document.querySelector('#pxSay:not([hidden])')]") == [True, True])
     pg.wait_for_timeout(2000)
     ok('the party over: its music stops with it', js("() => Sound._test.parties()") == [])
@@ -200,22 +206,30 @@ with sync_playwright() as p:
     quiet(); clear()
     js(f"""() => {{ const l = blankLeader({{ name: 'Talal', role: 'Head of Gardens', color: '#7FD6B5' }}); DB.leaders.push(l); getProject('{gp}').leader = l.id; window.__talal = l.id; changed(getProject('{gp}')); }}""")
     talal = js("() => window.__talal")
+    # what opens a bubble by itself since 0.1.96 (the triggers he approved): a task due today, among others; what Claude
+    # added waits in News. Each building gets a task due today, so its news stays true.
+    js(f"""() => {{ for (const [pid, text] of [['{gp}', 'Water the seedlings'], ['{nc}', 'Sweep the plaza']]) {{ const p = getProject(pid);
+      p.todos.push({{ id: uid('t'), text, done: false, due: ymd(), milestoneId: p.milestones[0].id, description: '' }}); changed(p); }} }}""")
+    due = lambda pid: js(f"() => {{ const p = getProject('{pid}'), t = p.todos.find(x => isOpenTask(x) && x.due === ymd()); News.add(p, 'due', {{ task: t.text }}, {{ ref: {{ day: ymd(), tid: t.id }} }}); }}")
+    clear()
     js(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'a note' }})"); pg.wait_for_timeout(400)
+    ok(f"what Claude added waits in News: no bubble by itself, no sound (0.1.96) ({said()})", said() == [] and js("() => document.querySelector('#ldSay').hidden"))
+    due(gp); pg.wait_for_timeout(400)
     ok(f"a leader's bubble opening by itself: its sound, then the leader's own voice ({said()})", said() == ['bubble', 'voice:ld:' + talal])
     ok("the line types out as before", js("() => document.querySelector('#ldSayText').classList.contains('typing')"))
     clear()
     js("() => News.hide({ read: true })"); pg.wait_for_timeout(100)
-    js(f"() => News.add(getProject('{nc}'), 'added', {{ what: 'a link' }})"); pg.wait_for_timeout(400)
+    due(nc); pg.wait_for_timeout(400)
     ok(f"a building with no leader: Proxima brings it, in her voice ({said()})", said() == ['bubble', 'voice:proxima'])
     js("() => News.hide({ read: true })"); clear()
     js(f"() => News.add(getProject('{gp}'), 'round', {{ task: 'Draw the beds', round: 'Beds, Round 1' }})"); pg.wait_for_timeout(400)
     ok(f"Quill's rounds in his own voice ({said()})", said() == ['bubble', 'voice:quill'])
     js("() => News.hide({ read: true })"); clear()
     js("() => Motion.set('still')")
-    js(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'two notes' }})"); pg.wait_for_timeout(400)
+    due(gp); pg.wait_for_timeout(400)
     ok(f'Motion on Still: the line shows whole, so no voice; the bubble still sounds ({said()})', said() == ['bubble'])
     js("() => { News.hide({ read: true }); Motion.set(null); }"); clear()
-    js(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'three notes' }})"); pg.wait_for_timeout(300)
+    due(gp); pg.wait_for_timeout(300)
     js("() => News.hide({ read: true })"); pg.wait_for_timeout(100)
     ok('a bubble closed mid-line stops its voice with its line', js("() => News._test.talk().id") is None)
     quiet(); clear()

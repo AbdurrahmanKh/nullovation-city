@@ -486,24 +486,16 @@ const Leaders = (() => {
      full title is the line's tooltip when the line cuts it short. A building with no leader has Proxima say it, as on
      the status card, with Pick a leader; with nothing to say, the card offers to pick one. */
   let lastPick = null;
+  /* Since 0.1.96 (One Leader Card) the card is the same one the bubble and the status card show, its face at 100 px:
+     one page at a time, else the greeting, with Change, or Pick a leader under Proxima. */
   function card(p, onPick) {
     lastPick = { pid: p.id, onPick };
-    const l = leaderOf(p), news = News.viewTopics(p);                        // one topic at a time, with arrows (0.1.94)
-    if (!l && !news.length) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
+    const l = leaderOf(p), el = News.card(p, 'view');
+    if (!l && !el) return h('button', { id: 'pvLeader', class: 'ld-card empty', type: 'button', title: 'Pick a leader for this building', onclick: onPick },
       noFace(48), h('span', { class: 'ld-card-text' }, h('b', null, 'No leader yet'), h('span', null, 'Pick a leader')));
-    if (!l) {
-      const box = h('div', { id: 'pvLeader', class: 'ld-card has-news px-voice' }, breathe(Proxima.faceEl(96), 'proxima'),
-        h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name' }, 'Proxima Pace'), h('span', null, 'Productivity Inspector'), ...news),
-        h('button', { class: 'btn btn-quiet btn-small ld-change', type: 'button', title: 'Pick a leader for this building', onclick: onPick }, 'Pick a leader'));
-      box.style.setProperty('--ld', '#8FD0F7');
-      return box;
-    }
-    const t = nextTask(p);
-    const says = news.length ? news : [h('span', { class: 'ld-says', dir: 'auto', title: t && t.text.length > LEADER_TITLE_MAX ? t.text : null }, leaderGreeting(p))];
-    const box = h('div', { id: 'pvLeader', class: 'ld-card' + (news.length ? ' has-news' : '') }, face(l, 96),
-      h('span', { class: 'ld-card-text' }, h('b', { class: 'ld-name', dir: 'auto' }, leaderName(l)), l.role ? h('span', { dir: 'auto' }, l.role) : null, ...says),
-      h('button', { class: 'btn btn-quiet btn-small ld-change on-hover', type: 'button', title: 'Pick another leader, or edit this one', onclick: onPick }, 'Change'));
-    box.style.setProperty('--ld', l.color);
+    const box = h('div', { id: 'pvLeader', class: 'ld-card lc-place' + (l ? '' : ' px-voice') + (el && el.classList.contains('typed') ? ' has-news' : '') }, el,
+      h('button', { class: 'btn btn-quiet btn-small ld-change' + (l ? ' on-hover' : ''), type: 'button', title: l ? 'Pick another leader, or edit this one' : 'Pick a leader for this building', onclick: onPick }, l ? 'Change' : 'Pick a leader'));
+    box.style.setProperty('--ld', l ? l.color : '#8FD0F7');
     return box;
   }
   /* The card again, in place, when its building's news changes while the project view shows it. */
@@ -520,14 +512,8 @@ const Leaders = (() => {
      what its leader says (0.1.59): the building's news, read as the card shows it, and Claude's lines in its voice. A
      building with no leader has Proxima say it, when there is something to say. */
   function statusLine(p) {
-    const l = leaderOf(p), lines = News.cardTopics(p);                       // one topic at a time, with arrows (0.1.94)
-    if (!l && !lines.length) return null;
-    const line = h('div', { class: 'b-leader' + (l ? '' : ' px-voice') + (lines.length ? ' has-news' : '') },
-      l ? face(l, 48) : breathe(Proxima.faceEl(48), 'proxima'),
-      h('div', { class: 'b-leader-text' }, h('b', { class: 'ld-name', dir: 'auto' }, l ? leaderName(l) : 'Proxima Pace'),
-        (l ? l.role : 'Productivity Inspector') ? h('span', { class: 'b-leader-role', dir: 'auto' }, l ? l.role : 'Productivity Inspector') : null, ...lines));
-    line.style.setProperty('--ld', l ? l.color : '#8FD0F7');
-    return line;
+    const el = News.card(p, 'card');                                         // the same card, its face at 48 px (0.1.96)
+    return el ? h('div', { class: 'b-leader lc-place' + (el.classList.contains('typed') ? ' has-news' : '') }, el) : null;
   }
   /* the shortcut wheel's middle, kept for the leader's face since 0.1.26 */
   function hub(p) {

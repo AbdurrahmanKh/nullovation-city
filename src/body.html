@@ -344,24 +344,26 @@
       <div id="tip" class="tip" hidden></div>
       <div id="editArrows" class="edit-arrows" hidden></div>
     </div>
-    <div id="gusSay" class="gus-say" role="status" aria-live="polite" hidden>
-      <span id="gusSayFace" class="gus-face" aria-hidden="true"></span>
-      <div class="gus-say-body"><span class="gus-name"><b>Gus Grimsby</b><span>Garbage Man</span></span><span id="gusSayText" class="gus-say-text"></span>
-        <p id="gusReport" class="gus-report" hidden></p><p id="gusFix" class="gus-fix" hidden></p><ul id="gusRows" class="gus-rows"></ul></div>
-      <button id="gusSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
+    <div id="gusSay" class="gus-say lc-say" role="status" aria-live="polite" tabindex="-1" hidden>
+      <div id="gusCard" class="lc typed" data-type="headsup">
+        <div class="lc-head"><span class="lc-type"><span id="gusTypeIc" class="lc-ticon" aria-hidden="true"></span><b id="gusTypeName" class="lc-tname">Heads up</b></span>
+          <span class="lc-head-end"><button id="gusSayMin" class="icon-btn lc-min" type="button" aria-label="Minimize" title="Minimize: he waits in News"></button><button id="gusSayClose" class="icon-btn lc-x" type="button" aria-label="Take it away" title="Take it away"></button></span></div>
+        <div class="lc-body"><div class="lc-who"><span id="gusSayFace" class="lc-face gus-face" aria-hidden="true"></span>
+          <div class="lc-wn"><div class="lc-nmrow"><b class="lc-nm gus-nm">Gus Grimsby</b> <span class="lc-role">Garbage Man</span></div></div></div>
+          <div class="ld-line lc-msg"><p id="gusSayText" class="ld-says gus-say-text"></p>
+            <div class="lc-more gus-more"><p id="gusReport" class="gus-report" hidden></p><p id="gusFix" class="gus-fix" hidden></p><ul id="gusRows" class="gus-rows"></ul></div></div></div>
+      </div>
     </div>
-    <div id="ldSay" class="gus-say ld-say" role="status" aria-live="polite" tabindex="-1" hidden>
-      <span id="ldSayFace" class="ld-say-face" aria-hidden="true"></span>
-      <div class="gus-say-body"><span class="gus-name ld-say-name"><b id="ldSayName"></b><span id="ldSayRole"></span></span>
-        <span id="ldSayWhere" class="ld-say-where"></span><span id="ldSayText" class="gus-say-text" dir="auto"></span><div id="ldSayMore" class="ld-say-more"></div>
-        <span id="ldSayActs" class="px-say-actions ld-say-acts"></span></div>
-      <button id="ldSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
-    </div>
-    <div id="pxSay" class="gus-say px-say" role="status" aria-live="polite" hidden>
-      <span id="pxSayFace" class="gus-face px-face" aria-hidden="true"></span>
-      <span class="gus-say-body"><span class="gus-name px-name"><b>Proxima Pace</b><span>Productivity Inspector</span></span><span id="pxSayText" class="gus-say-text"></span>
-        <span class="px-say-actions"><button id="pxSayRead" class="btn btn-small px-read" type="button">Read</button></span></span>
-      <button id="pxSayClose" class="icon-btn gus-say-close" type="button" aria-label="Close" title="Close"></button>
+    <div id="ldSay" class="gus-say lc-say ld-say" role="status" aria-live="polite" tabindex="-1" hidden></div>
+    <div id="pxSay" class="gus-say lc-say px-say" role="status" aria-live="polite" tabindex="-1" hidden>
+      <div id="pxCard" class="lc typed" data-type="news">
+        <div class="lc-head"><span class="lc-type"><span id="pxTypeIc" class="lc-ticon" aria-hidden="true"></span><b class="lc-tname">News</b></span>
+          <span class="lc-head-end"><span id="pxPager"></span><button id="pxSayMin" class="icon-btn lc-min" type="button" aria-label="Minimize" title="Minimize: it waits in News"></button><button id="pxSayClose" class="icon-btn lc-x" type="button" aria-label="Take it away" title="Take it away"></button></span></div>
+        <div class="lc-body"><div class="lc-who"><span id="pxSayFace" class="lc-face gus-face px-face" aria-hidden="true"></span>
+          <div class="lc-wn"><div class="lc-nmrow"><b class="lc-nm px-nm">Proxima Pace</b> <span class="lc-role">Productivity Inspector</span></div><div id="pxSayWhere" class="lc-tline" hidden></div></div></div>
+          <div class="ld-line lc-msg"><p id="pxSayText" class="ld-says gus-say-text"></p>
+            <p class="lc-link"><a id="pxSayRead" class="px-read" href="#">Read</a></p></div></div>
+      </div>
     </div>
     <div id="banner" class="banner" role="status" hidden>
       <span>Plant <b id="bannerName" dir="auto"></b>: aim at a free plot, then click.</span>

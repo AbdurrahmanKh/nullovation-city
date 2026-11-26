@@ -20,9 +20,40 @@
      its own, as before. Tick it shows when Claude asks to tick the task off, and on a finish with no update (B3).
    Kept in this browser (nullovation-city:news): nothing new in the city. Undo, for Claude's additions, lasts while the
    page stays open, as a toast's does. */
-const NEWS_RANK = { behind_more: 0, behind_day: 0, behind: 0, waiting: 1, asks: 1, failed: 1, t3closed: 1, due: 2, due_many: 2, one_left: 3,
-  added: 4, round: 4, finished: 5, answers: 5, week: 6, week_quiet: 6, working: 7 };
-const NEWS_OPENS = new Set(['behind', 'behind_more', 'behind_day', 'due', 'due_many', 'one_left', 'added', 'round', 'waiting', 'asks', 'failed', 't3closed']);
+/* One Leader Card (0.1.96, One Leader Card, Rounds 1 and 2): the leader's bubble, the status card and the leader card
+   are one card in three places, the same in each; the leader card adds what Claude did whole (S2).
+   - Types (T1, M1): every message has one, with its icon and a small change of color: Critical, Need Approval and Your
+     Answer red, Decision Wizard green, Heads up yellow, Attachment violet, News grey. News has no buttons.
+   - One page per type (M2): a finish with updates is a page for what needs your OK, one for each round, one for what
+     Claude added and one for the finish itself, never one mixed message. Pages come in the types' order, "< 1 / 4 >",
+     with a red dot on the arrow toward a page not seen yet. The task a page is about has its own line, which stays put
+     as you page; the words say "this task" (W1).
+   - The x (X1): every page has one. On an ask (what needs your OK, your answer, T3 closed) it takes it off the bubble
+     and the status card, and it waits on the leader card until answered; on the rest it takes the page away. Dismiss
+     is No (X1a). The bubble has Minimize, which leaves its pages waiting in News, and no longer closes by itself (X2).
+   - What opens the bubble by itself (the triggers list he approved): Critical, Need Approval, Your Answer, a round
+     attached, and Heads up. What Claude added, a round's answers, and News wait in News. */
+const NEWS_TYPES = {
+  critical: { name: 'Critical', color: '#FF4D5E', icon: 'tCritical' },
+  approval: { name: 'Need Approval', color: '#FF4D5E', icon: 'tApproval' },
+  answer: { name: 'Your Answer', color: '#FF4D5E', icon: 'tAnswer' },
+  wizard: { name: 'Decision Wizard', color: '#74C997', icon: 'tWizard' },
+  headsup: { name: 'Heads up', color: '#FFE03D', icon: 'tHeadsup' },
+  attach: { name: 'Attachment', color: '#B58CFF', icon: 'tAttach' },
+  news: { name: 'News', color: '#A39BBD', icon: 'tNews' },
+};
+const NEWS_TYPE_ORDER = Object.keys(NEWS_TYPES);
+/* A moment's type: a wait for a question or a form is your answer, any other wait an approval. */
+function newsType(moment, v = {}) {
+  if (moment === 'failed' || moment === 't3closed') return 'critical';
+  if (moment === 'asks') return 'approval';
+  if (moment === 'waiting') return v && (v.wait === 'question' || v.wait === 'form' || v.asking) ? 'answer' : 'approval';
+  if (moment === 'round' || moment === 'answers') return 'wizard';
+  if (/^(behind|due)/.test(moment)) return 'headsup';
+  if (moment === 'added') return 'attach';
+  return 'news';
+}
+const NEWS_OPENS = new Set(['behind', 'behind_more', 'behind_day', 'due', 'due_many', 'round', 'waiting', 'asks', 'failed', 't3closed']);
 const NEWS_CLAUDE = new Set(['waiting', 'failed', 'finished', 'asks']);
 /* How far behind a building is (M1): its pace one period behind (the bubble yellow), two or more (red), or a day
    without a tick under Work until finished (red). Work until finished's yellow is a fresh tick, not behind. */
@@ -41,11 +72,11 @@ const News = (() => {
   /* A report lasts as long as a finish shows on the status card (12 hours); an update finds the finish of its task
      within 10 minutes, and one that names no task the one finish of the last 2 minutes. */
   const REPORT_KEEP = 13 * 3600e3, FIN_NEAR = 10 * 60e3, FIN_JUST = 2 * 60e3;
-  const fresh = () => ({ items: [], raised: {}, lvl: {}, dueDay: '', week: '', reports: [] });
+  const fresh = () => ({ items: [], raised: {}, lvl: {}, dueDay: '', week: '', reports: [], hidden: {} });
   function load() {
     try {
       const v = JSON.parse(localStorage.getItem(KEY));
-      if (v && typeof v === 'object' && Array.isArray(v.items)) { const o = Object.assign(fresh(), v); if (!Array.isArray(o.reports)) o.reports = []; return o; }
+      if (v && typeof v === 'object' && Array.isArray(v.items)) { const o = Object.assign(fresh(), v); if (!Array.isArray(o.reports)) o.reports = []; if (!o.hidden || typeof o.hidden !== 'object') o.hidden = {}; return o; }
     } catch (e) { /* a fresh start */ }
     return fresh();
   }
@@ -77,7 +108,12 @@ const News = (() => {
   function raise(p, moment, v, ref = {}, key = null) {
     if (!p || !LEADER_LINES[moment]) return null;
     const now = Date.now(), it = { id: uid('nw'), key: key || moment + ':' + p.id + ':' + now, pid: p.id, moment, v, ref, at: now, popped: false };
+    /* a round's answers are one message, its count brought up to date in place (One Leader Card, Round 1, T1: "only 7
+       out of 14 should be updated"), still unread if it was */
+    const was = moment === 'answers' && st.items.find(x => x.key === it.key);
+    if (was) { was.v = v; was.ref = ref; st.raised[it.key] = now; return was; }
     st.items = st.items.filter(x => x.key !== it.key);      // the same news again replaces the one waiting
+    delete st.hidden[it.key];                                // and shows again where its x took it away
     st.items.push(it);
     st.raised[it.key] = now;
     return it;
@@ -87,7 +123,17 @@ const News = (() => {
     renderSection();
     Bubble.refresh();
     Leaders.redrawCard();
-    if (bub) { grow(); } else pumpSoon();
+    if (bub) { prune(); if (bub) grow(); } else pumpSoon();
+  }
+  /* A page whose news stopped being true (back on pace, nothing due today any more), or was read on its card, leaves the
+     open bubble; with none left, it closes. Since 0.1.96 a bubble no longer closes by itself, so it must. */
+  function prune() {
+    const cur = bub.list[bub.i], keep = bub.list.filter(it => it.conv || st.items.some(x => x.id === it.id));
+    if (keep.length === bub.list.length) return;
+    if (!keep.length) { hide(); return; }
+    bub.list = keep;
+    bub.i = Math.max(0, Math.min(keep.indexOf(cur) >= 0 ? keep.indexOf(cur) : bub.i, keep.length - 1));
+    draw();
   }
   const pumpSoon = () => { clearTimeout(waitT); waitT = setTimeout(pump, 30); };
   /* a send held while T3 is closed is news only while the page keeps it: gone after a reload, or once sent */
@@ -167,6 +213,7 @@ const News = (() => {
         }
       }
       for (const [k, at] of Object.entries(st.raised)) if (now - at > KEEP_RAISED) delete st.raised[k];
+      for (const [k, at] of Object.entries(st.hidden)) if (now - at > KEEP_RAISED) delete st.hidden[k];
       st.reports = st.reports.filter(r => getProject(r.pid) && now - r.at < REPORT_KEEP);
       for (const id of Object.keys(st.lvl)) if (!getProject(id)) delete st.lvl[id];
       if (st.items.length !== n0) moved = true;
@@ -244,7 +291,7 @@ const News = (() => {
           raise(p, 'asks', { change: ClaudeInbox.gist(p, e) }, { entry: e.name }, key);
           moved = true;
         }
-        st.items = st.items.filter(it => it.moment !== 'asks' || names.has(it.ref.entry));
+        st.items = st.items.filter(it => it.moment !== 'asks' || entriesOf(it).some(n => names.has(n)));
       }
       if (st.items.length !== n0) moved = true;
     });
@@ -313,27 +360,43 @@ const News = (() => {
     flush = true;
     return rep;
   }
-  /* Under its finish: the finish's news carries it, with any other report of the same turn, and opens by itself again
-     while it holds something to act on. A session with no task of its own names the task the report names. */
+  /* Under its finish: the finish's news carries its summary, with any other report of the same turn; what it added,
+     each round and what it asks are pages of their own (One Leader Card, Round 2, M2: never one mixed message), so
+     what asks opens the bubble by itself and the finish waits in News. A session with no task of its own names the
+     task the report names. */
   function attach(p, rep, s) {
     rep.fin = s.at; rep.reply = s.reply || '';
     const key = finKey(s), it = st.items.find(x => x.key === key), task = s.task || rep.task || ClaudeWork.what(p, s);
     if (it) {
       const ids = repsOf(it).filter(r => r.reply === rep.reply).map(r => r.id);
-      it.ref.reports = [...ids.filter(id => id !== rep.id), rep.id]; it.ref.report = rep.id; it.popped = false;
+      it.ref.reports = [...ids.filter(id => id !== rep.id), rep.id]; it.ref.report = rep.id;
       if (!s.task && rep.task) it.v = { ...it.v, task: ownTask(it.v.task, s, repsOf(it)) };
     } else raise(p, 'finished', { task }, { session: s.session, task: s.task, project: s.project, report: rep.id, reports: [rep.id] }, key);
+    parted(p, rep, key, ownTask(task, s, [rep]));
   }
-  /* On its own, with no finish to sit under: as before, what it added, each round, and what it asks, each its item. */
+  /* On its own, with no finish to sit under: the same pages. */
   function alone(p, rep) {
     rep.alone = true;
-    if (rep.add) raise(p, 'added', { what: addedWords(p, rep.add) || 'what it sent' }, { report: rep.id }, 'added:' + rep.id);
+    parted(p, rep, '', rep.task);
+  }
+  /* A report's pages, each its own item: what it asks, each round, and what Claude added. Under a finish, every update of
+     its turn shares one page per type (M2): one Need Approval page and one Attachment page, joined as updates come. */
+  function parted(p, rep, fin, task) {
+    const join = (moment, key, list, id, v) => {
+      const it = st.items.find(x => x.key === key);
+      if (it) { if (!it.ref[list].includes(id)) it.ref[list].push(id); it.v = { ...it.v, ...v }; it.popped = false; it.seen = false; return; }
+      raise(p, moment, v, { [list]: [id], report: rep.id, fin }, key);
+    };
+    if (rep.entry) join('asks', fin ? 'asks:' + fin : 'asks:' + rep.entry, 'entries', rep.entry, { change: 'a change', task });
     for (const r of rep.rounds) {
       const t = p.todos.find(x => x.id === r.tid);
-      if (t && t.round) raise(p, 'round', { task: t.text, round: t.round.title }, { tid: t.id, report: rep.id }, 'round:' + rep.id + ':' + t.id);
+      if (t && t.round) raise(p, 'round', { task: t.text, round: t.round.title }, { tid: t.id, report: rep.id, fin }, 'round:' + rep.id + ':' + t.id);
     }
-    if (rep.entry) { const e = entryOf(rep.entry); raise(p, 'asks', { change: e ? ClaudeInbox.gist(p, e) : 'a change' }, { entry: rep.entry, report: rep.id }, 'asks:' + rep.entry); }
+    if (rep.add) join('added', fin ? 'added:' + fin : 'added:' + rep.id, 'reports', rep.id, { what: addedWords(p, rep.add) || 'what it sent', task });
   }
+  /* The changes an asks item holds, and the reports an added item holds (one each until 0.1.96). */
+  const entriesOf = it => (it.ref.entries || (it.ref.entry ? [it.ref.entry] : []));
+  const addRepsOf = it => (it.ref.reports || (it.ref.report ? [it.ref.report] : [])).map(reportOf).filter(Boolean);
   /* What is still there of what Claude added, and whether its Undo is. */
   const addedOf = (p, add) => ({ ts: add.todos.map(id => p.todos.find(t => t.id === id)).filter(Boolean),
     ns: add.notes.map(id => allNotes(p).find(n => n.id === id)).filter(Boolean), ls: add.links.map(id => p.links.find(l => l.id === id)).filter(Boolean),
@@ -348,41 +411,16 @@ const News = (() => {
     if (bits.length < 2) return bits[0] || '';
     return bits.slice(0, -1).join(', ') + (bits.some(b => b.includes(', ')) ? ', and ' : ' and ') + bits[bits.length - 1];
   }
-  /* Whether a report still holds something to act on: an Undo, or a change waiting for your OK. */
-  function repActs(p, rep) {
-    if (rep.add && undos.has(rep.id) && addLive(p, rep.add)) return true;
-    if (rep.rounds.some(r => undos.has(rep.id + ':' + r.tid))) return true;
-    const e = entryOf(rep.entry);
-    return !!e && ClaudeInbox.openIdx(e).length > 0;
-  }
-  function hasActs(p, it) {
-    if (it.moment === 'asks') { const e = entryOf(it.ref.entry); return !!e && ClaudeInbox.openIdx(e).length > 0; }
-    if (it.moment === 'added') return undos.has(it.ref.report || it.id);
-    if (it.moment === 'round') { const rep = reportOf(it.ref.report); return undos.has(rep ? rep.id + ':' + it.ref.tid : it.id); }
-    if (it.moment === 'finished') return repsOf(it).some(rep => repActs(p, rep));
-    return false;
-  }
-  /* A report ranks by the most pressing thing in it: what asks first, then what Claude added, then the finish. */
-  function repRank(p, rep) {
-    const e = entryOf(rep.entry);
-    if (e && ClaudeInbox.openIdx(e).length) return NEWS_RANK.asks;
-    return repActs(p, rep) ? NEWS_RANK.added : NEWS_RANK.finished;
-  }
-  function rankOf(it) {
-    const p = it.moment === 'finished' ? getProject(it.pid) : null, reps = p ? repsOf(it) : [];
-    return reps.length ? Math.min(...reps.map(rep => repRank(p, rep))) : NEWS_RANK[it.moment] ?? 9;
-  }
-  /* What opens a bubble by itself: the moments that do, and a finish whose report holds something to act on. */
-  function opens(it) {
-    if (NEWS_OPENS.has(it.moment)) return true;
-    const p = it.moment === 'finished' ? getProject(it.pid) : null;
-    return !!p && hasActs(p, it);
-  }
+  /* An item's type, and its place among the pages: the types' order, the leaders before Proxima, then the oldest. */
+  const typeOfItem = it => newsType(it.moment, it.v);
+  const rankOf = it => NEWS_TYPE_ORDER.indexOf(typeOfItem(it));
+  /* What opens a bubble by itself (the triggers he approved, 0.1.96): Critical, what asks, a round attached, Heads up. */
+  const opens = it => NEWS_OPENS.has(it.moment);
 
   /* ---------- the side bar's News section ---------- */
   function faces() {
     const by = new Map();
-    for (const it of live()) {
+    for (const it of shown()) {
       const sp = speakerFor(it);
       if (!by.has(sp.k)) by.set(sp.k, { ...sp, items: [] });
       by.get(sp.k).items.push(it);
@@ -452,11 +490,15 @@ const News = (() => {
         title: 'Gus Grimsby, Garbage Man' + (r.tasks ? ': ' + plural(r.tasks, 'task', 'tasks') + ' between the city and clean streets' : '') + '. Open his report.',
         open: () => { Menu.closeDrawer(); Gus.open(); } }));
     }
-    for (const f of faces()) {
-      const n = f.items.length;
+    /* Proxima's own reports and street parties wait here too (0.1.96, the triggers he approved), with her face for the
+       buildings with no leader: one Proxima in News, her own first */
+    const pxOwn = typeof Proxima !== 'undefined' && Proxima.waiting ? Proxima.waiting() : 0, fs = faces();
+    if (pxOwn && !fs.some(f => f.k === 'px')) fs.push({ k: 'px', l: null, name: 'Proxima Pace', role: 'Productivity Inspector', color: '#8FD0F7', items: [] });
+    for (const f of fs) {
+      const own = f.k === 'px' ? pxOwn : 0, n = f.items.length + own;
       tiles.push(tile({ k: f.k, name: f.name, face: faceOf(f, 48), n, color: f.color,
         title: f.name + (f.role ? ', ' + f.role : '') + ': ' + plural(n, 'piece of news', 'pieces of news') + '. Hear it.',
-        open: () => { Menu.closeDrawer(); openFace(f.k); }, dismiss: () => dismiss(f.k) }));
+        open: () => { Menu.closeDrawer(); if (own) Proxima.open(); else openFace(f.k); }, dismiss: f.items.length ? () => dismiss(f.k) : null }));
     }
     /* Quiet (0.1.91): the switch in the section's head, the section kept in view while it is on */
     const q = typeof Hold !== 'undefined' && Hold.quiet(), qb = $('#newsQuiet');
@@ -474,7 +516,7 @@ const News = (() => {
   /* A face's dismiss: its news is read without being heard; what sticks for a reason (a bubble on the map, Claude's
      changes in the status card) stays where it shows (N2). */
   function dismiss(k) {
-    const ids = live().filter(it => speakerFor(it).k === k).map(it => it.id);
+    const ids = shown().filter(it => speakerFor(it).k === k).map(it => it.id);
     if (bub && bub.list.some(it => ids.includes(it.id))) hide();
     readIds(ids);
     const next = $('#newsList .news-face');
@@ -482,17 +524,17 @@ const News = (() => {
   }
 
   /* ---------- the bubble ---------- */
-  let bub = null, sayT = 0, waitT = 0;                       // { list, i, auto, k, from }
+  let bub = null, waitT = 0;                                 // { list, i, auto, k, from }
   const box = () => $('#ldSay');
   function blocked() {
-    return (typeof Gus !== 'undefined' && Gus.isSaying()) || (typeof Proxima !== 'undefined' && Proxima.busy())
+    return (typeof Gus !== 'undefined' && Gus.isSaying()) || (typeof Proxima !== 'undefined' && Proxima.isSaying())
       || Panel.isOpen() || Confirm.isOpen() || !sayRoom();
   }
-  /* What opens by itself: the news that opens by itself and has not shown yet, unless its building's card has it. */
+  /* What opens by itself: the news that opens by itself and has not shown yet, unless its x took it away. */
   function pump() {
     clearTimeout(waitT);
     if (!started || bub) return;
-    let due = sortItems(live().filter(it => !it.popped && opens(it)));
+    let due = sortItems(shown().filter(it => !it.popped && opens(it)));
     if (!due.length) return;
     if (blocked()) { waitT = setTimeout(pump, 500); return; }
     /* held for a break (0.1.91): while you are at something, only what answers your own click opens now, and with
@@ -504,12 +546,14 @@ const News = (() => {
     }
     show(due, { auto: true });
   }
-  /* New news while the bubble shows joins it, as one more of N. */
+  /* New news while the bubble shows joins it, as one more page, in its type's place after the page it is on. */
   function grow() {
     const have = new Set(bub.list.map(it => it.id));
-    const more = sortItems(live().filter(it => !it.popped && opens(it) && !have.has(it.id)));
+    const more = sortItems(shown().filter(it => !it.popped && opens(it) && !have.has(it.id)));
     if (!more.length) return;
-    bub.list.push(...more);
+    const cur = bub.list[bub.i];
+    bub.list = [...bub.list.slice(0, bub.i + 1), ...sortItems([...bub.list.slice(bub.i + 1), ...more])];
+    bub.i = Math.max(0, bub.list.indexOf(cur));
     popped(more);
     draw();
   }
@@ -517,35 +561,39 @@ const News = (() => {
     const ids = new Set(list.map(it => it.id));
     edit(() => { for (const it of st.items) if (ids.has(it.id)) it.popped = true; });
   }
-  /* A leader's conversations with Claude on its buildings, as topics (0.1.94, L1: "each conversation with an agent is
+  /* A page shown: no longer dotted as not seen. It still waits in News until its x, its buttons or its card. */
+  function seen(id) {
+    const it = st.items.find(x => x.id === id);
+    if (it && !it.seen) edit(() => { const x = st.items.find(y => y.id === id); if (x) x.seen = true; });
+  }
+  /* A leader's conversations with Claude on its buildings, as pages (0.1.94, L1: "each conversation with an agent is
      one topic"; i5: each leader carries the conversations of every project it leads, its building named on each):
-     each session at work, waiting, stopped or finished there that no piece of news already holds. Not news: nothing is
-     kept or read. */
+     each session at work, waiting, stopped or finished there that no piece of news already holds, unless its x took it
+     away. Not news: nothing is kept or read. */
   function convItems(k, have) {
     if (typeof ClaudeWork === 'undefined') return [];
     const out = [], covered = new Set(have.filter(it => it.ref && it.ref.session).map(it => it.ref.session));
     for (const p of DB.projects) {
       if (speakerOf(p).k !== k) continue;
       for (const x of ClaudeWork.voice(p)) {
-        if (covered.has(x.s.session)) continue;
+        if (covered.has(x.s.session) || isHidden(sessKey(x.s))) continue;
         out.push({ id: 'conv:' + x.s.session, key: 'conv:' + x.s.session, pid: p.id, moment: x.moment, v: x.v, ref: { session: x.s.session, task: x.s.task, project: x.s.project }, at: x.s.at, popped: true, conv: true });
       }
     }
     return out;
   }
   function openFace(k, { session = null } = {}) {
-    const news = sortItems(live().filter(it => speakerFor(it).k === k));
-    const list = [...news, ...convItems(k, news)];
+    const news = shown().filter(it => speakerFor(it).k === k);
+    const list = sortItems([...news, ...convItems(k, news)]);
     if (!list.length) return;
     if (typeof Gus !== 'undefined' && Gus.isSaying()) Gus.hush();
     show(list, { auto: false, k });
     if (session) { const at = list.findIndex(it => it.ref && it.ref.session === session); if (at > 0) { bub.i = at; draw(); } }
     if (typeof Proxima !== 'undefined') Proxima.yieldToGus();       // her bubble goes, and comes back after this one
-    const b = box(), first = b && ($('.ld-say-acts .btn', b) || $('#ldSayClose'));
+    const b = box(), first = b && ($('.ld-acts .btn', b) || $('#ldSayMin'));
     if (first) first.focus({ preventScroll: true });
   }
   function show(list, { auto, k = null }) {
-    clearTimeout(sayT);
     bub = { list, i: 0, auto, k, from: auto ? null : document.activeElement };
     popped(list);
     const b = box();
@@ -553,38 +601,24 @@ const News = (() => {
     if (auto && typeof Sound !== 'undefined') Sound.bubble();           // opening by itself: its sound, then the voice (0.1.78)
     draw();
     requestAnimationFrame(() => b.classList.add('show'));
-    if (auto) sayT = setTimeout(() => hide({ read: false }), sayMs);
   }
-  /* Once you act on the bubble, it stays until you close it. */
-  const hold = () => { if (bub && bub.auto) { bub.auto = false; clearTimeout(sayT); } };
+  /* Once you act on the bubble it is yours, as one opened from a face. Since 0.1.96 none closes by itself (X2). */
+  const hold = () => { if (bub) bub.auto = false; };
   function draw() {
     const b = box();
     if (!bub || !b) return;
-    const it = bub.list[bub.i], p = getProject(it.pid);
-    if (!p) { next(); return; }
-    const sp = speakerFor(it), n = bub.list.length;
+    const it = bub.list[bub.i], p = it && getProject(it.pid);
+    if (!p) { dropCur(); return; }
+    const pg = pageOfItem(p, it), sp = pg.sp, n = bub.list.length;
+    const keep = b.contains(document.activeElement) ? keyOf(document.activeElement) : null;
+    seen(it.id);
     b.style.setProperty('--ld', sp.color);
     b.classList.toggle('px-voice', !sp.l);
-    b.dataset.k = sp.k; b.dataset.moment = it.moment;
-    $('#ldSayFace').replaceChildren(faceOf(sp, sayFace()));             // 100 px, 64 on a small screen (0.1.75, L2)
-    $('#ldSayName').textContent = sp.name;
-    $('#ldSayRole').textContent = sp.role || '';
-    $('#ldSayRole').hidden = !sp.role;
-    const keep = b.contains(document.activeElement) ? keyOf(document.activeElement) : null;
-    /* the building: a click goes to it on the map, as Go to it does, without opening it (0.1.60) */
-    $('#ldSayWhere').replaceChildren(h('button', { class: 'ld-say-bld', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } },
-      h('span', { class: 'ld-say-thumb', 'aria-hidden': 'true' }, MapView.thumb(p)), h('bdi', null, p.name)));
-    const v = viewOf(p, it, 'say');
-    $('#ldSayText').replaceChildren(...v.nodes);
+    b.dataset.k = sp.k; b.dataset.moment = it.moment; b.dataset.type = pg.type || '';
+    const unseen = j => { const x = bub.list[j]; return !!x && !x.conv && st.items.some(y => y.id === x.id && !y.seen); };
+    const dots = [bub.list.slice(0, bub.i).some((x, j) => unseen(j)), bub.list.some((x, j) => j > bub.i && unseen(j))];
+    b.replaceChildren(pageEl(p, pg, 'say', { i: bub.i, n, dots, go: d => { hold(); if (d < 0) prev(); else next(); } }));
     T.speak(it.id, voiceKey(sp));
-    $('#ldSayMore').replaceChildren(...v.more);
-    $('#ldSayActs').replaceChildren(...[...v.acts,
-      h('button', { class: 'btn btn-small btn-quiet ld-go', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } }, 'Go to it'),
-      /* the topics, flipped with arrows (0.1.94, i5's variant), in place of Next */
-      n > 1 ? h('span', { class: 'ld-flip ld-say-flip', role: 'group', 'aria-label': 'Topics' },
-        h('button', { id: 'ldSayPrev', class: 'icon-btn ld-flip-btn', type: 'button', disabled: bub.i === 0, 'aria-label': 'The topic before', title: 'The topic before', html: iconSvg('back', 14), onclick: () => { hold(); prev(); } }),
-        h('span', { id: 'ldSayCount', class: 'ld-say-count ld-flip-n' }, (bub.i + 1) + ' of ' + n),
-        h('button', { id: 'ldSayNext', class: 'icon-btn ld-flip-btn next', type: 'button', disabled: bub.i >= n - 1, 'aria-label': 'Next', title: 'The next topic', html: iconSvg('back', 14), onclick: () => { hold(); next(); } })) : null].filter(Boolean));
     MapView.light(p.id);
     const edge = panelEdge();                                                 // beside the project view or All tasks, as Proxima's
     b.style.left = edge ? Math.round(edge + 22) + 'px' : '';
@@ -601,37 +635,42 @@ const News = (() => {
     draw();
   }
   function next() {
-    if (!bub) return;
-    const cur = bub.list[bub.i];
-    if (cur) readIds([cur.id]);
-    if (bub.i >= bub.list.length - 1) { hide({ read: false }); return; }
+    if (!bub || bub.i >= bub.list.length - 1) return;
     bub.i++;
     draw();
-    const nb = $('#ldSayNext') || $('#ldSayClose');
-    if (nb && box().contains(document.activeElement) === false && !bub.auto) nb.focus({ preventScroll: true });
   }
-  /* Closed: what it showed is read. Gone by itself, or given way to Gus or Proxima: what it showed waits, unread. */
-  function hide({ read = true } = {}) {
-    clearTimeout(sayT);
+  /* The page it shows is done with (its x, or acted on): it goes, and the next one shows; with none left, the bubble
+     closes. */
+  function dropCur() {
+    if (!bub) return;
+    bub.list.splice(bub.i, 1);
+    if (!bub.list.length) { hide(); return; }
+    bub.i = Math.min(bub.i, bub.list.length - 1);
+    draw();
+    const nb = $('.ld-acts .btn', box()) || $('#ldSayMin');
+    if (nb && !bub.auto) nb.focus({ preventScroll: true });
+  }
+  /* Minimize, or given way to Gus or Proxima: the bubble goes, and what it held waits in News (X2). */
+  function hide() {
     const b = box();
     if (!bub) return false;
-    const was = bub;
+    const was = bub, had = !!b && b.contains(document.activeElement);      // read before the card goes with the focus in it
     bub = null;
     hush();
-    if (read) readIds([was.list[was.i].id]);
-    if (b) { b.classList.remove('show'); b.hidden = true; }
+    if (b) { b.classList.remove('show'); b.hidden = true; b.replaceChildren(); }
     if (MapView._lit() === (was.list[was.i] || {}).pid) MapView.light(null);
     renderSection();
-    if (was.from && document.contains(was.from) && b && b.contains(document.activeElement)) was.from.focus({ preventScroll: true });
-    else if (b && b.contains(document.activeElement)) { const f = $('#newsList .news-face'); if (f) f.focus({ preventScroll: true }); }
+    if (had && was.from && document.contains(was.from)) was.from.focus({ preventScroll: true });
+    else if (had) { const f = $('#newsList .news-face'); if (f) f.focus({ preventScroll: true }); }
     waitT = setTimeout(pump, 400);
     return true;
   }
-  /* Gus or Proxima speaks: the bubble gives way, and what it had not read comes back after them. */
+  const minimize = () => hide();
+  /* Gus or Proxima speaks: the bubble gives way, and what it had not shown comes back after them. */
   function yieldTo() {
     if (!bub) return;
     const left = bub.list.slice(bub.i).map(it => it.id), auto = bub.auto;
-    hide({ read: false });
+    hide();
     if (auto) edit(() => { for (const it of st.items) if (left.includes(it.id)) it.popped = false; });
   }
   function goTo(pid) {
@@ -725,7 +764,7 @@ const News = (() => {
   /* A line as nodes: the words, and the task in its own color, a click opening it in its project. From the bubble,
      going to the task is acting on the news: it is read and the bubble closes, as Open does; what else it held waits. */
   function sayNodes(p, moment, v, t, where, it = null) {
-    return leaderParts(moment, v).map(x => {
+    return leaderParts(moment, v, !!t).map(x => {              // with the task on the card's own line, "this task" (W1)
       if (x.blank !== 'task' || !t) return x.text;
       return taskA(p, t, x.text, 'Open ' + x.full, where, it);
     });
@@ -736,7 +775,7 @@ const News = (() => {
   function taskA(p, t, text, title, where, it) {
     return h('a', { class: 'ld-task', href: '#', dir: 'auto', title, 'data-task': t.id, onclick: e => {
       e.preventDefault(); e.stopPropagation();
-      if (where === 'say' && it) { readIds([it.id]); hide({ read: false }); }
+      if (where === 'say') hide();                          // the leader card shows it there, and reads it
       FullView.openTask(p.id, t.id);
     } }, text);
   }
@@ -753,9 +792,9 @@ const News = (() => {
       .replace(/(^|\s)#{1,6}\s+/g, '$1').replace(/^\s*(?:>|[-*+]|\d+\.)\s+/, '').replace(/\s\*\s/g, ' ').replace(/\s+/g, ' ').trim();
   }
   /* Claude's own words, on a line of their own, marked as its (C2): one line, cut short, whole in its tooltip. */
-  function wordsEl(text) {
-    const t = cut(text, 200);
-    return t ? h('p', { class: 'b-claude-said', dir: 'auto', title: 'In Claude’s words: ' + String(text).trim() }, iconEl('claude', 12), h('span', null, t)) : null;
+  function wordsEl(text, whole = false) {
+    const t = whole ? String(text || '').trim() : cut(text, 200);
+    return t ? h('p', { class: 'b-claude-said' + (whole ? ' whole' : ''), dir: 'auto', title: whole ? null : 'In Claude’s words: ' + String(text).trim() }, iconEl('claude', 12), h('span', null, t)) : null;
   }
   /* A task named in a part's line: in its own color, a click opening it, as in a leader's line. */
   const taskLink = (p, t, where, it) => taskA(p, t, lineTitle(t.text), 'Open ' + t.text, where, it);
@@ -896,10 +935,13 @@ const News = (() => {
     return w ? [askEl(p, w, where), replyEl(p, w, where)].filter(Boolean) : [];
   }
   const lastWords = w => (w && typeof T3 !== 'undefined' && T3.lastOf(w) ? wordsEl(plainReply(T3.lastOf(w))) : null);
-  function acted(p, it, where, stay) {
-    const left = !!it && stay && hasActs(p, it);
-    if (where === 'say') { if (bub) { if (left) draw(); else next(); } return; }
-    if (it && !left) dropHeld(p.id, it.id);
+  /* A button acted: on what asks, its page stays while it has something left to answer, drawn again without what was
+     done; else the page is done with: read, and in the bubble the next page shows. */
+  function acted(p, pg, where, stay) {
+    const left = !!pg && stay && !!pg.left && pg.left();
+    const it = pg ? itemOf(pg) : null, was = it || (pg && pg.it && !pg.it.conv ? pg.it : null);   // a card read its item as it showed it
+    if (where === 'say') { if (bub) { if (left) draw(); else { if (it) readIds([it.id]); dropCur(); } } return; }
+    if (!left) { if (it) readIds([it.id]); if (was) dropHeld(p.id, was.id); }
     Bubble.refresh(); Leaders.redrawCard();
   }
   /* Read: a small panel with the whole of it (A2's note). */
@@ -909,18 +951,6 @@ const News = (() => {
   } }, 'Read');
   const crSec = (head, ...kids) => h('section', { class: 'cr-sec' }, h('h3', { class: 'cr-h', dir: 'auto' }, head), ...kids);
   const crText = (text, cls = '') => h('p', { class: 'cr-text' + (cls ? ' ' + cls : ''), dir: 'auto' }, text);
-  function readAdded(p, add) {
-    const a = addedOf(p, add);
-    return [
-      ...a.ts.map(t => crSec('A task', h('button', { class: 'linkish cr-title', type: 'button', dir: 'auto', title: 'Open it in ' + p.name, onclick: () => { Panel.close(); FullView.openTask(p.id, t.id); } }, t.text),
-        t.description ? crText(t.description) : null)),
-      ...[...a.ns, ...a.us].map(n => { const t = noteTask(p, n.id);
-        return crSec(n.title || 'A note', ...(t || a.us.includes(n) ? [crText((a.us.includes(n) ? 'Brought up to date' : 'A note') + (t ? ', in ' + t.text : ', in Notes') + '.', 'was')] : []),
-          n.text ? crText(n.text) : crText('Nothing written in it.', 'was')); }),
-      ...a.ls.map(l => { const lt = linkTarget(l); return crSec('A link', lt.href ? h('a', { class: 'cr-title', href: lt.href, target: lt.blank ? '_blank' : null, rel: 'noopener', dir: 'auto', title: lt.title }, lt.name) : h('b', { class: 'cr-title', dir: 'auto' }, lt.name),
-        h('p', { class: 'cr-url', dir: 'ltr' }, l.url)); }),
-    ];
-  }
   const readDescription = (t, c) => [crSec('The new description', crText(String(c.description || '').trim())),
     crSec('Its description now', (t.description || '').trim() ? crText(t.description.trim(), 'was') : crText('No description yet.', 'was'))];
   /* A wizard round's Read (0.1.69, Leader Bubbles, Round 2, C1): the round in a small popup, the one Show the answers
@@ -932,137 +962,254 @@ const News = (() => {
   const readPlanBody = plan => [plan.description ? crSec('The About', crText(plan.description)) : null,
     ...plan.milestones.map(m => crSec(m.name, h('ul', { class: 'cr-list' }, m.tasks.map(t => h('li', { dir: 'auto' }, t.text)))))].filter(Boolean);
 
-  /* One change Claude asks about: a short line saying it, its task a link (this task when it is the report's own),
-     and its buttons: Tick it for a tick (B3), Read, Apply and Dismiss for a description or a plan. */
-  function askOf(p, e, i, task, it, where) {
-    const c = e.changes[i], r = ClaudeInbox.readable(p, c), mine = !!task && tkey(c.task) === tkey(task);
-    const name = t => (t ? taskLink(p, t, where, it) : h('bdi', null, lineTitle(String(c.task || '').trim())));
-    const no = title => act(p, it, where, 'Dismiss', 'btn-quiet b-claude-dismiss', title, () => ClaudeInbox.dismiss(e, i), true);
-    const ok = (label, cls, title) => act(p, it, where, label, cls, title, () => ClaudeInbox.apply(e, i), true);
+  /* ---------- pages (0.1.96, One Leader Card): one message each, its type, the task it is about, who says it ---------- */
+  /* A page is known by keys: its item's, and for Claude's conversation its session's, so its x, its dot and reading
+     hold wherever it shows. What asks (what needs your OK, your answer, T3 closed) keeps waiting on the leader card. */
+  const ASK_MOMENTS = new Set(['asks', 'waiting', 't3closed']);
+  const isHidden = key => !!key && st.hidden[key] != null;
+  const hiddenPg = pg => pg.keys.some(isHidden);
+  const itemOf = pg => st.items.find(x => pg.keys.includes(x.key)) || null;
+  const unseenPg = pg => { const it = itemOf(pg); return !!it && !it.seen; };
+  /* What waits in News and the bubble: the news its x did not take away. */
+  const shown = () => live().filter(it => !isHidden(it.key));
+  const sessKey = s => 'conv:' + s.session + ':' + s.state + ':' + (s.state === 'done' ? s.at : s.since);
+  function mkPage(p, o) {
+    const pg = Object.assign({ keys: [], it: null, t: null, sp: speakerOf(p), moment: '', type: 'news', left: null, view: null }, o);
+    pg.keys = pg.keys.filter(Boolean);
+    pg.ask = ASK_MOMENTS.has(pg.moment);
+    return pg;
+  }
+  /* Its x (X1): an ask comes off the bubble and the status card and waits on the leader card; the rest goes. */
+  function xOut(p, pg, where) {
+    const it = itemOf(pg);
+    edit(() => { const now = Date.now(); for (const k of pg.keys) st.hidden[k] = now; });
+    if (it && !pg.ask) readIds([it.id]);
+    if (it && !pg.ask) dropHeld(p.id, it.id);
+    if (where === 'say') { dropCur(); return; }
+    renderSection();
+    Bubble.refresh(); Leaders.redrawCard();
+    const again = $('#ldFlipNext-' + where) || $('#ldX-' + where);
+    if (again) again.focus({ preventScroll: true });
+  }
+
+  /* Claude's conversation on a building: at work (or took your message), waiting for your OK or your answer, stopped
+     on an error, or handed back with its updates' summaries. */
+  function convPage(p, { moment, v, s, it = null, reps = [] }) {
+    const task = ownTask(v.task, s, reps), t = taskNamed(p, task) || (s && (s.task || s.ask) ? taskNamed(p, s.task || s.ask) : null);
+    const w = watchedOf(p, s), asking = !!(w && w.asks && w.asks[0] && w.asks[0].questions && w.asks[0].questions.length);
+    const vv = { ...v, task, ...(asking ? { asking: true } : {}) };
+    const keys = [s ? sessKey(s) : '', it ? it.key : '', s && moment === 'finished' ? finKey(s) : '', s && moment === 'waiting' ? 'waiting:' + s.session + ':' + s.since : '',
+      s && moment === 'failed' ? 'failed:' + s.session + ':' + s.since : ''];
+    const pg = mkPage(p, { keys, it, moment, type: newsType(moment, vv), t });
+    pg.view = where => convView(p, pg, { moment, v: vv, s, t, w, reps, it }, where);
+    return pg;
+  }
+  function convView(p, pg, { moment, v, s, t, w, reps, it }, where) {
+    const whole = where === 'view', at = s ? (moment === 'finished' ? s.at : s.since) : it ? it.at : Date.now();
+    const nodes = [...sayNodes(p, moment, { ...v, ago: relAgo(at) }, t, where, it), ...(moment === 'working' ? [] : [' ', whenEl(at)])];
+    if (moment === 'finished') {
+      const more = [whole ? timesEl(s, reps) : null, ...reps.map(rep => wordsEl(rep.summary, whole))];
+      const raw = w && typeof T3 !== 'undefined' && T3.lastOf(w) ? T3.lastOf(w) : s && s.reply, link = t3Link(p, t, w);
+      if (raw && plainReply(raw)) more.push(whole ? lastEl(raw, link) : quoteEl(raw), whole ? null : link);
+      else more.push(link);
+      return { nodes, more: [...more, ...talkEls(p, s, where)].filter(Boolean), acts: [] };
+    }
+    if (moment === 'working') {
+      const more = [whole && s && s.thought ? h('p', { class: 'lc-thought', dir: 'auto', title: 'Claude’s latest thought' }, '“' + s.thought + '”') : null,
+        ...reps.map(rep => wordsEl(rep.summary, whole)), lastWords(w), t3Link(p, t, w), ...talkEls(p, s, where)];
+      return { nodes, more: more.filter(Boolean), acts: [] };
+    }
+    /* waiting, or stopped on an error: Open in T3, since only T3's window approves (i6: "take you to t3") */
+    const more = moment === 'waiting' && v.asking ? talkEls(p, s, where) : [lastWords(w), ...talkEls(p, s, where)];   // its question says it; else its latest message
+    return { nodes, more: more.filter(Boolean), acts: [t3Act(p, t, pg, where) || t3ActW(p, w, pg, where)].filter(Boolean) };
+  }
+  /* The leader card's extras (S2): when Claude started, how long it worked, and how many updates it sent. */
+  function timesEl(s, reps) {
+    if (!s || !s.since || !s.at) return null;
+    const d = new Date(s.since), hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const m = Math.max(1, Math.round((s.at - s.since) / 60000));
+    const dur = m < 60 ? plural(m, 'minute', 'minutes') : plural(Math.floor(m / 60), 'hour', 'hours') + (m % 60 ? ' ' + plural(m % 60, 'minute', 'minutes') : '');
+    return h('p', { class: 'lc-times' }, 'Started ' + hm + ' · worked ' + dur + (reps.length ? ' · ' + plural(reps.length, 'update', 'updates') : ''));
+  }
+  /* Claude's last message: a quote cut short, or on the leader card whole, a paragraph each (S2). */
+  const paras = raw => String(raw || '').split(/\n\s*\n/).map(plainReply).filter(Boolean);
+  const quoteEl = raw => { const t = plainReply(raw); return h('p', { class: 'lc-quote', dir: 'auto', title: t }, '“' + cut(t, 160) + '”'); };
+  const lastEl = (raw, link) => h('div', { class: 'lc-last' }, h('div', { class: 'lc-last-h' }, 'Claude’s last message'),
+    ...paras(raw).map(x => h('p', { dir: 'auto' }, x)), link);
+  /* Check T3: on a page of News, a link in place of a button (Round 2, M1: News has no buttons). */
+  function t3Link(p, t, w) {
+    const th = t && typeof T3 !== 'undefined' ? T3.latest(t) : null;
+    const go = th && th.env ? () => T3.openThread(th) : w && w.env && typeof T3 !== 'undefined' ? () => T3.openWatched(w) : null;
+    if (!go) return null;
+    return h('p', { class: 'lc-link' }, h('a', { class: 'ld-t3-link', href: '#', title: th && th.env ? T3.openTitle(p, t, th) : 'Opens its T3 thread' + (w.title ? ', ' + w.title : '') + '.',
+      onclick: e => { e.preventDefault(); e.stopPropagation(); hold(); go(); } }, 'Check T3'));
+  }
+
+  /* One change Claude asks about: its words for the leader's line ("tick this task off") and for a part line, and its
+     buttons: Tick it and No for a tick (B3), Read, Apply and No for a description or a plan (X1a: Dismiss is No). */
+  function askOf(p, e, i, own, pg, where) {
+    const c = e.changes[i], r = ClaudeInbox.readable(p, c), mine = !!own && tkey(c.task) === tkey(own);
+    const name = t => (t ? taskLink(p, t, where, pg) : h('bdi', null, lineTitle(String(c.task || '').trim())));
+    const no = title => act(p, pg, where, 'No', 'btn-quiet b-claude-dismiss', title, () => ClaudeInbox.dismiss(e, i), true);
+    const ok = (label, cls, title) => act(p, pg, where, label, cls, title, () => ClaudeInbox.apply(e, i), true);
     if (c.do === 'done') {
+      const on = r.ok && r.t.repeat ? ', on to its next date' : '';
+      const gist = mine ? ['tick this task off' + on] : ['tick ', name(r.ok ? r.t : null), ' off' + on];
+      const text = mine ? ['Tick this task off' + on] : ['Tick ', name(r.ok ? r.t : null), ' off' + on];
       if (!r.ok) {
         const was = p.todos.some(t => t.done && tkey(t.text) === tkey(c.task));
-        return { text: [mine ? 'Wants this task ticked off' : ['Wants ', name(null), ' ticked off'], was ? '. It is ticked off already.' : '. It is not open here.'], acts: [no('Put it away: nothing changes')] };
+        return { gist, text: [...text, was ? '. It is ticked off already.' : '. It is not open here.'], acts: [no('Put it away: nothing changes')] };
       }
-      const on = r.t.repeat ? ', on to its next date' : '';
-      return { text: mine ? ['Wants this task ticked off', on, '.'] : ['Wants ', name(r.t), ' ticked off', on, '.'],
-        acts: [ok('Tick it', 'b-claude-tick', 'Tick off ' + r.t.text + (on ? ': it moves on to its next date' : '')), no('Leave ' + r.t.text + ' open')] };
+      return { gist, text: [...text, '.'], acts: [ok('Tick it', 'b-claude-tick', 'Tick off ' + r.t.text + (on ? ': it moves on to its next date' : '')), no('Leave ' + r.t.text + ' open')] };
     }
     if (c.do === 'edit-description') {
-      if (!r.ok) return { text: ['Wants a new description for ', name(null), '. It is not in this project.'], acts: [no('Put it away: nothing changes')] };
-      return { text: mine ? ['Wants a new description for this task.'] : ['Wants a new description for ', name(r.t), '.'],
+      if (!r.ok) return { gist: ['a new description for ', name(null)], text: ['A new description for ', name(null), '. It is not in this project.'], acts: [no('Put it away: nothing changes')] };
+      return { gist: mine ? ['a new description for this task'] : ['a new description for ', name(r.t)], text: mine ? ['A new description for this task.'] : ['A new description for ', name(r.t), '.'],
         acts: [readBtn('A new description for ' + r.t.text, () => readDescription(r.t, c)), ok('Apply', 'b-claude-apply', 'Give ' + r.t.text + ' the new description'), no('Keep the description ' + r.t.text + ' has')] };
     }
     if (c.do === 'replace-plan') {
-      if (!r.ok) return { text: ['Sent a new plan the city cannot read.'], acts: [no('Put it away: nothing changes')] };
-      return { text: ['Wants to replace the plan with ' + ClaudeInbox.planSize(r.plan) + '.'],
+      if (!r.ok) return { gist: ['a new plan the city cannot read'], text: ['A new plan the city cannot read.'], acts: [no('Put it away: nothing changes')] };
+      const size = ClaudeInbox.planSize(r.plan);
+      return { gist: ['a new plan with ' + size], text: ['A new plan with ' + size + '.'],
         acts: [readBtn('A new plan for ' + p.name, () => readPlanBody(r.plan)), ok('Apply', 'b-claude-apply', 'Replace the About, milestones and tasks with the new plan'), no('Keep the plan ' + p.name + ' has')] };
     }
-    return { text: ['Sent a change the city does not know.'], acts: [no('Put it away')] };
+    return { gist: ['a change the city does not know'], text: ['A change the city does not know.'], acts: [no('Put it away')] };
   }
-  const askParts = (p, e, task, it, where) => ClaudeInbox.openIdx(e).map(i => { const a = askOf(p, e, i, task, it, where); return partEl('ask ' + e.changes[i].do, a.text, a.acts); });
-  /* A report's parts, under its finish: what Claude added, with Read and Undo; each wizard round; what it asks. Own is
-     the task the line over them names, said as "this task". */
-  function parts(p, rep, it, where, own = rep.task) {
-    const out = [];
-    if (rep.add && addLive(p, rep.add)) {
-      const u = undos.get(rep.id);
-      out.push(partEl('added', ['Added ' + addedWords(p, rep.add) + '.'], [readBtn('What Claude added to ' + p.name, () => readAdded(p, rep.add)),
-        u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back what Claude added', () => { ClaudeInbox.undo(p, u); undos.delete(rep.id); }, true) : null]));
+  /* Need Approval: what Claude asks first, every change of a finish on one page (M2): one change with its buttons on the
+     page, several a short line each. */
+  function asksPage(p, names, reps, own, key, it = null) {
+    const opens = () => names.map(entryOf).filter(Boolean).flatMap(e => ClaudeInbox.openIdx(e).map(i => ({ e, i })));
+    const o0 = opens(), one = o0.length === 1 ? o0[0].e.changes[o0[0].i] : null;
+    const t = own ? taskNamed(p, own) : one && one.task ? taskNamed(p, one.task) : null;
+    const pg = mkPage(p, { keys: [key, ...names.map(n => 'asks:' + n), it ? it.key : ''], it, moment: 'asks', type: 'approval', t });
+    pg.left = () => opens().length > 0;
+    pg.view = where => {
+      const list = opens(), whole = where === 'view', mine = t ? t.text : '';
+      if (!list.length) return { nodes: sayNodes(p, 'asks', { change: 'a change' }, null, where, it), more: [], acts: [] };
+      const alone = reps.length ? reps.filter(r => r.alone) : [null];
+      const sums = alone.map(r => wordsEl(r ? r.summary : list[0].e.summary, whole));
+      const first = list[0].e, when = whenEl(first.at || (reps[0] ? reps[0].at : Date.now()), 'Sent ');
+      if (list.length === 1) { const a = askOf(p, first, list[0].i, mine, pg, where); return { nodes: ['Claude wants your OK first: ', ...a.gist, '. ', when], more: sums.filter(Boolean), acts: a.acts }; }
+      return { nodes: ['Claude wants your OK on ' + plural(list.length, 'change', 'changes') + '. ', when],
+        more: [...sums, ...list.map(({ e, i }) => { const a = askOf(p, e, i, mine, pg, where); return partEl('ask ' + e.changes[i].do, a.text, a.acts); })].filter(Boolean), acts: [] };
+    };
+    return pg;
+  }
+  /* Attachment: what Claude added, each whole (One Leader Card, Round 1, C1: "the full clickable note, then [Delete]"):
+     a note as it shows under a task's description, a task and a link by name, each with Delete; every update of a
+     finish on one page (M2). */
+  function addedPage(p, reps, own, key, it = null) {
+    const t = own ? taskNamed(p, own) : null;
+    const merged = () => { const live = reps.filter(r => r.add && addLive(p, r.add));
+      if (!live.length) return null;
+      const uniq = list => list.filter((id, i) => list.indexOf(id) === i), notes = uniq(live.flatMap(r => r.add.notes));
+      /* a note added and brought up to date in the same turn is one note added */
+      return { todos: uniq(live.flatMap(r => r.add.todos)), ms: [], notes, links: uniq(live.flatMap(r => r.add.links)), updated: uniq(live.flatMap(r => r.add.updated || [])).filter(id => !notes.includes(id)) }; };
+    const pg = mkPage(p, { keys: [key, ...reps.map(r => 'added:' + r.id), it ? it.key : ''], it, moment: 'added', type: 'attach', t });
+    pg.left = () => !!merged();
+    pg.view = where => {
+      const add = merged(), at = reps.length ? reps[reps.length - 1].at : it ? it.at : Date.now();
+      const nodes = [...sayNodes(p, 'added', { what: add ? addedWords(p, add) : it ? it.v.what : 'what it sent' }, null, where, it), ' ', whenEl(at, reps.length ? 'Sent ' : '')];
+      const sums = reps.filter(r => r.alone && !r.entry && !r.rounds.length).map(r => wordsEl(r.summary, where === 'view'));
+      return { nodes, more: [...sums, add ? addedTiles(p, add, pg, where) : null].filter(Boolean), acts: [] };
+    };
+    return pg;
+  }
+  const noteTile = (p, n) => h('button', { class: 'pv-tnote lc-note' + (byClaude(n) ? ' by-claude' : ''), type: 'button', 'data-id': n.id, title: 'Open ' + noteHead(n),
+    onclick: e => { e.stopPropagation(); hold(); if (bub) hide(); FullView.openNote(p.id, n.id); } },
+    h('span', { class: 'pv-tnote-h', dir: 'auto' }, h('span', { class: 'note-ic', 'aria-hidden': 'true', html: iconSvg(noteIcon(n), 16) }), h('span', { class: 'pv-tnote-t' }, noteHead(n))),
+    noteBody(n) ? h('span', { class: 'pv-tnote-b', dir: 'auto' }, noteBody(n).slice(0, 400)) : null,
+    h('span', { class: 'pv-note-at' }, ...[byClaude(n) ? iconEl('claude', 12) : null, fmtStamp(n.updatedAt || n.at) + (byClaude(n) ? ' · By Claude' : '')].filter(Boolean)));
+  function addedTiles(p, add, pg, where) {
+    const a = addedOf(p, add);
+    const del = (kind, id, name) => act(p, pg, where, 'Delete', 'btn-quiet ld-del', 'Delete ' + name, () => deleteAdded(p, kind, id), true);
+    const rows = [
+      ...a.ts.map(t => h('div', { class: 'lc-att' }, h('span', { class: 'lc-att-name' }, iconEl('task', 12), taskLink(p, t, where, pg)), del('task', t.id, t.text))),
+      ...[...a.ns, ...a.us].map(n => h('div', { class: 'lc-att lc-att-note' }, noteTile(p, n), del('note', n.id, noteHead(n)))),
+      ...a.ls.map(l => { const lt = linkTarget(l); return h('div', { class: 'lc-att' }, h('span', { class: 'lc-att-name' },
+        lt.href ? h('a', { class: 'lc-att-link', href: lt.href, target: lt.blank ? '_blank' : null, rel: 'noopener', dir: 'auto', title: lt.title }, lt.name) : h('b', { dir: 'auto' }, lt.name)), del('link', l.id, lt.name)); }),
+    ];
+    return h('div', { class: 'lc-atts' }, ...rows);
+  }
+  /* Delete, on what Claude added: it goes from the city, with Undo in a toast. */
+  function deleteAdded(p, kind, id) {
+    let back = null, name = '';
+    if (kind === 'task') { const i = p.todos.findIndex(t => t.id === id); if (i < 0) return; const t = p.todos[i]; name = t.text; p.todos.splice(i, 1); back = () => p.todos.splice(Math.min(i, p.todos.length), 0, t); }
+    else if (kind === 'link') { const i = p.links.findIndex(l => l.id === id); if (i < 0) return; const l = p.links[i]; name = linkTarget(l).name; p.links.splice(i, 1); back = () => p.links.splice(Math.min(i, p.links.length), 0, l); }
+    else {
+      const t = noteTask(p, id), list = t ? t.notes : p.notes, i = list ? list.findIndex(n => n.id === id) : -1;
+      if (i < 0) return;
+      const n = list[i]; name = noteHead(n); list.splice(i, 1);
+      if (t && !t.notes.length) delete t.notes;
+      back = () => { const l = t ? (t.notes = t.notes || []) : p.notes; l.splice(Math.min(i, l.length), 0, n); };
     }
-    for (const r of rep.rounds) {
-      const t = p.todos.find(x => x.id === r.tid), uk = rep.id + ':' + r.tid, u = undos.get(uk);
-      if (!t || !t.round || t.round.title !== r.title) continue;                        // taken off, or another round since
-      const same = tkey(t.text) === tkey(own);
-      out.push(partEl('round', same ? ['Attached a wizard round, ', h('bdi', null, t.round.title), '.'] : ['Attached a wizard round to ', taskLink(p, t, where, it), ', ', h('bdi', null, t.round.title), '.'],
-        [roundRead(p, t), u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }, true) : null]));
+    const redo = () => { window.changed(p); if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.render(); redrawTalk(); };
+    redo();
+    toast('Deleted ' + name + '.', '', { label: 'Undo', run: () => { back(); redo(); } });
+  }
+  /* Decision Wizard: a round Claude attached, said by Quill (C1), with Read and Undo. */
+  function roundPage(p, rep, t, it = null) {
+    const uk = rep ? rep.id + ':' + t.id : it ? it.id : '';
+    const pg = mkPage(p, { keys: [rep ? 'round:' + rep.id + ':' + t.id : '', it ? it.key : ''], it, moment: 'round', type: 'wizard', t, sp: voiceOf(quillLeader()) });
+    pg.left = () => undos.has(uk);
+    pg.view = where => ({
+      nodes: [...sayNodes(p, 'round', { task: t.text, round: t.round ? t.round.title : it ? it.v.round : '' }, t, where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
+      more: [rep && rep.alone && !rep.entry ? wordsEl(rep.summary, where === 'view') : null].filter(Boolean),
+      acts: [t.round ? roundRead(p, t) : null, undos.has(uk) ? act(p, pg, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, undos.get(uk)); undos.delete(uk); }) : null].filter(Boolean) });
+    return pg;
+  }
+  /* The pages of a turn's updates (or one update on its own), one per type (M2): what asks, each round, what it added.
+     key names the turn: its finish, or its session while it works, or the update. */
+  function repPages(p, reps, own, key) {
+    const out = [], names = reps.map(r => r.entry).filter(n => { const e = entryOf(n); return !!e && ClaudeInbox.openIdx(e).length > 0; });
+    if (names.length) out.push(asksPage(p, names, reps.filter(r => names.includes(r.entry)), own, 'asks:' + key));
+    for (const rep of reps) for (const r of rep.rounds) {
+      const t = p.todos.find(x => x.id === r.tid);
+      if (t && t.round && t.round.title === r.title) out.push(roundPage(p, rep, t));   // taken off, or another round since
     }
-    const e = entryOf(rep.entry);
-    if (e) out.push(...askParts(p, e, own, it, where));
+    const adds = reps.filter(r => r.add && addLive(p, r.add));
+    if (adds.length) out.push(addedPage(p, adds, own, 'added:' + key));
     return out;
   }
-  /* Several reports under one line (0.1.95): each one's summary, then its parts, the oldest first. */
-  const repsMore = (p, reps, it, where, own) => reps.flatMap(rep => [wordsEl(rep.summary), ...parts(p, rep, it, where, own)]);
-  /* A finish heads its report (A1): Claude's summary under it (C2), then its parts. Tick it comes only from Claude
-     asking to tick the task off (B3); a finish with no update keeps Tick it, with the start of the reply as its words. */
-  function finishView(p, { task, at, s, reps = [], it = null, tick }, where) {
-    task = ownTask(task, s || (it && it.ref.task ? { task: it.ref.task } : null), reps);
-    const named = task ? taskNamed(p, task) : null, w = watchedOf(p, s), t3 = t3Act(p, named, it, where) || t3ActW(p, w, it, where);
-    const nodes = [...sayNodes(p, 'finished', { task }, named, where, it), ' ', whenEl(at)];
-    if (reps.length) return { nodes, more: [...repsMore(p, reps, it, where, task), ...talkEls(p, s, where)].filter(Boolean), acts: t3 ? [t3] : [] };
-    const tk = tick !== undefined ? tick : typeof ClaudeWork === 'undefined' ? null : s ? ClaudeWork.taskOf(p, s)
-      : it && it.ref.task ? ClaudeWork.taskOf(p, { task: it.ref.task, project: it.ref.project || '' }) : null;
-    /* the thread's latest message, whole as the watcher read it, else the start of the reply the hooks kept */
-    return { nodes, more: [lastWords(w) || wordsEl(plainReply(s && s.reply)), ...talkEls(p, s, where)].filter(Boolean),
-      acts: [tk ? act(p, it, where, 'Tick it', 'b-claude-tick', 'Tick off ' + tk.text + ', the task this session started from', () => ClaudeWork.tick(p, tk)) : null, t3].filter(Boolean) };
+  /* Any other piece of news: its line, and its buttons. */
+  function itemPage(p, it) {
+    const t = taskFor(p, it);
+    const pg = mkPage(p, { keys: [it.key], it, moment: it.moment, type: newsType(it.moment, it.v), t, sp: speakerFor(it) });
+    pg.view = where => ({ nodes: sayNodes(p, it.moment, it.v, t, where, it), more: [], acts: actsOf(p, it, pg, where) });
+    return pg;
   }
-  /* On its own: what Claude added, with Read and Undo, and its summary. */
-  function addedView(p, it, where) {
-    const rep = reportOf(it.ref && it.ref.report), uk = rep ? rep.id : it.id, u = undos.get(uk), live = !!rep && !!rep.add && addLive(p, rep.add);
-    return { nodes: [...sayNodes(p, 'added', { what: live ? addedWords(p, rep.add) : it.v.what }, null, where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
-      more: [rep ? wordsEl(rep.summary) : null].filter(Boolean),
-      acts: [live ? readBtn('What Claude added to ' + p.name, () => readAdded(p, rep.add)) : null,
-        u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back what Claude added', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }) : null].filter(Boolean) };
-  }
-  function roundView(p, it, where) {
-    const rep = reportOf(it.ref && it.ref.report), uk = rep ? rep.id + ':' + it.ref.tid : it.id, u = undos.get(uk), t = taskFor(p, it);
-    return { nodes: [...sayNodes(p, 'round', it.v, t, where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
-      more: [rep && !rep.add ? wordsEl(rep.summary) : null].filter(Boolean),
-      acts: [t && t.round ? roundRead(p, t) : null, u ? act(p, it, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, u); undos.delete(uk); }) : null].filter(Boolean) };
-  }
-  /* On its own: what Claude asks first, named (the change itself, never the summary), with its time; one change has its
-     buttons on the line, several a short line each. */
-  function asksView(p, e, it, where) {
-    if (!e) return { nodes: sayNodes(p, 'asks', { change: it && it.v.change || 'a change' }, null, where, it), more: [], acts: [] };
-    const rep = reportOf(it && it.ref.report) || [...st.reports].reverse().find(r => r.entry === e.name) || null, open = ClaudeInbox.openIdx(e);
-    const more = [rep && (rep.add || rep.rounds.length) ? null : wordsEl(e.summary)];
-    if (open.length > 1) more.push(...askParts(p, e, '', it, where));          // no finish heads it, so each names its task
-    return { nodes: [...sayNodes(p, 'asks', { change: ClaudeInbox.gist(p, e) }, null, where, it), ' ', whenEl(e.at || (rep ? rep.at : Date.now()), 'Sent ')],
-      more: more.filter(Boolean), acts: open.length === 1 ? askOf(p, e, open[0], '', it, where).acts : [] };
-  }
-  /* Any item: { nodes, more, acts }, the same on the status card, the leader card and in the bubble. */
-  function viewOf(p, it, where) {
-    if (it.moment === 'finished') {
-      const s = typeof ClaudeWork !== 'undefined' ? ClaudeWork.sessionsOf(p).find(x => x.session === it.ref.session) || null : null;
-      return finishView(p, { task: it.v.task, at: s && s.state === 'done' ? s.at : it.at, s, reps: repsOf(it), it }, where);
+  /* A piece of news, or a conversation, as its page. */
+  function pageOfItem(p, it) {
+    if (it.ref && it.ref.session && ['working', 'waiting', 'failed', 'finished'].includes(it.moment)) {
+      const s = sessOf(p, it.ref.session);
+      return convPage(p, { moment: it.moment, v: it.v, s, it, reps: it.moment === 'finished' ? repsOf(it) : [] });
     }
-    if (it.moment === 'added') return addedView(p, it, where);
-    if (it.moment === 'round') return roundView(p, it, where);
-    if (it.moment === 'asks') return asksView(p, entryOf(it.ref.entry), it, where);
-    const talk = it.ref && it.ref.session ? (() => { const s = sessOf(p, it.ref.session), w = watchedOf(p, s); return [w && it.moment !== 'waiting' ? lastWords(w) : null, ...talkEls(p, s, where)]; })() : [];
-    return { nodes: sayNodes(p, it.moment, it.v, taskFor(p, it), where, it), more: talk.filter(Boolean), acts: actsOf(p, it, where) };
+    if (it.moment === 'asks' && entriesOf(it).length) return asksPage(p, entriesOf(it), entriesOf(it).map(n => [...st.reports].reverse().find(r => r.entry === n)).filter(Boolean), it.v.task || '', it.key, it);
+    if (it.moment === 'added') return addedPage(p, addRepsOf(it), it.v.task || '', it.key, it);
+    if (it.moment === 'round') { const t = taskFor(p, it); if (t) return roundPage(p, reportOf(it.ref.report), t, it); }
+    return itemPage(p, it);
   }
-  function actsOf(p, it, where) {
+  function actsOf(p, it, pg, where) {
     const out = [];
     /* a send held while T3 was closed (0.1.91, L3): Open T3, then Send it */
     if (it.moment === 't3closed' && typeof T3 !== 'undefined' && T3.held(it.ref.held)) {
-      out.push(act(p, it, where, 'Open T3', 'ld-t3', 'Opens T3 Code, so the send can go', () => T3.openApp(it.ref.held), true));
-      out.push(act(p, it, where, 'Send it', 'ld-open', 'Sends it to T3 again, now T3 is open', () => { readIds([it.id]); T3.retry(it.ref.held); }));
-    }
-    if (it.moment === 'waiting' || it.moment === 'failed' || (it.conv && it.moment === 'working')) {
-      const s = typeof ClaudeWork !== 'undefined' ? ClaudeWork.sessionsOf(p).find(x => x.session === it.ref.session) : null;
-      const b = t3Act(p, taskFor(p, it), it, where) || t3ActW(p, watchedOf(p, s), it, where);
-      if (b) out.push(b);
+      out.push(act(p, pg, where, 'Open T3', 'ld-t3', 'Opens T3 Code, so the send can go', () => T3.openApp(it.ref.held), true));
+      out.push(act(p, pg, where, 'Send it', 'ld-open', 'Sends it to T3 again, now T3 is open', () => { readIds([it.id]); T3.retry(it.ref.held); }));
     }
     if (it.moment === 'answers') {
       const t = p.todos.find(x => x.id === it.ref.tid);
       if (t && t.round) out.push(roundRead(p, t));
-      if (t) out.push(act(p, it, where, 'Open', 'ld-open', 'Open ' + t.text + ' and its round', () => { if (where === 'say') { readIds([it.id]); hide({ read: false }); } FullView.openTask(p.id, t.id); }));
+      if (t) out.push(act(p, pg, where, 'Open', 'ld-open', 'Open ' + t.text + ' and its round', () => { if (where === 'say') { readIds([it.id]); hide(); } FullView.openTask(p.id, t.id); }));
     }
     return out;
   }
 
-  /* ---------- the status card and the project view: a building's news, read as they show it ---------- */
-  /* Its waiting news, read now, and held while its status card or project view shows it. */
+  /* ---------- the status card and the project view: a building's pages, read as they show them ---------- */
+  /* Its waiting news, held while its status card or project view shows it; each is read as its page shows. */
   function take(pid) {
     const mine = live().filter(it => it.pid === pid);
-    if (mine.length) {
-      const have = held.get(pid) || [];
-      held.set(pid, [...have, ...mine.filter(it => !have.some(x => x.id === it.id))]);
-      if (bub && bub.list.some(it => it.pid === pid && mine.includes(it))) { /* the bubble keeps showing what it shows */ }
-      /* a send held while T3 is closed stays news until it goes (0.1.91): the card says it, and it waits in News */
-      readIds(mine.filter(it => it.moment !== 't3closed').map(it => it.id));
-    }
+    const have = held.get(pid) || [];
+    held.set(pid, [...have, ...mine.filter(it => !have.some(x => x.id === it.id))]);
     return sortItems(held.get(pid) || []);
   }
   const dropHeld = (pid, id) => { const l = held.get(pid); if (l) held.set(pid, l.filter(x => x.id !== id)); };
@@ -1072,78 +1219,111 @@ const News = (() => {
     if (Bubble.openId() === pid || (typeof FullView !== 'undefined' && FullView.shows(pid))) return;
     held.delete(pid);
   }
-  /* One line the leader says, with what goes under it and its buttons. A line someone else says on the leader's card,
-     Quill's (0.1.69), starts with his face and his name, its bar in his color. */
-  function lineEl(nodes, { more = [], acts = [], moment = '', cls = '', by = null } = {}) {
-    const lead = by ? [h('span', { class: 'ld-by', title: by.name + (by.role ? ', ' + by.role : '') }, faceOf(by, 20), h('b', { dir: 'auto' }, by.name + ':')), ' '] : [];
-    const el = h('div', { class: 'ld-line' + (by ? ' by-other' : '') + (cls ? ' ' + cls : ''), 'data-moment': moment },
-      h('p', { class: 'ld-says', dir: 'auto' }, ...lead, ...nodes), ...more, acts.length ? h('div', { class: 'ld-acts' }, acts) : null);
-    if (by) el.style.setProperty('--ld', by.color);
-    return el;
-  }
-  /* The status card: its news, then what Claude is doing there, in the leader's voice, for as long as the card showed
-     it before (B3): working, waiting, finished, stopped, and what asks first while it waits. A finish an update reports
-     on is one report, its parts under it (A1, A2); an update a working session sent shows under its working line.
-     Nothing is said twice. The leader card in the project view says the same, with the same buttons (0.1.69). */
-  function cardLines(p, where = 'card') {
-    const lines = [], said = new Set(), own = speakerOf(p).k;
+  /* A building's pages, the same on the status card and the leader card (S1): Claude at work and its updates, the
+     building's news, and what Claude asks first while it waits, each page once, in the types' order. The status card
+     leaves out what its x took away; the leader card keeps what asks until it is answered (X1). */
+  function cardPages(p, where = 'card') {
+    const pages = [], said = new Set();
     const voice = typeof ClaudeWork !== 'undefined' ? ClaudeWork.voice(p) : [];
     const pend = typeof ClaudeInbox !== 'undefined' ? ClaudeInbox.pending().filter(e => tkey(e.project) === tkey(p.name)) : [];
-    /* under the project view the card is hidden: what it would say waits for the leader card, or the News section */
+    /* under the project view the status card is hidden: what it would say waits for the leader card, or News */
     const mine = where === 'card' && typeof FullView !== 'undefined' && FullView.shows(p.id) ? sortItems(held.get(p.id) || []) : take(p.id);
-    const VOICE_RANK = { waiting: 1, working: 1.2, failed: 1.4, finished: 5 };      // Claude's own order: waiting, working, stopped, finished
+    const sayReps = (reps, own, key) => { for (const rep of reps) { said.add(rep.id); if (rep.entry) said.add('e:' + rep.entry); } pages.push(...repPages(p, reps, own, key)); };
     for (const x of voice) {
       const reps = x.moment === 'finished' ? finishReports(x.s) : heldReports(x.s);
-      for (const rep of reps) { said.add(rep.id); if (rep.entry) said.add('e:' + rep.entry); }
-      if (x.moment === 'finished') {
-        const v = finishView(p, { task: x.v.task, at: x.s.at, s: x.s, reps, tick: x.tick }, where);
-        lines.push({ rank: reps.length ? Math.min(...reps.map(rep => repRank(p, rep))) : VOICE_RANK.finished, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'finished', cls: 'b-claude ' + x.s.state }) });
-      } else {
-        /* a session with no task of its own works on the one its updates name (0.1.95) */
-        const task = ownTask(x.v.task, x.s, reps), t = taskNamed(p, task) || (x.s.task || x.s.ask ? taskNamed(p, x.s.task || x.s.ask) : null);
-        const w = watchedOf(p, x.s), t3 = t3Act(p, t, null, where) || t3ActW(p, w, null, where);
-        /* its thread's latest message, while the watcher sees it (0.1.93, W2c) */
-        lines.push({ rank: VOICE_RANK[x.moment] ?? 5, el: lineEl(sayNodes(p, x.moment, { ...x.v, task }, t, where),
-          { more: [...(reps.length ? repsMore(p, reps, null, where, task) : [lastWords(w)]), ...talkEls(p, x.s, where)].filter(Boolean), acts: t3 ? [t3] : [], moment: x.moment, cls: 'b-claude ' + x.s.state }) });
-      }
+      if (reps.length) sayReps(reps, ownTask(x.v.task, x.s, reps), x.moment === 'finished' ? finKey(x.s) : 'held:' + x.s.session);
+      pages.push(convPage(p, { moment: x.moment, v: x.v, s: x.s, reps }));
     }
+    /* a finish whose session the city no longer sees: its updates' pages from it */
+    const gone = mine.filter(it => it.moment === 'finished' && !voice.some(x => x.s.session === it.ref.session));
+    for (const it of gone) { const reps = repsOf(it); if (reps.length && !reps.some(r => said.has(r.id))) sayReps(reps, it.v.task, it.key); }
     for (const it of mine) {
-      if (it.ref && it.ref.report && said.has(it.ref.report)) continue;
-      if (it.moment === 'finished' && repsOf(it).some(r => said.has(r.id))) continue;
+      if (it.ref && it.moment !== 'finished' && [it.ref.report, ...(it.ref.reports || [])].some(r => r && said.has(r))) continue;
       if (it.moment === 'asks') continue;                     // said below for as long as it waits in inbox/pending; once applied or dismissed, gone
-      if (it.moment === 'waiting') continue;                  // Claude's own line says it while it waits; once the session moves on, gone
-      if (NEWS_CLAUDE.has(it.moment) && it.moment !== 'asks' && voice.some(x => x.s.session === it.ref.session)) continue;
-      const v = viewOf(p, it, where), sp = speakerFor(it);
-      lines.push({ rank: rankOf(it), el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: it.moment, by: sp.k !== own ? sp : null }) });
+      if (it.moment === 'waiting') continue;                  // Claude's own page says it while it waits; once the session moves on, gone
+      if (NEWS_CLAUDE.has(it.moment) && voice.some(x => x.s.session === it.ref.session)) continue;
+      pages.push(pageOfItem(p, it));
     }
     for (const e of pend) {
-      if (said.has('e:' + e.name)) continue;
-      const v = asksView(p, e, null, where);
-      lines.push({ rank: NEWS_RANK.asks, el: lineEl(v.nodes, { more: v.more, acts: v.acts, moment: 'asks', cls: 'b-claude-asks' }) });
+      if (said.has('e:' + e.name) || !ClaudeInbox.openIdx(e).length) continue;
+      const rep = [...st.reports].reverse().find(r => r.entry === e.name) || null;
+      pages.push(asksPage(p, [e.name], rep ? [rep] : [], rep ? rep.task : '', 'asks:' + e.name));
     }
-    return lines.sort((a, b) => a.rank - b.rank).map(x => x.el);
+    const keep = pages.filter(pg => (where === 'view' && pg.ask) || !hiddenPg(pg));
+    return keep.map((pg, i) => ({ pg, i })).sort((a, b) => NEWS_TYPE_ORDER.indexOf(a.pg.type) - NEWS_TYPE_ORDER.indexOf(b.pg.type) || a.i - b.i).map(x => x.pg);
   }
-  /* The leader card in the project view: what the status card says, read as it shows it (0.1.69, Leader Bubbles,
-     Round 2, N1); with nothing to say, its greeting shows. */
-  const viewLines = p => cardLines(p, 'view');
-  /* Topics (0.1.94, Brainstorm 1, Round 2, i5's variant: "you get to talk to the leaders on different topics (I'd like
-     arrows to flip the topics instead of having the UI grows very long)", and Round 1, L1): a card says one topic at a
-     time, a piece of news or a conversation with Claude, the most pressing first, with arrows to flip them and where
-     it is, "2 of 3". The place is kept per building while the page stays open. */
+  /* The card in a place (S1): its pages one at a time with "< 1 / 3 >" (the 0.1.94 topics' arrows, going round at the
+     ends), its page kept per building while the page stays open; with nothing to say, the leader's greeting. A page
+     shown on a card is read. */
   const flipAt = new Map();
-  let flat = false;                                          // the tests that check every line of a card at once lay them out flat
-  function flip(key, lines, again) {
-    if (lines.length < 2 || flat) { flipAt.delete(key); return lines; }
-    const i = Math.min(flipAt.get(key) || 0, lines.length - 1), where = key.split(':')[0];
-    flipAt.set(key, i);
-    const go = d => { flipAt.set(key, (i + d + lines.length) % lines.length); again(); const b = $('#ldFlip' + (d < 0 ? 'Prev' : 'Next') + '-' + where); if (b) b.focus({ preventScroll: true }); };
-    return [lines[i], h('div', { class: 'ld-flip', role: 'group', 'aria-label': 'Topics' },
-      h('button', { id: 'ldFlipPrev-' + where, class: 'icon-btn ld-flip-btn', type: 'button', 'aria-label': 'The topic before', title: 'The topic before', html: iconSvg('back', 14), onclick: e => { e.stopPropagation(); go(-1); } }),
-      h('span', { class: 'ld-flip-n' }, (i + 1) + ' of ' + lines.length),
-      h('button', { id: 'ldFlipNext-' + where, class: 'icon-btn ld-flip-btn next', type: 'button', 'aria-label': 'The next topic', title: 'The next topic', html: iconSvg('back', 14), onclick: e => { e.stopPropagation(); go(1); } }))];
+  let flat = false;                                          // the tests that check every page of a card at once lay them out flat
+  function card(p, where) {
+    const pages = cardPages(p, where), key = where + ':' + p.id;
+    if (!pages.length) { flipAt.delete(key); return greetEl(p, where); }
+    const again = () => (where === 'view' ? Leaders.redrawCard() : Bubble.refresh());
+    const readPg = pg => { const it = itemOf(pg); if (it && it.moment !== 't3closed' && !(where === 'card' && FullView.shows(p.id))) readIds([it.id]); };
+    if (flat) { pages.forEach(readPg); return h('div', { class: 'lc-flat' }, ...pages.map(pg => pageEl(p, pg, where))); }
+    const at = flipAt.get(key) || { k: '', i: 0 };
+    let i = pages.findIndex(pg => pg.keys[0] === at.k);
+    if (i < 0) i = Math.min(at.i, pages.length - 1);
+    const dots = [pages.slice(0, i).some(unseenPg), pages.slice(i + 1).some(unseenPg)];
+    flipAt.set(key, { k: pages[i].keys[0], i });
+    const go = d => {
+      const j = (i + d + pages.length) % pages.length;
+      flipAt.set(key, { k: pages[j].keys[0], i: j });
+      again();
+      const b = $('#ldFlip' + (d < 0 ? 'Prev' : 'Next') + '-' + where); if (b) b.focus({ preventScroll: true });
+    };
+    const el = pageEl(p, pages[i], where, { i, n: pages.length, dots, go });
+    readPg(pages[i]);
+    return el;
   }
-  const cardTopics = p => flip('card:' + p.id, cardLines(p, 'card'), () => Bubble.refresh());
-  const viewTopics = p => flip('view:' + p.id, cardLines(p, 'view'), () => Leaders.redrawCard());
+  /* The greeting (S1: on the status card too): where the building stands, and its next task in the task's line. */
+  function greetEl(p, where) {
+    const l = leaderOf(p);
+    if (!l) return null;
+    const t = nextTask(p);
+    const pg = mkPage(p, { keys: [], moment: 'greet', type: null, t });
+    pg.view = () => ({ nodes: [leaderGreeting(p, Date.now(), true)], more: [], acts: [] });
+    return pageEl(p, pg, where);
+  }
+
+  /* ---------- the card: one page, the same in the bubble, the status card and the leader card ---------- */
+  /* The head: the type's icon and name in its color, the pages, and the x (Minimize too in the bubble). Then the face
+     (100 px in the bubble and on the leader card, 48 on the status card, C2), the name and role, and the task's line,
+     which stays put as you page (in the bubble the building before it); then the leader's words, what goes under them,
+     and the buttons. */
+  function pageEl(p, pg, where, { i = 0, n = 1, dots = [false, false], go = null } = {}) {
+    const ty = pg.type ? NEWS_TYPES[pg.type] : null, sp = pg.sp, say = where === 'say', v = pg.view(where);
+    const size = say ? sayFace() : where === 'view' ? 100 : 48;
+    const pgBtn = (d, dot) => h('button', { id: say ? (d < 0 ? 'ldSayPrev' : 'ldSayNext') : 'ldFlip' + (d < 0 ? 'Prev' : 'Next') + '-' + where, class: 'icon-btn ld-flip-btn lc-pg' + (d > 0 ? ' next' : ''), type: 'button',
+      disabled: say && (d < 0 ? i === 0 : i >= n - 1), 'aria-label': (d < 0 ? 'The page before' : 'The next page') + (dot ? ', one not seen yet' : ''), title: (d < 0 ? 'The page before' : 'The next page') + (dot ? ': one not seen yet' : ''),
+      onclick: e => { e.stopPropagation(); go(d); } }, h('span', { class: 'lc-pg-ic', 'aria-hidden': 'true', html: iconSvg(d < 0 ? 'pgPrev' : 'pgNext', 5) }), dot ? h('i', { class: 'lc-dot', 'aria-hidden': 'true' }) : null);
+    const pager = n > 1 && go ? h('span', { class: 'ld-flip lc-pager', role: 'group', 'aria-label': 'Pages' }, pgBtn(-1, dots[0]), h('span', { id: say ? 'ldSayCount' : null, class: 'ld-flip-n lc-pgn' }, (i + 1) + ' / ' + n), pgBtn(1, dots[1])) : null;
+    const noX = !ty || (where === 'view' && pg.ask);
+    const x = noX ? null : h('button', { id: say ? 'ldSayClose' : 'ldX-' + where, class: 'icon-btn lc-x', type: 'button',
+      'aria-label': pg.ask ? 'Take it off here' : 'Take it away', title: pg.ask ? 'Take it off here: it waits on the leader card until you answer it' : 'Take it away',
+      html: iconSvg('close', 12), onclick: e => { e.stopPropagation(); xOut(p, pg, where); } });
+    const mini = say ? h('button', { id: 'ldSayMin', class: 'icon-btn lc-min', type: 'button', 'aria-label': 'Minimize', title: 'Minimize: it waits in News', html: iconSvg('minus', 12), onclick: e => { e.stopPropagation(); minimize(); } }) : null;
+    const head = ty || say ? h('div', { class: 'lc-head' }, ty ? h('span', { class: 'lc-type' }, h('span', { class: 'lc-ticon', 'aria-hidden': 'true', html: iconSvg(ty.icon, 14) }), h('b', { class: 'lc-tname' }, ty.name)) : null,
+      h('span', { class: 'lc-head-end' }, pager, mini, x)) : null;
+    const bits = [];
+    if (say) bits.push(h('button', { class: 'ld-say-bld', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } }, h('bdi', null, p.name)));
+    if (pg.t) { if (bits.length) bits.push(h('span', { class: 'lc-sep', 'aria-hidden': 'true' }, '·')); bits.push(taskA(p, pg.t, pg.t.text, 'Open ' + pg.t.text, where, pg)); }
+    const who = h('div', { class: 'lc-who' }, h('span', { id: say ? 'ldSayFace' : null, class: 'lc-face ld-say-face' }, faceOf(sp, size)),
+      h('div', { class: 'lc-wn' }, h('div', { class: 'lc-nmrow' }, h('b', { id: say ? 'ldSayName' : null, class: 'lc-nm ld-name', dir: 'auto' }, sp.name), ' ',
+        sp.role ? h('span', { id: say ? 'ldSayRole' : null, class: 'lc-role', dir: 'auto' }, sp.role) : null),
+        bits.length ? h('div', { id: say ? 'ldSayWhere' : null, class: 'lc-tline' }, ...bits) : null));
+    const acts = [...v.acts, say ? h('button', { class: 'btn btn-small btn-quiet ld-go', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } }, 'Go to it') : null].filter(Boolean);
+    const msg = h('div', { class: 'ld-line lc-msg', 'data-moment': pg.moment, 'data-type': pg.type || '' },
+      h('p', { id: say ? 'ldSayText' : null, class: 'ld-says', dir: 'auto' }, ...v.nodes),
+      v.more.length ? h('div', { id: say ? 'ldSayMore' : null, class: 'ld-say-more lc-more' }, ...v.more) : null,
+      acts.length ? h('div', { id: say ? 'ldSayActs' : null, class: 'ld-acts' }, ...acts) : null);
+    const el = h('div', { class: 'lc ' + (ty ? 'typed' : 'plain') + (sp.l ? '' : ' px-voice'), 'data-type': pg.type || '', 'data-key': pg.keys[0] || '', 'data-where': where }, head, h('div', { class: 'lc-body' }, who, msg));
+    el.style.setProperty('--t', ty ? ty.color : '#6B6388');
+    el.style.setProperty('--ld', sp.color);
+    return el;
+  }
 
   /* ---------- Reports: the leader's face beside a building's row ---------- */
   function reportFace(p, size = 24) {
@@ -1161,9 +1341,7 @@ const News = (() => {
   function init() {
     started = true;
     const b = box();
-    $('#ldSayClose').innerHTML = iconSvg('close', 16);
-    $('#ldSayClose').addEventListener('click', () => hide());
-    b.addEventListener('keydown', e => { if (e.key === 'Escape' && bub) { e.stopPropagation(); e.preventDefault(); hide(); } });
+    b.addEventListener('keydown', e => { if (e.key === 'Escape' && bub) { e.stopPropagation(); e.preventDefault(); minimize(); } });   // Esc minimizes (X2)
     b.addEventListener('pointerdown', () => hold());
     window.addEventListener('storage', e => { if (e.key === KEY) { st = load(); renderSection(); } });
     Art.onLoad(id => { if (bub && bub.list[bub.i] && bub.list[bub.i].pid === id) draw(); });   // its building's own art, loaded after it opened
@@ -1181,8 +1359,9 @@ const News = (() => {
     pump();
     setInterval(check, 60000);                               // a new day, a new week, and pace slipping while the city stays open
   }
-  return { init, check, claude, ticked, add, report, renderSection, take, release, cardLines, viewLines, cardTopics, viewTopics, openFace, unanswer, reportFace, yieldTo, hide, pump, redraw, plainReply, typer,
-    isShowing: () => !!bub, isHeld: () => !!bub && !bub.auto, items: () => sortItems(live()), lineOf, showing: id => !!bub && bub.list.some(x => x.id === id),
+  return { init, check, claude, ticked, add, report, renderSection, take, release, card, cardPages, openFace, unanswer, reportFace, yieldTo, hide, pump, redraw, plainReply, typer,
+    isShowing: () => !!bub, isHeld: () => !!bub && !bub.auto, items: () => sortItems(shown()), lineOf, showing: id => !!bub && bub.list.some(x => x.id === id), typeOf: typeOfItem,
     _test: { flat: v => { flat = !!v; }, sayMs: ms => { sayMs = ms; }, typeMs: ms => { typeMs = ms; }, talk: () => T.state(), state: () => JSON.parse(JSON.stringify(st)), bubble: () => bub && { ids: bub.list.map(x => x.id), i: bub.i, auto: bub.auto },
-      forget: () => { st = fresh(); save(); held.clear(); undos.clear(); }, held: pid => (held.get(pid) || []).map(x => x.id), reports: () => JSON.parse(JSON.stringify(st.reports)) } };
+      forget: () => { st = fresh(); save(); held.clear(); undos.clear(); flipAt.clear(); }, held: pid => (held.get(pid) || []).map(x => x.id), reports: () => JSON.parse(JSON.stringify(st.reports)),
+      pages: (pid, where = 'card') => { const p = getProject(pid); return p ? cardPages(p, where).map(pg => ({ type: pg.type, moment: pg.moment, keys: pg.keys, task: pg.t ? pg.t.text : '', ask: pg.ask, by: pg.sp.name })) : []; } } };
 })();

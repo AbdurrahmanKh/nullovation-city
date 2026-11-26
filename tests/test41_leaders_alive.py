@@ -92,7 +92,7 @@ with sync_playwright() as p:
     ev("() => Leaders.close(false)"); ev("() => Bubble.close()")
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(600)
     lc = face('#pvLeader .ld-face')
-    ok(f'the leader card\'s face breathes, at 96 px ({lc})', lc and lc['breathes'] and lc['anim'] == 'face-breathe' and lc['w'] == 96)
+    ok(f'the leader card\'s face breathes, at 100 px (0.1.96; 96 before) ({lc})', lc and lc['breathes'] and lc['anim'] == 'face-breathe' and lc['w'] == 100)
     ev("() => FullView.close()"); pg.wait_for_timeout(300)
     ev(f"() => Wheel.open(getProject('{gp}'), 600, 400)"); pg.wait_for_timeout(250)
     wh = face('.wheel-hub .ld-face')
@@ -111,20 +111,23 @@ with sync_playwright() as p:
     # ---------- talking in its bubble ----------
     ev(f"() => {{ const p = getProject('{gp}'); p.urgency = {{ system: 'pace', days: 1, lastWorked: Date.now() - 3600e3, pickedAt: Date.now() - 30 * {D} }}; changed(p); }}")
     pg.wait_for_timeout(400)
-    LINE = 'We slipped behind our pace. Draw the beds on a grid puts us back on track.'
-    TALK = """() => { const t = document.querySelector('#ldSayText'), f = document.querySelector('#ldSayFace'), b = document.querySelector('#ldSay');
+    LINE = 'We slipped behind our pace. This task puts us back on track.'     # the task in its own line since 0.1.96 (One Leader Card, W1)
+    # the bubble is drawn fresh each time since 0.1.96: closed, it holds no line
+    TALK = """() => { const b = document.querySelector('#ldSay'), t = document.querySelector('#ldSayText'), f = document.querySelector('#ldSayFace'), w = document.querySelector('#ldSayWhere');
+        if (!t || !f) return { shown: !b.hidden, typing: false, on: 0, all: 0, text: '', talking: false, anim: '' };
+        const a = w && w.querySelector('a.ld-task');
         return { shown: !b.hidden, typing: t.classList.contains('typing'), on: t.querySelectorAll('.ty.on').length, all: t.querySelectorAll('.ty').length, text: t.textContent,
           talking: f.classList.contains('talking'), anim: f.querySelector('.breathes > *') ? getComputedStyle(f.querySelector('.breathes > *')).animationName : '',
           seen: [...t.querySelectorAll('.ty')].filter(x => getComputedStyle(x).opacity === '1').length, h: Math.round(b.getBoundingClientRect().height),
-          link: !!t.querySelector('a.ld-task'), plain: [...t.childNodes].every(n => n.nodeType === 3 || n.matches('a.ld-task')) }; }"""
+          link: !!a && !a.querySelector('.ty'), task: a ? a.textContent : null, plain: [...t.childNodes].every(n => n.nodeType === 3 || n.matches('a.ld-task')) }; }"""
     talk = lambda: ev(TALK)
     ev(f"() => {{ const p = getProject('{gp}'); p.urgency.lastWorked = Date.now() - 1.5 * {D}; changed(p); }}")
     pg.wait_for_timeout(120)
     t0 = talk()
-    ok(f'E1 the bubble opens and its line types out ({t0["on"]} of {t0["all"]} letters)', t0['shown'] and t0['typing'] and 0 < t0['all'] and t0['on'] < t0['all'] and t0['seen'] == t0['on'])
+    ok(f'E1 the bubble opens and its line types out, the letters not typed yet see-through ({t0["on"]} of {t0["all"]} letters, {t0.get("seen")} seen)', t0['shown'] and t0['typing'] and 0 < t0['all'] and t0['on'] < t0['all'] and t0['seen'] == t0['on'])
     ok('every letter is in the line from the start, so a screen reader hears it whole, once', t0['text'] == LINE and t0['all'] == len(LINE))
     ok(f'the face bobs while it talks ({t0["anim"]})', t0['talking'] and t0['anim'] == 'face-talk')
-    ok('the task stays a link while it types', t0['link'])
+    ok(f'the task stays a link while the words type, in its own line now (0.1.96) ({t0.get("task")})', t0['link'] and t0['task'] == 'Draw the beds on a grid')
     pg.wait_for_timeout(250)
     mid = talk()
     ev("() => News.redraw()")
@@ -136,34 +139,35 @@ with sync_playwright() as p:
     t1 = talk()
     ok(f'a long line types out in under 2 seconds, then the face settles and breathes ({t1["anim"]})', not t1['typing'] and t1['all'] == 0 and not t1['talking'] and t1['anim'] == 'face-breathe')
     ok(f'the bubble kept its size the whole time ({t0["h"]}, {t1["h"]})', t0['h'] == t1['h'])
-    ok('the line is plain words again, the task its link', t1['text'] == LINE and t1['plain'] and t1['link'])
+    ok('the line is plain words again, the task its link in its own line', t1['text'] == LINE and t1['plain'] and t1['link'])
     ev("() => News.redraw()")
     ok('a line said already stays whole when drawn again', not talk()['typing'])
     tb = face('#ldSayFace .ld-face')
     ok(f'the bubble\'s face breathes too, at 100 px ({tb})', tb and tb['breathes'] and tb['w'] == 100)
 
-    # Next types the next line; closing, and opening it again from the face, types it again
-    ev(f"() => News.add(getProject('{gp}'), 'added', {{ what: '2 tasks' }})"); pg.wait_for_timeout(150)
-    ok('news joining the bubble leaves the line on show as it is', not talk()['typing'] and ev("() => document.querySelector('#ldSayCount').textContent") == '1 of 2')
+    # Next types the next page's line; minimizing, and opening it again from the face, types it again. Since 0.1.96 what
+    # Claude added waits in News, so a round attached (Quill's, which opens by itself) is the news that joins
+    plan = ev(f"() => getProject('{gp}').todos.find(t => t.text === 'Save a plan as a file').id")
+    ev(f"() => News.add(getProject('{gp}'), 'round', {{ task: 'Save a plan as a file', round: 'Plans, Round 2' }}, {{ ref: {{ tid: '{plan}' }} }})"); pg.wait_for_timeout(150)
+    ok('news joining the bubble leaves the line on show as it is', not talk()['typing'] and ev("() => document.querySelector('#ldSayCount').textContent") == '1 / 2')
     pg.click('#ldSayNext'); pg.wait_for_timeout(60)
     n1 = talk()
-    ok(f'Next types the next line ({n1["text"]})', n1['typing'] and n1['text'] == 'Claude added 2 tasks.' and n1['talking'])
-    pg.wait_for_timeout(1000)
+    ok(f'Next types the next line ({n1["text"]})', n1['typing'] and n1['text'] == 'Claude attached a wizard round to this task: Plans, Round 2.' and n1['talking'])
+    pg.wait_for_timeout(2200)                                   # a long line, as the round's is, in under 2 seconds
     ok('and settles', not talk()['typing'] and not talk()['talking'])
-    ev(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'a note' }})"); pg.wait_for_timeout(1300)
-    pg.click('#ldSayClose'); pg.wait_for_timeout(300)
-    ok('closed, it stops talking', not talk()['shown'] and not talk()['talking'])
-    ev(f"() => News.add(getProject('{gp}'), 'added', {{ what: '1 link' }})"); pg.wait_for_timeout(60)
-    ok('the next bubble types its line again', talk()['typing'])
+    pg.click('#ldSayMin'); pg.wait_for_timeout(300)
+    ok('minimized, it stops talking (0.1.96: Minimize, its pages waiting in News)', not talk()['shown'] and not talk()['talking'])
+    pg.click(f'#newsList .news-tile[data-k="ld:{tal}"] .news-face'); pg.wait_for_timeout(60)
+    ok('opened again from its face, the bubble types its line again', talk()['typing'])
     pg.wait_for_timeout(1200); pg.click('#ldSayClose'); pg.wait_for_timeout(300)
 
     # ---------- Proxima, in the leaders' place, and Gus as he was ----------
+    # what Claude added waits in News since 0.1.96: her face opens it
     ev(f"() => News.add(getProject('{nc}'), 'added', {{ what: '3 tasks' }})"); pg.wait_for_timeout(80)
+    ev("() => News.openFace('px')"); pg.wait_for_timeout(80)
     px = talk(); pf = face('#ldSayFace .gus-face')
     ok(f'Proxima, bringing a building with no leader\'s news, talks and breathes as a leader does ({pf})', px['typing'] and px['talking'] and pf and pf['breathes'] and pf['w'] == 100)
-    pg.wait_for_timeout(1200); pg.click('#ldSayClose'); pg.wait_for_timeout(300)
-    ev(f"() => News.add(getProject('{nc}'), 'added', {{ what: '1 note' }})"); pg.wait_for_timeout(1300)
-    ev("() => News.hide({ read: false })"); pg.wait_for_timeout(200)
+    pg.wait_for_timeout(1200); pg.click('#ldSayMin'); pg.wait_for_timeout(300)
     nf = face('#newsList .news-tile[data-k="px"] .gus-face')
     ok(f'her face in News breathes ({nf})', nf and nf['breathes'] and nf['anim'] == 'face-breathe')
     ev(f"() => Bubble.open('{nc}')"); pg.wait_for_timeout(400)
@@ -181,8 +185,9 @@ with sync_playwright() as p:
     ok(f'Still: the page wears m-still, and every face rests a pixel low, not breathing ({st})',
        ev("() => document.documentElement.classList.contains('m-still')") and st and st['anim'] == 'none' and st['y'] == 1)
     ev(f"() => News.add(getProject('{gp}'), 'added', {{ what: '4 tasks' }})"); pg.wait_for_timeout(60)
+    pg.click(f'#newsList .news-tile[data-k="ld:{tal}"] .news-face'); pg.wait_for_timeout(60)     # it waits in News since 0.1.96
     s = talk()
-    ok(f'Still: a line shows whole at once, the face still ({s})', s['shown'] and not s['typing'] and s['all'] == 0 and s['text'] == 'Claude added 4 tasks.' and not s['talking'] and s['anim'] == 'none')
+    ok(f'Still: a line shows whole at once, the face still ({s})', s['shown'] and not s['typing'] and s['all'] == 0 and s['text'] == 'Claude added 4 tasks. Just now.' and not s['talking'] and s['anim'] == 'none')
     pg.click('#ldSayClose'); pg.wait_for_timeout(200)
     ev("() => Motion.set(null)")
     ok('back to following the system, the page leaves m-still', not ev("() => document.documentElement.classList.contains('m-still')"))

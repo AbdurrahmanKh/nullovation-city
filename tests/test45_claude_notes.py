@@ -70,6 +70,11 @@ with sync_playwright() as p:
     acts = lambda: js(f"() => getProject('{gp}').activity.map(e => e.text)")
     say = lambda: js("() => { const b = document.querySelector('#ldSay'); return b.hidden ? null : $('#ldSayText').textContent; }")
     close_say = lambda: js("() => { const c = document.querySelector('#ldSayClose'); if (!document.querySelector('#ldSay').hidden) c.click(); }")
+    items = lambda: js(f"() => News.items().filter(it => it.pid === '{gp}').map(it => it.moment)")
+    def face():
+        """A click on the leader's face in News: what Claude added waits there since 0.1.96, and the face opens it."""
+        js("() => { const t = [...document.querySelectorAll('#newsList .news-tile')].find(x => x.textContent.includes('Talal')); if (t) t.querySelector('.news-face').click(); }")
+        pg.wait_for_timeout(400)
 
     # ---------- K1: a status goes in its task ----------
     a0, p0 = acts(), pnotes()
@@ -78,18 +83,26 @@ with sync_playwright() as p:
     ok(f'a status goes in the task the update names, by Claude, with its kind and the sticky note ({n1})', len(n1) == 1 and n1[0]['title'] == 'Beds: where it stands' and n1[0]['by'] == 'claude'
        and n1[0]['kind'] == 'status' and n1[0]['icon'] == 'sticky')
     ok('not in the project\'s Notes, and nothing in Activity', pnotes() == p0 and acts() == a0)
-    ok(f'its leader says it ({say()})', say() == 'Claude added a note, Beds: where it stands. Sent just now.')
+    ok(f'what Claude added waits in News with its leader, no bubble by itself (0.1.96) ({items()})', say() is None and items() == ['added'])
+    face()
+    ok(f'its leader says it, on an Attachment page, once its face is clicked ({say()})', say() == 'Claude added a note, Beds: where it stands. Sent just now.'
+       and js("() => document.querySelector('#ldSay').dataset.type") == 'attach')
     close_say()
 
     # K2: the same kind again is brought up to date, and Undo takes the new version back
     send([{'do': 'add-note', 'kind': 'status', 'title': 'Beds: where they stand now', 'text': '1. Grid drawn\n2. Labels on'}], task=T1)
     n2 = tnotes(T1)
     ok(f'a status again is the same note, brought up to date (K2) ({n2})', len(n2) == 1 and n2[0]['id'] == n1[0]['id'] and n2[0]['title'] == 'Beds: where they stand now' and n2[0]['up'])
+    face()
     s = say()
-    ok(f'its leader says it is a new version ({s})', s == 'Claude added a new version of Beds: where they stand now. Sent just now.')
-    pg.click('#ldSay .ld-undo'); pg.wait_for_timeout(400)
+    tiles = js("() => [...document.querySelectorAll('#ldSay .lc-atts .lc-note .pv-tnote-t')].map(x => x.textContent)")
+    ok(f'its leader says it is a new version, the note whole on the page with Delete (0.1.96: Delete in place of Undo) ({s}, {tiles})', s == 'Claude added a new version of Beds: where they stand now. Sent just now.'
+       and tiles == ['Beds: where they stand now'] and js("() => [...document.querySelectorAll('#ldSay .ld-del')].map(x => x.textContent)") == ['Delete'])
+    pg.click('#ldSay .ld-del'); pg.wait_for_timeout(400)
+    ok(f'Delete takes the note out of its task, and the page goes with nothing left on it ({tnotes(T1)})', tnotes(T1) == [] and say() is None and items() == [])
+    js("() => document.querySelector('#toast .toast-act').click()"); pg.wait_for_timeout(400)
     n3 = tnotes(T1)
-    ok(f'Undo puts the version before it back, as it was ({n3})', len(n3) == 1 and n3[0]['title'] == 'Beds: where it stands' and not n3[0]['up'])
+    ok(f'Undo in its toast puts it back as Claude left it, the new version ({n3})', len(n3) == 1 and n3[0]['id'] == n1[0]['id'] and n3[0]['title'] == 'Beds: where they stand now' and n3[0]['up'])
     close_say()
 
     # a plan in its task, with the blueprint; a decision is a new note each time; the note's own task wins
@@ -132,7 +145,7 @@ with sync_playwright() as p:
     pg.screenshot(path=str(SH / '450-task-notes.png'), clip=pg.query_selector('#pvSide').bounding_box())
     up0 = js(f"() => getProject('{gp}').updatedAt")
     a1 = acts()
-    pg.click('#pvSide .pv-tnote:has-text("Beds: where it stands")'); pg.wait_for_timeout(400)
+    pg.click('#pvSide .pv-tnote:has-text("Beds: where they stand now")'); pg.wait_for_timeout(400)
     np = js("""() => { const s = document.querySelector('#pvSide'); return { in: (s.querySelector('.pv-note-task') || {}).textContent, back: !!s.querySelector('#pvNoteBackTask'), toTask: !!s.querySelector('#pvNoteToTask'),
       icons: [...s.querySelectorAll('.pv-note-icon')].map(b => [b.dataset.icon, b.getAttribute('aria-pressed')]), when: s.querySelector('.pv-note-ed > .note:last-child').textContent }; }""")
     ok(f'a click opens it in the note panel: In its task, Back to the task, no Turn into a task ({np["in"]})', np['in'] == T1 and np['back'] and not np['toTask'])
@@ -140,15 +153,15 @@ with sync_playwright() as p:
     ok(f'and who wrote it and when ({np["when"][:40]})', np['when'].strip().startswith('By Claude, '))
     pg.click('#pvSide .pv-note-icon[data-icon="book"]'); pg.wait_for_timeout(200)
     ok('a click on an icon picks it, pressed, the focus on it', js("() => document.activeElement && document.activeElement.dataset.icon === 'book' && document.activeElement.getAttribute('aria-pressed') === 'true'")
-       and [x for x in tnotes(T1) if x['title'] == 'Beds: where it stands'][0]['icon'] == 'book')
+       and [x for x in tnotes(T1) if x['title'] == 'Beds: where they stand now'][0]['icon'] == 'book')
     pg.screenshot(path=str(SH / '451-note-icons.png'), clip=pg.query_selector('#pvSide').bounding_box())
     pg.keyboard.press('Escape'); pg.wait_for_timeout(400)
-    ok('Esc undoes it and goes back to the task', [x for x in tnotes(T1) if x['title'] == 'Beds: where it stands'][0]['icon'] == 'sticky' and js("() => !!document.querySelector('#pvSide .pv-desc')"))
-    pg.click('#pvSide .pv-tnote:has-text("Beds: where it stands")'); pg.wait_for_timeout(300)
+    ok('Esc undoes it and goes back to the task', [x for x in tnotes(T1) if x['title'] == 'Beds: where they stand now'][0]['icon'] == 'sticky' and js("() => !!document.querySelector('#pvSide .pv-desc')"))
+    pg.click('#pvSide .pv-tnote:has-text("Beds: where they stand now")'); pg.wait_for_timeout(300)
     pg.click('#pvSide .pv-note-icon[data-icon="book"]'); pg.wait_for_timeout(200)
     pg.click('#pvNoteBackTask'); pg.wait_for_timeout(400)
     ok('kept on Back to the task: Claude\'s note takes the icon you picked, and it is not work: Updated and Activity stay',
-       [x for x in tnotes(T1) if x['title'] == 'Beds: where it stands'][0]['icon'] == 'book' and js(f"() => getProject('{gp}').updatedAt") == up0 and acts() == a1 and js("() => !!document.querySelector('#pvSide .pv-desc')"))
+       [x for x in tnotes(T1) if x['title'] == 'Beds: where they stand now'][0]['icon'] == 'book' and js(f"() => getProject('{gp}').updatedAt") == up0 and acts() == a1 and js("() => !!document.querySelector('#pvSide .pv-desc')"))
     # your own note in the task
     pg.click('#pvTaskAddNote'); pg.wait_for_timeout(300)
     ok('Add a note opens a new note in the task, the focus on its title, the sticky note pressed', js("() => document.activeElement && document.activeElement.id === 'pvNoteTitle'")
@@ -165,12 +178,12 @@ with sync_playwright() as p:
 
     # ---------- the copies, the summary, search, saved data ----------
     copy = js(f"() => taskForClaude(getProject('{gp}'), getProject('{gp}').todos.find(t => t.text === '{T1}'))")
-    ok('a task\'s copy carries its notes, for the next session (K1)', '## Notes on this task' in copy and '### Beds: where it stands' in copy and 'By Claude, status' in copy and '1. Grid drawn\n2. Labels left' in copy)
+    ok('a task\'s copy carries its notes, for the next session (K1)', '## Notes on this task' in copy and '### Beds: where they stand now' in copy and 'By Claude, status' in copy and '1. Grid drawn\n2. Labels on' in copy)
     js("() => ClaudeWork.cityChanged()"); pg.wait_for_timeout(2400)
     summ = js("() => window.__subjson('city/summary.json')")
     task = next(t for m in next(p for p in summ['projects'] if p['name'] == 'Garden planner')['milestones'] for t in m['open'] if t['task'] == T1)
-    ok(f'the city summary gives an open task its notes, Claude\'s with by and kind ({[n["title"] for n in task.get("notes", [])]})', any(n['title'] == 'Beds: where it stands' and n.get('by') == 'Claude' and n.get('kind') == 'status' for n in task.get('notes', [])))
-    found = js(f"() => {{ App.filter.q = norm('labels left'); const r = matchesFilter(getProject('{gp}')); App.filter.q = ''; return r; }}")
+    ok(f'the city summary gives an open task its notes, Claude\'s with by and kind ({[n["title"] for n in task.get("notes", [])]})', any(n['title'] == 'Beds: where they stand now' and n.get('by') == 'Claude' and n.get('kind') == 'status' for n in task.get('notes', [])))
+    found = js(f"() => {{ App.filter.q = norm('labels on'); const r = matchesFilter(getProject('{gp}')); App.filter.q = ''; return r; }}")
     ok('search finds a building by a note in one of its tasks', found)
     pg.reload()
     pg.wait_for_function("() => typeof DB !== 'undefined' && DB.projects.length === 2", timeout=20000); pg.wait_for_timeout(500)

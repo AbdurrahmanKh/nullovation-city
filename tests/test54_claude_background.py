@@ -233,8 +233,9 @@ with sync_playwright() as p:
     ok('Settings, Links counts it working', '1 working' in pg.text_content('#claudeBox'), pg.text_content('#claudeBox')[:200])
     close_settings(pg)
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(800)
-    line = pg.text_content('#bubble .b-claude') or ''
-    ok(f'the status card says Claude is working on the task, since the stretch of work began ({line[:80]})', line.startswith('Claude is working on Water the beds on time. Started 40 minutes ago.'), line)
+    line = pg.text_content('#bubble .ld-line[data-moment="working"]') or ''
+    task = pg.text_content('#bubble .lc-tline') or ''
+    ok(f'the status card says Claude is working on the task, since the stretch of work began, the task in its own line ({line[:80]})', line.startswith('Claude is working on this task. Started 40 minutes ago.') and task == 'Water the beds on time', line)
     ok('and offers no Tick it, since nothing is finished', not pg.is_visible('#bubble .b-claude-tick'))
     pg.screenshot(path=str(SH / '540-background-card.png'), clip=pg.query_selector('#bubble').bounding_box())
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
@@ -250,8 +251,8 @@ with sync_playwright() as p:
     ok(f'once its time is up, with the file unchanged, it is finished ({st()})', st() == {'state': 'done', 'count': 1} and cb()['color'] == 'done', (st(), cb()))
     ok('with no alert, being old news, and the tab\'s title counting it', alerts() == [] and pg.title() == '(1) Nullovation City', (alerts(), pg.title()))
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(800)
-    line = pg.text_content('#bubble .b-claude') or ''
-    ok(f'its card says Claude handed the task back, with its reply and Tick it ({line[:80]})', line.startswith('Claude handed Water the beds on time back to you.') and 'The full run is going' in line and pg.is_visible('#bubble .b-claude-tick'), line)
+    line = pg.text_content('#bubble .ld-line[data-moment="finished"]') or ''
+    ok(f'its card says Claude handed the task back, with its reply, and no Tick it on News since 0.1.96 ({line[:80]})', line.startswith('Claude handed this task back to you.') and 'The full run is going' in line and not pg.is_visible('#bubble .b-claude-tick'), line)
     js("() => MapView.deselect()"); pg.wait_for_timeout(200)
 
     # the usual way: back to work when the command reports, then finished, with its alert

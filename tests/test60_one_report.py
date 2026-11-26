@@ -2,7 +2,8 @@
 
 A thread started in T3 has no task of the city's, so the updates it sent for a task found no session, and each part
 was said on its own: two "Claude wants your OK first" lines, what it added, Quill's round, and a finish that named the
-prompt as its task ("Claude handed he is the main voice right now... back to you"). Now an update that names a task no
+prompt as its task. Since 0.1.96 (One Leader Card, M2) a finish's updates are a page per type, never one mixed message, so
+this pass checks one Need Approval page with every change, Quill's round, one Attachment page and the finish ("Claude handed he is the main voice right now... back to you"). Now an update that names a task no
 session works on goes to the one session with no task of its own, at work or finished, or whose run it was written in;
 every update of a turn sits under its finish, each summary with its parts; the finish names the update's task; and a
 session with no task is named by its prompt in quotes. A task in a line is a link that wraps with the words, a part's
@@ -66,16 +67,19 @@ with sync_playwright() as p:
     def drop(name, d, ago_min=0):
         js(f"() => window.__sub.set('inbox/{name}', {{ text: {json.dumps(json.dumps(d))}, t: Date.now() - {ago_min} * 60000 }})")
     items = lambda: js(f"() => News.items().filter(it => it.pid === '{gp}').map(it => it.moment)")
-    close_say = lambda: js("() => { const c = document.querySelector('#ldSayClose'); if (!document.querySelector('#ldSay').hidden) c.click(); }")
+    close_say = lambda: js("() => { const c = document.querySelector('#ldSayMin'); if (!document.querySelector('#ldSay').hidden && c) c.click(); }")
     say = lambda: js("""() => { const b = document.querySelector('#ldSay'); if (b.hidden) return null;
-      return { text: $('#ldSayText').textContent, words: [...b.querySelectorAll('#ldSayMore .b-claude-said')].map(x => x.textContent),
+      return { text: $('#ldSayText').textContent, type: b.dataset.type, n: ($('#ldSayCount') || {}).textContent || '', words: [...b.querySelectorAll('#ldSayMore .b-claude-said')].map(x => x.textContent),
         parts: [...b.querySelectorAll('#ldSayMore .ld-part-text')].map(x => x.textContent) }; }""")
     CARD = """() => { const b = document.querySelector('#bubble'); if (b.hidden) return null;
-      return { lines: [...b.querySelectorAll('.ld-line')].map(l => ({ moment: l.dataset.moment, says: l.querySelector('.ld-says').textContent, words: [...l.querySelectorAll('.b-claude-said')].map(x => x.textContent),
+      return { lines: [...b.querySelectorAll('.ld-line')].map(l => ({ moment: l.dataset.moment, type: l.dataset.type, task: (l.closest('.lc').querySelector('.lc-tline') || {}).textContent || '',
+        says: l.querySelector('.ld-says').textContent, words: [...l.querySelectorAll('.b-claude-said')].map(x => x.textContent),
         parts: [...l.querySelectorAll('.ld-part')].map(x => [x.querySelector('.ld-part-text').textContent, [...x.querySelectorAll('button.btn')].map(y => y.textContent)]),
         kids: [...l.children].map(x => x.classList.contains('b-claude-said') ? 'said' : x.classList.contains('ld-part') ? 'part' : x.className.split(' ')[0]) })),
         flip: (b.querySelector('.ld-flip-n') || {}).textContent || '' }; }"""
     card = lambda: js(CARD)
+    flat = lambda v: js(f"() => News._test.flat({'true' if v else 'false'})")
+    line = lambda c, ty: next((x for x in (c or {'lines': []})['lines'] if x['type'] == ty), None)
     def open_card():
         js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(900)
     shut = lambda: (js("() => MapView.deselect()"), pg.wait_for_timeout(200))
@@ -89,70 +93,74 @@ with sync_playwright() as p:
     ok(f'an update naming a task no session works on goes to the one session with no task of its own ({[(r["sid"], r["alone"]) for r in rep]})',
        len(rep) == 1 and rep[0]['sid'] == 'm1' and not rep[0]['alone'])
     ok(f'and nothing is said on its own meanwhile: no bubble, no item in News ({items()})', say() is None and items() == [])
-    open_card()
+    flat(True); open_card()
     c = card()
-    ok(f'its working line names the update\'s task, the report under it ({c and c["lines"][0]["says"]})', c and len(c['lines']) == 1
-       and c['lines'][0]['says'] == f'Claude is working on {T1}. Started 2 minutes ago.' and len(c['lines'][0]['parts']) == 3)
+    ok(f'its working page names the update\'s task in the task\'s line, the update\'s parts as pages of their own ({c and [(x["type"], x["moment"]) for x in c["lines"]]})', c
+       and [(x['type'], x['moment']) for x in c['lines']] == [('approval', 'asks'), ('wizard', 'round'), ('attach', 'added'), ('news', 'working')]
+       and line(c, 'news')['says'] == 'Claude is working on this task. Started 2 minutes ago.' and line(c, 'news')['task'] == T1
+       and line(c, 'approval')['says'] == 'Claude wants your OK first: a new description for this task. Sent just now.')
     shut()
     js(S('m1', 'working', GARDEN, ask=ASK))                    # a second update in the same run
     drop('2026-11-25-0800-garden.json', UPD2)
     settle()
     open_card()
     c = card()
-    ok(f'a second update in the same run joins the first under the one line, each summary over its parts ({c and c["lines"][0]["kids"]})', c and len(c['lines']) == 1
-       and c['lines'][0]['words'] == [UPD1['summary'], UPD2['summary']] and len(c['lines'][0]['parts']) == 7
-       and c['lines'][0]['kids'] == ['ld-says', 'said', 'part', 'part', 'part', 'said', 'part', 'part', 'part', 'part'])
-    shut()
+    ok(f'a second update in the same run joins the first: one page per type, the working page with both summaries ({c and [x["says"] for x in c["lines"]]})', c and len(c['lines']) == 4
+       and line(c, 'approval')['says'] == 'Claude wants your OK on 4 changes. Sent just now.' and len(line(c, 'approval')['parts']) == 4
+       and line(c, 'news')['words'] == [UPD1['summary'], UPD2['summary']]
+       and line(c, 'attach')['says'] == 'Claude added a note, Where the understanding stands, and a link, Understanding the game (doc). Sent just now.')
+    shut(); flat(False)
 
     # ---------- its finish: one report, every part of both updates under it ----------
     js(S('m1', 'done', GARDEN, ask=ASK, reply="I've fixed the document. It now says the Scouts Leader is the main voice today."))
     settle()
     s = say()
-    ok(f'the finish opens one bubble, naming the task the updates name, not the prompt ({s and s["text"]})', s and s['text'] == f'Claude handed {T1} back to you. Just now.')
-    ok(f'both summaries and all seven parts under it, the oldest first ({s and s["parts"]})', s and s['words'] == [UPD1['summary'], UPD2['summary']] and s['parts'] == [
-        'Added a note, Where the understanding stands, and a link, Understanding the game (doc).', 'Attached a wizard round, Understand the game and its art, Round 2.',
-        'Wants a new description for this task.', 'Added a new version of Where the understanding stands.', 'Wants this task ticked off.',
-        f'Wants a new description for {T2}.', f'Wants a new description for {T3}.'])
-    ok(f'one item in News, not six ({items()})', items() == ['finished'])
+    ok(f'the finish opens one bubble on what needs your OK: every change of both updates on one page, the oldest first ({s and (s["n"], s["text"], s["parts"])})', s and s['n'] == '1 / 2'
+       and s['type'] == 'approval' and s['text'] == 'Claude wants your OK on 4 changes. Sent just now.'
+       and s['parts'] == ['A new description for this task.', 'Tick this task off.', f'A new description for {T2}.', f'A new description for {T3}.'])
+    ok(f'a page per type in News, not one mixed message nor six: what asks, the round, what Claude added, the finish ({items()})', items() == ['asks', 'round', 'added', 'finished'])
+    js("() => document.querySelector('#ldSayNext').click()"); pg.wait_for_timeout(200)
+    s = say()
+    ok(f'the bubble\'s second page: Quill\'s round; what Claude added and the finish wait in News ({s and s["text"]})', s and s['type'] == 'wizard'
+       and s['text'] == 'Claude attached a wizard round to this task: Understand the game and its art, Round 2. Sent just now.')
+    js("() => document.querySelector('#ldSayPrev').click()"); pg.wait_for_timeout(200)
     pg.screenshot(path=str(SH / '600-one-report-bubble.png'), clip=pg.query_selector('#ldSay').bounding_box())
     close_say(); settle(300)
     open_card()
     c = card()
-    ok(f'the status card says it as one line, with no topics to flip ({c and [x["says"] for x in c["lines"]]})', c and len(c['lines']) == 1 and c['flip'] == ''
-       and c['lines'][0]['says'] == f'Claude handed {T1} back to you. Just now.' and len(c['lines'][0]['parts']) == 7)
-    ok(f'each part with its own buttons ({c and [x[1] for x in c["lines"][0]["parts"]]})', c and [x[1] for x in c['lines'][0]['parts']] == [
-        ['Read', 'Undo'], ['Read', 'Undo'], ['Read', 'Apply', 'Dismiss'], ['Read', 'Undo'], ['Tick it', 'Dismiss'], ['Read', 'Apply', 'Dismiss'], ['Read', 'Apply', 'Dismiss']])
+    ok(f'the status card opens on the same page, four to flip ({c and (c["flip"], [x["says"] for x in c["lines"]])})', c and len(c['lines']) == 1 and c['flip'] == '1 / 4'
+       and c['lines'][0]['says'] == 'Claude wants your OK on 4 changes. Sent just now.' and len(c['lines'][0]['parts']) == 4)
+    ok(f'each change with its own buttons, No in place of Dismiss ({c and [x[1] for x in c["lines"][0]["parts"]]})', c and [x[1] for x in c['lines'][0]['parts']] == [
+        ['Read', 'Apply', 'No'], ['Tick it', 'No'], ['Read', 'Apply', 'No'], ['Read', 'Apply', 'No']])
 
-    # the task as a link that wraps with the words round it
-    lk = js("""() => { const a = document.querySelector('#bubble .ld-line .ld-says .ld-task'), says = a.closest('.ld-says'), rs = [...a.getClientRects()], s0 = says.getBoundingClientRect();
-      return { tag: a.tagName, text: a.textContent, rects: rs.length, startsMid: rs[0].left - s0.left > 40, lines: Math.round(s0.height / parseFloat(getComputedStyle(says).lineHeight)) }; }""")
-    ok(f'the task in the line is a link that wraps with the words, starting after "Claude handed", the line in three lines, not four ({lk})', lk['tag'] == 'A' and lk['text'] == T1
-       and lk['rects'] >= 2 and lk['startsMid'] and lk['lines'] <= 3)
+    # the task in its own line, a link that wraps
+    lk = js("""() => { const a = document.querySelector('#bubble .lc-tline .ld-task'); return { tag: a.tagName, text: a.textContent, rects: a.getClientRects().length }; }""")
+    ok(f'the task is in its own line, a link that wraps ({lk})', lk['tag'] == 'A' and lk['text'] == T1 and lk['rects'] >= 1)
     pk = js("""() => [...document.querySelectorAll('#bubble .ld-part')].map(x => { const t = x.querySelector('.ld-part-text'), a = x.querySelector('.ld-part-acts'), tr = t.getBoundingClientRect(), ar = a.getBoundingClientRect();
       const lh = parseFloat(getComputedStyle(t).lineHeight);
       return { text: t.textContent, whole: t.scrollHeight <= t.clientHeight + 1, lines: Math.round(tr.height / lh), follows: Math.abs(ar.left - tr.left) <= 1 || (ar.left >= tr.right && ar.left - tr.right <= 12 && Math.abs(ar.top - tr.top) < lh) }; })""")
     ok(f'every part keeps to two lines, its buttons following its words, under them or beside a short line ({[(x["lines"], x["follows"]) for x in pk]})', all(x['lines'] <= 2 and x['follows'] for x in pk))
-    tick = next(x for x in pk if x['text'] == 'Wants this task ticked off.')
-    reb = next(x for x in pk if x['text'] == f'Wants a new description for {T2}.')
-    ok(f'a short part reads whole: "Wants this task ticked off." and the jam rebuild\'s line, no end cut off ({tick["whole"]}, {reb["whole"]})', tick['whole'] and reb['whole'])
+    tick = next(x for x in pk if x['text'] == 'Tick this task off.')
+    reb = next(x for x in pk if x['text'] == f'A new description for {T2}.')
+    ok(f'a short part reads whole: "Tick this task off." and the jam rebuild\'s line, no end cut off ({tick["whole"]}, {reb["whole"]})', tick['whole'] and reb['whole'])
     pg.screenshot(path=str(SH / '601-one-report-card.png'), clip=pg.query_selector('#bubble').bounding_box())
-    pg.click('#bubble .ld-line .ld-says .ld-task'); pg.wait_for_timeout(600)
+    pg.click('#bubble .lc-tline .ld-task'); pg.wait_for_timeout(600)
     ok('a click on the task opens it, in its project', js(f"() => FullView.shows('{gp}') && !!document.querySelector('#pvSide .pv-desc, #pvSide')") is True)
     js("() => FullView.close()"); pg.wait_for_timeout(300)
     shut()
 
     # ---------- the leader card in the project view says the same ----------
     js(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(700)
-    v = js("() => { const l = document.querySelector('#pvLeader .ld-line'); return l && [l.querySelector('.ld-says').textContent, l.querySelectorAll('.ld-part').length]; }")
-    ok(f'the leader card in the project view says the same one report ({v})', v == [f'Claude handed {T1} back to you. Just now.', 7])
+    v = js("() => { const l = document.querySelector('#pvLeader .ld-line'); return l && [l.querySelector('.ld-says').textContent, l.querySelectorAll('.ld-part').length, document.querySelector('#pvLeader .lc-pgn').textContent]; }")
+    ok(f'the leader card in the project view says the same pages ({v})', v == ['Claude wants your OK on 4 changes. Sent just now.', 4, '1 / 4'])
     js("() => FullView.close()"); pg.wait_for_timeout(300)
 
     # ---------- acting on a part keeps the rest ----------
     open_card()
     pg.click('#bubble .ld-part[data-part="ask done"] .b-claude-tick'); pg.wait_for_timeout(1500)
     c = card()
-    ok(f'Tick it ticks the task off, and the report keeps its other parts ({c and len(c["lines"][0]["parts"])})', js(f"() => getProject('{gp}').todos.find(t => t.text === {json.dumps(T1)}).done") is True
-       and c and len(c['lines']) == 1 and len(c['lines'][0]['parts']) == 6)
+    ok(f'Tick it ticks the task off, and the page keeps the other changes ({c and len(c["lines"][0]["parts"])})', js(f"() => getProject('{gp}').todos.find(t => t.text === {json.dumps(T1)}).done") is True
+       and c and len(c['lines']) == 1 and len(c['lines'][0]['parts']) == 3)
     shut()
     js("() => window.__cf.delete('m1.json')"); settle()
 
@@ -166,8 +174,9 @@ with sync_playwright() as p:
     rep = js("() => News._test.reports()")
     ok(f'an update written during a run that finished 30 minutes ago sits under that finish ({[(r["sid"], r["alone"], bool(r["fin"])) for r in rep]})',
        len(rep) == 1 and rep[0]['sid'] == 'm2' and rep[0]['fin'] and not rep[0]['alone'])
-    s = say()
-    ok(f'said as the finish of the task it names ({s and s["text"]})', s and s['text'].startswith(f'Claude handed {T2} back to you.') and s['parts'] == ['Added a note, Jam notes.'])
+    pgs = js(f"() => News._test.pages('{gp}', 'view').map(x => [x.type, x.moment, x.task])")
+    ok(f'said with the finish of the task it names, what it added a page of its own, waiting in News; what the earlier updates still ask waits too ({pgs})', say() is None
+       and [x for x in pgs if x[0] != 'approval'] == [['attach', 'added', T2], ['news', 'finished', T2]])
     close_say(); settle(300)
     drop('2026-11-25-0910-garden.json', {**UPD1, 'summary': 'Written long after.', 'changes': [{'do': 'add-note', 'title': 'Later', 'text': 'y'}], 'task': ''}, ago_min=0)
     settle()
@@ -189,8 +198,8 @@ with sync_playwright() as p:
     settle()
     open_card()
     wk = next((x for x in (card() or {'lines': []})['lines'] if x['moment'] == 'working'), None)
-    ok(f'a prompt that is a task\'s title is that task, as a link ({wk and wk["says"]})', wk and wk['says'].startswith(f'Claude is working on {T3}.')
-       and js("() => (document.querySelector('#bubble .ld-line[data-moment=\"working\"] .ld-says .ld-task') || {}).textContent") == T3)
+    ok(f'a prompt that is a task\'s title is that task, as a link in the task\'s line ({wk and (wk["says"], wk["task"])})', wk and wk['says'].startswith('Claude is working on this task.') and wk['task'] == T3
+       and js("() => (document.querySelector('#bubble .ld-line[data-moment=\"working\"]').closest('.lc').querySelector('.lc-tline .ld-task') || {}).textContent") == T3)
     shut()
     js(S('m3', 'working', GARDEN, ask='make the build faster'))
     settle()

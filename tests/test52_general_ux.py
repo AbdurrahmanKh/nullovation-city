@@ -99,8 +99,8 @@ with sync_playwright() as pw:
     ok('and when it has the focus', style('#pv .ld-change', 'opacity') == '1')
 
     # ---------- P3: the leader says where the building stands ----------
-    says = ev("() => document.querySelector('#pvLeader .ld-says').textContent")
-    ok(f'the leader card says where it stands, then the next task ({says})', says == '5 to go. Next up: Draw the beds on a grid.')
+    says = ev("() => [document.querySelector('#pvLeader .ld-says').textContent, (document.querySelector('#pvLeader .lc-tline') || {}).textContent]")
+    ok(f'the leader card says where it stands, then the next task, in the task line since 0.1.96 ({says})', says == ['5 to go. This one is next.', 'Draw the beds on a grid'])
     G = f"""(o) => {{ const p = structuredClone(getProject('{gp}')), now = Date.now(), D = 864e5;
         Object.assign(p.urgency, o.u || {{}});
         for (const [i, k] of (o.ticks || []).entries()) {{ p.todos[i].done = true; p.todos[i].doneAt = now - k; }}

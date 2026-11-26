@@ -1,7 +1,8 @@
 """Celebrations (Celebrations, Rounds 1 and 2): every tick sets off its building's particles (T1), in a kind picked in
 the Building panel (T2), stars until then (T3); a milestone of 2 tasks or more (S1) throws a 30 second street party
 (S2): particles all party long, party lights over its streets, a crowd dancing round the block, six party drones and a
-bus that pulls up to watch; Proxima Pace announces it with Go to it, in one of her two approved lines."""
+bus that pulls up to watch; Proxima Pace announces it with Go to it, in one of her two approved lines. Since 0.1.96 (One
+Leader Card) her word on it waits in News with her face, and opens from it."""
 import io, json
 from PIL import Image
 from playwright.sync_api import sync_playwright
@@ -38,6 +39,9 @@ with sync_playwright() as p:
         """Ends every burst and party, and forgets the day's parties, so a check starts clean."""
         ev("() => { Celebrate._test.end(); Celebrate._test.forget(); Proxima.hush(false); Proxima._test.forget(); }")
         pg.wait_for_timeout(1900)
+    def px_face():
+        """A click on Proxima's face in News: her card opens on her first page (0.1.96)."""
+        pg.click('#newsList .news-tile[data-k="px"] .news-face'); pg.wait_for_timeout(300)
     def center(pid, z=4):
         ev(f"() => MapView.setCam({{ x: 0, y: 0, z: {z} }})"); pg.wait_for_timeout(80)
         for _ in range(3):
@@ -152,11 +156,14 @@ with sync_playwright() as p:
     tick(gp, 'Tune the watering reminders'); pg.wait_for_timeout(300)
     ok('S1 the last task of a 4-task milestone throws a street party at its building', parties() == [gp])
     ok('E2 it lasts 30 seconds', 29000 <= ev(f"() => Celebrate.partyOf('{gp}').left") <= 30000)
+    ok('Proxima\'s word on it waits in News with her face, no bubble by itself (0.1.96)', ev("() => [Proxima.waiting(), Proxima.isSaying(), document.querySelector('#pxSay').hidden]") == [1, False, True]
+       and pg.locator('#newsList .news-tile[data-k="px"]').count() == 1)
+    px_face()
     line = ev("() => document.querySelector('#pxSayText').textContent")
     want = [l.replace('{milestone}', 'First release').replace('{n} tasks', '4 tasks').replace('{n}', '4').replace('{project}', 'Garden planner') for l in LINES]
-    ok('Proxima announces it, in one of her two approved lines, filled in', ev("() => Proxima.saying()") == 'milestone' and line in want)
+    ok('her face opens it: she announces it, in one of her two approved lines, filled in', ev("() => Proxima.saying()") == 'milestone' and line in want)
     ok('V2 her lines for it, word for word as approved', ev("() => PROXIMA_LINES.milestone") == LINES)
-    ok('her bubble has Go to it', pg.inner_text('#pxSayRead').strip() == 'Go to it' and pg.is_visible('#pxSay'))
+    ok('her bubble has Go to it, a link (0.1.96)', pg.inner_text('#pxSayRead').strip() == 'Go to it' and pg.is_visible('#pxSay') and ev("() => document.querySelector('#pxSayRead').tagName") == 'A')
     st = ev("() => { const s = Traffic._state(); return { drones: s.pdrones.length, colors: [...new Set(s.pdrones.map(d => d.color))], dancers: s.people.filter(q => q.mode === 'dance' || q.guest).length, bus: s.cars.filter(c => c.party).length }; }")
     ok('six party drones fly in, in the colors of its particles (binary: cyan)', st['drones'] == 6 and st['colors'] == ['#3FE0F0'])
     ok('a crowd of about 20 dances or walks over to dance', 12 <= st['dancers'] <= 40)
@@ -185,6 +192,7 @@ with sync_playwright() as p:
     pg.click('#pxSayRead'); pg.wait_for_timeout(600)
     a = ev(f"() => MapView.anchors('{gp}')"); w = ev("() => document.querySelector('#mapWrap').getBoundingClientRect().width")
     ok('Go to it closes her bubble and brings the building to the middle of the map', not pg.is_visible('#pxSay') and abs(a['topX'] - w / 2) < 40)
+    ok('and it is heard: gone from News', ev("() => Proxima.waiting()") == 0)
     untick(gp, 'Tune the watering reminders'); tick(gp, 'Tune the watering reminders'); pg.wait_for_timeout(200)
     ok('once a day: unticking and ticking again throws no second party, and she says nothing more',
        ev("() => Proxima._test.queue().length") == 0 and not ev("() => Proxima.isSaying()") and parties() == [gp])
@@ -199,7 +207,7 @@ with sync_playwright() as p:
     # a one-task milestone and a milestone with a repeat never party
     calm()
     tick(gp, 'Publish the app')
-    ok('S1 a one-task milestone throws no party', parties() == [] and not ev("() => Proxima.isSaying()"))
+    ok('S1 a one-task milestone throws no party, and nothing waits from her', parties() == [] and not ev("() => Proxima.isSaying()") and ev("() => Proxima.waiting()") == 0)
     untick(gp, 'Publish the app')
     ev(f"""() => {{ const p = {P(nc)}; p.todos.push({{ id: 't_rep', text: 'Water the beds', description: '', done: false, doneAt: null, due: '2026-10-22',
       milestoneId: 'm_seed_use', repeat: {{ every: 'week', days: [4] }} }}); changed(p); }}""")
@@ -207,29 +215,33 @@ with sync_playwright() as p:
     ok('a milestone with a repeat in it never finishes, so it never parties', parties() == [])
     calm()
 
-    # she waits while a panel is open, and two milestones are said one after another
+    # with a panel open the party starts and her word waits in News; two milestones are two pages of her card
     reopen_all(nc)
     ev("() => Panel.open('A panel', h('p', null, 'Open'))"); pg.wait_for_timeout(200)
     for t in ['Round 3: decide the block art loop', 'Build the block art skill', 'Make block art for each project']: tick(nc, t)
-    ok('the party starts at once, while she waits for the open panel', parties() == [nc] and not ev("() => Proxima.isSaying()") and len(ev("() => Proxima._test.queue()")) == 1)
+    ok('the party starts at once, and her word waits in News while the panel is open', parties() == [nc] and not ev("() => Proxima.isSaying()") and len(ev("() => Proxima._test.queue()")) == 1)
     ev("() => Panel.close()"); pg.wait_for_timeout(900)
-    ok('she says it once the panel closes', ev("() => Proxima.saying()") == 'milestone' and 'Block art' in pg.inner_text('#pxSayText'))
+    ok('the panel closed, it still waits in News: she no longer opens by herself (0.1.96)', not ev("() => Proxima.isSaying()") and ev("() => Proxima.waiting()") == 1)
     reopen_all(gp)
     for t in ['Draw the beds on a grid', 'Save a plan as a file', 'Add plant icons', 'Tune the watering reminders']: tick(gp, t)
-    ok('a second milestone finished meanwhile waits its turn', len(ev("() => Proxima._test.queue()")) == 1)
+    ok('a second milestone finished meanwhile waits too, a page of its own', len(ev("() => Proxima._test.queue()")) == 2 and ev("() => Proxima.waiting()") == 2)
+    px_face()
+    ok('her face opens the first, "1 / 2"', ev("() => Proxima.saying()") == 'milestone' and 'Block art' in pg.inner_text('#pxSayText') and pg.inner_text('#pxPager .lc-pgn') == '1 / 2')
     pg.click('#pxSayClose'); pg.wait_for_timeout(900)
-    ok('and is said after the first', ev("() => Proxima.saying()") == 'milestone' and 'First release' in pg.inner_text('#pxSayText'))
+    ok('her x: the first heard, and the second said after it', ev("() => Proxima.saying()") == 'milestone' and 'First release' in pg.inner_text('#pxSayText') and ev("() => Proxima.waiting()") == 1)
     calm()
 
-    # inside the building: she waits for the break, stepping out (0.1.91, City as My Terminal, L2); until 0.1.90 she
-    # spoke beside the project view
+    # inside the building: the party starts and her word waits in News; stepping out it still waits, her face opens it
+    # (0.1.96; from 0.1.91 she waited for the break, and until 0.1.90 she spoke beside the project view)
     reopen_all(gp)
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(600)
     for t in ['Draw the beds on a grid', 'Save a plan as a file', 'Add plant icons', 'Tune the watering reminders']: tick(gp, t)
     pg.wait_for_timeout(1200)
-    ok('inside the building the party starts, and she waits to announce it', parties() == [gp] and not ev("() => Proxima.isSaying()") and len(ev("() => Proxima._test.queue()")) == 1)
+    ok('inside the building the party starts, and her word waits in News', parties() == [gp] and not ev("() => Proxima.isSaying()") and len(ev("() => Proxima._test.queue()")) == 1)
     ev("() => FullView.close()"); pg.wait_for_timeout(1200)
-    ok('stepping out back to the map, she announces it', ev("() => Proxima.saying()") == 'milestone' and 'First release' in pg.inner_text('#pxSayText'))
+    ok('stepping out back to the map, it still waits: no bubble by itself (0.1.96)', not ev("() => Proxima.isSaying()") and ev("() => Proxima.waiting()") == 1)
+    px_face()
+    ok('her face opens it: she announces it', ev("() => Proxima.saying()") == 'milestone' and 'First release' in pg.inner_text('#pxSayText'))
     pg.screenshot(path=str(SHOTS / '314-proxima-beside-view.png'))
     calm()
 
@@ -246,7 +258,7 @@ with sync_playwright() as p:
     # on Still: no party, but Proxima still announces it
     reopen_all(gp); ev("() => Motion.set('still')"); pg.wait_for_timeout(200)
     for t in ['Draw the beds on a grid', 'Save a plan as a file', 'Add plant icons', 'Tune the watering reminders']: tick(gp, t)
-    ok('on Still: no party on the map, but she still announces it', parties() == [] and ev("() => Proxima.saying()") == 'milestone')
+    ok('on Still: no party on the map, but her word on it still waits in News', parties() == [] and ev("() => Proxima.waiting()") == 1 and ev("() => Proxima._test.queue()[0].kind") == 'milestone')
     ev("() => Motion.set('full')")
     calm()
 

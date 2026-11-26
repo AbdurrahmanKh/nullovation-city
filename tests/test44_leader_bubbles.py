@@ -62,7 +62,7 @@ with sync_playwright() as p:
     def drop(name, d):
         js(f"() => window.__sub.set('inbox/{name}', {{ text: {json.dumps(json.dumps(d))}, t: Date.now() }})")
     say = lambda: js("""() => { const b = document.querySelector('#ldSay'); if (b.hidden) return null;
-      return { name: $('#ldSayName').textContent, role: $('#ldSayRole').textContent, text: $('#ldSayText').textContent, k: b.dataset.k,
+      return { name: $('#ldSayName').textContent, role: $('#ldSayRole').textContent, text: $('#ldSayText').textContent, k: b.dataset.k, where: ($('#ldSayWhere') || {}).textContent || '', type: b.dataset.type,
         acts: [...b.querySelectorAll('#ldSayActs button')].map(x => x.textContent), img: !!b.querySelector('#ldSayFace img'), color: getComputedStyle(b).getPropertyValue('--ld').trim() }; }""")
     tiles = lambda: js("() => [...document.querySelectorAll('#newsList .news-tile')].map(t => [t.dataset.k, t.querySelector('.news-badge').textContent, t.querySelector('.news-name').textContent])")
     close_say = lambda: js("() => { const c = document.querySelector('#ldSayClose'); if (!document.querySelector('#ldSay').hidden) c.click(); }")
@@ -81,8 +81,8 @@ with sync_playwright() as p:
                                           'changes': [{'do': 'add-round', 'task': 'Publish the app', 'round': {**ROUND, 'config': {**ROUND['config'], 'title': 'Publishing, Round 1'}}, 'file': '2026-10-27-publishing-round1.json'}]})
     settle()
     s = say()
-    ok(f'Quill says it, by himself, not the building\'s leader ({s})', s and s['name'] == 'Quill' and s['role'] == 'The Pocket Wizard' and s['k'] == 'ld:quill' and s['color'] == '#8E5A9E'
-       and s['text'] == 'Claude attached a wizard round to Publish the app: Publishing, Round 1. Sent just now.')
+    ok(f'Quill says it, by himself, not the building\'s leader, a Decision Wizard page, the task in its own line (0.1.96) ({s})', s and s['name'] == 'Quill' and s['role'] == 'The Pocket Wizard' and s['k'] == 'ld:quill' and s['color'] == '#8E5A9E'
+       and s['type'] == 'wizard' and s['text'] == 'Claude attached a wizard round to this task: Publishing, Round 1. Sent just now.' and s['where'] == 'Garden planner·Publish the app')
     ok(f'with his portrait, Read and Undo ({s and s["acts"]})', s and s['img'] and s['acts'] == ['Read', 'Undo', 'Go to it'])
     ok(f'his face in News, apart from Talal ({tiles()})', [t[0] for t in tiles()] == ['ld:quill'] and tiles()[0][2] == 'Quill')
     pg.screenshot(path=str(SH / '440-quill-round.png'), clip=pg.query_selector('#ldSay').bounding_box())
@@ -125,14 +125,17 @@ with sync_playwright() as p:
     ok('Esc closes it, and Quill\'s bubble is still there', not js("() => !!document.querySelector('.modal.panel.rd')") and say() is not None)
     close_say(); pg.wait_for_timeout(300)
 
-    # the status card: Quill's line in the leader's card, with his face and name
+    # the status card: Quill's page on the building's card, with his face and name (0.1.96: a page says who says it,
+    # in place of "Quill:" and his small face before Talal's line)
     js(f"() => News.add(getProject('{gp}'), 'answers', {{ round: '{TITLE}', n: 1, total: 2 }}, {{ ref: {{ tid: '{t_beds}' }}, key: 'answers:t44b' }})"); settle(400)
     js(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(700)
-    sc = js("""() => { const l = document.querySelector('#bubble .b-leader'); if (!l) return null; const o = l.querySelector('.ld-line.by-other');
-      return { name: l.querySelector('.ld-name').textContent, other: o && o.querySelector('.ld-says').textContent, face: o && Math.round(o.querySelector('.ld-by .ld-face').getBoundingClientRect().width), img: !!(o && o.querySelector('.ld-by img')),
-        acts: o ? [...o.querySelectorAll('.ld-acts button')].map(b => b.textContent) : [] }; }""")
-    ok(f'on the status card, Talal\'s line has Quill\'s say, his face and name before it ({sc})', sc and sc['name'] == 'Talal' and sc['other'] == 'Quill: Your answers are in for ' + TITLE + ': 1 of 2.'
-       and sc['face'] == 20 and sc['img'] and sc['acts'] == ['Read', 'Open'])
+    sc = js("""() => { const l = document.querySelector('#bubble .b-leader'); if (!l) return null; const c = l.querySelector('.lc');
+      return { type: c.dataset.type, name: c.querySelector('.lc-nm').textContent, role: (c.querySelector('.lc-role') || {}).textContent, says: c.querySelector('.ld-says').textContent,
+        task: (c.querySelector('.lc-tline') || {}).textContent, face: Math.round(c.querySelector('.lc-face .ld-face').getBoundingClientRect().width), img: !!c.querySelector('.lc-face img'),
+        acts: [...c.querySelectorAll('.ld-acts button')].map(b => b.textContent), by: News._test.pages('""" + gp + """', 'card').map(x => [x.type, x.by]) }; }""")
+    ok(f'on the status card, Quill\'s page comes first, said in his face and name, his round\'s task in its line, with Read and Open ({sc})', sc and sc['type'] == 'wizard' and sc['name'] == 'Quill'
+       and sc['role'] == 'The Pocket Wizard' and sc['says'] == 'Your answers are in for ' + TITLE + ': 1 of 2.' and sc['task'] == 'Add plant icons' and sc['face'] == 48 and sc['img']
+       and sc['acts'] == ['Read', 'Open'] and sc['by'][0] == ['wizard', 'Quill'] and ['news', 'Talal'] in sc['by'])
     pg.screenshot(path=str(SH / '442-card-quill-line.png'), clip=pg.query_selector('#bubble').bounding_box())
     js("() => MapView.deselect()"); pg.wait_for_timeout(300)
     forget()
@@ -164,18 +167,22 @@ with sync_playwright() as p:
     js(S('w1', 'working', GARDEN, task='Draw the beds on a grid', project='Garden planner'))
     settle()
     js("() => MapView.deselect()"); js(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(600)
-    lc = js("() => [...document.querySelectorAll('#pvLeader .ld-says')].map(x => x.textContent)")
-    ok(f'Claude at work: the leader card says it, as the status card does, in place of the greeting ({lc})', lc == ['Claude is working on Draw the beds on a grid. Started 2 minutes ago.'])
+    # since 0.1.96 (One Leader Card) the words say "this task", the task in the card's own line
+    lcard = lambda: js("() => [[...document.querySelectorAll('#pvLeader .ld-says')].map(x => x.textContent), [...document.querySelectorAll('#pvLeader .lc-tline')].map(x => x.textContent)]")
+    lc = lcard()
+    ok(f'Claude at work: the leader card says it, as the status card does, in place of the greeting ({lc})', lc == [['Claude is working on this task. Started 2 minutes ago.'], ['Draw the beds on a grid']])
     js(S('w1', 'waiting', GARDEN, task='Draw the beds on a grid', project='Garden planner'))
     settle()
-    lc = js("() => [...document.querySelectorAll('#pvLeader .ld-says')].map(x => x.textContent)")
-    ok(f'Claude waiting: the card follows, by itself ({lc})', lc == ['Claude is waiting for you on Draw the beds on a grid.'])
+    lc = lcard()
+    ok(f'Claude waiting: the card follows, by itself, with when it began waiting ({lc})', lc == [['Claude is waiting for you on this task. 2 minutes ago.'], ['Draw the beds on a grid']])
     drop('2026-10-27-1010-garden.json', {'app': 'nullovation-city', 'kind': 'change', 'version': 1, 'project': 'Garden planner', 'summary': 'The plan saves',
                                           'changes': [{'do': 'done', 'task': 'Save a plan as a file'}]})
     js("() => window.__cf.delete('w1.json')")
     settle()
-    ask = js("""() => { const l = document.querySelector('#pvLeader .ld-line[data-moment="asks"]'); return l && [l.querySelector('.ld-says').textContent, [...l.querySelectorAll('.ld-acts button')].map(b => b.textContent)]; }""")
-    ok(f'what Claude asks first, with its buttons, on the leader card too ({ask})', ask and ask[0] == 'Claude wants your OK first: tick off Save a plan as a file. Sent just now.' and ask[1] == ['Tick it', 'Dismiss'])
+    ask = js("""() => { const l = document.querySelector('#pvLeader .ld-line[data-moment="asks"]'); return l && [l.querySelector('.ld-says').textContent, [...l.querySelectorAll('.ld-acts button')].map(b => b.textContent),
+      (l.closest('.lc').querySelector('.lc-tline') || {}).textContent]; }""")
+    ok(f'what Claude asks first, with its buttons, on the leader card too: the task in its line, No in place of Dismiss (0.1.96) ({ask})', ask and ask[0] == 'Claude wants your OK first: tick this task off. Sent just now.'
+       and ask[1] == ['Tick it', 'No'] and ask[2] == 'Save a plan as a file')
     ok('the session gone, its waiting line goes from the card too', js("() => !document.querySelector('#pvLeader .ld-line[data-moment=\"waiting\"]')"))
     pg.screenshot(path=str(SH / '443-leader-card.png'), clip=pg.query_selector('#pvLeader').bounding_box())
     pg.click('#pvLeader .ld-line[data-moment="asks"] .b-claude-tick'); pg.wait_for_timeout(900)
@@ -189,8 +196,9 @@ with sync_playwright() as p:
     # a building with no leader: Proxima says it on the card inside too, with Pick a leader
     js(f"() => News.add(getProject('{nc}'), 'week_quiet', {{ task: 'Build the block art skill' }}, {{ ref: {{ week: ymd(weekStartOf(Date.now())) }}, key: 'week:t44d' }})")
     js("() => MapView.deselect()"); js(f"() => FullView.open('{nc}')"); pg.wait_for_timeout(600)
-    px = js("() => { const c = document.querySelector('#pvLeader'); return c && [c.classList.contains('px-voice'), c.querySelector('.ld-name').textContent, [...c.querySelectorAll('.ld-says')].map(x => x.textContent), c.querySelector('.ld-change').textContent]; }")
-    ok(f'a building with no leader: Proxima says it on the card inside, with Pick a leader ({px})', px and px[0] and px[1] == 'Proxima Pace' and px[2] == ['Quiet week: nothing finished. Build the block art skill is a good start.'] and px[3] == 'Pick a leader')
+    px = js("() => { const c = document.querySelector('#pvLeader'); return c && [c.classList.contains('px-voice'), c.querySelector('.ld-name').textContent, [...c.querySelectorAll('.ld-says')].map(x => x.textContent), c.querySelector('.ld-change').textContent, (c.querySelector('.lc-tline') || {}).textContent]; }")
+    ok(f'a building with no leader: Proxima says it on the card inside, the task in its line, with Pick a leader ({px})', px and px[0] and px[1] == 'Proxima Pace' and px[2] == ['Quiet week: nothing finished. This task is a good start.']
+       and px[3] == 'Pick a leader' and px[4] == 'Build the block art skill')
     js("() => FullView.close()"); js("() => MapView.deselect()"); pg.wait_for_timeout(300)
     js(f"() => FullView.open('{nc}')"); pg.wait_for_timeout(500)
     ok('opened again with nothing to say, it offers to pick a leader, as before', js("() => document.querySelector('#pvLeader').classList.contains('empty')"))

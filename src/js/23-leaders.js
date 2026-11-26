@@ -99,6 +99,32 @@ const LEADER_LINES = {
   greet: '{togo}. Next up: {task}.',                                          // no system, or away, and nothing ticked today
   greet_empty: 'Nothing open here yet. Add the next task.',
 };
+/* The card's lines (0.1.96, One Leader Card, Round 1, W1, word for word as approved): with the task on the card's own
+   line, the words say "this task" in place of its title. A line with no task to show keeps its title in the words. */
+const CARD_LINES = {
+  behind: 'We slipped behind our pace. This task puts us back on track.',
+  behind_more: "We're falling further behind. This task pulls us back.",
+  behind_day: 'Nothing finished here for a day. This task gets us moving.',
+  due: 'This task is due today.',
+  due_many: '{n} tasks are due today. This one is first up.',
+  one_left: '{milestone} is one task from done: this one. Finish it and we throw a street party.',
+  round: 'Claude attached a wizard round to this task: {round}.',
+  waiting: 'Claude is waiting for you on this task.',
+  waiting_ok: 'Claude needs your OK on this task.',
+  took: 'Claude took your message on this task. Started {ago}.',
+  t3closed: 'T3 is closed, so your message for this task waits to be sent.',
+  failed: 'Claude stopped on an error while working on this task.',
+  finished: 'Claude handed this task back to you.',
+  working: 'Claude is working on this task. Started {ago}.',
+  week: 'Last week we finished {n} tasks. This one is next.',
+  week_quiet: 'Quiet week: nothing finished. This task is a good start.',
+  greet_done: 'We finished {count} today, {togo}. This one is next.',
+  greet_on: "We're on pace, {togo}. This one is next.",
+  greet_behind: 'We slipped behind our pace, {togo}. This one is next.',
+  greet_behind_more: "We're falling further behind, {togo}. This one is next.",
+  greet_day: 'Nothing finished here for a day, {togo}. This one is next.',
+  greet: '{togo}. This one is next.',
+};
 /* Quill, the Pocket Wizard (0.1.69, Leader Bubbles, Round 2): the city's voice for wizard rounds, as Gus is for the
    garbage and Proxima for the reports. For every building he says a round Claude attached with no finish to sit under,
    and a round's answers coming in; under a finish, a round is part of its leader's report. His portrait ships with
@@ -111,14 +137,16 @@ const LEADER_TITLE_MAX = 60;                                 // a task's title i
 const lineTitle = s => (s.length > LEADER_TITLE_MAX ? s.slice(0, LEADER_TITLE_MAX - 1).trimEnd() + '\u2026' : s);
 /* A moment's line with its blanks filled: {task} cut short past 60 characters, "{n} tasks" in the singular for one,
    a blank with nothing for it left as it is, and the line's first letter a capital, since a task's title may start it. */
-function leaderSay(moment, v = {}) {
-  return leaderParts(moment, v).map(x => x.text).join('');
+function leaderSay(moment, v = {}, card = false) {
+  return leaderParts(moment, v, card).map(x => x.text).join('');
 }
 /* The same line in parts (0.1.60): plain words, and each blank filled, with its name and its whole value, so a task in
    it can be shown as a link. */
-function leaderParts(moment, v = {}) {
-  /* an approval says so (0.1.91); a working line from the city's own message says it was taken */
-  const text = LEADER_LINES[moment === 'waiting' && v.wait === 'approval' ? 'waiting_ok' : moment === 'working' && v.took ? 'took' : moment];
+function leaderParts(moment, v = {}, card = false) {
+  /* an approval says so (0.1.91); a working line from the city's own message says it was taken; on the card, with the
+     task on its own line, "this task" (0.1.96) */
+  const key = moment === 'waiting' && v.wait === 'approval' && !v.asking ? 'waiting_ok' : moment === 'working' && v.took ? 'took' : moment;
+  const text = (card && CARD_LINES[key]) || LEADER_LINES[key];
   if (!text) return [];
   const out = [], re = /\{n\} tasks|\{(\w+)\}/g;
   let last = 0, m;
@@ -135,7 +163,7 @@ function leaderParts(moment, v = {}) {
 }
 /* The greeting on the leader card, when its building has no news waiting: the next task, pinned or the current
    milestone's first open one, else that nothing is open. */
-function leaderGreeting(p, now = Date.now()) {
+function leaderGreeting(p, now = Date.now(), card = false) {
   const t = nextTask(p);
   if (!t) return leaderSay('greet_empty');
   const open = openTasks(p, now), today = ymd(now);
@@ -146,7 +174,7 @@ function leaderGreeting(p, now = Date.now()) {
   const moment = count ? 'greet_done'
     : sys === 'pace' && !awayNow(now) ? (u.system === 'red' ? 'greet_behind_more' : u.system === 'yellow' ? 'greet_behind' : 'greet_on')
     : sys === 'finish' && u.system === 'red' ? 'greet_day' : 'greet';
-  return leaderSay(moment, { task: t.text, togo, count: countWord(count) });
+  return leaderSay(moment, { task: t.text, togo, count: countWord(count) }, card);
 }
 /* A small count in words, as the leader says it: one to nine, then the number. */
 const countWord = n => ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'][n] || String(n);

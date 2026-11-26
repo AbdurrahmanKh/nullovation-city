@@ -114,18 +114,25 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         ev("() => { News._test.forget(); News._test.sayMs(60000); document.querySelectorAll('#gusSay, #pxSay').forEach(e => e.hidden = true); }")
         ev("() => { if (Gus.isSaying()) Gus.hush(); }")
         says = lambda: ev("() => { const b = document.querySelector('#ldSay'); return b && !b.hidden ? b.querySelector('#ldSayText').textContent : ''; }")
+        # the page's type and its task line, the building then the task (0.1.96)
+        say_page = lambda: ev("() => { const b = document.querySelector('#ldSay'); return b && !b.hidden ? [b.dataset.type, (b.querySelector('#ldSayWhere') || {}).textContent || ''] : null; }")
         close_say = lambda: ev("() => { News.hide(); }")
         n = [0]
-        def news(what='a note, Bed layout'):
-            """Claude's additions: news that opens a bubble by itself."""
+        def news(what='Bed layout'):
+            """A wizard round Claude attached: news that opens a bubble by itself (what Claude added no longer does, 0.1.96)."""
             n[0] += 1
-            return ev(f"() => News.add(getProject('{other}'), 'added', {{ what: {json.dumps(what)} + ' {n[0]}' }}).id")
+            return ev(f"""() => {{ const p = getProject('{other}'), t = p.todos.find(t => !t.done);
+              return News.add(p, 'round', {{ task: t.text, round: {json.dumps(what)} + ' {n[0]}' }}, {{ ref: {{ tid: t.id }} }}).id; }}""")
         why = lambda: ev("() => Hold.why()")
+        ROUND = 'Claude attached a wizard round to this task: Bed layout'
 
         # ---------- on the map, nothing holds ----------
         ok('on the map, nothing holds a bubble', why() == '', why())
+        ev(f"() => News.add(getProject('{other}'), 'added', {{ what: 'a note, Bed layout' }})"); pg.wait_for_timeout(1200)
+        ok('what Claude added no longer opens a bubble by itself: it waits in News (0.1.96)', says() == '' and ev("() => News.items().some(it => it.moment === 'added')"), says())
+        ev("() => News._test.forget()")
         news(); pg.wait_for_timeout(300)
-        ok('news that opens by itself opens at once, as before', says().startswith('Claude added a note, Bed layout'), says())
+        ok('news that opens by itself (a round attached) opens at once, as before', says().startswith(ROUND), says())
         close_say(); pg.wait_for_timeout(200)
 
         # ---------- inside a building: held until stepping out (L2, building) ----------
@@ -135,7 +142,7 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         ok('news while inside a building waits', says() == '' and ev("() => !document.querySelector('#sbNews').hidden"), says())
         pg.screenshot(path=str(SHOTS / '560-hold-inside.png'))
         ev("() => { FullView.close(); Bubble.close(); }"); pg.wait_for_timeout(1000)
-        ok('stepping out back to the map is a break: it opens', says().startswith('Claude added'), says())
+        ok('stepping out back to the map is a break: it opens', says().startswith(ROUND), says())
         close_say(); pg.wait_for_timeout(200)
 
         # ---------- a panel: held until it closes (L2, panel) ----------
@@ -143,7 +150,7 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         news(); pg.wait_for_timeout(1200)
         ok('with Settings open, it waits', says() == '' and why() == 'panel', (says(), why()))
         ev("() => Settings.close()"); pg.wait_for_timeout(1000)
-        ok('closing the panel is a break: it opens', says().startswith('Claude added'), says())
+        ok('closing the panel is a break: it opens', says().startswith(ROUND), says())
         close_say(); pg.wait_for_timeout(200)
         ev("() => Reports.open()"); pg.wait_for_timeout(200)
         ok('Reports holds too', why() == 'panel')
@@ -156,7 +163,7 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         ok('a pause of three seconds in typing is not a break: it still waits', says() == '', says())
         pg.keyboard.press('Control+A'); pg.keyboard.press('Delete')
         ev("() => document.activeElement.blur()"); pg.wait_for_timeout(1000)
-        ok('leaving the field, it opens', says().startswith('Claude added'), says())
+        ok('leaving the field, it opens', says().startswith(ROUND), says())
         close_say(); pg.wait_for_timeout(200)
 
         # ---------- the tab out of view (L2, tab) ----------
@@ -165,7 +172,7 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         news(); pg.wait_for_timeout(1200)
         ok('news while the tab is out of view waits', says() == '')
         ev("() => { window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); }"); pg.wait_for_timeout(1000)
-        ok('coming back to the tab is a break: it opens', says().startswith('Claude added'), says())
+        ok('coming back to the tab is a break: it opens', says().startswith(ROUND), says())
         close_say(); pg.wait_for_timeout(200)
 
         # ---------- a click is never held ----------
@@ -176,7 +183,7 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(300)
         news(); pg.wait_for_timeout(300)
         pg.click('#newsList .news-face'); pg.wait_for_timeout(300)
-        ok('a click on a face opens its bubble, inside a building too', says().startswith('Claude added'), says())
+        ok('a click on a face opens its bubble, inside a building too', says().startswith(ROUND), says())
         close_say(); ev("() => { FullView.close(); Bubble.close(); }"); pg.wait_for_timeout(600); close_say(); pg.wait_for_timeout(200)
 
         # ---------- Gus: his word by himself waits too ----------
@@ -203,7 +210,7 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         pg.click('#optQuiet'); pg.wait_for_timeout(100)
         ok('unchecked there, Quiet is off', not ev("() => Hold.quiet()") and ev("() => document.querySelector('#newsQuiet').getAttribute('aria-pressed')") == 'false')
         ev("() => Settings.close()"); pg.wait_for_timeout(1200)
-        ok('Quiet off, at the break, what waited opens', says().startswith('Claude added') or ev("() => Gus.isSaying()"), (says(), ev("() => Gus.isSaying()")))
+        ok('Quiet off, at the break, what waited opens', says().startswith(ROUND) or ev("() => Gus.isSaying()"), (says(), ev("() => Gus.isSaying()")))
         ev("() => { if (Gus.isSaying()) Gus.hush(); }"); pg.wait_for_timeout(700); close_say(); pg.wait_for_timeout(700); close_say()
         ev("() => { if (Gus.isSaying()) Gus.hush(); }"); pg.wait_for_timeout(300)
         # the section in view while Quiet is on, with nothing in it
@@ -235,7 +242,8 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         put_session('s-ok', state='waiting', event='PermissionRequest', wait='approval', at=now - 9 * 3600e3, since=now - 9 * 3600e3)
         ev("() => ClaudeWork.poll()"); pg.wait_for_timeout(1500)
         ok('a session waiting 9 hours still shows as waiting (no longer let go after 8)', ev(f"() => ClaudeWork.sessionsOf(getProject('{gp}')).some(s => s.session === 's-ok' && s.state === 'waiting' && s.wait === 'approval')"))
-        ok('an approval opens a bubble by itself, saying Claude needs your OK', ('Claude needs your OK on ' + task) in says(), says())
+        ok('an approval opens a bubble by itself, saying Claude needs your OK, the task in its own line (0.1.96)', says().startswith('Claude needs your OK on this task.')
+           and say_page() == ['approval', 'Garden planner·' + task], (says(), say_page()))
         pg.screenshot(path=str(SHOTS / '562-approval.png'))
         close_say(); pg.wait_for_timeout(200)
         ev("() => { window.__sub.delete('s-ok.json'); }"); ev("() => ClaudeWork.poll()"); pg.wait_for_timeout(800)
@@ -246,12 +254,14 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         ok('a message the city sent, taken: no bubble', says() == '', says())
         ev(f"() => Bubble.open('{gp}')"); pg.wait_for_timeout(300)
         card = ev("() => [...document.querySelectorAll('.ld-line .ld-says')].map(e => e.textContent)")
-        ok('the status card says Claude took your message', any(c.startswith('Claude took your message on ' + task + '. Started') for c in card), card)
+        tline = lambda: ev("() => [...document.querySelectorAll('#bubble .lc-tline')].map(e => e.textContent)")
+        ok('the status card says Claude took your message on this task, the task in its own line (0.1.96)', any(c.startswith('Claude took your message on this task. Started') for c in card)
+           and tline() == [task], (card, tline()))
         ev("() => Bubble.close()")
         ev(f"""() => {{ const t = getProject('{gp}').todos.find(t => t.id === '{tid}'); t.threads[0].last = Date.now() - 3600e3; }}""")
         ev(f"() => Bubble.open('{gp}')"); pg.wait_for_timeout(300)
         card = ev("() => [...document.querySelectorAll('.ld-line .ld-says')].map(e => e.textContent)")
-        ok('work that began long after the last send is just working', any(c.startswith('Claude is working on ' + task) for c in card), card)
+        ok('work that began long after the last send is just working', any(c.startswith('Claude is working on this task.') for c in card) and tline() == [task], (card, tline()))
         ev("() => Bubble.close()")
         ev("() => { window.__sub.delete('s-took.json'); }"); ev("() => ClaudeWork.poll()"); pg.wait_for_timeout(500)
 
@@ -273,7 +283,8 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         pg.click('#toast .toast-act'); pg.wait_for_timeout(100)
         ok('Open T3 opens the task\'s thread in T3, which starts T3', ev("() => window.__opened.slice()") == ['t3code://threads/env-1234/cli%3At-1'], ev("() => window.__opened.slice()"))
         ev("() => { FullView.close(); Bubble.close(); }"); pg.wait_for_timeout(1200)
-        ok('out of the building, its bubble opens: T3 is closed, so it waits', ('T3 is closed, so ' + task + ' waits to be sent.') in says(), says())
+        ok('out of the building, its bubble opens: T3 is closed, so it waits, Critical, the task in its own line (0.1.96)', says().startswith('T3 is closed, so your message for this task waits to be sent.')
+           and say_page() == ['critical', 'Garden planner·' + task], (says(), say_page()))
         acts = ev("() => [...document.querySelectorAll('#ldSayActs .btn')].map(b => b.textContent)")
         ok('with Open T3 and Send it', 'Open T3' in acts and 'Send it' in acts, acts)
         pg.screenshot(path=str(SHOTS / '563-t3-closed.png'))
@@ -293,7 +304,8 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         pg.click('.oc-panel .oc-tile[data-kind="t3"]'); pg.wait_for_timeout(300)
         news()                                         # other news, held
         t3_answer({'ok': False, 'error': 'T3 Code is not running. Open it, then send again.', 'down': True}); pg.wait_for_timeout(1500)
-        ok('a send T3 could not take answers your click at once, beside the building', ('T3 is closed, so ' + task + ' waits to be sent.') in says(), says())
+        ok('a send T3 could not take answers your click at once, beside the building', says().startswith('T3 is closed, so your message for this task waits to be sent.')
+           and say_page() == ['critical', 'Garden planner·' + task], (says(), say_page()))
         ok('while the other news stays held', ev("() => News._test.bubble().ids.length") == 1)
         ev("() => { window.__opened.length = 0; }")
         pg.click('#ldSay .btn:text-is("Open T3")'); pg.wait_for_timeout(100)

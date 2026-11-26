@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.96 (2026-11-27)
+
+One leader card in three places, from One Leader Card, Rounds 1 and 2, and the triggers list approved with "build it": the leader's bubble, the status card and the leader card show the same card.
+- Types: every message has one of seven, with its icon, a small label in its color in the card's head and a small change of the card's color: Critical, Need Approval and Your Answer red, Decision Wizard green, Heads up yellow, Attachment violet, News grey.
+- One page per type: a finish with updates is a Need Approval page with every change its turn asks, a page for each wizard round, an Attachment page with all it added, and a News page for the finish itself, never one mixed message. Two updates in one turn share those pages.
+- Pages: "< 1 / 4 >" in the card's head, in the types' order, with a red dot on the arrow toward a page not seen yet. The task a page is about has its own line, a link that opens it, which stays put as you page; the words say "this task".
+- The x: every page has one. On what needs your OK or your answer, or a message waiting for T3, it takes it off the bubble and the status card, and it waits on the leader card until answered; on the rest it takes the page away. Dismiss is No.
+- The bubble: Minimize leaves its pages waiting in News, and it no longer closes by itself after 14 seconds; Esc minimizes. It opens by itself for Critical, Need Approval, Your Answer, a round attached and Heads up; what Claude added, a round's answers and News wait in News.
+- Faces: 100 px in the bubble and on the leader card, 48 on the status card. The status card shows the leader's greeting when there is nothing else.
+- The leader card adds when Claude started, how long it worked and how many updates it sent, Claude's summaries and last message whole, and its latest thought while it works.
+- Attachment: each note Claude added shows whole, as under a task's description, a click opening it; each task, note and link has Delete, with Undo in a toast. A note added and brought up to date in the same turn shows once.
+- News has no buttons: a finish loses Tick it, and Check T3 is a link.
+- A round's answers are one message, its count brought up to date in place, with one Activity line per round.
+- Gus and Proxima use the same card. Gus's word on the garbage is Heads up and opens by itself; Clean streets waits in News with his face. Proxima's reports and street parties wait in News with her face, one Proxima for them and the buildings with no leader; her card pages through them, and Read and Go to it are links.
+- Tests: test61_one_card checks the card in its three places, the types, the pages and their dots, the x, Minimize, the greeting, the leader card's extras, Delete, the answers in place, and Gus and Proxima. test24, test26, test30, test31, test34, test37, test39, test40, test41, test43, test44, test45, test47, test49, test50, test52, test54, test56, test59 and test60 now expect the card.
+
 ## 0.1.95 (2026-11-25)
 
 One report under one finish, and a status card that reads, from Abdurrahman's "seriously wtf is this UX?" on Mammoth Expedition's card: two "Claude wants your OK first" lines, what Claude added, Quill's round and a new note version each on its own, and "Claude handed he is the main voice right now because I worked a lot on th... back to you."

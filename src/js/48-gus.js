@@ -25,6 +25,9 @@ const Gus = (() => {
   let days = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
   const saveDays = () => { try { localStorage.setItem(KEY, JSON.stringify(days)); } catch (e) { /* this visit only */ } };
   let line = '', sayTimer = 0, saying = false, lastTotal = null, lastOnMap = null, started = false, sayMs = SAY_MS;
+  /* Since 0.1.96 (One Leader Card) his bubble is the leaders' card: his word on the garbage is Heads up and opens by
+     itself; Clean streets is News, and waits in News with his face until heard (the triggers he approved). */
+  let clean = '';
   const armed = {};
 
   /* ---------- the report ---------- */
@@ -70,7 +73,14 @@ const Gus = (() => {
     return el;
   }
   /* While the city has garbage, on its map or owed by the rules, and while he speaks. */
-  const shows = () => Garbage.isOn() && (report().rows.length > 0 || Garbage.onMap() > 0 || saying);
+  const shows = () => Garbage.isOn() && (report().rows.length > 0 || Garbage.onMap() > 0 || saying || !!clean);
+  /* His card's type: Heads up for the garbage, News for clean streets. */
+  function typed(type) {
+    const ty = NEWS_TYPES[type], c = $('#gusCard');
+    if (!c || c.dataset.type === type && $('#gusTypeIc').firstChild) return;
+    c.dataset.type = type; c.style.setProperty('--t', ty.color);
+    $('#gusTypeIc').innerHTML = iconSvg(ty.icon, 14); $('#gusTypeName').textContent = ty.name;
+  }
 
   /* ---------- his bubble: his line, then his report ---------- */
   function render() {
@@ -90,9 +100,10 @@ const Gus = (() => {
   }
 
   /* ---------- speaking ---------- */
-  /* By himself, the bubble closes after 14 seconds; opened from his face (stay), it stays until closed. */
+  /* Since 0.1.96 it stays until closed, opened by himself too (One Leader Card, X2). */
   let T = null, shown = 0;                                       // his line types out in his voice (0.1.78, City Sounds)
   function show(stay) {
+    typed(clean && line === clean ? 'news' : 'headsup');
     saying = true;
     if (typeof Proxima !== 'undefined') Proxima.yieldToGus();   // never both at once: she says hers after him
     if (typeof News !== 'undefined') News.yieldTo();            // nor a leader: its news waits for him
@@ -105,7 +116,6 @@ const Gus = (() => {
     T.speak('gus:' + ++shown, 'gus');
     requestAnimationFrame(() => box.classList.add('show'));
     clearTimeout(sayTimer);
-    if (!stay) sayTimer = setTimeout(hush, sayMs);
   }
   /* By himself: a bubble's sound as it opens, or his alarm's horn at 50 and 200 (0.1.78). Since 0.1.91 it waits while
      you are at something, or Quiet is on, and he says it at the next break; a later word replaces one still waiting. */
@@ -123,9 +133,15 @@ const Gus = (() => {
     line = text; show(false);
   }
   function open() {
+    if (clean) line = clean;
     show(true);
     const b = $('.gus-row', $('#gusSay')) || $('#gusSayClose');
     if (b) b.focus({ preventScroll: true });
+  }
+  /* His x: what he said is heard, clean streets too, and he steps away once the streets are clean. Minimize: it waits. */
+  function heard() {
+    if (clean && line === clean) clean = '';
+    hush();
   }
   function hush() {
     clearTimeout(sayTimer);
@@ -151,16 +167,19 @@ const Gus = (() => {
       for (const [m] of MARKS) armed[m] = total < m ? true : armed[m] && lastTotal >= m ? armed[m] : false;
       if (passed && days[passed[1]] !== d) { days[passed[1]] = d; saveDays(); say(pick(LINES[passed[1]]), true); }
     }
-    if (lastOnMap > 0 && onMap === 0 && total === 0) say(pick(LINES.clean));
+    if (lastOnMap > 0 && onMap === 0 && total === 0) { clean = pick(LINES.clean); line = clean; }   // waits in News (0.1.96)
+    else if (total > 0 && clean) clean = '';
     lastTotal = total; lastOnMap = onMap;
     render();
   }
 
   function init() {
-    $('#gusSayClose').innerHTML = iconSvg('close', 16);
-    $('#gusSayClose').addEventListener('click', hush);
-    $('#gusSay').addEventListener('pointerdown', () => clearTimeout(sayTimer));   // once you reach for it, it stays
-    $('#gusSay').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); hush(); } });
+    $('#gusSayClose').innerHTML = iconSvg('close', 12);
+    $('#gusSayClose').addEventListener('click', heard);
+    $('#gusSayMin').innerHTML = iconSvg('minus', 12);
+    $('#gusSayMin').addEventListener('click', hush);
+    $('#gusSay').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); hush(); } });   // Esc minimizes
+    typed('headsup');
     try { localStorage.removeItem(MIN_KEY); } catch (e) { /* nothing to tidy */ }
     Garbage.onChange(changed);
     started = true;
@@ -175,6 +194,6 @@ const Gus = (() => {
     }
     setInterval(render, 60000);                                // a new day or a late task's new day, quietly
   }
-  return { init, render, report, reportLine, fixLine, fill, LINES, say, hush, open, shows, faceEl, isSaying: () => saying, line: () => line, waiting: () => !!waiting,
+  return { init, render, report, reportLine, fixLine, fill, LINES, say, hush, heard, open, shows, faceEl, isSaying: () => saying, line: () => line, waiting: () => !!waiting, clean: () => clean,
     _test: { sayMs: ms => { sayMs = ms; }, days: () => ({ ...days }), forget: () => { days = {}; saveDays(); } } };
 })();

@@ -132,6 +132,18 @@ with sync_playwright() as p:
         code = href[len('web+dwizard:open/'):]
         return json.loads(base64.urlsafe_b64decode(code + '=' * (-len(code) % 4)).decode('utf-8'))
     hat = lambda sel: ev(f"() => {{ const b = document.querySelector({json.dumps(sel)}); return b ? (b.classList.contains('hat-done') || !!b.querySelector('.hat-done') ? 'done' : 'open') : null; }}")
+    def vpages(moment):
+        """The pages of the project view's leader card for a moment, flipped through one at a time as it shows them since
+        0.1.96 (One Leader Card): who says each, its type, words, task line and buttons. The card is left on the first."""
+        return ev("""m => { const info = () => { const c = document.querySelector('#pvLeader .lc'), l = c && c.querySelector('.ld-line'); return l && { moment: l.dataset.moment, type: c.dataset.type,
+            by: (c.querySelector('.lc-nm') || {}).textContent, says: l.querySelector('.ld-says').textContent, task: (c.querySelector('.lc-tline') || {}).textContent || '',
+            btns: [...l.querySelectorAll('.ld-acts button')].map(b => b.textContent) }; };
+          const next = () => { const b = document.querySelector('#ldFlipNext-view'); if (b) b.click(); };
+          Leaders.redrawCard();                               // as the news last raised drew it
+          const pn = document.querySelector('#pvLeader .lc-pgn'), n = pn ? +pn.textContent.split('/')[1] : 1, out = [];
+          for (let i = 0; i < n; i++) { const x = info(); if (x && x.moment === m) out.push(x); next(); }
+          for (let i = 0; i < n; i++) { const x = info(); if (x && x.moment === m) break; next(); }
+          return out; }""", moment)
     quiet()
 
     # ---------- the model: a wizard's files, and where a round stands ----------
@@ -496,17 +508,17 @@ with sync_playwright() as p:
     pg.wait_for_timeout(3400)
     ok('the last one lands: answered, the hat teal', get(T1)['round']['a']['meta']['answered'] == 8 and hat(f'li.task[data-id="{tid(T1)}"] .round-hat') == 'done')
     pg.wait_for_timeout(4200)
-    card = ev("() => { const l = document.querySelector('#pvLeader .ld-line.by-other'); return l && [l.querySelector('.ld-says').textContent, [...l.querySelectorAll('.ld-acts button')].map(b => b.textContent)]; }")
-    ok(f'once they stop arriving, Quill says so in place of the toast: with the project view open, on its card, where Proxima speaks for a building with no leader (X1, Leader UX T1; 0.1.69) ({card})',
-       card == ['Quill: Your answers are in for ' + TITLE + ': 8 of 8.', ['Read', 'Open']] and said() == '')
+    card = [(x['by'], x['type'], x['says'], x['btns']) for x in vpages('answers')]
+    ok(f'once they stop arriving, Quill says so in place of the toast: with the project view open, on its card, where Proxima speaks for a building with no leader, a Decision Wizard page (X1, Leader UX T1; 0.1.69; 0.1.96) ({card})',
+       card == [('Quill', 'wizard', 'Your answers are in for ' + TITLE + ': 8 of 8.', ['Read', 'Open'])] and said() == '')
     ok('the card read it, as the status card does: nothing waits in News', ev("() => News.items().filter(it => it.moment === 'answers').length") == 0)
     act_lines = ev("() => getProject(DB.projects.find(p => p.name === 'Garden planner').id).activity.filter(e => e.text.startsWith('Answers in for')).map(e => e.text)")
     ok(f'and each time they come in, a line in Activity (0.1.69, C2) ({act_lines})', act_lines[-1:] == ['Answers in for ' + TITLE + ': 8 of 8'])
     pg.screenshot(path=str(SHOTS / '381-answers-in.png'))
-    pg.click('#pvLeader .ld-line.by-other .ld-round-read'); pg.wait_for_timeout(300)
+    pg.click('#pvLeader .ld-line[data-moment="answers"] .ld-round-read'); pg.wait_for_timeout(300)
     ok('Read opens the round in its popup, with Open in wizard', pg.locator('.modal.panel.rd .pv-round-ans li').count() == 8 and pg.is_visible('#rdWizard'))
     pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
-    pg.click('#pvLeader .ld-line.by-other .ld-open'); pg.wait_for_timeout(400)
+    pg.click('#pvLeader .ld-line[data-moment="answers"] .ld-open'); pg.wait_for_timeout(400)
     ok('Open opens the task', ev("() => !!document.querySelector('#pvSide .pv-desc')"))
     ev("() => document.activeElement && document.activeElement.blur()")
     ok('the answers coming in are not work: Updated stays', proj()['updatedAt'] == u0)
@@ -524,8 +536,9 @@ with sync_playwright() as p:
     t3 = get(T3)
     ok('add-round attaches the round Claude wrote in wizard-rounds to the task it names', t3.get('round') and t3['round']['title'] == 'Icons, Round 1' and t3['round']['file'] == '2026-10-22-icons-round1.json'
        and t3['round']['folder'] == 'D:\\City\\Claude\\wizard-rounds')
-    news = ev("() => { const l = document.querySelector('#pvLeader .ld-line[data-moment=\"round\"]'); return l ? [l.querySelector('.ld-says').textContent, [...l.querySelectorAll('.ld-acts button')].map(x => x.textContent)] : null; }")
-    ok(f'at once Quill says so in place of the toast, with Read and Undo: the project view open, on its card (Leader UX, 0.1.59; Quill, 0.1.69) ({news})', news == ['Quill: Claude attached a wizard round to ' + T3 + ': Icons, Round 1. Sent just now.', ['Read', 'Undo']] and said() == '')
+    news = [(x['by'], x['type'], x['says'], x['task'], x['btns']) for x in vpages('round')]
+    ok(f'at once Quill says so in place of the toast, with Read and Undo: the project view open, on its card, the task in its own line (Leader UX, 0.1.59; Quill, 0.1.69; 0.1.96) ({news})',
+       news == [('Quill', 'wizard', 'Claude attached a wizard round to this task: Icons, Round 1. Sent just now.', T3, ['Read', 'Undo'])] and said() == '')
     ok('with its line in Activity, the only one Claude writes there (0.1.69, C2)', any(e['text'] == 'Claude attached a wizard round to ' + T3 + ': Icons, Round 1' for e in proj()['activity']) and not any(e['text'].startswith('Claude: ') for e in proj()['activity']))
     ok('the change file moves to inbox/done', ev("() => [...window.__sub.keys()].some(k => k === 'inbox/done/2026-10-22-1900-garden.json') && !window.__sub.has('inbox/2026-10-22-1900-garden.json')"))
     ok('its row wears a gray hat', hat(f'li.task[data-id="{tid(T3)}"] .round-hat') == 'open')
@@ -634,8 +647,8 @@ with sync_playwright() as p:
     st = state(T3)
     ok(f'Claude\'s add-round brings round 2, which replaces round 1: aims, extras, 1 extra, 2 ideas and the order make 6 cards ({st})', get(T3)['round']['title'] == BT + ', Round 2'
        and st['brainstorm'] == 2 and st['total'] == 6 and st['answered'] == 0)
-    news = ev("() => [...News.items().filter(it => it.moment === 'round').map(it => News.lineOf(it)), ...(FullView.currentId() ? News.viewLines(getProject(FullView.currentId())) : []).filter(x => x.dataset.moment === 'round').map(x => x.querySelector('.ld-says').textContent.replace(/^Quill: /, '').replace(/ Sent just now\\.$/, ''))]")   # every topic of the leader card (0.1.94)
-    ok(f'Quill says so, in News or on the card of the project view open ({news[-1:]})', news[-1:] == ['Claude attached a wizard round to ' + T3 + ': ' + BT + ', Round 2.'])
+    news = [(x['by'], x['says'], x['task']) for x in vpages('round')]   # every page of the leader card, one at a time (0.1.96)
+    ok(f'Quill says so, on the card of the project view open, the task in its own line ({news[-1:]})', news[-1:] == [('Quill', 'Claude attached a wizard round to this task: ' + BT + ', Round 2. Sent just now.', T3)])
     ev("() => { const b = document.querySelector('#ldSayClose'); if (b && !document.querySelector('#ldSay').hidden) b.click(); }"); quiet()
     A2 = {'meta': {'tool': 'decision-wizard', 'kind': 'brainstorm', 'round': 2, 'wizard_version': '0.10.1', 'wizard_title': BT + ', Round 2', 'total': 6, 'seen': 6, 'ideas': 3},
           'topic': BS1['topic'], 'answers': [
@@ -655,8 +668,8 @@ with sync_playwright() as p:
         '## Brainstorm, round 2: ' + BT + ', Round 2', '- Extras:', '  - "Icons that smile when watered." (kept)', '- Idea i1: "A sprout, then a leaf, then a flower."',
         '  - In your words: "Icons that grow in three stages."', '  - A change, from Black: "Three stages only."', '  - You answered White (Which plants first?): "Herbs first."',
         '  - Taken from Green as a new idea: "Animate the growth."', '  - Your variant: "A seed before the sprout."', '- Your order:', '  1. "Icons that grow in three stages."', '  2. "Leaf shapes for herbs."']))
-    news = ev("() => [...News.items().filter(it => it.moment === 'answers').map(it => News.lineOf(it)), ...(FullView.currentId() ? News.viewLines(getProject(FullView.currentId())) : []).filter(x => x.dataset.moment === 'answers').map(x => x.querySelector('.ld-says').textContent.replace(/^Quill: /, ''))]")   # every topic of the leader card (0.1.94)
-    ok(f'its news says the answers are in, in cards ({news})', news == ['Your answers are in for ' + BT + ', Round 2: 6 of 6.'])
+    news = [(x['by'], x['says']) for x in vpages('answers')]   # every page of the leader card, one at a time (0.1.96)
+    ok(f'its news says the answers are in, in cards ({news})', news == [('Quill', 'Your answers are in for ' + BT + ', Round 2: 6 of 6.')])
     ok('and its Activity line counts cards seen', any(e['text'] == 'Answers in for ' + BT + ', Round 2: 6 of 6 cards seen' for e in proj()['activity']))
     quiet()
 

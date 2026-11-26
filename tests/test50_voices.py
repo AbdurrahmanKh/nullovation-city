@@ -116,20 +116,25 @@ with sync_playwright() as p:
     ok(f"not work: Updated and Activity stay ({before})", js(f"() => {{ const p = getProject('{gp}'); return [p.updatedAt, p.activity.length]; }}") == before)
 
     # ---------- the leader talks in it ----------
-    # its news opens by itself on the map: the editor open would hold it for a break (0.1.91, City as My Terminal, L2)
+    # what Claude added waits in News (0.1.96), and a click on the leader's face opens it; the editor is closed first, as
+    # an open editor holds a bubble that would open by itself for a break (0.1.91, City as My Terminal, L2)
     js("() => { Leaders.closeEditor(); Leaders.close(); }"); pg.wait_for_timeout(200)
     js("() => News._test.typeMs(26)")
+    face = lambda: js(f"() => document.querySelector('#newsList .news-tile[data-k=\"ld:{lid}\"] .news-face').click()")
+    heard = lambda: js("() => document.querySelector('#ldSayClose').click()")          # its x: read, and the bubble closes
     clear()
-    js(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'a note' }})"); pg.wait_for_timeout(400)
-    ok(f"its news in its bubble, in the voice picked ({said()})", said() == ['voice:ld:' + lid] and js(f"() => JSON.stringify(Sound.voices.of('ld:{lid}')) === JSON.stringify(getLeader('{lid}').voice)"))
-    js("() => News.hide({ read: true })"); pg.wait_for_timeout(100)
+    js(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'a note' }})"); pg.wait_for_timeout(200)
+    face(); pg.wait_for_timeout(400)
+    ok(f"its news in its bubble, opened from its face, in the voice picked ({said()})", said() == ['voice:ld:' + lid] and js(f"() => JSON.stringify(Sound.voices.of('ld:{lid}')) === JSON.stringify(getLeader('{lid}').voice)"))
+    heard(); pg.wait_for_timeout(100)
 
-    # a quick voice types its line quicker: the same line, at 1.6x and at 0.6x
+    # a quick voice types its line quicker: the same line, at 1.6x and at 0.6x; the card's line ends with its time
+    # ("Just now."), so the words are short, for a line a 1.6x voice says whole in 0.75 s (35 letters)
     def typed_after(speed, ms):
         js(f"() => {{ const l = getLeader('{lid}'); l.voice = sanitizeVoice({{ ...l.voice, speed: {speed} }}); }}")
-        js(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'two notes and a link, ' + {speed} }})"); pg.wait_for_timeout(ms)
+        js(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'a note, ' + {speed} }})"); face(); pg.wait_for_timeout(ms)
         st = js("() => [document.querySelector('#ldSayText').classList.contains('typing'), document.querySelectorAll('#ldSayText .ty.on').length, document.querySelectorAll('#ldSayText .ty').length]")
-        js("() => News.hide({ read: true })"); pg.wait_for_timeout(150)
+        heard(); pg.wait_for_timeout(150)
         return st
     fast, slow = typed_after(1.6, 750), typed_after(0.6, 750)
     ok(f"its speed paces the typing too: after 0.75 s a 1.6x voice has said its line whole, a 0.6x one is still at it ({slow[1]} of {slow[2]} letters)", fast[0] is False and slow[0] is True and 0 < slow[1] < slow[2] * 0.75)

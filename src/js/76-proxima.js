@@ -328,7 +328,8 @@ const Proxima = (() => {
     body = h('div', { class: 'px-report', 'data-kind': kind });
     Panel.open(PROXIMA_WORDS[kind].title, body, 'px-panel');
     draw();
-    pump();                                                // the next one she has waits until this one is closed
+    const q = queue.indexOf(kind);                         // read from Reports: her page on it in News is heard (0.1.96)
+    if (q >= 0 && !from) { done(q); if (saying) drawSay(); }
   }
   /* Draws the report open, keeping the focus on the control that had it. */
   function draw() {
@@ -487,73 +488,95 @@ const Proxima = (() => {
     ];
   }
 
-  /* ---------- speaking: the weekly, monthly and daily reports, after Gus ---------- */
+  /* ---------- speaking: the weekly, monthly and daily reports, and the street parties ---------- */
+  /* Since 0.1.96 (One Leader Card, the triggers he approved) they are News: they wait in News with her face, which
+     counts them with the buildings' news she brings, and open from it, in her card, one page each with "< 1 / 3 >".
+     The x, Read and Go to it are done with a page; Minimize leaves them waiting. */
   function check(now = Date.now()) {
     if (!started) return;
+    let moved = false;
     for (const kind of ['weekly', 'monthly', 'daily']) {
       const per = proximaPeriod(kind, now);
-      if (!proximaRelevant(per) || state.spoke[kind] === per.key || queue.includes(kind) || (saying && saying.kind === kind)) continue;
-      queue.push(kind);
+      if (!proximaRelevant(per) || state.spoke[kind] === per.key || queue.includes(kind)) continue;
+      queue.push(kind); moved = true;
     }
-    pump();
+    if (moved) newsAgain();
   }
-  function pump() {
-    clearTimeout(waitTimer);
-    if (saying || !queue.length) return;
-    if ((typeof Gus !== 'undefined' && Gus.isSaying()) || (typeof News !== 'undefined' && News.isHeld()) || Panel.isOpen() || Confirm.isOpen() || !sayRoom()
-      || (typeof Hold !== 'undefined' && Hold.busy())) { waitTimer = setTimeout(pump, 500); return; }      // held for a break, or Quiet (0.1.91)
-    const kind = queue.shift();
-    if (typeof kind !== 'string') { if (getProject(kind.pid)) say(kind); else pump(); return; }   // a milestone's party
-    const r = proximaReport(kind);
-    state.spoke[kind] = r.per.key; save();
-    say(r);
+  const newsAgain = () => { if (typeof News !== 'undefined') News.renderSection(); };
+  const pageKey = x => (typeof x === 'string' ? x : 'party:' + x.key);
+  let at = 0, T = null, shown = 0;
+  const seenPx = new Set();
+  /* From her face in News: her first page. */
+  function open() {
+    queue = queue.filter(x => typeof x === 'string' || getProject(x.pid));
+    if (!queue.length) { newsAgain(); return; }
+    if (typeof News !== 'undefined') News.yieldTo();            // a leader's bubble gives way to her
+    if (typeof Gus !== 'undefined' && Gus.isSaying()) Gus.hush();
+    at = 0;
+    drawSay();
+    const b = $('#pxSayRead'); if (b) b.focus({ preventScroll: true });
   }
-  let T = null, shown = 0;                                 // her line, typing out (0.1.78)
-  function say(r) {
-    const party = r.kind === 'milestone';
-    if (typeof News !== 'undefined') News.yieldTo();            // a leader's news waits for her (Leader UX, N3)
-    saying = { kind: r.kind, key: party ? r.key : r.per.key, item: party ? r : null };
+  function drawSay() {
+    queue = queue.filter(x => typeof x === 'string' || getProject(x.pid));
+    if (!queue.length) { hush(); return; }
+    at = Math.min(at, queue.length - 1);
+    const x = queue[at], party = typeof x !== 'string', r = party ? x : proximaReport(x), was = !!saying && saying.page === pageKey(x);
+    saying = { kind: r.kind, key: party ? r.key : r.per.key, item: party ? r : null, page: pageKey(x) };
+    seenPx.add(pageKey(x));
     const box = $('#pxSay'), act = $('#pxSayRead');
-    if (T) T.hush();
-    $('#pxSayText').replaceChildren(...(party ? [r.line] : proximaLineNodes(r.parts)));
+    if (!was) { if (T) T.hush(); $('#pxSayText').replaceChildren(...(party ? [r.line] : proximaLineNodes(r.parts))); }
     if (!$('#pxSayFace').firstChild) $('#pxSayFace').append(faceImg());
+    const where = $('#pxSayWhere'), p = party ? getProject(r.pid) : null;
+    where.hidden = !p;
+    where.replaceChildren(...(p ? [h('button', { class: 'ld-say-bld', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => goTo(p.id) }, h('bdi', null, p.name))] : []));
     act.textContent = party ? 'Go to it' : 'Read';
-    act.onclick = party ? () => { hush(false); goTo(r.pid); pump(); }
-      : () => { hush(false); if (typeof Reports !== 'undefined') Reports.open(); openReport(r.kind); pump(); };
-    const edge = panelEdge();                                                       // beside the panels on the map, over the map they leave open
+    act.onclick = e => {
+      e.preventDefault();
+      done(at); hush();
+      if (party) goTo(r.pid); else { if (typeof Reports !== 'undefined') Reports.open(); openReport(r.kind); }
+    };
+    const n = queue.length, unseen = j => !seenPx.has(pageKey(queue[j]));
+    const pgBtn = (d, dot) => h('button', { id: d < 0 ? 'pxSayPrev' : 'pxSayNext', class: 'icon-btn ld-flip-btn lc-pg' + (d > 0 ? ' next' : ''), type: 'button', disabled: d < 0 ? at === 0 : at >= n - 1,
+      'aria-label': (d < 0 ? 'The page before' : 'The next page') + (dot ? ', one not seen yet' : ''), title: (d < 0 ? 'The page before' : 'The next page') + (dot ? ': one not seen yet' : ''),
+      onclick: e => { e.stopPropagation(); at += d; drawSay(); } },
+      h('span', { class: 'lc-pg-ic', 'aria-hidden': 'true', html: iconSvg(d < 0 ? 'pgPrev' : 'pgNext', 5) }), dot ? h('i', { class: 'lc-dot', 'aria-hidden': 'true' }) : null);
+    $('#pxPager').replaceChildren(...(n > 1 ? [h('span', { class: 'ld-flip lc-pager', role: 'group', 'aria-label': 'Pages' }, pgBtn(-1, queue.slice(0, at).some((y, j) => unseen(j))),
+      h('span', { class: 'ld-flip-n lc-pgn' }, (at + 1) + ' / ' + n), pgBtn(1, queue.some((y, j) => j > at && unseen(j))))] : []));
+    const edge = panelEdge();                                // beside the panels on the map, over the map they leave open
     box.style.left = edge ? Math.round(edge + 22) + 'px' : '';
     box.hidden = false;
     fitSay(box);
-    if (typeof Sound !== 'undefined') Sound.bubble();
     if (!T) T = News.typer('#pxSayText', '#pxSayFace');
-    T.speak('px:' + ++shown, 'proxima');                   // her line types out in her voice, after a bubble's sound (0.1.78)
+    if (!was) T.speak('px:' + ++shown, 'proxima');          // her line types out in her voice (0.1.78)
     requestAnimationFrame(() => box.classList.add('show'));
-    clearTimeout(sayTimer);
-    sayTimer = setTimeout(() => hush(), sayMs);
   }
-  function hush(next = true) {
-    clearTimeout(sayTimer);
+  /* A page done with: said, and gone from News. */
+  function done(i) {
+    const x = queue[i];
+    if (x == null) return;
+    if (typeof x === 'string') { state.spoke[x] = proximaReport(x).per.key; save(); }
+    queue.splice(i, 1);
+    newsAgain();
+  }
+  /* Her bubble closes; what it held waits in News. */
+  function hush() {
     if (T) T.hush();
-    const box = $('#pxSay');
+    const box = $('#pxSay'), had = !!box && box.contains(document.activeElement);
     if (box) { box.classList.remove('show'); box.hidden = true; }
     saying = null;
-    if (next) waitTimer = setTimeout(pump, 400);
+    newsAgain();
+    if (had) { const f = $('#newsList .news-face'); if (f) f.focus({ preventScroll: true }); }
+    if (typeof News !== 'undefined') setTimeout(() => News.pump(), 400);
   }
-
-  /* Gus cuts in: her bubble goes, and she says it again once he is done. */
-  function yieldToGus() {
-    if (!saying) return;
-    const kind = saying.item || saying.kind;
-    hush(false);
-    queue.unshift(kind);
-    pump();
-  }
-  /* A finished milestone's street party: she says it after anything already waiting, and Go to it glides the map to the
-     building, into the open part beside the project view when it is open. */
+  /* Gus cuts in: her bubble goes; her pages wait in News. */
+  function yieldToGus() { if (saying) hush(); }
+  /* A finished milestone's street party: a page of hers in News; Go to it glides the map to the building, into the
+     open part beside the project view when it is open. */
   function announce(p, m, n) {
     const line = proximaFill(proximaPick(PROXIMA_LINES.milestone, 'milestone:' + m.id), { milestone: m.name, project: p.name, n });
+    queue = queue.filter(x => typeof x === 'string' || x.key !== m.id);
     queue.push({ kind: 'milestone', key: m.id, pid: p.id, line });
-    pump();
+    newsAgain();
   }
   function goTo(pid) {
     if (!getProject(pid)) return;
@@ -561,14 +584,19 @@ const Proxima = (() => {
   }
 
   function init() {
-    $('#pxSayClose').innerHTML = iconSvg('close', 16);
-    $('#pxSayClose').addEventListener('click', () => hush());
+    $('#pxSayClose').innerHTML = iconSvg('close', 12);
+    $('#pxSayClose').addEventListener('click', () => { done(at); if (queue.length) drawSay(); else hush(); });   // her x: that page is heard
+    $('#pxSayMin').innerHTML = iconSvg('minus', 12);
+    $('#pxSayMin').addEventListener('click', () => hush());
+    $('#pxSay').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); hush(); } });   // Esc minimizes
+    $('#pxTypeIc').innerHTML = iconSvg(NEWS_TYPES.news.icon, 14);
+    $('#pxCard').style.setProperty('--t', NEWS_TYPES.news.color);
     started = true;
     renderDot();
     check();
     setInterval(() => { refresh(); check(); }, 60000);        // a new day, week or month while the city stays open
   }
-  return { init, refresh, renderCard, renderDot, yieldToGus, openReport, check, hush, announce, faceEl, isSaying: () => !!saying, saying: () => saying && saying.kind, report: proximaReport,
-    busy: () => !!saying || queue.length > 0, redraw: () => draw(),
+  return { init, refresh, renderCard, renderDot, yieldToGus, openReport, check, hush, announce, faceEl, open, isSaying: () => !!saying, saying: () => saying && saying.kind, report: proximaReport,
+    busy: () => !!saying, waiting: () => queue.filter(x => typeof x === 'string' || getProject(x.pid)).length, redraw: () => draw(),
     _test: { sayMs: ms => { sayMs = ms; }, state: () => JSON.parse(JSON.stringify(state)), forget: () => { state = { read: {}, spoke: {} }; save(); queue = []; }, queue: () => [...queue] } };
 })();

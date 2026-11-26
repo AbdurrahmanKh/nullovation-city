@@ -159,7 +159,9 @@ with sync_playwright() as p:
        ev("() => Celebrate._test.parties()") == [gp] and not ev("() => Proxima.isSaying()") and len(ev("() => Proxima._test.queue()")) == 1)
     ev("() => FullView.close()"); pg.wait_for_timeout(1000)
     px = ev(BOX, '#pxSay')
-    ok('once the project view closes, she says it, under the Menu button', ev("() => Proxima.saying()") == 'milestone' and px and px['t'] >= ev(BOX, '#menuToggle')['b'])
+    ok('once the project view closes, it waits in News with her face (0.1.96), and opens from it under the Menu button',
+       ev("() => Proxima.waiting()") == 1 and not ev("() => Proxima.isSaying()") and (ev("() => Proxima.open()") or True) and ev("() => Proxima.saying()") == 'milestone'
+       and (px := ev(BOX, '#pxSay')) and px['t'] >= ev(BOX, '#menuToggle')['b'])
     pg.screenshot(path=str(SHOTS / '475-phone-proxima.png'))
     b.close()
 
@@ -245,9 +247,9 @@ with sync_playwright() as p:
 
     # L2: the speech bubbles' face is 64 px on a phone, the words beside it
     ev("() => Gus.say('The city is getting dirty! We should do something about it.')"); pg.wait_for_timeout(400)
-    sq = ev("""() => { const b = document.querySelector('#gusSay'), f = b.querySelector('.gus-face').getBoundingClientRect(), t = document.querySelector('#gusSayText').getBoundingClientRect();
-        return { face: Math.round(f.width), beside: t.left >= f.right, narrow: b.classList.contains('narrow') }; }""")
-    ok(f'L2 a speech bubble\'s face is 64 px on a phone, with the words beside it ({sq})', sq['face'] == 64 and sq['beside'] and not sq['narrow'])
+    sq = ev("""() => { const b = document.querySelector('#gusSay'), f = b.querySelector('.gus-face').getBoundingClientRect(), t = b.querySelector('.lc-wn').getBoundingClientRect();
+        return { face: Math.round(f.width), beside: t.left >= f.right }; }""")
+    ok(f'L2 a speech bubble\'s face is 64 px on a phone, the name beside it, the words under them on the card since 0.1.96 ({sq})', sq['face'] == 64 and sq['beside'])
     ok('and a leader\'s face in its bubble is drawn at 64 px there', ev("() => sayFace()") == 64)
     pg.screenshot(path=str(SHOTS / '479-phone-bubble-64.png'))
     ev("() => Gus.hush()"); pg.wait_for_timeout(300)
@@ -389,7 +391,7 @@ with sync_playwright() as p:
     pg.screenshot(path=str(SHOTS / '476-phone-side.png'))
     pg.tap('#menuClose'); pg.wait_for_timeout(300)
     pg.evaluate("() => Gus.say('Clean streets. Don\\'t get used to it.')"); pg.wait_for_timeout(400)
-    ok('a speech bubble keeps its 400 px at most, under the Menu button', pg.evaluate(BOX, '#gusSay')['w'] <= 401 and pg.evaluate(BOX, '#gusSay')['t'] >= pg.evaluate(BOX, '#menuToggle')['b'])
+    ok('a speech bubble keeps its 420 px at most (the card, 400 until 0.1.95), under the Menu button', pg.evaluate(BOX, '#gusSay')['w'] <= 421 and pg.evaluate(BOX, '#gusSay')['t'] >= pg.evaluate(BOX, '#menuToggle')['b'])
     b.close()
 
     # ---------- a desktop window stays as it was ----------

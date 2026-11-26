@@ -2,7 +2,8 @@
 Round 1 rethought them (0.1.83): one weekly report in place of two, which the side bar's This week card opens on the week
 so far; a monthly one laid out the same; a daily one, a morning brief on today, which she brings herself; her line with
 its numbers as tokens; the table of the buildings, a row opening on what it finished, and since 0.1.84 the quiet ones
-folded into one line; and her speech bubble, after Gus."""
+folded into one line; and her speech bubble, after Gus. Since 0.1.96 (One Leader Card) her reports wait in News with her
+face and open from it, in her card, a page each; her x marks one heard, Minimize leaves them waiting."""
 import json
 from playwright.sync_api import sync_playwright
 from testkit import FILE, SHOTS, TEST_CITY, FACE_OF, PORTRAIT_SUM, portrait_sum
@@ -151,7 +152,8 @@ with sync_playwright() as p:
     pg.on('pageerror', lambda e: errors.append(str(e))); pg.on('console', lambda m: errors.append(m.text) if m.type in ('error', 'warning') else None)
     pg.goto(FILE); pg.wait_for_timeout(2200)
     ev = pg.evaluate
-    ok('a new city: nothing to report yet, no dot, no bubble', not ev("() => document.querySelector('#btnOpenReports').classList.contains('has-news')") and not pg.is_visible('#pxSay'))
+    ok('a new city: nothing to report yet, no dot, no bubble, nothing waiting', not ev("() => document.querySelector('#btnOpenReports').classList.contains('has-news')") and not pg.is_visible('#pxSay')
+       and ev("() => Proxima.waiting()") == 0)
     pg.click('#btnOpenReports'); pg.wait_for_timeout(200)
     ok('J1 her card at the top of Reports, above the tabs', pg.is_visible('#pxCard') and
        ev("() => document.querySelector('#pxCard').getBoundingClientRect().bottom <= document.querySelector('#rpTabs').getBoundingClientRect().top"))
@@ -187,30 +189,42 @@ with sync_playwright() as p:
     ok('the Reports button wears a dot while a report waits unread', ev("() => document.querySelector('#btnOpenReports').classList.contains('has-news')")
        and 'Proxima has a report' in pg.get_attribute('#btnOpenReports', 'title'))
     ev("() => Proxima._test.sayMs(60000); Proxima.check()"); pg.wait_for_timeout(300)
-    ok('J3 she brings the weekly report herself, in her bubble', pg.is_visible('#pxSay') and ev("() => Proxima.saying()") == 'weekly'
-       and pg.text_content('#pxSayText') == ev("() => Proxima.report('weekly').line") and pg.text_content('#pxSay .px-name b') == 'Proxima Pace')
-    ok('C1 the monthly one waits its turn, and the daily one after it: she brings it too now', ev("() => Proxima._test.queue()") == ['monthly', 'daily'])
+    px_face = lambda: pg.click('#newsList .news-tile[data-k="px"] .news-face')
+    ok('J3 her reports wait in News with her face, no bubble by itself (0.1.96)', not pg.is_visible('#pxSay') and ev("() => Proxima.waiting()") == 3
+       and pg.locator('#newsList .news-tile[data-k="px"]').count() == 1)
+    px_face(); pg.wait_for_timeout(300)
+    ok('J3 a click on her face opens her card on the weekly report', pg.is_visible('#pxSay') and ev("() => Proxima.saying()") == 'weekly'
+       and pg.text_content('#pxSayText') == ev("() => Proxima.report('weekly').line") and pg.text_content('#pxSay .lc-nm') == 'Proxima Pace')
+    ok('C1 the monthly one waits its turn, and the daily one after it, pages of her card (1 / 3)', ev("() => Proxima._test.queue()") == ['weekly', 'monthly', 'daily']
+       and pg.text_content('#pxPager .lc-pgn') == '1 / 3')
     tk = ev("""() => [...document.querySelectorAll('#pxSayText .px-tok')].map(t => [t.dataset.k, t.querySelector('b').textContent, !!t.querySelector('svg'), getComputedStyle(t).color])""")
     ok(f'B1 her line\'s numbers are tokens in her bubble: an icon and the words, in her sky blue ({tk[:2]})', len(tk) >= 2 and tk[0][0] == 'tick' and all(t[2] and t[3] == 'rgb(143, 208, 247)' for t in tk))
     f = ev(FACE_OF, '#pxSayFace')
     ok(f'in her speech bubble: her portrait, bigger, 100 by 100 (0.1.57; 80 before), on her dark sky blue ({f and {k: f[k] for k in ("w", "h", "fw")}})',
        f and f['url'] == px and f['imgs'] == 1 and f['w'] == f['h'] == f['fw'] == 100 and f['smooth'] and f['bg'] == 'rgb(31, 53, 80)')
-    wide = ev("""() => { const b = document.querySelector('#pxSay'), t = document.querySelector('#pxSayText').getBoundingClientRect(), f = document.querySelector('#pxSayFace').getBoundingClientRect();
-        return { narrow: b.classList.contains('narrow'), beside: t.left >= f.right, text: Math.round(t.width), w: Math.round(b.getBoundingClientRect().width) }; }""")
-    ok(f'over the open map her words sit beside her face, the bubble at most 400 px wide (0.1.57) ({wide})', not wide['narrow'] and wide['beside'] and wide['w'] <= 400)
+    wide = ev("""() => { const b = document.querySelector('#pxSay'), t = document.querySelector('#pxSayText').getBoundingClientRect(), f = document.querySelector('#pxSayFace').getBoundingClientRect(),
+        n = b.querySelector('.lc-wn').getBoundingClientRect();
+        return { narrow: b.classList.contains('narrow'), beside: n.left >= f.right, under: t.top >= f.bottom, text: Math.round(t.width), w: Math.round(b.getBoundingClientRect().width) }; }""")
+    ok(f'over the open map, the leaders\' card: her name beside her face, her words under them, at most 420 px wide (0.1.96; words beside the face and 400 px since 0.1.57) ({wide})',
+       not wide['narrow'] and wide['beside'] and wide['under'] and wide['w'] <= 420)
     pg.wait_for_timeout(2200)
     pg.screenshot(path=str(SHOTS / '300-proxima-says.png'), clip={'x': 290, 'y': 0, 'width': 620, 'height': 230})
-    ok('she says each report once', ev("() => Proxima._test.state().spoke.weekly") == ev("() => proximaPeriod('weekly').key"))
-    # Gus cuts in: she gives way, and says it again after him
+    ok('shown is not heard yet: the report waits until its x or Read (0.1.96)', ev("() => Proxima._test.state().spoke.weekly") != ev("() => proximaPeriod('weekly').key"))
+    # Gus cuts in: she gives way; her pages wait in News, and her face opens them again after him
     ev("() => { window._gusSays = Gus.isSaying; Gus.isSaying = () => true; Proxima.yieldToGus(); }"); pg.wait_for_timeout(200)
     ok('never both at once: when Gus speaks, her bubble goes', not pg.is_visible('#pxSay') and ev("() => Proxima._test.queue()") == ['weekly', 'monthly', 'daily'])
     pg.wait_for_timeout(700)
     ok('and she waits while he speaks', not pg.is_visible('#pxSay'))
     ev("() => { Gus.isSaying = window._gusSays; }"); pg.wait_for_timeout(800)
-    ok('then she says hers', pg.is_visible('#pxSay') and ev("() => Proxima.saying()") == 'weekly')
-    # Read: Reports open, with the report
+    ok('after him she does not come back by herself: her three pages wait in News (0.1.96)', not pg.is_visible('#pxSay') and ev("() => Proxima.waiting()") == 3)
+    px_face(); pg.wait_for_timeout(300)
+    ok('then her face opens hers', pg.is_visible('#pxSay') and ev("() => Proxima.saying()") == 'weekly')
+    # Read: a link now (0.1.96), Reports open, with the report
+    ok('Read is a link', ev("() => [document.querySelector('#pxSayRead').tagName, document.querySelector('#pxSayRead').textContent]") == ['A', 'Read'])
     pg.click('#pxSayRead'); pg.wait_for_timeout(300)
     ok('Read opens Reports and the weekly report', pg.is_visible('#reports') and ev("() => Panel.isOpen()") and pg.text_content('#pnTitle') == 'Weekly report' and not pg.is_visible('#pxSay'))
+    ok('she says each report once: Read marks it heard, gone from News', ev("() => Proxima._test.state().spoke.weekly") == ev("() => proximaPeriod('weekly').key")
+       and ev("() => Proxima._test.queue()") == ['monthly', 'daily'])
     ok('the report opens with her line, its tokens drawn, then the week with its arrows', pg.text_content('#pxReportLine') == ev("() => Proxima.report('weekly').line")
        and pg.locator('#pxReportLine .px-tok').count() >= 2 and pg.text_content('#pxWhen') == ev("() => weekLabel(proximaPeriod('weekly').from, true)")
        and pg.get_attribute('.px-nav [data-k=next]', 'disabled') is None)
@@ -255,11 +269,14 @@ with sync_playwright() as p:
     ok('a task it finished opens in its project', not ev("() => Panel.isOpen()") and pg.is_visible('#pvSide #pvTaskName') and pg.text_content('#pvTaskName') == 'Water the beds')
     pg.keyboard.press('Escape'); pg.wait_for_timeout(150); pg.keyboard.press('Escape'); pg.wait_for_timeout(900)
     ok('read: no dot on the weekly report', not ev("() => document.querySelector('[data-k=px-weekly]').classList.contains('new')"))
-    ok('with Reports still open she waits: a panel holds her (0.1.91, City as My Terminal, L2)', not pg.is_visible('#pxSay'))
+    ok('with Reports still open nothing opens: the monthly and the daily wait in News', not pg.is_visible('#pxSay') and ev("() => Proxima._test.queue()") == ['monthly', 'daily'])
     ev("() => Reports.close()"); pg.wait_for_timeout(900)
-    ok('then, Reports closed, she brings the monthly one', pg.is_visible('#pxSay') and ev("() => Proxima.saying()") == 'monthly')
+    ok('Reports closed, she still waits in News: no bubble by itself (0.1.96)', not pg.is_visible('#pxSay') and ev("() => Proxima.waiting()") == 2)
+    px_face(); pg.wait_for_timeout(300)
+    ok('her face opens the monthly one', pg.is_visible('#pxSay') and ev("() => Proxima.saying()") == 'monthly')
     pg.click('#pxSayClose'); pg.wait_for_timeout(900)
-    ok('the close button sends her bubble away, and the daily one comes after it', ev("() => Proxima.saying()") == 'daily')
+    ok('her x: the monthly one heard, and the daily one comes after it', ev("() => Proxima.saying()") == 'daily'
+       and ev("() => Proxima._test.state().spoke.monthly") == ev("() => proximaPeriod('monthly').key") and ev("() => Proxima._test.queue()") == ['daily'])
     ev("() => Proxima.hush(false)"); pg.wait_for_timeout(150)
     ev("() => Reports.open()"); pg.wait_for_timeout(200)
     ok('closed unread, the monthly report keeps its dot', ev("() => document.querySelector('[data-k=px-monthly]').classList.contains('new')"))
@@ -336,14 +353,18 @@ with sync_playwright() as p:
 
     # a reload: what was read and said is kept
     pg.reload(); pg.wait_for_timeout(2200)
-    ok('after a reload she says nothing again, and nothing is unread', not pg.is_visible('#pxSay') and not ev("() => document.querySelector('#btnOpenReports').classList.contains('has-news')"))
-    # a fresh visit to the same city: she brings all three, after Gus
+    ok('after a reload she says nothing again, nothing waits in News, and nothing is unread', not pg.is_visible('#pxSay') and ev("() => Proxima.waiting()") == 0
+       and not ev("() => document.querySelector('#btnOpenReports').classList.contains('has-news')"))
+    # a fresh visit to the same city: all three wait in News, the weekly first
     ev("() => Proxima._test.forget()")
     pg.reload(); pg.wait_for_timeout(2400)
-    ok('on the first open after a week and a month end, she brings the weekly report first, the monthly and daily after it',
-       pg.is_visible('#pxSay') and ev("() => Proxima.saying()") == 'weekly' and ev("() => Proxima._test.queue()") == ['monthly', 'daily'])
-    ev("() => Proxima._test.sayMs(300)"); ev("() => Proxima.hush()"); pg.wait_for_timeout(1200)
-    ok('her bubble goes by itself after a while, and she goes on to the next', ev("() => Proxima.saying()") in ('monthly', 'daily', None))
+    ok('on the first open after a week and a month end, her three reports wait in News, the weekly first, the monthly and daily after it; no bubble by itself (0.1.96)',
+       not pg.is_visible('#pxSay') and ev("() => Proxima._test.queue()") == ['weekly', 'monthly', 'daily'] and ev("() => Proxima.waiting()") == 3)
+    ev("() => Proxima._test.sayMs(300)")
+    px_face(); pg.wait_for_timeout(1200)
+    ok('her bubble no longer goes by itself: opened, it stays on the weekly one (0.1.96)', pg.is_visible('#pxSay') and ev("() => Proxima.saying()") == 'weekly')
+    pg.click('#pxSayMin'); pg.wait_for_timeout(300)
+    ok('Minimize: her bubble goes, and all three still wait in News', not pg.is_visible('#pxSay') and ev("() => Proxima.waiting()") == 3)
     ev("() => { Proxima.hush(false); }")
 
     # a narrow window: her card in the drawer, and a report that fits

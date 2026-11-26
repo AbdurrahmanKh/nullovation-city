@@ -1,7 +1,7 @@
 """Pass 59: talking to the leaders (0.1.94, City as My Terminal, Round 1, L1, L4, R1 to R3, and Brainstorm 1, i5, i6).
 A conversation with Claude in a T3 thread is a topic: what it asks, with its choices as buttons and Claude's pick
 marked, and a reply box that steers, queues, or answers a question; topics flip with arrows on the cards and in the
-bubble. First the helper, which answers and steers through T3's agent tools with a key for one minute's work, against
+bubble (since 0.1.96, One Leader Card, a topic is a page, its pager in the card's head, "1 / 2"). First the helper, which answers and steers through T3's agent tools with a key for one minute's work, against
 a fake T3 server; then the city with a Claude folder held in memory, the helper's answers put back by hand."""
 import http.server, json, os, pathlib, shutil, subprocess, sys, tempfile, threading, time
 from playwright.sync_api import sync_playwright
@@ -228,29 +228,35 @@ HTMLAnchorElement.prototype.click = function () { const href = this.getAttribute
         clear_sends()
         ev("() => MapView.deselect()"); pg.wait_for_timeout(200)
 
-        # ---------- topics: arrows on the cards (i5's variant) ----------
+        # ---------- topics: arrows on the cards (i5's variant); pages since 0.1.96, the pager in the card's head ----------
         ev(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'a note, Bed layout' }})"); pg.wait_for_timeout(300)
         ev("() => { News.hide({ read: false }); }")
         ev(f"() => MapView.select('{gp}', {{ glide: false }})"); pg.wait_for_timeout(400)
-        nav = ev("() => { const f = document.querySelector('#bubble .ld-flip'); return f ? f.querySelector('.ld-flip-n').textContent : ''; }")
-        ok('two topics on a card: one shows, with arrows and where it is', nav == '1 of 2' and ev("() => document.querySelectorAll('#bubble .b-leader .ld-line').length") == 1, nav)
+        nav = ev("() => { const f = document.querySelector('#bubble .lc-head .lc-pager'); return f ? f.querySelector('.lc-pgn').textContent : ''; }")
+        ok('two topics on a card: one page shows, the pager in its head saying where it is (0.1.96: "1 / 2")', nav == '1 / 2' and ev("() => document.querySelectorAll('#bubble .lc').length") == 1
+           and ev("() => document.querySelectorAll('#bubble .ld-line').length") == 1, nav)
         first = ev("() => document.querySelector('#bubble .ld-line .ld-says').textContent")
         pg.click('#ldFlipNext-card'); pg.wait_for_timeout(150)
-        ok('the arrow flips to the next, the focus kept on it', ev("() => document.querySelector('#bubble .ld-flip-n').textContent") == '2 of 2' and ev("() => document.activeElement.id") == 'ldFlipNext-card'
+        ok('the arrow flips to the next, the focus kept on it', ev("() => document.querySelector('#bubble .lc-pgn').textContent") == '2 / 2' and ev("() => document.activeElement.id") == 'ldFlipNext-card'
            and ev("() => document.querySelector('#bubble .ld-line .ld-says').textContent") != first)
         pg.screenshot(path=str(SHOTS / '592-talk-topics.png'))
         pg.click('#ldFlipNext-card'); pg.wait_for_timeout(150)
-        ok('and round to the first', ev("() => document.querySelector('#bubble .ld-flip-n').textContent") == '1 of 2')
+        ok('and round to the first', ev("() => document.querySelector('#bubble .lc-pgn').textContent") == '1 / 2')
         ev("() => MapView.deselect()"); pg.wait_for_timeout(200)
 
         # ---------- the bubble: a leader's conversations as topics, flipped with arrows ----------
         ev(f"() => News.add(getProject('{gp}'), 'added', {{ what: 'a link, Seed shop' }})"); pg.wait_for_timeout(300)
+        ok('what Claude added no longer opens the bubble by itself: it waits in News (0.1.96)', ev("() => document.querySelector('#ldSay').hidden")
+           and ev(f"() => News.items().some(it => it.pid === '{gp}' && it.moment === 'added')"))
         ev("() => News.hide({ read: false })"); pg.wait_for_timeout(100)
         ev(f"() => News.openFace('ld:' + getProject('{gp}').leader)"); pg.wait_for_timeout(500)
         st = ev("() => News._test.bubble()")
-        ok('a leader\'s bubble holds its news and its conversations, each a topic, the news first', st and len(st['ids']) >= 2 and any(i.startswith('conv:') for i in st['ids'])
-           and not st['ids'][0].startswith('conv:'), st)
-        ok('the arrows: the one before off at the first, "1 of N" between', ev("() => document.querySelector('#ldSayPrev').disabled") and ev("() => document.querySelector('#ldSayCount').textContent").startswith('1 of '))
+        add_id = ev(f"() => (News.items().find(it => it.pid === '{gp}' && it.moment === 'added') || {{}}).id")
+        ok('a leader\'s bubble holds its news and its conversations, each a page, by type since 0.1.96: Claude\'s question (Your Answer) before what it added (Attachment)', st and len(st['ids']) >= 2
+           and st['ids'][0] == 'conv:s-ask' and add_id in st['ids'][1:], st)
+        ty = ev("() => [document.querySelector('#ldSay').dataset.type, document.querySelector('#ldSay .lc-tname').textContent]")
+        ok(f'a waiting thread that asks a question is Your Answer ({ty})', ty == ['answer', 'Your Answer'])
+        ok('the arrows: the one before off at the first, "1 / N" between (0.1.96)', ev("() => document.querySelector('#ldSayPrev').disabled") and ev("() => document.querySelector('#ldSayCount').textContent").startswith('1 / '))
         ev("() => News.hide({ read: false })"); pg.wait_for_timeout(200)
         # a leader at work opens its bubble on that conversation
         put('s-run.json', {**base, 'session': 's-run', 'state': 'working', 'cwd': str(garden), 'task': '', 'ask': 'Edge the beds'})

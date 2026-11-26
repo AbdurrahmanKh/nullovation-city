@@ -164,9 +164,9 @@ with sync_playwright() as p:
     ev(f"() => MapView.select('{gp}')"); pg.wait_for_timeout(700)
     sc = ev("""() => { const l = document.querySelector('#bubble .b-leader'); if (!l) return null;
         const t = document.querySelector('#bubble .b-title');
-        return { name: l.querySelector('.ld-name').textContent, role: l.querySelector('.b-leader-text span').textContent, img: !!l.querySelector('img'),
-          w: Math.round(l.querySelector('.ld-face').getBoundingClientRect().width), afterTitle: t.nextElementSibling === l }; }""")
-    ok(f'the status card names the leader under the building\'s name, with a 48 px face (0.1.57; 32 before) ({sc})', sc and sc['name'] == 'Gus Grimsby' and sc['role'] == 'Garbage Man'
+        return { name: l.querySelector('.lc-nm').textContent, role: l.querySelector('.lc-role').textContent, img: !!l.querySelector('.lc-face img'),
+          w: Math.round(l.querySelector('.lc-face .ld-face').getBoundingClientRect().width), afterTitle: t.nextElementSibling === l }; }""")
+    ok(f'the status card names the leader under the building\'s name, on the leader\'s card, with a 48 px face (0.1.57; 32 before) ({sc})', sc and sc['name'] == 'Gus Grimsby' and sc['role'] == 'Garbage Man'
        and sc['img'] and sc['w'] == 48 and sc['afterTitle'])
     pg.screenshot(path=str(SHOTS / '343-leader-status.png'))
     ev(f"() => MapView.select('{nc}')"); pg.wait_for_timeout(500)
@@ -195,11 +195,11 @@ with sync_playwright() as p:
     # ---------- the project view's leader card ----------
     ev(f"() => FullView.open('{gp}')"); pg.wait_for_timeout(700)
     card = ev("""() => { const c = document.querySelector('#pvLeader'); if (!c) return null;
-        return { name: c.querySelector('.ld-name').textContent, role: c.querySelector('.ld-card-text span').textContent, img: !!c.querySelector('img'),
-          w: Math.round(c.querySelector('.ld-face').getBoundingClientRect().width), change: (c.querySelector('.ld-change') || {}).textContent,
+        return { name: c.querySelector('.lc-nm').textContent, role: c.querySelector('.lc-role').textContent, img: !!c.querySelector('.lc-face img'),
+          w: Math.round(c.querySelector('.lc-face .ld-face').getBoundingClientRect().width), change: (c.querySelector('.ld-change') || {}).textContent,
           under: !!document.querySelector('.pv-scene') && (document.querySelector('.pv-scene').compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING) > 0 }; }""")
-    ok(f'the project view has a leader card under the building: the face, 96 px (0.1.57; 64 before), the name, the role and Change ({card})', card and card['name'] == 'Gus Grimsby'
-       and card['role'] == 'Garbage Man' and card['img'] and card['w'] == 96 and card['change'] == 'Change' and card['under'])
+    ok(f'the project view has a leader card under the building: the face, 100 px (0.1.96; 96 from 0.1.57, 64 before), the name, the role and Change ({card})', card and card['name'] == 'Gus Grimsby'
+       and card['role'] == 'Garbage Man' and card['img'] and card['w'] == 100 and card['change'] == 'Change' and card['under'])
     pg.screenshot(path=str(SHOTS / '345-leader-card.png'))
     pg.click('#pvLeader .ld-change'); pg.wait_for_timeout(300)
     opts = ev("() => [...document.querySelectorAll('#pvSide .ld-opt')].map(o => [o.querySelector('b').textContent, o.getAttribute('aria-pressed')])")

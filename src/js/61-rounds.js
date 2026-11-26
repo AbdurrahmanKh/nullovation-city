@@ -192,6 +192,10 @@ const Rounds = (() => {
       if (!st) return;
       /* Quill says it, in place of the toast (Leader UX, T1, 0.1.59; Quill since 0.1.69), with Read and Open; it waits in
          News. Wizard rounds appear in Activity (Leader Bubbles, Round 2, C2): each time they come in, how far it is. */
+      /* one line per round, its count brought up to date (0.1.96, One Leader Card, Round 1, T1: "they should be combined
+         in one, only 7 out of 14 should be updated"), as Quill's message is */
+      const head = 'Answers in for ' + t.round.title + ': ';
+      if (Array.isArray(p.activity)) p.activity = p.activity.filter(x => !(typeof x.text === 'string' && x.text.startsWith(head)));
       logActivity(p, answersLine(t.round.title, st));
       changed(p, { touch: false });
       News.add(p, 'answers', { round: t.round.title, n: st.answered, total: st.total }, { ref: { tid: t.id }, key: 'answers:' + t.id });
