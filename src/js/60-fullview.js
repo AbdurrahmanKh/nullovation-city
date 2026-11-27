@@ -716,10 +716,13 @@ const FullView = (() => {
     const i = p.todos.findIndex(x => x.id === sideTask);
     if (i >= 0 && taskSnap) {
       const live = p.todos[i].round, liveNotes = p.todos[i].notes, liveThreads = p.todos[i].threads;   // a round, a note or a T3 thread came, went or changed while open: Esc leaves it, as it leaves pins
+      const wasTicked = T3.isTicked(p.todos[i]);
       p.todos[i] = taskSnap;
       if (live) taskSnap.round = live; else delete taskSnap.round;
       if (liveThreads) taskSnap.threads = liveThreads; else delete taskSnap.threads;
       if (liveNotes) taskSnap.notes = liveNotes; else delete taskSnap.notes;
+      /* a tick undone with Esc undoes its T3 threads' settle too, and a reopen undone settles them again (0.1.98) */
+      if (wasTicked !== T3.isTicked(taskSnap)) { if (wasTicked) T3.unticked(p, taskSnap); else T3.ticked(p, taskSnap); }
     }
     changed(p, { touch: false });
     sideTask = null; taskSnap = null; sideTicked = false;

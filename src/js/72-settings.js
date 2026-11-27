@@ -46,6 +46,8 @@ const Settings = (() => {
     wizardOpen: { tab: 'links', get: () => wizardOpens(), def: () => 'app', set: v => { try { if (v === 'tab') localStorage.setItem(WIZARD_OPEN_KEY, 'tab'); else localStorage.removeItem(WIZARD_OPEN_KEY); } catch (e) { /* this visit only */ } } },
     /* which tiles Open in Claude shows: T3 and Claude, T3 only or Claude only (0.1.87, T3 Connection, A3) */
     tiles: { tab: 'links', get: () => T3.tiles(), def: () => 'both', set: v => T3.setTiles(v) },
+    /* whether ticking a task settles its T3 threads (0.1.98) */
+    t3Settle: { tab: 'links', get: () => T3.settles(), def: () => true, set: v => T3.setSettles(v) },
   };
   const changedFromDefault = k => !same(DEFS[k].get(), DEFS[k].def());
   function setCity(k, v) {
@@ -187,6 +189,7 @@ const Settings = (() => {
     $('#btnAwayClear').addEventListener('click', () => set('away', ''));
     /* Links */
     check('optExplorer', 'explorer');
+    check('optT3Settle', 't3Settle');
     $('#optWizard').placeholder = WIZARD_HOSTED;
     $('#optWizard').addEventListener('change', e => {
       const v = e.target.value.trim();
@@ -227,7 +230,7 @@ const Settings = (() => {
     look: () => { for (const k of ['light', 'hours', 'bubbles', 'garbage', 'ghosts', 'quiet', 'caption', 'cardSize']) DEFS[k].set(DEFS[k].def()); Motion.set(null); MapView.invalidate(); MapView.kick(); },
     sound: () => { for (const k of ['sound', 'volCity', 'volAlerts', 'volVoices', 'volMusic']) DEFS[k].set(DEFS[k].def()); },
     projects: () => { DEFS.rest.set([]); DEFS.away.set(''); },
-    links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); DEFS.wizardOpen.set('app'); DEFS.tiles.set('both'); },
+    links: () => { DEFS.explorer.set(false); DEFS.wizard.set(''); DEFS.wizardOpen.set('app'); DEFS.tiles.set('both'); DEFS.t3Settle.set(true); },
   };
   function resetTab(id) { if (TAB_RESET[id]) { TAB_RESET[id](); refresh(); } }
 
@@ -277,6 +280,7 @@ const Settings = (() => {
     choiceRow($('#optWizardOpen'), WIZARD_OPENS, wizardOpens(), v => set('wizardOpen', v));
     choiceRow($('#optTiles'), T3.TILES, T3.tiles(), v => set('tiles', v));
     $('#t3Watch').textContent = T3.watchWords();                   // the watcher (0.1.93, T3 Connection Research, Round 2, W2)
+    $('#optT3Settle').checked = T3.settles();
     $('#tilesNote').textContent = T3.TILE_NOTES[T3.tiles()];
     /* the dots */
     const tabs = new Set();

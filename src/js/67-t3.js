@@ -11,6 +11,7 @@
 const T3 = (() => {
   const AGENT_KEY = 'nullovation-city:t3Agent';      // the agent and model picked in each building, in this browser
   const TILES_KEY = 'nullovation-city:openTiles';    // which tiles Open in Claude shows: both, t3 or claude
+  const SETTLE_KEY = 'nullovation-city:t3Settle';    // '0' when ticking a task leaves its T3 threads as they are (0.1.98)
   const SUB = 't3', EVERY = 1000;
   let TAKE_MS = 15000, RUN_MS = 180000;              // nobody took the send; no answer from T3 after it was taken
   /* What a send can name. Only Claude is turned on in T3 on Abdurrahman's PC (16 November 2026); T3's default is the
@@ -32,6 +33,8 @@ const T3 = (() => {
   /* ---------- the settings ---------- */
   function tiles() { try { const v = localStorage.getItem(TILES_KEY); return v === 't3' || v === 'claude' ? v : 'both'; } catch (e) { return 'both'; } }
   function setTiles(v) { try { if (v === 't3' || v === 'claude') localStorage.setItem(TILES_KEY, v); else localStorage.removeItem(TILES_KEY); } catch (e) { /* this visit only */ } }
+  function settles() { try { return localStorage.getItem(SETTLE_KEY) !== '0'; } catch (e) { return true; } }
+  function setSettles(v) { try { if (v) localStorage.removeItem(SETTLE_KEY); else localStorage.setItem(SETTLE_KEY, '0'); } catch (e) { /* this visit only */ } }
   function saved() { try { const v = JSON.parse(localStorage.getItem(AGENT_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
   const agentOf = p => AGENTS.find(a => a.id === (p ? saved()[p.id] : '')) || AGENTS[0];
   function keepAgent(p, id) {
@@ -77,9 +80,10 @@ const T3 = (() => {
       try { d = JSON.parse(await ClaudeWork.read(SUB + '/watch.json')); } catch (e) { d = null; }
       if (d && d.app === 'nullovation-city' && d.kind === 't3-watch' && typeof d.at === 'number') {
         const threads = Array.isArray(d.threads) ? d.threads.filter(x => x && typeof x.id === 'string') : [];
-        const sig = JSON.stringify([d.running, d.error || '', threads]), moved = !watched || watched.sig !== sig;
+        const sig = JSON.stringify([d.running, d.error || '', d.organizeError || '', threads]), moved = !watched || watched.sig !== sig;
         watched = { at: d.at, running: !!d.running, error: typeof d.error === 'string' ? d.error : '', t3: typeof d.t3 === 'string' ? d.t3 : '', threads, sig,
-          byId: new Map(threads.map(x => [x.id, x])) };
+          byId: new Map(threads.map(x => [x.id, x])), organizes: d.organizes === 1, organizeError: typeof d.organizeError === 'string' ? d.organizeError : '' };
+        organized(Array.isArray(d.organized) ? d.organized : []);
         if (moved) watchMoved();
       }
       watchBusy = false;
@@ -105,7 +109,68 @@ const T3 = (() => {
     if (!watched.running) return 'Watcher: T3 is closed, so it rests.';
     if (watched.error) return 'Watcher: T3 is open, but its last look failed: ' + watched.error;
     const n = watched.threads.length;
-    return 'Watcher: sees ' + plural(n, 'Claude thread', 'Claude threads') + (watched.t3 ? ' in T3 v' + watched.t3 : ' in T3') + ', looking every few seconds.';
+    return 'Watcher: sees ' + plural(n, 'Claude thread', 'Claude threads') + (watched.t3 ? ' in T3 v' + watched.t3 : ' in T3') + ', looking every few seconds.'
+      + (watched.organizeError ? ' Settling threads failed: ' + watched.organizeError : '');
+  }
+
+  /* ---------- settling a task's threads (0.1.98, "Ticking the task also closes the T3") ---------- */
+  /* Ticking a task off settles its T3 threads, and reopening it makes them active again (tickTask and untickTask in
+     22-repeat.js, wherever a task is ticked). The city writes what it asks into the Claude folder as
+     t3/organize-<id>.json, all of one moment's ticks in one; the watcher takes it and asks T3, settling a thread once
+     Claude's turn there has ended. Each thread keeps when it was asked to settle (th.settled), so reopening the task
+     unsettles only the threads its tick settled. Not on a phone, which has no Claude folder. */
+  const organizing = new Map();                       // thread id -> 'settle' or 'unsettle', until written
+  let orgT = 0, orgWarned = false;
+  const isTicked = t => !!(t && (t.done || (typeof isWaiting === 'function' && isWaiting(t))));
+  function organizeTask(p, t, settle) {
+    if (!settles() || !t || !Array.isArray(t.threads) || !t.threads.length || typeof ClaudeWork === 'undefined' || !ClaudeWork.folder()) return;
+    const now = Date.now();
+    for (const th of t.threads) {
+      if (!th || !th.id || !!th.settled === settle) continue;
+      if (settle) th.settled = now; else delete th.settled;
+      organizing.set(th.id, settle ? 'settle' : 'unsettle');
+    }
+    if (organizing.size) { clearTimeout(orgT); orgT = setTimeout(writeOrganize, 0); }
+  }
+  const ticked = (p, t) => organizeTask(p, t, true);
+  const unticked = (p, t) => organizeTask(p, t, false);
+  async function writeOrganize() {
+    const settle = [], unsettle = [];
+    for (const [id, d] of organizing) (d === 'settle' ? settle : unsettle).push(id);
+    organizing.clear();
+    if (!settle.length && !unsettle.length) return;
+    if (typeof FullView !== 'undefined' && FullView.isOpen()) FullView.refreshThreads();   // its rows say it now
+    if (typeof AllTasks !== 'undefined') AllTasks.refresh();
+    const id = newId();
+    try {
+      await ClaudeWork.write(SUB + '/organize-' + id + '.json', JSON.stringify({ app: 'nullovation-city', kind: 't3-organize', version: 1, id, at: Date.now(), settle, unsettle }));
+    } catch (e) {
+      toast('The city could not reach T3 through the Claude folder' + (e && e.name ? ' (' + e.name + ')' : '') + ', so its T3 thread stays as it is.', 'error');
+      return;
+    }
+    /* said once a visit, and only when T3 will not take it soon: the tick's own toast, with its Undo, comes first */
+    if (orgWarned) return;
+    const w = watchLive() ? watched : null;
+    const say = !w ? 'The T3 watcher is not running, so the task\'s T3 thread settles once it runs. The T3 setup starts it, in Settings, Links.'
+      : !w.organizes ? 'Run the T3 setup again, in Settings, Links, so ticking a task settles its T3 thread.' : '';
+    if (say) { orgWarned = true; setTimeout(() => toast(say, 'error'), 1500); }
+  }
+  /* What the watcher did, from watch.json: a thread T3 would not settle or unsettle loses its mark, and is said once. */
+  const orgSeen = new Set(), orgFrom = Date.now() - 60e3, orgDone = new Map();   // thread id -> when T3 last settled it for a tick
+  function organized(list) {
+    for (const r of list) {
+      if (!r || typeof r.thread !== 'string' || typeof r.at !== 'number') continue;
+      if (r.ok === true) { if (r.do === 'settle') orgDone.set(r.thread, Math.max(r.at, orgDone.get(r.thread) || 0)); continue; }
+      if (r.ok !== false) continue;
+      const key = r.thread + ':' + r.at;
+      if (orgSeen.has(key)) continue;
+      orgSeen.add(key);
+      for (const p of typeof DB !== 'undefined' ? DB.projects : []) for (const t of p.todos) for (const th of Array.isArray(t.threads) ? t.threads : []) {
+        if (th.id !== r.thread) continue;
+        if (r.do === 'settle' && th.settled && th.settled <= r.at) { delete th.settled; changed(p, { touch: false }); }
+        if (r.at >= orgFrom) toast('T3 did not ' + (r.do === 'unsettle' ? 'make the T3 thread of ' + t.text + ' active again' : 'settle the T3 thread of ' + t.text) + (r.error ? ': ' + r.error : '.'), 'error');
+      }
+    }
   }
   /* A T3 thread's state in the city's words: working, waiting, failed or done. */
   const T3_STATE = { preparing: 'working', queued: 'working', starting: 'working', running: 'working', waiting: 'waiting', completed: 'done', idle: 'done',
@@ -157,8 +222,14 @@ const T3 = (() => {
   const stateOf = (p, t) => threadState(p, t, latest(t));
   function whereOf(p, t, th = latest(t)) {
     if (!th) return '';
-    const st = threadState(p, t, th);
-    return (th.agent ? (th.agent === 'default' ? "T3's default agent" : th.agent) + ', ' : '') + (st ? STATE_WORDS[st] : 'sent ' + relAgo(th.last));
+    const st = threadState(p, t, th), w = watchedThread(th.id);
+    let words = st ? STATE_WORDS[st] : 'sent ' + relAgo(th.last);
+    /* settled (0.1.98): as T3 says while the watcher sees it, else as the tick asked; asked while Claude is at it, it
+       settles when the turn ends */
+    if (w && w.settled) words = 'settled';
+    /* (settled for the tick and busy again since, in T3 itself: as it is) */
+    else if (th.settled && !(w && (orgDone.get(th.id) || 0) >= th.settled)) words = st === 'working' || st === 'waiting' || st === 'approval' ? words + ', settles when its turn ends' : w ? 'settling' : 'settled';
+    return (th.agent ? (th.agent === 'default' ? "T3's default agent" : th.agent) + ', ' : '') + words;
   }
   function openThread(th) { if (th && th.id && th.env) follow(threadHref(th.env, th.id)); }
   const openTitle = (p, t, th = latest(t)) => 'Opens its T3 thread' + (th.title ? ', ' + th.title : '') + ': ' + whereOf(p, t, th) + '.';
@@ -202,7 +273,7 @@ const T3 = (() => {
     if (!p || !a.thread) return;
     const now = Date.now(), list = Array.isArray(t.threads) ? t.threads : [];
     const had = list.find(x => x.id === a.thread);
-    if (had) { had.last = now; if (a.env) had.env = a.env; }
+    if (had) { had.last = now; if (a.env) had.env = a.env; delete had.settled; }   // sent to again: active, and a new tick settles it
     else list.push({ id: String(a.thread), env: String(a.env || ''), agent: s.agent || '', kind: s.kind || 'build', title: s.title.slice(0, 120), at: now, last: now });
     t.threads = readThreads({ threads: list }).threads || [];
     changed(p, { touch: false });
@@ -369,5 +440,6 @@ const T3 = (() => {
     watched: () => (watchLive() ? watched : null), watchedThread, watchWords, sessionThread, lastOf, T3_STATE,
     openWatched: w => { if (w && w.env && w.id) follow(threadHref(w.env, w.id)); }, readWatch,
     openNew: () => follow('t3code://new'),             // Check T3 with no thread to name: T3 Code itself (0.1.97, F1)
-    _test: { times: (take, run) => { TAKE_MS = take; RUN_MS = run; } } };
+    settles, setSettles, ticked, unticked, isTicked,  // ticking a task settles its T3 threads (0.1.98)
+    _test: { times: (take, run) => { TAKE_MS = take; RUN_MS = run; }, warned: v => { orgWarned = !!v; } } };
 })();

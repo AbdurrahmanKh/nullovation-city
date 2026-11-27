@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.98 (2026-11-27)
+
+Ticking a task settles its T3 threads, from Abdurrahman's task "Ticking the task also closes the T3": "I want to check the task in NC and the thread closes in T3".
+- A tick anywhere in the city (the task's row, its panel, the bubble, All tasks, a ghost, Tick it, Apply) settles every T3 thread the task keeps; reopening it, Undo, or Esc in the task panel makes the threads its tick settled active again. Ticks at the same moment, as Apply all makes, go as one.
+- The city writes what it asks into the Claude folder as `t3/organize-<id>.json`; no link is followed, so the browser asks nothing. The T3 watcher takes it within seconds and settles each thread once Claude's turn there has ended, since T3 settles no thread that is running, waits on you or holds a queued message. With T3 closed, it waits until T3 opens.
+- His threads run in full access, and T3 lets only an agent signed in at full access change them (the helper's own key acts at approval-required, and T3 refused it on his PC). So for each batch the watcher signs one in through T3's own sign-in for agents, approved by a short session from `t3 auth session issue`, and revokes both keys at once: none that can write is kept. Checked on his PC: past that check, T3 answered as for any running thread.
+- A thread already settled in T3 is left alone; an archived thread, or one T3 no longer has, counts as done; a refusal for any other reason is said with T3's words, and the thread loses its mark. An ask whose turn never ends is given up after 2 days.
+- The task panel's T3 threads say "settled", "settling", or "working, settles when its turn ends".
+- Settings, Links, T3 Code: Ticking a task settles its T3 threads, on by default. Settings says when settling failed. A watcher from before 0.1.98, or one not running, is said once a visit, and the ask waits for it.
+- The watcher's rows in `watch.json` carry each thread's `settled`, with `organizes`, `organized` and `organizeError`. The T3 setup runs again once on each PC for it.
+- Tests: test63_settle checks the watcher against a fake T3 that signs agents in as T3 does (the sign-in, the keys revoked, a running thread waiting, a queued message, unsettle, a tick undone before it settled, already settled, archived and gone, a refusal, asks not the city's, T3 closed, the sign-in refused, two days), then the city: the ask from a tick and an untick, one ask for two ticks, no thread no ask, the task panel's words and Esc, a refusal said once, an old or silent watcher said, and the switch.
+
 ## 0.1.97 (2026-11-27)
 
 Check T3, from Check T3, Round 1, on Abdurrahman's "Allow the leader to take me to T3": every page of Claude's takes you to its T3 conversation.

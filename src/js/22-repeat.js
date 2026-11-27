@@ -92,6 +92,7 @@ function tickTask(p, t, { now = Date.now(), log = true } = {}) {
   if (t.repeat) { t.due = nextRepeatDue(t, now); setWaiting(t, true); }
   else { t.done = true; t.doneAt = now; }
   markWorked(p, now);
+  if (typeof T3 !== 'undefined') T3.ticked(p, t);                   // its T3 threads settle (0.1.98), marked before anything draws
   if (log) logActivity(p, 'Done: ' + t.text);
   if (typeof Sound !== 'undefined') Sound.ticked(p, t);             // its chime, or a repeat moving on (0.1.78)
   if (typeof Celebrate !== 'undefined') Celebrate.ticked(p, t);     // its particles, and a party for a finished milestone
@@ -103,6 +104,7 @@ function untickTask(p, t, was = null, { log = true } = {}) {
   if (t.repeat && was && !was.done) { t.due = was.due; setWaiting(t, was.waiting); }
   else { t.done = false; t.doneAt = null; delete t.archiveFrom; }
   if (log) logActivity(p, 'Reopened: ' + t.text);
+  if (typeof T3 !== 'undefined') T3.unticked(p, t);                 // and are active again (0.1.98)
 }
 /* After a repeat is ticked: where it went, with Undo; said by the building's leader when lead is given (Tick it, 0.1.63). */
 function repeatToast(p, t, was, lead = null) {

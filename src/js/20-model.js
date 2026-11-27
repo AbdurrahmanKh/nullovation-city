@@ -422,7 +422,8 @@ function readThreads(t) {
     seen.add(id);
     const at = typeof x.at === 'number' && isFinite(x.at) ? x.at : Date.now();
     out.push({ id, env: threadSlug(x.env), agent: typeof x.agent === 'string' ? x.agent.slice(0, 40) : '', kind: THREAD_KINDS.includes(x.kind) ? x.kind : 'build',
-      title: typeof x.title === 'string' ? x.title.slice(0, 120) : '', at, last: typeof x.last === 'number' && isFinite(x.last) ? Math.max(x.last, at) : at });
+      title: typeof x.title === 'string' ? x.title.slice(0, 120) : '', at, last: typeof x.last === 'number' && isFinite(x.last) ? Math.max(x.last, at) : at,
+      ...(typeof x.settled === 'number' && isFinite(x.settled) && x.settled > 0 ? { settled: x.settled } : {}) });   // when a tick asked T3 to settle it (0.1.98)
   }
   return out.length ? { threads: out.sort((a, b) => a.last - b.last).slice(-THREADS_MAX) } : {};
 }

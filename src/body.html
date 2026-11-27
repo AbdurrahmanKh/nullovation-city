@@ -277,6 +277,8 @@
             <p class="note">Open in Claude's T3 tile starts a T3 Code thread in the building's folder with the task already sent, on the agent picked in its panel. Its sends go through the Claude folder above, and T3 Code has to be open.</p>
             <div id="optTiles" class="set-choices set-row" data-set="tiles" role="group" aria-label="Open in Claude shows"></div>
             <p id="tilesNote" class="note"></p>
+            <label class="check set-row" data-set="t3Settle"><input id="optT3Settle" type="checkbox" class="cb"> Ticking a task settles its T3 threads</label>
+            <p class="note">The T3 watcher settles them once Claude's turn there ends, or once T3 Code opens if it is closed. Reopening the task makes them active again.</p>
             <p class="note">A one-time setup on this PC adds the link type T3's sends use: <button id="btnT3Setup" class="linkish" type="button">Get the setup</button>, then double-click the file it saved. Python must be installed, and the Claude Code at work setup must have run first.</p>
             <div class="set-line"><button id="btnT3Test" class="btn btn-small" type="button">Test T3 link</button></div>
             <p id="t3Watch" class="note" role="status"></p>

@@ -36,6 +36,13 @@ asks while it waits. It rests while T3 is closed. Its key is a read-only token i
     python nullovation-t3-links.py watch                    run the watcher (the setup starts it, and Windows at sign-in)
     python nullovation-t3-links.py watch --once             one look, then stop
 
+Since 0.1.98 the watcher also settles a task's T3 threads when the task is ticked off in the city, and makes them
+active again when it is reopened. The city writes what it asks as t3/organize-<id>.json in the Claude folder; the
+watcher takes it, and settles a thread once Claude's turn there has ended, since T3 settles no thread that runs, waits
+on you or has a message queued. Your threads run in full access, and T3 lets only an agent signed in at full access
+change them, so for each batch the watcher signs one in through T3's own sign-in for agents, approved with a short
+session from t3 auth session issue, and revokes both keys at once: none that can write is ever kept.
+
 A link carries only a file's name, never a prompt, and only the city writes that folder, so no other web page can make
 this PC run anything: a link naming a file that is not there does nothing, a send is taken once, and one older than
 two minutes is refused. The helper never runs anything but T3's own command. T3 Code has to be running (its app
@@ -44,7 +51,7 @@ open, or its background service). The Claude folder is the one the Claude Code a
 
 Each run is noted in %LOCALAPPDATA%\\Nullovation City\\last-t3.txt (never the task's copy itself).
 """
-import json, os, pathlib, re, shutil, subprocess, sys, time
+import base64, hashlib, json, os, pathlib, re, secrets, shutil, subprocess, sys, time, urllib.parse
 
 APP = 'nullovation-city'
 SCHEME = 'nullovation-t3'
@@ -527,6 +534,161 @@ class Mcp:
         return data
 
 
+# ---------- settling a task's threads (0.1.98, "Ticking the task also closes the T3") ----------
+# Ticking a task off in the city settles its T3 threads, and reopening it makes them active again. T3 offers this only
+# through its agent tools (t3_thread_organize), and lets an agent change a thread only up to the access it was signed in
+# with: his threads run in full access, while a key from t3 auth session issue acts at approval-required (checked on
+# his PC on 27 November 2026, T3 v0.1.11: "runs in full-access/default, above this caller's approval-required/default
+# limit"). So for each batch the watcher signs an agent in at full access through T3's own sign-in for agents (OAuth,
+# with PKCE), approved by a short session the t3 command issues as the owner, as T3's window would approve it, and
+# revokes both keys after: none that can write is ever kept.
+
+ORGANIZE_FILE = 't3-organize.json'            # in AppData: what the city asked, until T3 has done it
+ORGANIZE_DAYS = 2                             # an ask older than this is given up
+ORGANIZE_RETRY = 30.0                         # seconds before a thread T3 would not settle yet is tried again
+ORGANIZE_KEEP = 3600 * 1000                   # results are said in watch.json for an hour
+ORGANIZE_LABEL = 'Nullovation City settle'    # the agent signed in; its sign-in session is this, with " sign-in"
+SIGN_IN_REDIRECT = 'http://127.0.0.1:9/nullovation-city'   # never opened: T3 hands the code back in its answer
+OWNER_SCOPES = ['orchestration:read', 'orchestration:operate', 'settings:write', 'source-control:write', 'access:write']
+NOT_YET = ('is still running', 'has a queued message', 'is waiting on an approval or question')   # T3 settles it later
+NOTHING_TO_DO = ('is archived', 'thread_not_found', 'was not found', 'not found')                 # gone, or out of the way
+
+
+def organize_path():
+    return local_dir() / ORGANIZE_FILE
+
+
+def read_organize():
+    """The asks waiting, by thread ({ do, at, tried }), and the results of the last hour."""
+    d = load_json(organize_path()) or {}
+    items = d.get('threads') if isinstance(d.get('threads'), dict) else {}
+    items = {k: v for k, v in items.items() if isinstance(k, str) and SLUG.match(k) and isinstance(v, dict) and v.get('do') in ('settle', 'unsettle')}
+    done = [r for r in d.get('done') or [] if isinstance(r, dict) and isinstance(r.get('at'), (int, float))]
+    return items, done
+
+
+def write_organize(items, done):
+    local_dir().mkdir(parents=True, exist_ok=True)
+    out = organize_path()
+    tmp = out.with_suffix('.tmp')
+    tmp.write_text(json.dumps({'threads': items, 'done': done}), encoding='utf-8')
+    os.replace(tmp, out)
+
+
+def take_organize(folder):
+    """The city's asks (t3/organize-<id>.json in the Claude folder), each taken once and merged into the watcher's own
+    list in AppData, oldest first, so a thread's latest ask wins. An unsettle for a thread whose settle still waits only
+    takes the settle back: it never settled. Returns whether any came."""
+    try:
+        files = sorted((folder / SUB).glob('organize-*.json'))
+    except Exception:
+        files = []
+    asks, now = [], time.time() * 1000
+    for f in files:
+        d = load_json(f)
+        try:
+            f.unlink()
+        except Exception:
+            continue
+        at = d.get('at') if d else None
+        if not d or d.get('app') != APP or d.get('kind') != 't3-organize' or not isinstance(at, (int, float)) or abs(now - at) > ORGANIZE_DAYS * 86400000:
+            watch_log('Left out ' + f.name + ': not an ask Nullovation City wrote, or too old.')
+            continue
+        for do in ('settle', 'unsettle'):
+            ids = d.get(do)
+            for tid in (ids[:40] if isinstance(ids, list) else []):
+                if isinstance(tid, str) and SLUG.match(tid):
+                    asks.append((at, do, tid))
+    if not asks:
+        return False
+    items, done = read_organize()
+    for at, do, tid in sorted(asks):
+        had = items.get(tid)
+        if had and had.get('at', 0) > at:
+            continue
+        if do == 'unsettle' and had and had.get('do') == 'settle':
+            del items[tid]
+        else:
+            items[tid] = {'do': do, 'at': at}
+    write_organize(items, done)
+    return True
+
+
+def http_json(origin, method, path, body=None, token=None, form=False):
+    """One request to T3's server, with no Origin header, as an outside client; its answer, or an error."""
+    import urllib.request, urllib.error
+    headers = {'Accept': 'application/json'}
+    data = None
+    if body is not None:
+        data = urllib.parse.urlencode(body).encode() if form else json.dumps(body).encode()
+        headers['Content-Type'] = 'application/x-www-form-urlencoded' if form else 'application/json'
+    if token:
+        headers['Authorization'] = 'Bearer ' + token
+    try:
+        with urllib.request.urlopen(urllib.request.Request(origin.rstrip('/') + path, data=data, method=method, headers=headers), timeout=30) as r:
+            raw = r.read().decode('utf-8', 'replace')
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('T3 refused ' + path + ' (' + str(e.code) + '): ' + e.read().decode('utf-8', 'replace')[:200])
+    return json.loads(raw) if raw.strip() else {}
+
+
+def sign_in(origin, owner):
+    """An agent signed in at full access through T3's sign-in for agents, approved by the owner's session: its key."""
+    meta = http_json(origin, 'GET', '/.well-known/oauth-protected-resource/mcp')
+    resource = meta.get('resource') or origin.rstrip('/') + '/mcp'
+    client = http_json(origin, 'POST', '/oauth/mcp/register', {'client_name': ORGANIZE_LABEL, 'redirect_uris': [SIGN_IN_REDIRECT], 'token_endpoint_auth_method': 'none'})
+    verifier = secrets.token_urlsafe(48)
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
+    asked = {'response_type': 'code', 'client_id': client.get('client_id', ''), 'redirect_uri': SIGN_IN_REDIRECT, 'code_challenge': challenge,
+             'code_challenge_method': 'S256', 'state': secrets.token_urlsafe(8), 'resource': resource}
+    details = http_json(origin, 'POST', '/oauth/mcp/approval', asked, token=owner)
+    if not details.get('csrfToken'):
+        raise RuntimeError('T3 would not let the watcher approve its own sign-in.')
+    decided = http_json(origin, 'POST', '/oauth/mcp/decision', {'authorization': asked, 'decision': {'_tag': 'browser-session', 'access': 'full-access', 'csrfToken': details['csrfToken']}}, token=owner)
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(str(decided.get('redirectTo') or '')).query)
+    if not q.get('code'):
+        raise RuntimeError('T3 gave no sign-in code: ' + (q.get('error_description') or q.get('error') or ['no reason'])[0][:200])
+    got = http_json(origin, 'POST', '/oauth/mcp/token', {'grant_type': 'authorization_code', 'code': q['code'][0], 'redirect_uri': SIGN_IN_REDIRECT,
+                                                         'client_id': asked['client_id'], 'code_verifier': verifier, 'resource': resource}, form=True)
+    if not got.get('access_token'):
+        raise RuntimeError('T3 gave no key for the sign-in.')
+    return got['access_token']
+
+
+def revoke_settle_keys():
+    """Every session the settles made, this batch's and any a failed run left: found by their labels."""
+    code, out, _ = run_t3(['auth', 'session', 'list', '--json'], timeout=60)
+    try:
+        sessions = json.loads(out[out.find('['):]) if code == 0 and '[' in out else []
+    except Exception:
+        sessions = []
+    for s in sessions if isinstance(sessions, list) else []:
+        label = ((s.get('client') or {}).get('label') or '') if isinstance(s, dict) else ''
+        if label in (ORGANIZE_LABEL, ORGANIZE_LABEL + ' sign-in') and s.get('sessionId'):
+            run_t3(['auth', 'session', 'revoke', str(s['sessionId'])], timeout=60)
+
+
+def full_access(origin, call):
+    """Runs call(mcp) as an agent signed in at full access for this batch only; both keys revoked after, whatever
+    happens."""
+    code, out, err = run_t3(['auth', 'session', 'issue'] + [x for s in OWNER_SCOPES for x in ('--scope', s)]
+                            + ['--ttl', '5m', '--label', ORGANIZE_LABEL + ' sign-in', '--json'], timeout=60)
+    try:
+        owner = json.loads(out[out.find('{'):]) if code == 0 and '{' in out else {}
+    except Exception:
+        owner = {}
+    if not owner.get('token'):
+        raise RuntimeError(plain_error(code, err, 'give the watcher a key'))
+    try:
+        mcp = Mcp(origin, sign_in(origin, owner['token']))
+        mcp.open()
+        return call(mcp)
+    finally:
+        if owner.get('sessionId'):
+            run_t3(['auth', 'session', 'revoke', str(owner['sessionId'])], timeout=60)
+        revoke_settle_keys()
+
+
 def iso_ms(s):
     """An ISO time as milliseconds, or 0."""
     try:
@@ -539,6 +701,7 @@ def iso_ms(s):
 class Watcher:
     def __init__(self, folder):
         self.folder, self.mcp, self.roots, self.rooted, self.last, self.wrote, self.beat = folder, None, {}, 0, {}, '', 0.0
+        self.organize_error = ''
 
     def connect(self, rt):
         self.mcp = Mcp(rt['origin'], watch_token())
@@ -605,7 +768,7 @@ class Watcher:
             status = str(t.get('status') or 'idle')
             row = {'id': t['threadId'], 'env': env, 'title': str(t.get('title') or '')[:200], 'status': status, 'folder': roots.get(t.get('projectId'), ''),
                    'model': str(t.get('model') or ''), 'updated': iso_ms(t.get('updatedAt')), 'created': iso_ms(t.get('createdAt')),
-                   'background': len(t.get('pendingBackgroundTasks') or [])}
+                   'background': len(t.get('pendingBackgroundTasks') or []), 'settled': t.get('settled') is True}
             try:
                 row['last'] = self.latest(t)
                 if status == 'waiting':
@@ -630,21 +793,88 @@ class Watcher:
         tmp.write_text(json.dumps({'app': APP, 'kind': 't3-watch', 'version': 1, 'at': int(time.time() * 1000), **data}), encoding='utf-8')
         os.replace(tmp, out)
 
+    def organize(self, rt, rows):
+        """Settles and unsettles what the city asked (0.1.98): an unsettle at once, a settle once Claude's turn there has
+        ended (the thread no longer working, waiting on you, or holding a queued message), a thread already as asked
+        left alone. One full-access sign-in for the batch. Returns the results of the last hour, for watch.json."""
+        items, done = read_organize()
+        now = time.time() * 1000
+        seen = {r['id']: r for r in rows if isinstance(r, dict) and r.get('id')}
+        was = json.dumps([items, done], sort_keys=True)
+        def result(tid, do, ok, error=''):
+            done.append({'thread': tid, 'do': do, 'ok': ok, 'at': int(time.time() * 1000), **({'error': error[:200]} if error else {})})
+        due = {}
+        for tid, it in list(items.items()):
+            r = seen.get(tid)
+            if now - it.get('at', 0) > ORGANIZE_DAYS * 86400000:
+                del items[tid]
+                result(tid, it['do'], False, 'Claude\'s turn there did not end within ' + str(ORGANIZE_DAYS) + ' days.')
+            elif r and r.get('settled') is (it['do'] == 'settle'):
+                del items[tid]                    # as asked already: settled in T3 itself, or never settled
+                result(tid, it['do'], True)
+            elif it['do'] == 'settle' and r and r.get('status') in ACTIVE:
+                continue                          # settles when its turn ends
+            elif now - it.get('tried', 0) >= ORGANIZE_RETRY * 1000:
+                due[tid] = it
+        if due:
+            def go(mcp):
+                for tid, it in due.items():
+                    try:
+                        mcp.tool('t3_thread_organize', {'threadId': tid, 'action': it['do']})
+                        del items[tid]
+                        result(tid, it['do'], True)
+                        if tid in seen:
+                            seen[tid]['settled'] = it['do'] == 'settle'   # this look's watch.json says it as it is now
+                    except Exception as e:
+                        why = str(e).split(': ', 1)[-1]
+                        if it['do'] == 'settle' and any(w in why for w in NOT_YET):
+                            it['tried'] = now         # Claude is at it again: tried at its next turn's end
+                        else:
+                            del items[tid]
+                            result(tid, it['do'], any(w in why for w in NOTHING_TO_DO), '' if any(w in why for w in NOTHING_TO_DO) else why)
+            try:
+                full_access(rt['origin'], go)
+                self.organize_error = ''
+            except Exception as e:
+                for it in due.values():
+                    it['tried'] = now             # T3 would not sign the watcher in: tried again in a while
+                self.organize_error = str(e)[:200]
+                watch_log('Settling threads failed: ' + str(e))
+        done = [r for r in done if now - r['at'] < ORGANIZE_KEEP][-20:]
+        if json.dumps([items, done], sort_keys=True) != was:
+            write_organize(items, done)
+        return done
+
     def look(self):
-        """One look: T3's threads while it is open, else that it is closed. Returns the seconds until the next."""
+        """One look: T3's threads while it is open, else that it is closed, and since 0.1.98 the city's asks to settle
+        threads taken, and done while T3 is open. Returns the seconds until the next."""
         rt = t3_server()
+        try:
+            take_organize(self.folder)
+        except Exception as e:
+            watch_log('Taking the city\'s asks failed: ' + str(e))
+        settles = {'organizes': 1, 'organized': read_organize()[1], **({'organizeError': self.organize_error} if self.organize_error else {})}
         if not rt:
             self.mcp = None
-            self.write({'running': False, 'threads': []})
+            self.write({'running': False, 'threads': [], **settles})
             return REST_EVERY
         try:
             if not self.mcp:
                 self.connect(rt)
-            self.write(self.snapshot(rt))
+            snap = self.snapshot(rt)
+            try:
+                settles['organized'] = self.organize(rt, snap['threads'])
+            except Exception as e:
+                watch_log('Settling threads failed: ' + str(e))
+            if self.organize_error:
+                settles['organizeError'] = self.organize_error
+            else:
+                settles.pop('organizeError', None)
+            self.write({**snap, **settles})
         except Exception as e:
             self.mcp = None                       # T3 restarted, or a key it no longer takes: connect again next time
             watch_log('A look failed: ' + str(e))
-            self.write({'running': True, 'error': str(e)[:200], 't3': str(rt.get('serverVersion') or ''), 'threads': []})
+            self.write({'running': True, 'error': str(e)[:200], 't3': str(rt.get('serverVersion') or ''), 'threads': [], **settles})
         return WATCH_EVERY
 
 
@@ -776,7 +1006,9 @@ T3 setup added takes it, starts a T3 thread in the building's folder with the ta
 back as <id>.done.json, which the city reads and clears.
 
 The watcher the setup started writes watch.json here every few seconds while T3 is open: Claude's T3 threads, each
-with its state, its latest message and what it asks while it waits. Nothing here needs keeping.
+with its state, its latest message and what it asks while it waits. When a task is ticked off in the city, the city
+writes organize-<id>.json here, and the watcher takes it and settles the task's T3 threads once Claude's turn there
+ends. Nothing here needs keeping.
 """
 
 
@@ -837,7 +1069,8 @@ def uninstall(dry_run=False):
     kept = load_json(token_path()) or {}
     if kept.get('sessionId'):
         run_t3(['auth', 'session', 'revoke', str(kept['sessionId'])], timeout=60)
-    for f in (token_path(), installed_path()):
+    revoke_settle_keys()                          # any a settle left behind
+    for f in (token_path(), installed_path(), organize_path()):
         try:
             f.unlink()
         except Exception:
