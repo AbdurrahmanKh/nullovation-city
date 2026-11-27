@@ -213,7 +213,7 @@ with sync_playwright() as p:
     s = say()
     dels = ev("() => [...document.querySelectorAll('#ldSay .lc-atts .ld-del')].map(x => x.textContent)")
     ok(f'its face opens it: "Claude added a task, Mulch the beds, and a note, Soil.", each with Delete in place of Undo ({s and (s["type"], s["text"], s["acts"])}, {dels})', s and s['type'] == 'attach'
-       and s['text'].startswith('Claude added a task, Mulch the beds, and a note, Soil.') and s['acts'] == ['Go to it'] and dels == ['Delete', 'Delete'])
+       and s['text'].startswith('Claude added a task, Mulch the beds, and a note, Soil.') and s['acts'] == ['Check T3'] and dels == ['Delete', 'Delete'])
     pg.click('#ldSay .lc-att:not(.lc-att-note) .ld-del'); settle()
     ok('Delete takes the task out of the city; the page stays for the note', ev(f"() => !getProject('{gp}').todos.some(t => t.id === 'tnew1')") and say() is not None
        and ev("() => document.querySelectorAll('#ldSay .ld-del').length") == 1)
@@ -339,7 +339,7 @@ with sync_playwright() as p:
     ev(f"() => News.add(getProject('{gp}'), 'added', {{ what: '1 link' }})"); settle()
     ev(f"() => News.add(getProject('{gp}'), 'round', {{ task: 'Publish the app', round: 'Launch plan, Round 2' }}, {{ ref: {{ tid: '{tid('Publish the app')}' }}, undo: {{ todos: [], ms: [], notes: [], links: [], rounds: [] }} }})"); settle()
     s = say()
-    ok(f'a round that opened by itself has Undo while the page stays open ({s and s["acts"]})', s and s['acts'] == ['Undo', 'Go to it'])
+    ok(f'a round that opened by itself has Undo while the page stays open ({s and s["acts"]})', s and s['acts'] == ['Undo', 'Check T3'])
     mini()
     ok('the city keeps nothing new: the project and the leader as they were', ev(f"() => Object.keys(getProject('{gp}')).sort().join(',')") == before_keys
        and ev("() => Object.keys(DB.leaders[0]).sort().join(',')") == 'color,createdAt,id,name,portrait,role')

@@ -132,7 +132,7 @@ window.showDirectoryPicker = async () => window.__cdir;
            and r[0]['text'] == 'The grid is 4 by 6, so each bed is one cell.' and 'plain' not in r[0]['cls'], r)
         ok('News shows for it, though it holds no news', not ev("() => document.querySelector('#sbNews').hidden"))
         title = ev("() => document.querySelector('#newsWork .news-work-face').title")
-        ok('its face says who works on what, where', title == 'Fern Rowe, Head Gardener: Claude is working on ' + task + ' in Garden planner. Talk about it.', title)
+        ok('its face says who works on what, where', title == 'Fern Rowe, Head Gardener: Claude is working on ' + task + ' in Garden planner. Talk about it, and check T3.', title)
         ok('the thought\'s whole text is its tooltip', ev("() => document.querySelector('#newsWork .news-thought').title") == 'Claude thinks, working on ' + task + ': The grid is 4 by 6, so each bed is one cell.')
         pg.screenshot(path=str(SHOTS / '570-thought.png'), clip={'x': 0, 'y': 0, 'width': 300, 'height': 520})
         put('c-1', garden, thought='I will draw them in the order they are planted.', thoughtAt=int(time.time() * 1000))

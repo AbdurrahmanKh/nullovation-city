@@ -95,6 +95,7 @@ const T3 = (() => {
     if (typeof AllTasks !== 'undefined') AllTasks.refresh();
     if (typeof Bubble !== 'undefined') Bubble.refresh();
     if (typeof Leaders !== 'undefined') Leaders.redrawCard();
+    if (typeof News !== 'undefined') News.renderSection();             // a leader at work names its thread by its title (0.1.97)
     if (typeof Settings !== 'undefined' && Settings.isOpen()) Settings.refresh();
   }
   /* The watcher in Settings, Links: what it sees now, or what is missing. */
@@ -257,7 +258,7 @@ const T3 = (() => {
   const answer = (p, w, request, answers) => talk(p, w, { action: 'answer', request, answers }, 'Answering Claude on ' + (w.title || 'its thread') + '.');
   function saidTalk(s, a) {
     const lead = s.p && typeof Leaders !== 'undefined' ? Leaders.toastLead(s.p) : null;
-    const open = s.env && s.thread ? [{ label: 'Open', run: () => follow(threadHref(s.env, s.thread)) }] : [];
+    const open = s.env && s.thread ? [{ label: 'Check T3', run: () => follow(threadHref(s.env, s.thread)) }] : [];        // Check T3, Round 1, M2: the name everywhere
     if (!a.ok) {
       if (s.request && typeof News !== 'undefined') News.unanswer(s.request);
       toast(String(a.error || 'T3 did not take it.'), 'error', a.down ? [{ label: 'Open T3', run: () => follow(s.env && s.thread ? threadHref(s.env, s.thread) : 't3code://new') }] : open);
@@ -355,7 +356,7 @@ const T3 = (() => {
     for (const [k, v] of heldSends) if (v.task && s.args.task ? v.task.id === s.args.task.id : v.name === s.name) heldSends.delete(k);
     if (typeof News !== 'undefined') News.renderSection();
     const lead = s.p && typeof Leaders !== 'undefined' ? Leaders.toastLead(s.p) : null;
-    const open = a.env && a.thread ? [{ label: 'Open', run: () => follow(threadHref(a.env, a.thread)) }] : [];
+    const open = a.env && a.thread ? [{ label: 'Check T3', run: () => follow(threadHref(a.env, a.thread)) }] : [];        // Check T3, Round 1, M2: the name everywhere
     /* A helper from before 0.1.90 knows no thread to send into, and starts a new one: said, so the setup runs again. */
     const old = s.thread && a.thread !== s.thread;
     if (s.thread && !old) { toast('Sent to its T3 thread: ' + s.name + '.', '', open, { lead }); return; }
@@ -367,5 +368,6 @@ const T3 = (() => {
     threadsOf, latest, stateOf, whereOf, openThread, openTitle, rowButton, taskList, held, retry, openApp, reply, answer,
     watched: () => (watchLive() ? watched : null), watchedThread, watchWords, sessionThread, lastOf, T3_STATE,
     openWatched: w => { if (w && w.env && w.id) follow(threadHref(w.env, w.id)); }, readWatch,
+    openNew: () => follow('t3code://new'),             // Check T3 with no thread to name: T3 Code itself (0.1.97, F1)
     _test: { times: (take, run) => { TAKE_MS = take; RUN_MS = run; } } };
 })();

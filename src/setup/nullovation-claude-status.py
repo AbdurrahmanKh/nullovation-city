@@ -34,7 +34,8 @@ Each file is <session id>.json:
     until    while background, when the last of those commands runs out of time, in milliseconds
     cwd      the folder Claude Code runs in; the city matches it to a project's folder links
     project  the "Project:" line of a copy from the city, when the prompt was one
-    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session
+    task     the title of that copy (# Task:, # Note:, # Milestone:), kept for the whole session, read again from the
+             transcript when the file is made again after it was cleared
     ask      the first line of the latest prompt
     reply    the start of Claude's last reply
     at, since, started   milliseconds since 1970: the last event, when this state began (working and background
@@ -146,6 +147,39 @@ def read_copy(prompt):
                 task = one_line(s[len(head):], 160)
         if not project and s.startswith('Project:'):
             project = one_line(s[len('Project:'):], 160)
+    return project, task
+
+
+COPY_MARKS = ('# Task:', '# Note:', '# Milestone:')
+
+
+def copy_in(transcript):
+    """The project and title of the latest copy from the city among a session's prompts, read from its transcript, for
+    a session whose file is new: after three quiet days a new session clears it, and the next prompt made it again
+    with no task, so the city named that prompt in place of the task (0.1.97, found on Check T3, Round 1). Lines that
+    name no copy are skipped unread, so a long transcript is read in a moment."""
+    path = pathlib.Path(str(transcript or ''))
+    if not transcript or not path.is_file():
+        return '', ''
+    project = task = ''
+    with open(path, encoding='utf-8', errors='replace') as f:
+        for line in f:
+            if not any(m in line for m in COPY_MARKS):
+                continue
+            try:
+                e = json.loads(line)
+            except Exception:
+                continue
+            if not isinstance(e, dict) or e.get('type') != 'user' or e.get('isMeta') or e.get('isCompactSummary'):
+                continue
+            c = (e.get('message') or {}).get('content')
+            if isinstance(c, list):                  # a prompt's text, never a tool's output
+                c = next((b.get('text') for b in c if isinstance(b, dict) and b.get('type') == 'text'), None)
+            if not isinstance(c, str) or re.match(r'\s*<[a-zA-Z][\w-]*[\s>]', c):
+                continue
+            p, t = read_copy(c)
+            if t:                                    # the latest copy names the task, as each prompt's does
+                project, task = p, t
     return project, task
 
 
@@ -395,6 +429,16 @@ def hook(state, folder):
                 data['task'] = task
             data['ask'] = one_line(prompt, 160)
             data.pop('reply', None)
+        if not old and not data.get('task'):      # a new file: the session's copy, if it began on one, is in its transcript
+            try:
+                project, task = copy_in(event.get('transcript_path'))
+            except Exception as e:
+                project = task = ''
+                log_error(folder, 'reading the copy: ' + type(e).__name__ + ': ' + str(e))
+            if task:
+                data['task'] = task
+                if project and not data.get('project'):
+                    data['project'] = project
         if state in ('done', 'background') and event.get('last_assistant_message'):
             data['reply'] = one_line(event['last_assistant_message'], 240)
         write_atomic(path, data)

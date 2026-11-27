@@ -286,7 +286,7 @@ Object.defineProperty(Document.prototype, 'hidden', { get() { return window.__hi
         ok('out of the building, its bubble opens: T3 is closed, so it waits, Critical, the task in its own line (0.1.96)', says().startswith('T3 is closed, so your message for this task waits to be sent.')
            and say_page() == ['critical', 'Garden planner·' + task], (says(), say_page()))
         acts = ev("() => [...document.querySelectorAll('#ldSayActs .btn')].map(b => b.textContent)")
-        ok('with Open T3 and Send it', 'Open T3' in acts and 'Send it' in acts, acts)
+        ok('with Open T3 and Send it, and Go to it kept: no Check T3 on it (Check T3, Round 1, M1)', acts == ['Open T3', 'Send it', 'Go to it'], acts)
         pg.screenshot(path=str(SHOTS / '563-t3-closed.png'))
         ev("() => { window.__opened.length = 0; }")
         pg.click('#ldSay .btn:text-is("Send it")'); pg.wait_for_timeout(400)

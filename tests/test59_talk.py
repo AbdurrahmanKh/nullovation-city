@@ -265,7 +265,7 @@ HTMLAnchorElement.prototype.click = function () { const href = this.getAttribute
         ev("() => { T3.readWatch(); ClaudeWork.poll(); }"); pg.wait_for_timeout(1200)
         ev("() => News.hide({ read: false })"); pg.wait_for_timeout(100)
         pg.click(f'#newsWork .news-work[data-pid="{gp}"] .news-work-face'); pg.wait_for_timeout(500)
-        ok('a click on a leader at work opens its bubble on that conversation, its prompt in quotes since 0.1.95', 'working on “Edge the beds”' in ev("() => document.querySelector('#ldSayText').textContent")
+        ok('a click on a leader at work opens its bubble on that conversation, named by its thread\'s title in quotes since 0.1.97 (F3)', 'working on “Fix the roof”' in ev("() => document.querySelector('#ldSayText').textContent")
            and ev("() => document.querySelector('#ldSay .ld-say-bld').textContent") == 'Garden planner', ev("() => document.querySelector('#ldSayText').textContent"))
         pg.screenshot(path=str(SHOTS / '593-talk-bubble.png'))
         b.close()

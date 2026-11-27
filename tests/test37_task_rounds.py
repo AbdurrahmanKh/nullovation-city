@@ -510,7 +510,7 @@ with sync_playwright() as p:
     pg.wait_for_timeout(4200)
     card = [(x['by'], x['type'], x['says'], x['btns']) for x in vpages('answers')]
     ok(f'once they stop arriving, Quill says so in place of the toast: with the project view open, on its card, where Proxima speaks for a building with no leader, a Decision Wizard page (X1, Leader UX T1; 0.1.69; 0.1.96) ({card})',
-       card == [('Quill', 'wizard', 'Your answers are in for ' + TITLE + ': 8 of 8.', ['Read', 'Open'])] and said() == '')
+       card == [('Quill', 'wizard', 'Your answers are in for ' + TITLE + ': 8 of 8.', ['Read', 'Open', 'Check T3'])] and said() == '')
     ok('the card read it, as the status card does: nothing waits in News', ev("() => News.items().filter(it => it.moment === 'answers').length") == 0)
     act_lines = ev("() => getProject(DB.projects.find(p => p.name === 'Garden planner').id).activity.filter(e => e.text.startsWith('Answers in for')).map(e => e.text)")
     ok(f'and each time they come in, a line in Activity (0.1.69, C2) ({act_lines})', act_lines[-1:] == ['Answers in for ' + TITLE + ': 8 of 8'])
@@ -538,7 +538,7 @@ with sync_playwright() as p:
        and t3['round']['folder'] == 'D:\\City\\Claude\\wizard-rounds')
     news = [(x['by'], x['type'], x['says'], x['task'], x['btns']) for x in vpages('round')]
     ok(f'at once Quill says so in place of the toast, with Read and Undo: the project view open, on its card, the task in its own line (Leader UX, 0.1.59; Quill, 0.1.69; 0.1.96) ({news})',
-       news == [('Quill', 'wizard', 'Claude attached a wizard round to this task: Icons, Round 1. Sent just now.', T3, ['Read', 'Undo'])] and said() == '')
+       news == [('Quill', 'wizard', 'Claude attached a wizard round to this task: Icons, Round 1. Sent just now.', T3, ['Read', 'Undo', 'Check T3'])] and said() == '')
     ok('with its line in Activity, the only one Claude writes there (0.1.69, C2)', any(e['text'] == 'Claude attached a wizard round to ' + T3 + ': Icons, Round 1' for e in proj()['activity']) and not any(e['text'].startswith('Claude: ') for e in proj()['activity']))
     ok('the change file moves to inbox/done', ev("() => [...window.__sub.keys()].some(k => k === 'inbox/done/2026-10-22-1900-garden.json') && !window.__sub.has('inbox/2026-10-22-1900-garden.json')"))
     ok('its row wears a gray hat', hat(f'li.task[data-id="{tid(T3)}"] .round-hat') == 'open')

@@ -300,7 +300,7 @@ HTMLAnchorElement.prototype.click = function () { const href = this.getAttribute
         ok('the helper, run on that link, starts the thread', r.returncode == 0 and calls()[-1]['args'][2] == str(garden) and calls()[-1]['stdin'] == s['message'])
         pg.wait_for_timeout(1400)
         msg = said()
-        ok('within a second the city says it was sent, with Open', msg.startswith('Sent to T3: ' + task + '.') and ev("() => [...document.querySelectorAll('#toast .toast-act')].map(b => b.textContent)") == ['Open'], msg)
+        ok('within a second the city says it was sent, with Check T3 (0.1.97)', msg.startswith('Sent to T3: ' + task + '.') and ev("() => [...document.querySelectorAll('#toast .toast-act')].map(b => b.textContent)") == ['Check T3'], msg)
         ok('and clears the answer it read', not ev("() => [...window.__sub.keys()].some(k => k.startsWith('t3/'))"))
         pg.screenshot(path=str(SHOTS / '532-t3-sent.png'))
         ev("() => { window.__opened.length = 0; }")

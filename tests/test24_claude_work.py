@@ -381,7 +381,7 @@ with sync_playwright() as p:
     js("() => { News.openFace('px'); for (let i = 0; i < 8 && document.querySelector('#ldSay').dataset.moment !== 'added'; i++) { const n = document.querySelector('#ldSayNext'); if (!n || n.disabled) break; n.click(); } }")   # what Proxima's face in News opens
     pg.wait_for_timeout(300)
     ok(f'Proxima\'s face says it on an Attachment page, naming what it added, with its time and a Delete for each (0.1.68; 0.1.96) ({said()})',
-       said() == ['Proxima Pace', 'Garden planner', 'Claude added 2 tasks, a note, Reminder timing, and a link, Reminders PR. Sent just now.', ['Go to it'], 'added']
+       said() == ['Proxima Pace', 'Garden planner', 'Claude added 2 tasks, a note, Reminder timing, and a link, Reminders PR. Sent just now.', ['Check T3'], 'added']
        and js("() => document.querySelector('#ldSay').dataset.type") == 'attach' and js("() => document.querySelectorAll('#ldSay .lc-atts .ld-del').length") == 4)
     words = js("() => { const w = document.querySelector('#ldSayMore .b-claude-said'); return w && [w.textContent, !!w.querySelector('svg')]; }")
     ok(f'Claude\'s summary under it, in its own words, marked with its spark (C2) ({words})', words == ['Reminders built', True])
@@ -418,7 +418,7 @@ with sync_playwright() as p:
        and lines == ['Tick this task off.', 'A new description for Draw the beds on a grid.', 'Tick A task that is not there off. It is not open here.']
        and btns == [['Tick it', 'No'], ['Read', 'Apply', 'No'], ['No']])
     second = asks.nth(1).text_content() if asks.count() > 1 else ''
-    ok(f'one change alone has its buttons on the page ({second[:80]})', second.startswith('Claude wants your OK first: a new plan with 1 milestone and 1 task. Sent just now.') and [b.strip() for b in asks.nth(1).locator('.ld-acts button').all_text_contents()] == ['Read', 'Apply', 'No'])
+    ok(f'one change alone has its buttons on the page ({second[:80]})', second.startswith('Claude wants your OK first: a new plan with 1 milestone and 1 task. Sent just now.') and [b.strip() for b in asks.nth(1).locator('.ld-acts button').all_text_contents()] == ['Read', 'Apply', 'No', 'Check T3'])
     pg.screenshot(path=str(SH / '248-claude-asks-first.png'), clip=pg.query_selector('#bubble').bounding_box())
     first.locator('.ld-part').nth(1).locator('.ld-read').click(); pg.wait_for_timeout(300)
     rd = js("() => { const m = document.querySelector('.modal.panel.cr'); return m && [m.querySelector('#pnTitle').textContent, [...m.querySelectorAll('.cr-h')].map(x => x.textContent), [...m.querySelectorAll('.cr-text')].map(x => x.textContent)]; }")

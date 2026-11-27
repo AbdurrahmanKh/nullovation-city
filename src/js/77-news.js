@@ -443,8 +443,8 @@ const News = (() => {
      as working in the side bar", and Round 1, T1, The leader thinks it) ---------- */
   /* Each leader whose building Claude works on, Proxima for one with no leader, heads News: its face with Claude's
      spark, wearing a thought bubble with Claude's latest thought, as the wizard's companions think, moving on as Claude
-     thinks; with no thought (hooks from before 0.1.92, or another agent), the working line. A click shows the building
-     and its card, which says what Claude is doing there. */
+     thinks; with no thought (hooks from before 0.1.92, or another agent), the working line. A click opens its bubble on
+     that conversation (0.1.94), and since 0.1.97 its T3 conversation too. */
   const thoughtSeen = new Map();                             // a speaker: the thought it showed last, so a new one moves in
   function workRows() {
     if (typeof ClaudeWork === 'undefined') return [];
@@ -468,8 +468,12 @@ const News = (() => {
       thoughtSeen.set(sp.k, s.thought || '');
       const who = sp.name + (sp.role ? ', ' + sp.role : '');
       return h('div', { class: 'news-work', 'data-k': sp.k, 'data-pid': p.id },
-        h('button', { class: 'news-work-face', type: 'button', title: who + ': Claude is working on ' + what + ' in ' + p.name + (n > 1 ? ', and ' + plural(n - 1, 'more', 'more') : '') + '. Talk about it.',
-          'aria-label': sp.name + ' is at work on ' + p.name, onclick: () => { Menu.closeDrawer(); openFace(sp.k, { session: s.session }); } },
+        /* a click opens its bubble on this conversation, and its T3 conversation too (Check T3, Round 1, M2's note) */
+        h('button', { class: 'news-work-face', type: 'button', title: who + ': Claude is working on ' + what + ' in ' + p.name + (n > 1 ? ', and ' + plural(n - 1, 'more', 'more') : '') + '. Talk about it, and check T3.',
+          'aria-label': sp.name + ' is at work on ' + p.name, onclick: () => {
+            Menu.closeDrawer(); openFace(sp.k, { session: s.session });
+            const go = t3Go(p, ClaudeWork.taskOf(p, s), s, watchedOf(p, s)); if (go) go.run();
+          } },
           faceOf(sp, 40), h('span', { class: 'news-work-spark', 'aria-hidden': 'true', html: iconSvg('claude', 12) })),
         h('p', { class: 'news-thought' + (s.thought ? '' : ' plain') + (moved ? ' new' : ''), dir: 'auto', title: s.thought ? 'Claude thinks, working on ' + what + ': ' + s.thought : text }, h('span', null, text)));
     });
@@ -808,20 +812,33 @@ const News = (() => {
       Promise.resolve(run()).then(() => acted(p, it, where, stay));
     } }, label);
   }
-  /* Open in T3 on Claude's lines, for a task whose send started a T3 thread (0.1.90, City as My Terminal): it opens the
-     task's latest thread in T3's window, its tooltip saying where it lands, the agent and the thread's state. */
-  function t3Act(p, t, it, where) {
-    const th = t && typeof T3 !== 'undefined' ? T3.latest(t) : null;
-    if (!th || !th.env) return null;
-    return act(p, it, where, 'Open in T3', 'ld-t3', T3.openTitle(p, t, th), () => T3.openThread(th), true);
+  /* ---------- Check T3 (0.1.97, Check T3, Round 1) ---------- */
+  /* Where a page's T3 conversation is, for Check T3 on every page of Claude's (M1, "make all of them T3"): the task's
+     own thread (0.1.90), else the thread the watcher sees for its session (0.1.93, W2c), a thread started in T3 itself
+     included; with neither, T3 Code itself (F1, "Open T3 itself"), through the link Open T3 follows, unless Open in
+     Claude is set to Claude only, which keeps T3 out of the city. A session the hooks say runs outside T3, in a terminal
+     or the Claude app, has no conversation there, so it has none. */
+  const T3_SAID = { waiting: 'waiting on you', working: 'working', failed: 'stopped', done: 'handed back to you' };
+  function t3Go(p, t, s, w) {
+    if (typeof T3 === 'undefined' || (s && s.entry && s.entry !== 't3-code')) return null;
+    const th = t ? T3.latest(t) : null;
+    if (th && th.env) return { run: () => T3.openThread(th), title: T3.openTitle(p, t, th) };
+    if (w && w.env) {
+      const st = T3.T3_STATE[w.status] || '';
+      return { run: () => T3.openWatched(w), title: 'Opens its T3 thread' + (w.title ? ', ' + w.title : '') + (st ? ': ' + (w.approval ? 'waiting for your OK' : T3_SAID[st]) : '') + '.' };
+    }
+    if (T3.tiles() === 'claude') return null;
+    return { run: () => T3.openNew(), title: 'Opens T3 Code: the city cannot tell which thread this is' };
   }
-  /* The same for a session's T3 thread the watcher sees (0.1.93, W2c), a thread started in T3 itself included. */
-  function t3ActW(p, w, it, where) {
-    if (!w || !w.env || typeof T3 === 'undefined') return null;
-    const st = T3.T3_STATE[w.status] || '';
-    return act(p, it, where, 'Open in T3', 'ld-t3', 'Opens its T3 thread' + (w.title ? ', ' + w.title : '') + (st ? ': ' + (w.approval ? 'waiting for your OK' : { waiting: 'waiting on you', working: 'working', failed: 'stopped', done: 'handed back to you' }[st]) : '') + '.',
-      () => T3.openWatched(w), true);
+  /* Check T3 as a button, on a page with buttons (M2: one name everywhere); News has none, so there it is a link. */
+  const t3Btn = (p, pg, where, go) => (go ? act(p, pg, where, 'Check T3', 'ld-t3', go.title, go.run, true) : null);
+  /* The session a page of Claude's came from: an update's, else the latest on its task. */
+  function sessOfPage(p, t, reps = []) {
+    if (typeof ClaudeWork === 'undefined') return null;
+    for (const r of reps) { const s = r && r.sid ? sessOf(p, r.sid) : null; if (s) return s; }
+    return t ? ClaudeWork.sessionsOf(p).filter(s => ClaudeWork.taskOf(p, s) === t).sort((a, b) => b.at - a.at)[0] || null : null;
   }
+  const t3GoFor = (p, t, reps = []) => { const s = sessOfPage(p, t, reps); return t3Go(p, t, s, watchedOf(p, s)); };
   const watchedOf = (p, s) => (s && typeof T3 !== 'undefined' ? T3.sessionThread(p, s) : null);
 
   /* ---------- talking back (0.1.94, City as My Terminal, Round 1, R1 to R3, L4, and Brainstorm 1, i6) ---------- */
@@ -966,6 +983,8 @@ const News = (() => {
   /* A page is known by keys: its item's, and for Claude's conversation its session's, so its x, its dot and reading
      hold wherever it shows. What asks (what needs your OK, your answer, T3 closed) keeps waiting on the leader card. */
   const ASK_MOMENTS = new Set(['asks', 'waiting', 't3closed']);
+  /* Claude's pages, which carry Check T3 (0.1.97): its conversation, what it asks, adds and attaches, and a round's answers */
+  const CLAUDE_PAGES = new Set(['working', 'waiting', 'failed', 'finished', 'asks', 'added', 'round', 'answers']);
   const isHidden = key => !!key && st.hidden[key] != null;
   const hiddenPg = pg => pg.keys.some(isHidden);
   const itemOf = pg => st.items.find(x => pg.keys.includes(x.key)) || null;
@@ -995,7 +1014,9 @@ const News = (() => {
   /* Claude's conversation on a building: at work (or took your message), waiting for your OK or your answer, stopped
      on an error, or handed back with its updates' summaries. */
   function convPage(p, { moment, v, s, it = null, reps = [] }) {
-    const task = ownTask(v.task, s, reps), t = taskNamed(p, task) || (s && (s.task || s.ask) ? taskNamed(p, s.task || s.ask) : null);
+    /* a session with no task is named as it is now (F3): its thread's title once the watcher sees it */
+    const named = s && !s.task && typeof ClaudeWork !== 'undefined' ? ClaudeWork.what(p, s) : v.task;
+    const task = ownTask(named, s, reps), t = taskNamed(p, task) || (s && (s.task || s.ask) ? taskNamed(p, s.task || s.ask) : null);
     const w = watchedOf(p, s), asking = !!(w && w.asks && w.asks[0] && w.asks[0].questions && w.asks[0].questions.length);
     const vv = { ...v, task, ...(asking ? { asking: true } : {}) };
     const keys = [s ? sessKey(s) : '', it ? it.key : '', s && moment === 'finished' ? finKey(s) : '', s && moment === 'waiting' ? 'waiting:' + s.session + ':' + s.since : '',
@@ -1007,21 +1028,22 @@ const News = (() => {
   function convView(p, pg, { moment, v, s, t, w, reps, it }, where) {
     const whole = where === 'view', at = s ? (moment === 'finished' ? s.at : s.since) : it ? it.at : Date.now();
     const nodes = [...sayNodes(p, moment, { ...v, ago: relAgo(at) }, t, where, it), ...(moment === 'working' ? [] : [' ', whenEl(at)])];
+    const go = t3Go(p, t, s, w);
     if (moment === 'finished') {
       const more = [whole ? timesEl(s, reps) : null, ...reps.map(rep => wordsEl(rep.summary, whole))];
-      const raw = w && typeof T3 !== 'undefined' && T3.lastOf(w) ? T3.lastOf(w) : s && s.reply, link = t3Link(p, t, w);
+      const raw = w && typeof T3 !== 'undefined' && T3.lastOf(w) ? T3.lastOf(w) : s && s.reply, link = t3Link(go);
       if (raw && plainReply(raw)) more.push(whole ? lastEl(raw, link) : quoteEl(raw), whole ? null : link);
       else more.push(link);
       return { nodes, more: [...more, ...talkEls(p, s, where)].filter(Boolean), acts: [] };
     }
     if (moment === 'working') {
       const more = [whole && s && s.thought ? h('p', { class: 'lc-thought', dir: 'auto', title: 'Claude’s latest thought' }, '“' + s.thought + '”') : null,
-        ...reps.map(rep => wordsEl(rep.summary, whole)), lastWords(w), t3Link(p, t, w), ...talkEls(p, s, where)];
+        ...reps.map(rep => wordsEl(rep.summary, whole)), lastWords(w), t3Link(go), ...talkEls(p, s, where)];
       return { nodes, more: more.filter(Boolean), acts: [] };
     }
-    /* waiting, or stopped on an error: Open in T3, since only T3's window approves (i6: "take you to t3") */
+    /* waiting, or stopped on an error: Check T3, since only T3's window approves (i6: "take you to t3") */
     const more = moment === 'waiting' && v.asking ? talkEls(p, s, where) : [lastWords(w), ...talkEls(p, s, where)];   // its question says it; else its latest message
-    return { nodes, more: more.filter(Boolean), acts: [t3Act(p, t, pg, where) || t3ActW(p, w, pg, where)].filter(Boolean) };
+    return { nodes, more: more.filter(Boolean), acts: [t3Btn(p, pg, where, go)].filter(Boolean) };
   }
   /* The leader card's extras (S2): when Claude started, how long it worked, and how many updates it sent. */
   function timesEl(s, reps) {
@@ -1036,13 +1058,11 @@ const News = (() => {
   const quoteEl = raw => { const t = plainReply(raw); return h('p', { class: 'lc-quote', dir: 'auto', title: t }, '“' + cut(t, 160) + '”'); };
   const lastEl = (raw, link) => h('div', { class: 'lc-last' }, h('div', { class: 'lc-last-h' }, 'Claude’s last message'),
     ...paras(raw).map(x => h('p', { dir: 'auto' }, x)), link);
-  /* Check T3: on a page of News, a link in place of a button (Round 2, M1: News has no buttons). */
-  function t3Link(p, t, w) {
-    const th = t && typeof T3 !== 'undefined' ? T3.latest(t) : null;
-    const go = th && th.env ? () => T3.openThread(th) : w && w.env && typeof T3 !== 'undefined' ? () => T3.openWatched(w) : null;
+  /* Check T3: on a page of News, a link in place of a button (One Leader Card, Round 2, M1: News has no buttons). */
+  function t3Link(go) {
     if (!go) return null;
-    return h('p', { class: 'lc-link' }, h('a', { class: 'ld-t3-link', href: '#', title: th && th.env ? T3.openTitle(p, t, th) : 'Opens its T3 thread' + (w.title ? ', ' + w.title : '') + '.',
-      onclick: e => { e.preventDefault(); e.stopPropagation(); hold(); go(); } }, 'Check T3'));
+    return h('p', { class: 'lc-link' }, h('a', { class: 'ld-t3-link', href: '#', title: go.title,
+      onclick: e => { e.preventDefault(); e.stopPropagation(); hold(); go.run(); } }, 'Check T3'));
   }
 
   /* One change Claude asks about: its words for the leader's line ("tick this task off") and for a part line, and its
@@ -1089,9 +1109,10 @@ const News = (() => {
       const alone = reps.length ? reps.filter(r => r.alone) : [null];
       const sums = alone.map(r => wordsEl(r ? r.summary : list[0].e.summary, whole));
       const first = list[0].e, when = whenEl(first.at || (reps[0] ? reps[0].at : Date.now()), 'Sent ');
-      if (list.length === 1) { const a = askOf(p, first, list[0].i, mine, pg, where); return { nodes: ['Claude wants your OK first: ', ...a.gist, '. ', when], more: sums.filter(Boolean), acts: a.acts }; }
+      const t3 = t3Btn(p, pg, where, t3GoFor(p, t, reps));
+      if (list.length === 1) { const a = askOf(p, first, list[0].i, mine, pg, where); return { nodes: ['Claude wants your OK first: ', ...a.gist, '. ', when], more: sums.filter(Boolean), acts: [...a.acts, t3].filter(Boolean) }; }
       return { nodes: ['Claude wants your OK on ' + plural(list.length, 'change', 'changes') + '. ', when],
-        more: [...sums, ...list.map(({ e, i }) => { const a = askOf(p, e, i, mine, pg, where); return partEl('ask ' + e.changes[i].do, a.text, a.acts); })].filter(Boolean), acts: [] };
+        more: [...sums, ...list.map(({ e, i }) => { const a = askOf(p, e, i, mine, pg, where); return partEl('ask ' + e.changes[i].do, a.text, a.acts); })].filter(Boolean), acts: [t3].filter(Boolean) };
     };
     return pg;
   }
@@ -1111,7 +1132,7 @@ const News = (() => {
       const add = merged(), at = reps.length ? reps[reps.length - 1].at : it ? it.at : Date.now();
       const nodes = [...sayNodes(p, 'added', { what: add ? addedWords(p, add) : it ? it.v.what : 'what it sent' }, null, where, it), ' ', whenEl(at, reps.length ? 'Sent ' : '')];
       const sums = reps.filter(r => r.alone && !r.entry && !r.rounds.length).map(r => wordsEl(r.summary, where === 'view'));
-      return { nodes, more: [...sums, add ? addedTiles(p, add, pg, where) : null].filter(Boolean), acts: [] };
+      return { nodes, more: [...sums, add ? addedTiles(p, add, pg, where) : null].filter(Boolean), acts: [t3Btn(p, pg, where, t3GoFor(p, t, reps))].filter(Boolean) };
     };
     return pg;
   }
@@ -1155,7 +1176,8 @@ const News = (() => {
     pg.view = where => ({
       nodes: [...sayNodes(p, 'round', { task: t.text, round: t.round ? t.round.title : it ? it.v.round : '' }, t, where, it), ...(rep ? [' ', whenEl(rep.at, 'Sent ')] : [])],
       more: [rep && rep.alone && !rep.entry ? wordsEl(rep.summary, where === 'view') : null].filter(Boolean),
-      acts: [t.round ? roundRead(p, t) : null, undos.has(uk) ? act(p, pg, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, undos.get(uk)); undos.delete(uk); }) : null].filter(Boolean) });
+      acts: [t.round ? roundRead(p, t) : null, undos.has(uk) ? act(p, pg, where, 'Undo', 'ld-undo', 'Take back the wizard round', () => { ClaudeInbox.undo(p, undos.get(uk)); undos.delete(uk); }) : null,
+        t3Btn(p, pg, where, t3GoFor(p, t, rep ? [rep] : []))].filter(Boolean) });
     return pg;
   }
   /* The pages of a turn's updates (or one update on its own), one per type (M2): what asks, each round, what it added.
@@ -1200,8 +1222,9 @@ const News = (() => {
       const t = p.todos.find(x => x.id === it.ref.tid);
       if (t && t.round) out.push(roundRead(p, t));
       if (t) out.push(act(p, pg, where, 'Open', 'ld-open', 'Open ' + t.text + ' and its round', () => { if (where === 'say') { readIds([it.id]); hide(); } FullView.openTask(p.id, t.id); }));
+      if (t) out.push(t3Btn(p, pg, where, t3GoFor(p, t)));             // telling Claude the answers are in (M1)
     }
-    return out;
+    return out.filter(Boolean);
   }
 
   /* ---------- the status card and the project view: a building's pages, read as they show them ---------- */
@@ -1314,7 +1337,9 @@ const News = (() => {
       h('div', { class: 'lc-wn' }, h('div', { class: 'lc-nmrow' }, h('b', { id: say ? 'ldSayName' : null, class: 'lc-nm ld-name', dir: 'auto' }, sp.name), ' ',
         sp.role ? h('span', { id: say ? 'ldSayRole' : null, class: 'lc-role', dir: 'auto' }, sp.role) : null),
         bits.length ? h('div', { id: say ? 'ldSayWhere' : null, class: 'lc-tline' }, ...bits) : null));
-    const acts = [...v.acts, say ? h('button', { class: 'btn btn-small btn-quiet ld-go', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } }, 'Go to it') : null].filter(Boolean);
+    /* Go to it, in the bubble, on what is not Claude's: Check T3 takes its place on Claude's pages (Check T3, Round 1,
+       M1), and T3 closed keeps it; the building's name in the task's line goes to it on the map all the same */
+    const acts = [...v.acts, say && !CLAUDE_PAGES.has(pg.moment) ? h('button', { class: 'btn btn-small btn-quiet ld-go', type: 'button', title: 'Show ' + p.name + ' on the map', onclick: () => { hold(); goTo(p.id); } }, 'Go to it') : null].filter(Boolean);
     const msg = h('div', { class: 'ld-line lc-msg', 'data-moment': pg.moment, 'data-type': pg.type || '' },
       h('p', { id: say ? 'ldSayText' : null, class: 'ld-says', dir: 'auto' }, ...v.nodes),
       v.more.length ? h('div', { id: say ? 'ldSayMore' : null, class: 'ld-say-more lc-more' }, ...v.more) : null,

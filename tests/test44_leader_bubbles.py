@@ -83,7 +83,7 @@ with sync_playwright() as p:
     s = say()
     ok(f'Quill says it, by himself, not the building\'s leader, a Decision Wizard page, the task in its own line (0.1.96) ({s})', s and s['name'] == 'Quill' and s['role'] == 'The Pocket Wizard' and s['k'] == 'ld:quill' and s['color'] == '#8E5A9E'
        and s['type'] == 'wizard' and s['text'] == 'Claude attached a wizard round to this task: Publishing, Round 1. Sent just now.' and s['where'] == 'Garden planner·Publish the app')
-    ok(f'with his portrait, Read and Undo ({s and s["acts"]})', s and s['img'] and s['acts'] == ['Read', 'Undo', 'Go to it'])
+    ok(f'with his portrait, Read and Undo ({s and s["acts"]})', s and s['img'] and s['acts'] == ['Read', 'Undo', 'Check T3'])
     ok(f'his face in News, apart from Talal ({tiles()})', [t[0] for t in tiles()] == ['ld:quill'] and tiles()[0][2] == 'Quill')
     pg.screenshot(path=str(SH / '440-quill-round.png'), clip=pg.query_selector('#ldSay').bounding_box())
     acts = activity(gp)
@@ -117,7 +117,7 @@ with sync_playwright() as p:
     ok(f'and write a line in Activity, how far it is (C2) ({acts[-1:]})', acts[-1] == 'Answers in for ' + TITLE + ': 1 of 2')
     pg.click('#newsList .news-tile[data-k="ld:quill"] .news-face'); pg.wait_for_timeout(300)
     s = say()
-    ok(f'a click on his face: Quill says them, with Read and Open ({s and (s["text"], s["acts"])})', s and s['name'] == 'Quill' and s['text'] == 'Your answers are in for ' + TITLE + ': 1 of 2.' and s['acts'] == ['Read', 'Open', 'Go to it'])
+    ok(f'a click on his face: Quill says them, with Read and Open ({s and (s["text"], s["acts"])})', s and s['name'] == 'Quill' and s['text'] == 'Your answers are in for ' + TITLE + ': 1 of 2.' and s['acts'] == ['Read', 'Open', 'Check T3'])
     pg.click('#ldSay .ld-round-read'); pg.wait_for_timeout(300)
     pop = js("() => { const m = document.querySelector('.modal.panel.rd'); return m && [...m.querySelectorAll('.pv-round-ans li')].map(l => l.textContent); }")
     ok(f'Read shows each answer so far, with its note ({pop})', pop and 'A grid' in pop[0] and 'Note: keep it simple' in pop[0] and pop[1].endswith('Open'))
@@ -135,7 +135,7 @@ with sync_playwright() as p:
         acts: [...c.querySelectorAll('.ld-acts button')].map(b => b.textContent), by: News._test.pages('""" + gp + """', 'card').map(x => [x.type, x.by]) }; }""")
     ok(f'on the status card, Quill\'s page comes first, said in his face and name, his round\'s task in its line, with Read and Open ({sc})', sc and sc['type'] == 'wizard' and sc['name'] == 'Quill'
        and sc['role'] == 'The Pocket Wizard' and sc['says'] == 'Your answers are in for ' + TITLE + ': 1 of 2.' and sc['task'] == 'Add plant icons' and sc['face'] == 48 and sc['img']
-       and sc['acts'] == ['Read', 'Open'] and sc['by'][0] == ['wizard', 'Quill'] and ['news', 'Talal'] in sc['by'])
+       and sc['acts'] == ['Read', 'Open', 'Check T3'] and sc['by'][0] == ['wizard', 'Quill'] and ['news', 'Talal'] in sc['by'])
     pg.screenshot(path=str(SH / '442-card-quill-line.png'), clip=pg.query_selector('#bubble').bounding_box())
     js("() => MapView.deselect()"); pg.wait_for_timeout(300)
     forget()
@@ -182,7 +182,7 @@ with sync_playwright() as p:
     ask = js("""() => { const l = document.querySelector('#pvLeader .ld-line[data-moment="asks"]'); return l && [l.querySelector('.ld-says').textContent, [...l.querySelectorAll('.ld-acts button')].map(b => b.textContent),
       (l.closest('.lc').querySelector('.lc-tline') || {}).textContent]; }""")
     ok(f'what Claude asks first, with its buttons, on the leader card too: the task in its line, No in place of Dismiss (0.1.96) ({ask})', ask and ask[0] == 'Claude wants your OK first: tick this task off. Sent just now.'
-       and ask[1] == ['Tick it', 'No'] and ask[2] == 'Save a plan as a file')
+       and ask[1] == ['Tick it', 'No', 'Check T3'] and ask[2] == 'Save a plan as a file')
     ok('the session gone, its waiting line goes from the card too', js("() => !document.querySelector('#pvLeader .ld-line[data-moment=\"waiting\"]')"))
     pg.screenshot(path=str(SH / '443-leader-card.png'), clip=pg.query_selector('#pvLeader').bounding_box())
     pg.click('#pvLeader .ld-line[data-moment="asks"] .b-claude-tick'); pg.wait_for_timeout(900)

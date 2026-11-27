@@ -112,7 +112,7 @@ with sync_playwright() as p:
     ok(f'the finish opens the bubble on what needs your OK, alone: the attachment and the finish wait ({s and (s["type"], s["n"], s["text"])})', s and s['type'] == 'approval' and s['n'] == ''
        and s['text'].startswith('Claude wants your OK first: tick this task off.'))
     ok(f'News holds a page per type: Need Approval, Attachment, News ({items()})', items() == ['asks', 'added', 'finished'])
-    ok('No in place of Dismiss', js("() => [...document.querySelectorAll('#ldSay .ld-acts .btn')].map(x => x.textContent)") == ['Tick it', 'No', 'Go to it'])
+    ok('No in place of Dismiss', js("() => [...document.querySelectorAll('#ldSay .ld-acts .btn')].map(x => x.textContent)") == ['Tick it', 'No', 'Check T3'])
     pg.click('#ldSayClose'); pg.wait_for_timeout(300)
     pages = lambda where: js(f"() => News._test.pages('{gp}', '{where}').map(x => x.type)")
     ok(f'the x on an ask takes it off the bubble and the status card ({pages("card")})', bub() is None and pages('card') == ['attach', 'news'])
@@ -134,10 +134,10 @@ with sync_playwright() as p:
     ok('and Undo in its toast brings it back', js(f"() => allNotes(getProject('{gp}')).some(n => n.title === 'Where the understanding stands')"))
     js(f"() => {{ for (let i = 0; i < 3; i++) {{ const c = document.querySelector('#pvLeader .lc'); if (c && c.dataset.type === 'news') break; document.querySelector('#ldFlipNext-view').click(); }} }}"); pg.wait_for_timeout(300)
     fin = js("""() => { const c = document.querySelector('#pvLeader .lc'); return c && { type: c.dataset.type, says: c.querySelector('.ld-says').textContent, times: (c.querySelector('.lc-times') || {}).textContent,
-      said: [...c.querySelectorAll('.b-claude-said.whole')].map(x => x.textContent), last: [...c.querySelectorAll('.lc-last p')].map(x => x.textContent), btns: [...c.querySelectorAll('.ld-acts .btn')].length }; }""")
+      said: [...c.querySelectorAll('.b-claude-said.whole')].map(x => x.textContent), last: [...c.querySelectorAll('.lc-last p:not(.lc-link)')].map(x => x.textContent), t3: [...c.querySelectorAll('.lc-last .ld-t3-link')].map(x => x.textContent), btns: [...c.querySelectorAll('.ld-acts .btn')].length }; }""")
     ok(f'the finish on the leader card: when it worked, the summary whole, the last message whole, no buttons ({fin})', fin and fin['type'] == 'news' and fin['says'].startswith('Claude handed this task back to you.')
        and (fin['times'] or '').startswith('Started ') and 'worked 2 minutes' in fin['times'] and fin['times'].endswith('1 update') and fin['said'] == [upd['summary']]
-       and fin['last'] == ['I read every scene.', 'Next I check the art folder.'] and fin['btns'] == 0)
+       and fin['last'] == ['I read every scene.', 'Next I check the art folder.'] and fin['t3'] == ['Check T3'] and fin['btns'] == 0)
     pg.screenshot(path=str(SH / '613-card-finish.png'), clip=pg.query_selector('#pvLeader').bounding_box())
     js("() => FullView.close()"); pg.wait_for_timeout(300)
     js("() => window.__cf.delete('c1.json')"); settle()

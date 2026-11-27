@@ -268,17 +268,20 @@ const ClaudeWork = (() => {
   }
 
   /* What a line names a session by (0.1.95): the task a city copy started it on, or its latest prompt when that is a
-     task's title here; else the prompt in quotes, cut short, since it is something you said, not a task ("Claude
-     handed he is the main voice... back to you" read as nonsense). */
+     task's title here; else, since 0.1.97, its T3 thread's title as T3 lists it, once the watcher sees the thread
+     (Check T3, Round 1, F3: "show the conversation title"); else the prompt. A title or a prompt is in quotes, cut
+     short, since it is not a task ("Claude handed he is the main voice... back to you" read as nonsense). */
   const ASK_MAX = 48;
+  const quoted = s => '“' + (s.length > ASK_MAX ? s.slice(0, ASK_MAX - 1).trimEnd() + '…' : s) + '”';
   function what(p, s) {
     if (!s) return 'a task';
     if (s.task) return s.task;
     const ask = String(s.ask || '').replace(/\s+/g, ' ').trim();
-    if (!ask) return 'a task';
-    const k = ask.toLowerCase(), t = p && p.todos.find(x => !x.archived && x.text.trim().toLowerCase() === k);
+    const k = ask.toLowerCase(), t = ask && p && p.todos.find(x => !x.archived && x.text.trim().toLowerCase() === k);
     if (t) return t.text;
-    return '“' + (ask.length > ASK_MAX ? ask.slice(0, ASK_MAX - 1).trimEnd() + '…' : ask) + '”';
+    const w = p && typeof T3 !== 'undefined' ? T3.sessionThread(p, s) : null, title = w && w.title ? String(w.title).replace(/\s+/g, ' ').trim() : '';
+    if (title) return quoted(title);
+    return ask ? quoted(ask) : 'a task';
   }
   /* The open task a city copy started, in this project, found by its title. */
   function taskOf(p, s) {

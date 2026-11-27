@@ -216,7 +216,7 @@ HTMLAnchorElement.prototype.click = function () { const href = this.getAttribute
         ok('it says it is sending to its thread', said() == 'Sending ' + task + ' to its T3 thread.', said())
         r = run_link()
         ok('the helper sends it into that thread', calls()[-1]['args'][:3] == ['thread', 'send', first], calls()[-1]['args'])
-        ok('the city says it went to its thread, with Open', said().startswith('Sent to its T3 thread: ' + task + '.') and ev("() => [...document.querySelectorAll('#toast .toast-act')].map(b => b.textContent)") == ['Open'], said())
+        ok('the city says it went to its thread, with Check T3 (0.1.97)', said().startswith('Sent to its T3 thread: ' + task + '.') and ev("() => [...document.querySelectorAll('#toast .toast-act')].map(b => b.textContent)") == ['Check T3'], said())
         th = threads()
         ok('the task still has one thread, brought up to date', len(th) == 1 and th[0]['id'] == first and th[0]['last'] > th[0]['at'] - 1, th)
         # Think goes on in it too
@@ -268,7 +268,7 @@ HTMLAnchorElement.prototype.click = function () { const href = this.getAttribute
         ev("() => FullView.close()"); pg.wait_for_timeout(300)
         ev(f"() => Bubble.open('{gp}')"); pg.wait_for_timeout(300)
         b3 = ev("() => { const b = document.querySelector('.ld-line .ld-t3'); return b ? { text: b.textContent, title: b.title } : null; }")
-        ok('on the status card, Claude\'s waiting line has Open in T3, saying where it lands', b3 and b3['text'] == 'Open in T3' and b3['title'] == 'Opens its T3 thread, ' + task + ': Sonnet 5.5, waiting on you.', b3)
+        ok('on the status card, Claude\'s waiting line has Check T3, saying where it lands', b3 and b3['text'] == 'Check T3' and b3['title'] == 'Opens its T3 thread, ' + task + ': Sonnet 5.5, waiting on you.', b3)
         pg.screenshot(path=str(SHOTS / '553-t3-card.png'))
         ev("() => { window.__opened.length = 0; }")
         pg.click('.ld-line .ld-t3'); pg.wait_for_timeout(100)

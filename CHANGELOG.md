@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.97 (2026-11-27)
+
+Check T3, from Check T3, Round 1, on Abdurrahman's "Allow the leader to take me to T3": every page of Claude's takes you to its T3 conversation.
+- Check T3 takes the place of Go to it on Claude's pages: the finish, Claude at work, waiting for your OK or your answer, an error, what Claude asks first, adds or attaches, and a round's answers. A link on News, a button where a page has buttons, the same in the bubble, the status card and the leader card. T3 closed keeps Open T3, Send it and Go to it, and what is not Claude's keeps Go to it.
+- Where it lands: the task's own thread, else the thread the watcher sees for its session, else T3 Code itself, so it shows even when the city cannot tell which conversation it is. None for a session in a terminal or the Claude app, or with Open in Claude set to Claude only.
+- One name: Open in T3 on Claude's lines and Open on the T3 toasts are Check T3 now. Open T3, which opens T3 itself, keeps its name.
+- A click on a leader at work in News opens its bubble on that conversation and its T3 conversation too.
+- A session with no task is named by its T3 thread's title, in quotes, once the watcher sees the thread; without the watcher, by its prompt, as before.
+- The hooks keep a session's task after three quiet days: a new session clears session files that old, and the next prompt made the file again without the task, so the finish named that prompt ("Claude handed what is left for this task? back to you."). A new file now reads the latest copy from the city in the session's transcript.
+- Tests: test62_check_t3 checks all of it. test24, test40, test43, test44, test55, test56 and test61 now expect Check T3.
+
 ## 0.1.96 (2026-11-27)
 
 One leader card in three places, from One Leader Card, Rounds 1 and 2, and the triggers list approved with "build it": the leader's bubble, the status card and the leader card show the same card.

@@ -115,7 +115,7 @@ with sync_playwright() as p:
     s = say()
     ok(f'once it finishes, what needs your OK opens the bubble by itself, alone, with its one time (0.1.96) ({s and (s["type"], s["n"], s["text"])})', s and s['type'] == 'approval' and s['n'] == ''
        and s['text'] == 'Claude wants your OK first: a new description for this task. Sent just now.' and s['when'] == 1 and s['where'] == 'Garden planner·Draw the beds on a grid')
-    ok(f'one change: its buttons on the page, No in place of Dismiss (A2, 0.1.96) ({s and (s["parts"], s["acts"])})', s and s['parts'] == [] and s['acts'] == ['Read', 'Apply', 'No', 'Go to it'])
+    ok(f'one change: its buttons on the page, No in place of Dismiss (A2, 0.1.96) ({s and (s["parts"], s["acts"])})', s and s['parts'] == [] and s['acts'] == ['Read', 'Apply', 'No', 'Check T3'])
     ok(f'no Tick it: Claude did not ask to tick the task off, so work is left (B3) ({s and s["acts"]})', s and 'Tick it' not in s['acts'] and not js("() => !!document.querySelector('#ldSay .b-claude-tick')"))
     ok(f'a page per type in News, with one leader\'s face: what asks, what Claude added, the finish (0.1.96, M2) ({items(gp)})', items(gp) == ['asks', 'added', 'finished'] and js("() => document.querySelectorAll('#newsList .news-tile').length") == 1)
     pg.screenshot(path=str(SH / '430-report-bubble.png'), clip=pg.query_selector('#ldSay').bounding_box())
@@ -154,7 +154,8 @@ with sync_playwright() as p:
        and s and s['type'] == 'news' and s['n'] == '2 / 2' and items(gp) == ['asks', 'finished'])
     ok(f'the finish: its words say "this task", the task in its own line (W1) ({s and (s["text"], s["where"])})', s and s['text'] == 'Claude handed this task back to you. Just now.' and s['where'] == 'Garden planner·Draw the beds on a grid')
     ok(f'Claude\'s summary under it, in its own words, not the start of its reply (C2) ({s and s["words"]})', s and s['words'] == ['Beds drawn at 1:50; labels are left'])
-    ok(f'News has no buttons, Go to it aside, and no Tick it (M1) ({s and s["acts"]})', s and s['acts'] == ['Go to it'] and not js("() => !!document.querySelector('#ldSay .b-claude-tick')"))
+    ok(f'News has no buttons, and no Tick it (M1): Check T3, a link, in place of Go to it (0.1.97) ({s and s["acts"]})', s and s['acts'] == [] and not js("() => !!document.querySelector('#ldSay .b-claude-tick')")
+       and js("() => [...document.querySelectorAll('#ldSay .ld-t3-link')].map(a => a.tagName + ' ' + a.textContent)") == ['A Check T3'])
     hgt = js("() => { const r = document.querySelector('#ldSay').getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }")
     lines = js("() => [...document.querySelectorAll('#ldSay .ld-part-text, #ldSay .b-claude-said')].map(x => Math.round(x.getBoundingClientRect().height / parseFloat(getComputedStyle(x).lineHeight)))")
     ok(f'nothing in it takes more than two lines ({lines}, the bubble {hgt})', lines and all(n <= 2 for n in lines))
@@ -165,10 +166,10 @@ with sync_playwright() as p:
     c = card()
     ok(f'the status card says the same pages: what needs your OK, and the finish with Claude\'s summary ({c and [(x["type"], x["says"]) for x in c]})', c
        and [(x['type'], x['moment']) for x in c] == [('approval', 'asks'), ('news', 'finished')]
-       and line(c, 'asks')['says'] == 'Claude wants your OK first: a new description for this task. Sent just now.' and line(c, 'asks')['btns'] == ['Read', 'Apply', 'No']
+       and line(c, 'asks')['says'] == 'Claude wants your OK first: a new description for this task. Sent just now.' and line(c, 'asks')['btns'] == ['Read', 'Apply', 'No', 'Check T3']
        and line(c, 'finished')['says'] == 'Claude handed this task back to you. Just now.' and line(c, 'finished')['words'] == ['Beds drawn at 1:50; labels are left']
        and line(c, 'finished')['task'] == 'Draw the beds on a grid' and not line(c, 'finished')['tick'])
-    ok(f'and each page keeps to a few lines, the next tasks in view under them ({c and [x["h"] for x in c]} px)', c and all(x['h'] <= 200 for x in c) and pg.is_visible('#bubble .b-todos'))
+    ok(f'and each page keeps to a few lines, the next tasks in view under them ({c and [x["h"] for x in c]} px)', c and all(x['h'] <= 230 for x in c) and pg.is_visible('#bubble .b-todos'))   # 230 since 0.1.97: every finish carries Check T3, a line
     pg.screenshot(path=str(SH / '432-report-card.png'), clip=pg.query_selector('#bubble').bounding_box())
     pg.click('#bubble .ld-line[data-moment="asks"] .b-claude-apply'); pg.wait_for_timeout(800)
     ok('Apply gives the task its new description, and its page goes', state()['desc'] == 'Draw the six beds on a 1:50 grid.\nDone when: labels are on.' and pg.locator('#bubble .ld-line[data-moment="asks"]').count() == 0
@@ -188,7 +189,7 @@ with sync_playwright() as p:
     settle()
     s = say()
     ok(f'Claude asking to tick it off: Tick it on its own Need Approval page, opening by itself (B3, 0.1.96) ({s and (s["text"], s["acts"])})', s and s['type'] == 'approval'
-       and s['text'] == 'Claude wants your OK first: tick this task off. Sent just now.' and s['where'] == 'Garden planner·Save a plan as a file' and s['acts'] == ['Tick it', 'No', 'Go to it']
+       and s['text'] == 'Claude wants your OK first: tick this task off. Sent just now.' and s['where'] == 'Garden planner·Save a plan as a file' and s['acts'] == ['Tick it', 'No', 'Check T3']
        and items(gp) == ['asks', 'added', 'finished'])
     pg.click('#ldSay .b-claude-tick'); pg.wait_for_timeout(800)
     t = js(f"() => {{ const p = getProject('{gp}'), t = p.todos.find(t => t.text === 'Save a plan as a file'); return [t.done, p.activity.slice(-3).map(e => e.text)]; }}")
@@ -219,7 +220,7 @@ with sync_playwright() as p:
     face('Talal')
     s = say()
     ok(f'its face opens it, with its summary, and Delete ({s and (s["text"], s["words"], s["acts"])})', s and s['type'] == 'attach' and s['text'] == 'Claude added a link, Store page. Sent just now.'
-       and s['words'] == ['Store page written'] and s['acts'] == ['Go to it'] and js("() => [...document.querySelectorAll('#ldSay .ld-del')].map(x => x.textContent)") == ['Delete'])
+       and s['words'] == ['Store page written'] and s['acts'] == ['Check T3'] and js("() => [...document.querySelectorAll('#ldSay .ld-del')].map(x => x.textContent)") == ['Delete'])
     close_say(); mini(); js("() => window.__cf.delete('r4.json')"); settle()
     js(f"""() => {{ const p = getProject('{nc}'); addTasks(p, [{{ text: 'Rework how the leaders say what Claude asks on the status card, from the first line on', description: 'Old words.', due: '' }}], {{ id: p.milestones[0].id }}); persistNow(); }}""")
     drop('2026-10-24-1530-city.json', change('', 'A long summary of everything that happened, which is not the change asked about', [
