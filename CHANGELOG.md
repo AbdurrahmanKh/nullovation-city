@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.99 (2026-11-28)
+
+Warm buildings keep their colors at night, from Abdurrahman's task "Evaluate and fix every building and how it looks at night": the Noria Library and the Slot Machine first, then the rest.
+- Warm colors drawn outside the city's palette (cream, peach, sandstone, pale yellow, pale pink: most of what PixelLab draws) turned crimson and brick at night. The night formula turns every color a quarter of the way toward blue-violet, and from red, orange and yellow the short way goes through red, while a pale color kept more saturation than its day had. The Noria Library and its plaza went crimson, the Slot Machine maroon on a red checker, the Study Hall, Power Station, Lens Tower, Dooter Arena and Countdown Terminal brick; in the city, the salad diner's path red, the council hall's plaza brown and the Mammoth dome red.
+- Those colors now take their night from the city's own hand-picked table: each of its colors that is not a light weighs in by its nearness (in Oklab), shifting the color as the table shifts its peach, coral, blush, wood and pavement, at 0.8 of its strength. Their lightness is one scale for all of them (0.55), so a shaded side stays darker than its lit side. Creams turn a quiet taupe, peach walls a dusty mauve, coral a muted red.
+- Full over red, orange and yellow, fading out toward pink and toward green, and toward the old formula for the darkest colors, so outlines keep theirs. The table, the lights (windows, gold, neon) and every cool color keep the night they had: the city hall changes only in its pink trim, a shade lighter. A pale yellow no longer jumps from red to green across 70 degrees.
+- The art kit for project buildings (`art/projects/still_motion.py`, outside git) mirrors the new night exactly, and its nudge keeps out only a night that is plainly green; every project building's GIF re-renders the same by day.
+- Tests: test64_night checks the table, the lights, cool colors and outlines unchanged; cream, peach and pale yellow no longer red; shading kept in order; no jump round the hue circle; the city hall as it was but for its trim; and an uploaded warm building drawn by night in the new colors, its lit window shining, and by day as drawn.
+
 ## 0.1.98 (2026-11-27)
 
 Ticking a task settles its T3 threads, from Abdurrahman's task "Ticking the task also closes the T3": "I want to check the task in NC and the thread closes in T3".

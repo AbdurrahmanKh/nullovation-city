@@ -54,7 +54,56 @@ function isLightColor(r, g, b) {
   return (r > 220 && g > 190 && b < 205) || (r > 220 && g < 110 && b > 120) || (g > 200 && b > 220 && r < 120);
 }
 /* A color's night version: the hand-picked table for the city palette, and for anything else the same
-   hue with the lightness dropped and a cool shift toward blue-violet. */
+   hue with the lightness dropped and a cool shift toward blue-violet.
+   Warm colors off the table are the exception (0.1.99): the shift toward blue-violet takes red, orange and yellow
+   the short way round, through red, so the cream, peach, sandstone and pale pink of art drawn outside the palette
+   turned crimson and brick at night. They take their hue from the table instead: each of its colors that is not a
+   light weighs in by its nearness (in Oklab), shifting the color as the table shifts its own peach, coral, blush,
+   wood and pavement, at 0.8 of its strength. Their lightness is one scale for all of them (0.55, about what the
+   formula leaves the cool colors), so a wall's shaded side stays darker than its lit side. Full over red, orange
+   and yellow, fading out toward pink (345 to 360 degrees) and toward green (75 to 100), and toward the formula for
+   the darkest colors, outlines among them. */
+const smoothstep = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+function nightWarmth(deg, l) {
+  const h = deg >= 345 ? smoothstep(345, 360, deg) : deg <= 75 ? 1 : 1 - smoothstep(75, 100, deg);
+  return h * smoothstep(0.12, 0.3, l);
+}
+const toLinear = c => (c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+const fromLinear = c => 255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055);
+function toOklab(r, g, b) {
+  r = toLinear(r); g = toLinear(g); b = toLinear(b);
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+          1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+          0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s];
+}
+function oklabLinear(L, a, b) {           // linear RGB, not yet clipped
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+          -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+}
+const NIGHT_LAB = Object.entries(NIGHT).map(([d, n]) => [hexToRgb(d), hexToRgb(n)])
+  .filter(([d]) => !isLightColor(...d)).map(([d, n]) => [toOklab(...d), toOklab(...n)]);
+function nightFromTable(r, g, b) {
+  const o = toOklab(r, g, b);
+  let sw = 0, da = 0, db = 0;
+  for (const [d, n] of NIGHT_LAB) {
+    const w = 1 / (Math.hypot(o[0] - d[0], o[1] - d[1], o[2] - d[2]) + 1e-6) ** 4;
+    sw += w; da += w * (n[1] - d[1]); db += w * (n[2] - d[2]);
+  }
+  const L = o[0] * 0.55, A = (o[1] + da / sw) * 0.8, B = (o[2] + db / sw) * 0.8;
+  let lin = [0, 0, 0];
+  for (let i = 40; i >= 0; i--) {          // too strong a color for the screen: its chroma pulled in until it fits
+    lin = oklabLinear(L, A * i / 40, B * i / 40);
+    if (lin.every(c => c >= -1e-4 && c <= 1 + 1e-4)) break;
+  }
+  return lin.map(c => Math.floor(fromLinear(Math.min(1, Math.max(0, c))) + 0.5));
+}
 function nightOf(r, g, b) {
   const key = (r << 16) | (g << 8) | b;
   let v = nightTable.get(key);
@@ -64,6 +113,8 @@ function nightOf(r, g, b) {
     const [hh, ss, ll] = rgbToHsl(r, g, b);
     let dh = 0.694 - hh; if (dh > 0.5) dh -= 1; if (dh < -0.5) dh += 1;
     v = hslToRgb((hh + dh * 0.25 + 1) % 1, Math.min(1, ss * 0.55 + 0.05), 0.05 + ll * 0.36);   // darker, cooler, and quieter
+    const w = nightWarmth(hh * 360, ll);
+    if (w > 0) { const t = nightFromTable(r, g, b); v = v.map((c, i) => Math.floor(c + (t[i] - c) * w + 0.5)); }
   }
   nightTable.set(key, v);
   return v;
